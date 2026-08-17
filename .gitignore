@@ -17,3 +17,6 @@ test-results/
 .vitest
 prisma/*.db
 prisma/migrations/dev.db*
+Docs/
+Plannification/
+design-maquette/
