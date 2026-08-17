@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nouveau profil élève - EduSync ERP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#b2c5ff",
+                      "surface-border": "#DFE1E6",
+                      "text-secondary": "#44546F",
+                      "error-container": "#ffdad6",
+                      "text-primary": "#172B4D",
+                      "on-primary-fixed-variant": "#08409e",
+                      "secondary-fixed-dim": "#b7c7e7",
+                      "tertiary": "#004e33",
+                      "surface-dim": "#d9d9e2",
+                      "on-secondary-fixed-variant": "#374762",
+                      "on-secondary": "#ffffff",
+                      "surface-container": "#edeef0",
+                      "on-secondary-fixed": "#0a1c34",
+                      "tertiary-fixed": "#aef1cc",
+                      "error": "#ba1a1a",
+                      "tertiary-container": "#004e33",
+                      "background": "#faf8ff",
+                      "surface": "#f8f9fb",
+                      "on-surface": "#1a1b21",
+                      "surface-tint": "#2f59b7",
+                      "primary-container": "#003d9b",
+                      "on-background": "#1a1b21",
+                      "on-secondary-container": "#51617d",
+                      "on-primary-container": "#91afff",
+                      "secondary-fixed": "#d6e3ff",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#7dbe9c",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#001848",
+                      "tertiary-fixed-dim": "#92d5b1",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-bright": "#faf8ff",
+                      "inverse-on-surface": "#f0f0f9",
+                      "on-surface-variant": "#434652",
+                      "surface-container-high": "#e8e7f0",
+                      "surface-variant": "#e2e2ea",
+                      "surface-container-low": "#f3f3fb",
+                      "secondary": "#4f5f7b",
+                      "primary-fixed": "#dae2ff",
+                      "on-primary": "#ffffff",
+                      "secondary-container": "#cdddff",
+                      "primary": "#00296d",
+                      "outline": "#747783",
+                      "on-error": "#ffffff",
+                      "on-tertiary-fixed-variant": "#065136",
+                      "surface-container-highest": "#e2e2ea",
+                      "inverse-surface": "#2f3037",
+                      "outline-variant": "#c4c6d4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "header-height": "56px",
+                      "row-dense": "32px",
+                      "container-padding": "24px",
+                      "row-standard": "44px",
+                      "sidebar-width": "260px",
+                      "unit": "4px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "body-md": ["Inter", "sans-serif"],
+                      "body-sm": ["Inter", "sans-serif"],
+                      "headline-md": ["Inter", "sans-serif"],
+                      "headline-sm": ["Inter", "sans-serif"],
+                      "display-sm": ["Inter", "sans-serif"],
+                      "label-md": ["Inter", "sans-serif"],
+                      "data-mono": ["JetBrains Mono", "monospace"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "display-sm": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                      "data-mono": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface w-sidebar-width h-full fixed left-0 top-0 border-r border-surface-border dark:border-outline flex flex-col h-full py-container-padding px-4 z-50">
+<div class="mb-8 px-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
+                E
+            </div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-inverse-primary tracking-tight">EduSync ERP</h1>
+<p class="font-label-md text-label-md text-text-secondary">School Administration</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary rounded-xl h-row-standard mb-6 flex items-center justify-center gap-2 font-label-md text-label-md hover:bg-primary-container transition-colors duration-200 ease-in-out shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            New Admission
+        </button>
+<ul class="flex-1 space-y-1">
+<!-- Active Tab: Students -->
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-xl font-semibold duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+                    Students
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-200 ease-in-out rounded-xl font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">school</span>
+                    Academic
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-200 ease-in-out rounded-xl font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">payments</span>
+                    Finance
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-200 ease-in-out rounded-xl font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">badge</span>
+                    Staff
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-200 ease-in-out rounded-xl font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                    Reports
+                </a>
+</li>
+</ul>
+<ul class="mt-auto space-y-1 pt-4 border-t border-surface-border">
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-200 ease-in-out rounded-xl font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-row-standard text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-200 ease-in-out rounded-xl font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">help</span>
+                    Support
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Workspace -->
+<div class="flex-1 flex flex-col ml-[260px] min-h-screen relative">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest dark:bg-surface-dim border-b border-surface-border dark:border-outline h-header-height fixed top-0 right-0 w-[calc(100%-theme(spacing.sidebar-width))] flex justify-between items-center px-container-padding z-40">
+<div class="flex items-center">
+<!-- Search Bar on left as per JSON -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-text-secondary text-[20px]">search</span>
+<input class="h-row-dense pl-10 pr-4 bg-surface-container rounded-lg border-none text-body-md font-body-md focus:ring-1 focus:ring-primary outline-none w-64 placeholder:text-text-secondary" placeholder="Search EduSync..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-8 h-8 flex items-center justify-center text-text-secondary hover:bg-surface-container rounded-full transition-all cursor-pointer">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-text-secondary hover:bg-surface-container rounded-full transition-all cursor-pointer">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-secondary-container overflow-hidden border border-surface-border ml-2 cursor-pointer hover:bg-surface-container dark:hover:bg-inverse-surface transition-all">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="Professional headshot of a school administrator, neutral corporate background, bright professional lighting, ensuring trust and competence" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFg_pQXcjLb6iULeC3Ltp1FTH9bVoGR_BighgEKX3a3xGevYQE5gUUee2TVHTeNaIQm8yHYCGScXCmRKgW3D4Jq4YAiVpJJL0xN2GMJ2D5q-c-74XnaQXQ_x6-PzN0aWsJ_Mwt1TwnQg36ICsVWER1GdLqYdL9L7WjnFtMxA5WXTjYjLpkbWv2bI0qfoCdOV7YzBY1MNQyA-wpFYqzgM5fM-CWhRyoMGEB_lBh1C9pvV6SD3f4n9keLQ"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 mt-header-height overflow-y-auto p-container-padding bg-background">
+<div class="max-w-4xl mx-auto">
+<div class="mb-6 flex justify-between items-end">
+<div>
+<h2 class="font-display-sm text-display-sm text-primary">Nouveau profil élève</h2>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">Saisissez les informations pour créer un nouveau dossier étudiant.</p>
+</div>
+</div>
+<form class="space-y-6">
+<!-- Section 1: Identité de l'élève -->
+<div class="bg-surface-container-lowest border border-surface-border rounded-xl p-6 shadow-sm">
+<h3 class="font-headline-sm text-headline-sm text-text-primary mb-4 pb-2 border-b border-surface-border flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">person</span>
+                            Identité de l'élève
+                        </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Nom -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="nom">Nom de famille <span class="text-error">*</span></label>
+<input class="h-row-dense px-3 bg-surface border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="nom" placeholder="Ex: Dupont" type="text"/>
+</div>
+<!-- Prénoms -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="prenoms">Prénoms <span class="text-error">*</span></label>
+<input class="h-row-dense px-3 bg-surface border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="prenoms" placeholder="Ex: Jean Luc" type="text"/>
+</div>
+<!-- Date de naissance -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="ddn">Date de naissance <span class="text-error">*</span></label>
+<div class="relative">
+<input class="w-full h-row-dense pl-3 pr-10 bg-surface border border-surface-border rounded-lg font-body-md text-body-md text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="ddn" type="date"/>
+</div>
+</div>
+<!-- Lieu de naissance -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="ldn">Lieu de naissance</label>
+<input class="h-row-dense px-3 bg-surface border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="ldn" placeholder="Ex: Paris" type="text"/>
+</div>
+<!-- Genre -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="genre">Genre <span class="text-error">*</span></label>
+<div class="relative">
+<select class="w-full h-row-dense pl-3 pr-10 bg-surface border border-surface-border rounded-lg font-body-md text-body-md text-on-surface appearance-none focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="genre">
+<option disabled="" selected="" value="">Sélectionner</option>
+<option value="M">Masculin</option>
+<option value="F">Féminin</option>
+<option value="X">Autre</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<!-- Nationalité -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="nationalite">Nationalité</label>
+<input class="h-row-dense px-3 bg-surface border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="nationalite" type="text" value="Française"/>
+</div>
+<!-- Photo Upload (Span 2 cols) -->
+<div class="flex flex-col gap-1 md:col-span-2 mt-2">
+<label class="font-label-md text-label-md text-text-secondary">Photo d'identité</label>
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 bg-surface-container border border-surface-border border-dashed rounded-lg flex items-center justify-center text-text-secondary">
+<span class="material-symbols-outlined text-[24px]">add_a_photo</span>
+</div>
+<div class="flex-1 flex items-center gap-3 bg-surface border border-surface-border border-dashed rounded-lg h-[64px] px-4 justify-between cursor-pointer hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary">upload_file</span>
+<span class="font-body-sm text-body-sm text-text-secondary">Glissez une image ou cliquez pour parcourir</span>
+</div>
+<span class="font-label-md text-label-md text-primary bg-primary-container/20 px-2 py-1 rounded">Max 2MB</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Responsables légaux -->
+<div class="bg-surface-container-lowest border border-surface-border rounded-xl p-6 shadow-sm">
+<h3 class="font-headline-sm text-headline-sm text-text-primary mb-4 pb-2 border-b border-surface-border flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">family_restroom</span>
+                            Responsables légaux
+                        </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Responsable 1 -->
+<div class="space-y-4 p-4 border border-surface-border rounded-lg bg-surface">
+<h4 class="font-label-md text-label-md text-primary mb-2 flex items-center gap-2">
+<input checked="" class="text-primary focus:ring-primary border-surface-border h-4 w-4" id="resp1_main" name="resp_principal" type="radio"/>
+<label for="resp1_main">Définir comme responsable principal</label>
+</h4>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="nom_pere">Nom complet (Père / Tuteur 1)</label>
+<input class="h-row-dense px-3 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="nom_pere" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="prof_pere">Profession</label>
+<input class="h-row-dense px-3 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="prof_pere" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="tel_pere">Téléphone</label>
+<input class="h-row-dense px-3 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="tel_pere" placeholder="+33 6 00 00 00 00" type="tel"/>
+</div>
+</div>
+<!-- Responsable 2 -->
+<div class="space-y-4 p-4 border border-surface-border rounded-lg bg-surface">
+<h4 class="font-label-md text-label-md text-text-secondary mb-2 flex items-center gap-2">
+<input class="text-primary focus:ring-primary border-surface-border h-4 w-4" id="resp2_main" name="resp_principal" type="radio"/>
+<label for="resp2_main">Définir comme responsable principal</label>
+</h4>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="nom_mere">Nom complet (Mère / Tuteur 2)</label>
+<input class="h-row-dense px-3 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="nom_mere" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="prof_mere">Profession</label>
+<input class="h-row-dense px-3 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="prof_mere" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-text-secondary" for="tel_mere">Téléphone</label>
+<input class="h-row-dense px-3 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="tel_mere" placeholder="+33 6 00 00 00 00" type="tel"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="flex items-center justify-end gap-3 pt-6 border-t border-surface-border">
+<button class="h-row-dense px-4 border border-outline rounded-lg bg-transparent text-text-secondary font-label-md text-label-md hover:bg-surface-container-high transition-colors" type="button">
+                            Annuler
+                        </button>
+<button class="h-row-dense px-6 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-2" type="submit">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Enregistrer l'élève
+                        </button>
+</div>
+</form>
+</div>
+</main>
+</div>
+</body></html>

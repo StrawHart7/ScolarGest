@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduSync ERP - Livret Scolaire Primaire</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "surface": "#f8f9fb",
+                            "on-surface": "#1a1b21",
+                            "surface-container-highest": "#e2e2ea",
+                            "tertiary-fixed": "#aef1cc",
+                            "tertiary": "#004e33",
+                            "error-container": "#ffdad6",
+                            "surface-dim": "#d9d9e2",
+                            "surface-container": "#eeedf6",
+                            "on-secondary-fixed": "#0a1c34",
+                            "on-tertiary": "#ffffff",
+                            "on-primary-fixed-variant": "#08409e",
+                            "secondary-container": "#cdddff",
+                            "inverse-on-surface": "#f0f0f9",
+                            "on-secondary-container": "#51617d",
+                            "surface-container-lowest": "#ffffff",
+                            "secondary-fixed": "#d6e3ff",
+                            "on-secondary": "#ffffff",
+                            "surface-container-low": "#f3f3fb",
+                            "on-error": "#ffffff",
+                            "on-tertiary-container": "#7dbe9c",
+                            "on-surface-variant": "#434652",
+                            "tertiary-container": "#004e33",
+                            "on-primary-container": "#91afff",
+                            "primary-fixed": "#dae2ff",
+                            "surface-container-high": "#e8e7f0",
+                            "surface-border": "#DFE1E6",
+                            "inverse-surface": "#2f3037",
+                            "surface-bright": "#faf8ff",
+                            "primary": "#00296d",
+                            "secondary-fixed-dim": "#b7c7e7",
+                            "outline-variant": "#c4c6d4",
+                            "error": "#ba1a1a",
+                            "on-background": "#1a1b21",
+                            "surface-variant": "#e2e2ea",
+                            "on-tertiary-fixed": "#002113",
+                            "on-tertiary-fixed-variant": "#065136",
+                            "tertiary-fixed-dim": "#92d5b1",
+                            "primary-container": "#003d9b",
+                            "background": "#faf8ff",
+                            "primary-fixed-dim": "#b2c5ff",
+                            "text-primary": "#172B4D",
+                            "outline": "#747783",
+                            "surface-tint": "#2f59b7",
+                            "on-error-container": "#93000a",
+                            "on-primary-fixed": "#001848",
+                            "on-secondary-fixed-variant": "#374762",
+                            "text-secondary": "#44546F",
+                            "secondary": "#4f5f7b",
+                            "inverse-primary": "#b2c5ff",
+                            "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.125rem",
+                            "lg": "0.25rem",
+                            "xl": "0.5rem",
+                            "full": "0.75rem"
+                    },
+                    "spacing": {
+                            "container-padding": "24px",
+                            "sidebar-width": "260px",
+                            "row-standard": "44px",
+                            "header-height": "56px",
+                            "unit": "4px",
+                            "gutter": "16px",
+                            "row-dense": "32px"
+                    },
+                    "fontFamily": {
+                            "headline-md": ["Inter"],
+                            "body-sm": ["Inter"],
+                            "label-md": ["Inter"],
+                            "display-sm": ["Inter"],
+                            "body-md": ["Inter"],
+                            "headline-sm": ["Inter"],
+                            "data-mono": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                            "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                            "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                            "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                            "display-sm": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                            "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                            "data-mono": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="flex min-h-screen bg-background">
+<!-- SideNavBar -->
+<aside class="w-sidebar-width h-screen sticky left-0 top-0 border-r border-surface-border bg-surface hidden md:flex flex-col py-4 px-2">
+<div class="px-4 pb-6 flex flex-col gap-1">
+<span class="font-headline-md text-headline-md font-bold text-primary">EduSync ERP</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Admin Console</span>
+</div>
+<nav class="flex flex-col gap-1 flex-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-fixed text-on-primary-fixed-variant rounded-lg font-semibold transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="group" data-weight="fill" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-body-md text-body-md">Students</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+<span class="font-body-md text-body-md">Academic</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-body-md text-body-md">Finance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="font-body-md text-body-md">Staff</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span class="font-body-md text-body-md">Reports</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-w-0">
+<!-- TopNavBar -->
+<header class="h-header-height sticky top-0 z-50 w-full bg-surface-container-lowest border-b border-surface-border flex justify-between items-center px-container-padding">
+<div class="flex items-center gap-4">
+<span class="md:hidden font-headline-sm text-headline-sm font-extrabold text-primary">EduSync ERP</span>
+<!-- Breadcrumbs -->
+<div class="hidden md:flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
+<span>Students</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span>Léa Dubois (CP)</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary font-medium">Livret Scolaire</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-low border border-surface-border rounded-full font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64 transition-all" placeholder="Search..." type="text"/>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<img class="w-8 h-8 rounded-full object-cover border border-surface-border" data-alt="A small circular profile avatar of an administrator in a professional, modern enterprise dashboard setting. Clear, clean corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9cUwON54MAyl_qZdqjfVHE9_qvfSbFtXIzFVow7SdKU8KfhUA90f6rjyLGgymZvf-LUf-_z6HtRU7snLdvq72r7l8FktlCB-JOEdd3PYIYSQI8cvfPFSA9ztaYCbxSKXSXoPJYaURivwnySYPhr2yzoRL4ji7JmEUEs0Q2zk3GD5NOo5NOzvAL1WNZUFkWVR4q8OUo-RKNqTeZzGQqR7vYjzxnX4YC_XZI_2tqh73C0prLlUBd3E32w"/>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-container-padding overflow-y-auto bg-surface-container-low">
+<div class="max-w-5xl mx-auto space-y-6">
+<!-- Header Card -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border p-6 shadow-sm">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+<div>
+<h1 class="font-display-sm text-display-sm text-text-primary mb-1">Livret Scolaire</h1>
+<p class="font-body-md text-body-md text-text-secondary">Trimestre 1 - Année 2023/2024</p>
+</div>
+<div class="text-right">
+<div class="font-headline-md text-headline-md text-text-primary">Global Academy</div>
+<div class="font-body-sm text-body-sm text-text-secondary">École Primaire - Classe de CP</div>
+</div>
+</div>
+<div class="flex items-center gap-4 p-4 bg-surface-container rounded-lg border border-surface-border">
+<div class="w-16 h-16 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-display-sm text-display-sm">
+                            LD
+                        </div>
+<div>
+<div class="font-headline-md text-headline-md text-text-primary">Léa Dubois</div>
+<div class="font-body-md text-body-md text-text-secondary">Née le 14/05/2017</div>
+</div>
+</div>
+</div>
+<!-- Competencies Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Français -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border overflow-hidden shadow-sm">
+<div class="bg-surface-container p-4 border-b border-surface-border flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">menu_book</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Français</h2>
+</div>
+<div class="p-0">
+<table class="w-full text-left border-collapse">
+<tbody>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Reconnaître les lettres de l'alphabet</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Acquis
+                                            </span>
+</td>
+</tr>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard bg-surface-bright">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Déchiffrer des mots simples</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Acquis
+                                            </span>
+</td>
+</tr>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Comprendre un texte court</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">pending</span> En cours
+                                            </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-row-standard bg-surface-bright">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Écrire des syllabes dictées</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">cancel</span> Non acquis
+                                            </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Mathématiques -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border overflow-hidden shadow-sm">
+<div class="bg-surface-container p-4 border-b border-surface-border flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">calculate</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Mathématiques</h2>
+</div>
+<div class="p-0">
+<table class="w-full text-left border-collapse">
+<tbody>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Compter jusqu'à 30</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Acquis
+                                            </span>
+</td>
+</tr>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard bg-surface-bright">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Additionner des petits nombres</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">pending</span> En cours
+                                            </span>
+</td>
+</tr>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Reconnaître les figures géométriques</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Acquis
+                                            </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Éveil / Autres -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border overflow-hidden shadow-sm md:col-span-2">
+<div class="bg-surface-container p-4 border-b border-surface-border flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">public</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Éveil &amp; Autonomie</h2>
+</div>
+<div class="p-0">
+<table class="w-full text-left border-collapse">
+<tbody>
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors h-row-standard">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Se repérer dans le temps (jour, semaine)</td>
+<td class="pr-4 py-2 text-right w-32">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Acquis
+                                            </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-row-standard bg-surface-bright">
+<td class="pl-4 pr-2 py-2 font-body-sm text-body-sm text-text-primary">Respecter les règles de vie de classe</td>
+<td class="pr-4 py-2 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Acquis
+                                            </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Appréciation Globale -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border p-6 shadow-sm">
+<h2 class="font-headline-sm text-headline-sm text-text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">comment</span>
+                        Appréciation globale de l'enseignant
+                    </h2>
+<div class="p-4 bg-surface-container-low border border-surface-border rounded-lg">
+<p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+                            Léa a fait une bonne rentrée au CP. Elle est curieuse et participe volontiers à l'oral. Les apprentissages en lecture démarrent bien, il faut continuer à s'entraîner régulièrement pour consolider le déchiffrage. En mathématiques, la numération est bien acquise. Poursuivez vos efforts !
+                        </p>
+</div>
+<div class="mt-6 flex justify-end gap-8">
+<div class="text-center">
+<div class="font-label-md text-label-md text-text-secondary mb-8">L'enseignant(e)</div>
+<div class="font-headline-sm text-headline-sm text-text-primary">M. Martin</div>
+</div>
+<div class="text-center">
+<div class="font-label-md text-label-md text-text-secondary mb-8">Le Directeur</div>
+<div class="font-headline-sm text-headline-sm text-text-primary">Mme. Dupont</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

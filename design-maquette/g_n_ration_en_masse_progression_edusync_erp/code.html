@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Confirmation de génération des bulletins</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: 400;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#f8f9fb",
+                        "on-surface": "#1a1b21",
+                        "surface-container-highest": "#e2e2ea",
+                        "tertiary-fixed": "#aef1cc",
+                        "tertiary": "#004e33",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#d9d9e2",
+                        "surface-container": "#eeedf6",
+                        "on-secondary-fixed": "#0a1c34",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#08409e",
+                        "secondary-container": "#cdddff",
+                        "inverse-on-surface": "#f0f0f9",
+                        "on-secondary-container": "#51617d",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f3f3fb",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#7dbe9c",
+                        "on-surface-variant": "#434652",
+                        "tertiary-container": "#004e33",
+                        "on-primary-container": "#91afff",
+                        "primary-fixed": "#dae2ff",
+                        "surface-container-high": "#e8e7f0",
+                        "surface-border": "#DFE1E6",
+                        "inverse-surface": "#2f3037",
+                        "surface-bright": "#faf8ff",
+                        "primary": "#00296d",
+                        "secondary-fixed-dim": "#b7c7e7",
+                        "outline-variant": "#c4c6d4",
+                        "error": "#ba1a1a",
+                        "on-background": "#1a1b21",
+                        "surface-variant": "#e2e2ea",
+                        "on-tertiary-fixed": "#002113",
+                        "on-tertiary-fixed-variant": "#065136",
+                        "tertiary-fixed-dim": "#92d5b1",
+                        "primary-container": "#003d9b",
+                        "background": "#faf8ff",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "text-primary": "#172B4D",
+                        "outline": "#747783",
+                        "surface-tint": "#2f59b7",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#001848",
+                        "on-secondary-fixed-variant": "#374762",
+                        "text-secondary": "#44546F",
+                        "secondary": "#4f5f7b",
+                        "inverse-primary": "#b2c5ff",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-padding": "24px",
+                        "sidebar-width": "260px",
+                        "row-standard": "44px",
+                        "header-height": "56px",
+                        "unit": "4px",
+                        "gutter": "16px",
+                        "row-dense": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-sm": ["Inter", "sans-serif"],
+                        "label-md": ["Inter", "sans-serif"],
+                        "display-sm": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "headline-sm": ["Inter", "sans-serif"],
+                        "data-mono": ["JetBrains Mono", "monospace"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "display-sm": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface flex h-screen overflow-hidden font-body-md text-body-md">
+<!-- SideNavBar -->
+<aside class="w-sidebar-width h-screen sticky left-0 top-0 border-r border-surface-border bg-surface flex flex-col h-full py-4 px-2">
+<div class="px-4 pb-6 pt-2">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">EduSync ERP</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Admin Console</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant group-hover:text-primary transition-colors">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant group-hover:text-primary transition-colors">group</span>
+<span>Students</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant group-hover:text-primary transition-colors">school</span>
+<span>Academic</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant group-hover:text-primary transition-colors">payments</span>
+<span>Finance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant group-hover:text-primary transition-colors">badge</span>
+<span>Staff</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-fixed text-on-primary-fixed-variant rounded-lg font-semibold transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span>Reports</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full bg-surface-bright overflow-hidden">
+<!-- TopNavBar -->
+<header class="h-header-height sticky top-0 z-50 w-full border-b border-surface-border bg-surface-container-lowest flex justify-between items-center px-container-padding">
+<div class="flex items-center">
+<!-- Search could go here based on JSON 'search_bar: on_left' but typically not prioritized over page title in this context, keeping it clean -->
+<div class="relative w-64 text-on-surface-variant">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]">search</span>
+<input class="w-full h-9 pl-10 pr-4 bg-surface rounded-full border border-surface-border font-body-sm text-body-sm focus:outline-none focus:border-primary transition-colors" placeholder="Rechercher..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-highest cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-highest cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-label-md text-label-md ml-2 border border-surface-border overflow-hidden">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a school administrator in a modern office environment, wearing a neat navy blue blazer. Bright, soft studio lighting. Corporate, modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEuIO_sloCVC_w7IcKi-0vn-1EyzL511dtCV7eJwPc5svhlW-JwRkwgHT-D8vQDzaqUu0aF9GeNPp07WrAE7LdYwI9L31NsKAUgs62fUQTxYSwq-AAKS22P6PTzkT3qAKCXJKC-pWPHzZry9J0FlMi9lvEoSGp2YTthWS0rMOmbVDxuMWyrfmMZHXTdDSiM_KjNdd-3sPguvAoelekf1eMNO0K9ZzpBJXfm-_3W2aOMWJfIb-z7_odWw"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 overflow-y-auto p-container-padding">
+<!-- Bento Layout Container -->
+<div class="max-w-5xl mx-auto space-y-gutter">
+<!-- Status & Action Card -->
+<section class="bg-surface-container-lowest border border-surface-border rounded-xl p-6 flex flex-col gap-6 shadow-sm">
+<!-- Header & Success Message -->
+<div class="flex items-start justify-between">
+<div>
+<h2 class="font-display-sm text-display-sm text-primary mb-2">Génération des Bulletins : 6ème A</h2>
+<div class="inline-flex items-center gap-2 bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1.5 rounded-md">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-md text-label-md">Tous les bulletins de la 6ème A ont été générés avec succès.</span>
+</div>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Progression du traitement</span>
+<span class="font-data-mono text-data-mono text-primary font-bold">45 / 45 bulletins générés</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Final Actions -->
+<div class="flex gap-4 pt-4 border-t border-surface-border">
+<button class="flex items-center gap-2 px-6 h-row-standard bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">folder_zip</span>
+                            Télécharger l'archive ZIP
+                        </button>
+<button class="flex items-center gap-2 px-6 h-row-standard bg-surface-container-lowest border border-outline text-text-primary rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">print</span>
+                            Imprimer tout
+                        </button>
+</div>
+</section>
+<!-- Detailed List Card -->
+<section class="bg-surface-container-lowest border border-surface-border rounded-xl flex flex-col overflow-hidden shadow-sm">
+<div class="px-6 py-4 border-b border-surface-border bg-surface-container-low flex justify-between items-center">
+<h3 class="font-headline-sm text-headline-sm text-primary">Liste des Élèves (6ème A)</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">45 éléments</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-border bg-surface-bright">
+<th class="px-6 py-3 font-label-md text-label-md text-text-secondary w-12 text-center">N°</th>
+<th class="px-6 py-3 font-label-md text-label-md text-text-secondary">Nom de l'élève</th>
+<th class="px-6 py-3 font-label-md text-label-md text-text-secondary text-right">Moyenne Générale</th>
+<th class="px-6 py-3 font-label-md text-label-md text-text-secondary text-right">Statut</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<!-- Row 1 -->
+<tr class="border-b border-surface-border hover:bg-surface-container-lowest transition-colors h-row-dense">
+<td class="px-6 font-data-mono text-data-mono text-on-surface-variant text-center">01</td>
+<td class="px-6 text-on-surface font-medium">BOUCHARD, Amélie</td>
+<td class="px-6 font-data-mono text-data-mono text-right">16.4 / 20</td>
+<td class="px-6 text-right">
+<div class="inline-flex items-center justify-end gap-1.5 text-tertiary">
+<span class="font-label-md text-label-md">Terminé</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-surface-border bg-surface-container-low hover:bg-surface-container-lowest transition-colors h-row-dense">
+<td class="px-6 font-data-mono text-data-mono text-on-surface-variant text-center">02</td>
+<td class="px-6 text-on-surface font-medium">DUBOIS, Clément</td>
+<td class="px-6 font-data-mono text-data-mono text-right">14.2 / 20</td>
+<td class="px-6 text-right">
+<div class="inline-flex items-center justify-end gap-1.5 text-tertiary">
+<span class="font-label-md text-label-md">Terminé</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-surface-border hover:bg-surface-container-lowest transition-colors h-row-dense">
+<td class="px-6 font-data-mono text-data-mono text-on-surface-variant text-center">03</td>
+<td class="px-6 text-on-surface font-medium">FONTAINE, Sophie</td>
+<td class="px-6 font-data-mono text-data-mono text-right">15.8 / 20</td>
+<td class="px-6 text-right">
+<div class="inline-flex items-center justify-end gap-1.5 text-tertiary">
+<span class="font-label-md text-label-md">Terminé</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="border-b border-surface-border bg-surface-container-low hover:bg-surface-container-lowest transition-colors h-row-dense">
+<td class="px-6 font-data-mono text-data-mono text-on-surface-variant text-center">04</td>
+<td class="px-6 text-on-surface font-medium">LEFEBVRE, Lucas</td>
+<td class="px-6 font-data-mono text-data-mono text-right">12.5 / 20</td>
+<td class="px-6 text-right">
+<div class="inline-flex items-center justify-end gap-1.5 text-tertiary">
+<span class="font-label-md text-label-md">Terminé</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="border-b border-surface-border hover:bg-surface-container-lowest transition-colors h-row-dense">
+<td class="px-6 font-data-mono text-data-mono text-on-surface-variant text-center">05</td>
+<td class="px-6 text-on-surface font-medium">MARTIN, Chloé</td>
+<td class="px-6 font-data-mono text-data-mono text-right">17.1 / 20</td>
+<td class="px-6 text-right">
+<div class="inline-flex items-center justify-end gap-1.5 text-tertiary">
+<span class="font-label-md text-label-md">Terminé</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Footer Pagination/Notice -->
+<div class="px-6 py-4 bg-surface-bright flex justify-between items-center text-on-surface-variant border-t border-surface-border">
+<span class="font-body-sm text-body-sm">Affichage de 5 sur 45 élèves</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 border border-surface-border rounded text-outline hover:bg-surface-container transition-colors disabled:opacity-50" disabled="">Précédent</button>
+<button class="px-3 py-1 border border-surface-border rounded text-primary hover:bg-surface-container transition-colors">Suivant</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>

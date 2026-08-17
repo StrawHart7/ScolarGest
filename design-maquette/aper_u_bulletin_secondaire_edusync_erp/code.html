@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduSync ERP - Bulletin Scolaire</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration (From Design System) -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#f8f9fb",
+                    "on-surface": "#1a1b21",
+                    "surface-container-highest": "#e2e2ea",
+                    "tertiary-fixed": "#aef1cc",
+                    "tertiary": "#004e33",
+                    "error-container": "#ffdad6",
+                    "surface-dim": "#d9d9e2",
+                    "surface-container": "#eeedf6",
+                    "on-secondary-fixed": "#0a1c34",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#08409e",
+                    "secondary-container": "#cdddff",
+                    "inverse-on-surface": "#f0f0f9",
+                    "on-secondary-container": "#51617d",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#d6e3ff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f3f3fb",
+                    "on-error": "#ffffff",
+                    "on-tertiary-container": "#7dbe9c",
+                    "on-surface-variant": "#434652",
+                    "tertiary-container": "#004e33",
+                    "on-primary-container": "#91afff",
+                    "primary-fixed": "#dae2ff",
+                    "surface-container-high": "#e8e7f0",
+                    "surface-border": "#DFE1E6",
+                    "inverse-surface": "#2f3037",
+                    "surface-bright": "#faf8ff",
+                    "primary": "#00296d",
+                    "secondary-fixed-dim": "#b7c7e7",
+                    "outline-variant": "#c4c6d4",
+                    "error": "#ba1a1a",
+                    "on-background": "#1a1b21",
+                    "surface-variant": "#e2e2ea",
+                    "on-tertiary-fixed": "#002113",
+                    "on-tertiary-fixed-variant": "#065136",
+                    "tertiary-fixed-dim": "#92d5b1",
+                    "primary-container": "#003d9b",
+                    "background": "#faf8ff",
+                    "primary-fixed-dim": "#b2c5ff",
+                    "text-primary": "#172B4D",
+                    "outline": "#747783",
+                    "surface-tint": "#2f59b7",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed": "#001848",
+                    "on-secondary-fixed-variant": "#374762",
+                    "text-secondary": "#44546F",
+                    "secondary": "#4f5f7b",
+                    "inverse-primary": "#b2c5ff",
+                    "on-primary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-padding": "24px",
+                    "sidebar-width": "260px",
+                    "row-standard": "44px",
+                    "header-height": "56px",
+                    "unit": "4px",
+                    "gutter": "16px",
+                    "row-dense": "32px"
+            },
+            "fontFamily": {
+                    "headline-md": [
+                            "Inter", "sans-serif"
+                    ],
+                    "body-sm": [
+                            "Inter", "sans-serif"
+                    ],
+                    "label-md": [
+                            "Inter", "sans-serif"
+                    ],
+                    "display-sm": [
+                            "Inter", "sans-serif"
+                    ],
+                    "body-md": [
+                            "Inter", "sans-serif"
+                    ],
+                    "headline-sm": [
+                            "Inter", "sans-serif"
+                    ],
+                    "data-mono": [
+                            "JetBrains Mono", "monospace"
+                    ]
+            },
+            "fontSize": {
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-md": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-sm": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-sm": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "data-mono": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom overrides if needed to strictly enforce exact styling mapped to tokens */
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- SideNavBar (Shared Component) -->
+<nav class="hidden md:flex flex-col h-full py-4 px-2 bg-surface border-r border-surface-border w-sidebar-width h-screen sticky left-0 top-0">
+<div class="px-4 pb-6">
+<div class="flex items-center gap-3">
+<!-- Avatar placeholder removed, keeping minimal text logo for strict institutional feel -->
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">EduSync ERP</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Admin Console</p>
+</div>
+</div>
+</div>
+<div class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<!-- Academic is active based on context (Bulletin Scolaire) -->
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-fixed text-on-primary-fixed-variant rounded-lg font-semibold transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="school" style="font-variation-settings: 'FILL' 1;">school</span>
+<span>Academic</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Students</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Finance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span>Staff</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 ease-in-out rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span>Reports</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col w-full">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center px-container-padding w-full h-header-height sticky top-0 z-50 bg-surface-container-lowest border-b border-surface-border">
+<div class="md:hidden flex items-center">
+<h1 class="font-headline-sm text-headline-sm font-extrabold text-primary">EduSync ERP</h1>
+</div>
+<div class="flex-1 max-w-md ml-4 hidden md:block">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size: 20px;">search</span>
+<input class="w-full pl-10 pr-4 py-1.5 bg-surface-container-lowest border border-surface-border rounded font-body-sm text-body-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container" placeholder="Search records..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4 ml-auto">
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-surface-border ml-2 flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A highly detailed professional headshot of a corporate administrator in a modern office setting. Sharp focus, high contrast, neutral colors. Business professional attire." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUVj1CKErD8THVVXcCgU-Qosb20jrlj7zJDT1MEcMwOIFWG3KpB9bpuKLbi1BGHtv8ogz1LBHGqqWAKwpxUrzsBDkWFP5uIPVC-dzQ1i6RK7xPRyANRHkVbmXoO3lYtZbo3iMNy3UEqz10lCS9BOqAFiC71Idpx3-QMVxrPRaFB-31SrkgBDFQo7Bc76viwNL-6wquMhxCUCEu8YmIRwr2u5nFa4Mykhhk5ZCQpjauPChtZDgMgwKhhQ"/>
+</div>
+</div>
+</header>
+<!-- Page Content Canvas -->
+<main class="flex-1 p-container-padding bg-background overflow-y-auto flex justify-center">
+<!-- Bulletin Document Frame -->
+<div class="w-full max-w-[900px] bg-surface-container-lowest border border-surface-border p-8 shadow-sm">
+<!-- Document Header -->
+<div class="flex justify-between items-start border-b-2 border-primary pb-6 mb-8">
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 bg-surface-variant flex items-center justify-center border border-surface-border">
+<span class="material-symbols-outlined text-3xl text-primary">account_balance</span>
+</div>
+<div>
+<h2 class="font-display-sm text-display-sm font-bold text-text-primary uppercase tracking-tight">Global Academy</h2>
+<p class="font-body-sm text-body-sm text-text-secondary">Avenue des Sciences, 1000 Bruxelles</p>
+<p class="font-body-sm text-body-sm text-text-secondary">Tél : +32 2 555 12 34 • email: admin@global-academy.edu</p>
+</div>
+</div>
+<div class="text-right">
+<h1 class="font-headline-md text-headline-md font-bold text-text-primary uppercase">Bulletin Scolaire</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">Année Scolaire : <span class="font-data-mono text-data-mono">2023-2024</span></p>
+<p class="font-body-sm text-body-sm text-text-secondary">Trimestre : <span class="font-data-mono text-data-mono">1</span></p>
+</div>
+</div>
+<!-- Student Info Block -->
+<div class="grid grid-cols-2 gap-4 mb-8 bg-surface-container-low p-4 border border-surface-border rounded-DEFAULT">
+<div>
+<div class="flex mb-2">
+<span class="font-label-md text-label-md text-text-secondary w-24">Nom :</span>
+<span class="font-headline-sm text-headline-sm text-text-primary font-bold">DUPONT</span>
+</div>
+<div class="flex mb-2">
+<span class="font-label-md text-label-md text-text-secondary w-24">Prénom :</span>
+<span class="font-body-md text-body-md text-text-primary">Jean-Baptiste</span>
+</div>
+<div class="flex">
+<span class="font-label-md text-label-md text-text-secondary w-24">Né(e) le :</span>
+<span class="font-data-mono text-data-mono text-text-primary">12/04/2008</span>
+</div>
+</div>
+<div>
+<div class="flex mb-2">
+<span class="font-label-md text-label-md text-text-secondary w-24">Matricule :</span>
+<span class="font-data-mono text-data-mono text-text-primary">GA-84920</span>
+</div>
+<div class="flex mb-2">
+<span class="font-label-md text-label-md text-text-secondary w-24">Classe :</span>
+<span class="font-body-md text-body-md text-text-primary font-bold">4ème B - Section Scientifique</span>
+</div>
+<div class="flex">
+<span class="font-label-md text-label-md text-text-secondary w-24">Effectif :</span>
+<span class="font-data-mono text-data-mono text-text-primary">28</span>
+</div>
+</div>
+</div>
+<!-- Dense Data Table -->
+<div class="border border-surface-border mb-8 overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-high border-b border-surface-border">
+<tr>
+<th class="py-3 px-4 font-label-md text-label-md text-text-primary w-1/4">Matières</th>
+<th class="py-3 px-4 font-label-md text-label-md text-text-primary text-center w-16">Coef.</th>
+<th class="py-3 px-4 font-label-md text-label-md text-text-primary text-center w-24">Moyenne</th>
+<th class="py-3 px-4 font-label-md text-label-md text-text-primary text-center w-16">Rang</th>
+<th class="py-3 px-4 font-label-md text-label-md text-text-primary">Appréciation du Professeur</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Mathématiques -->
+<tr class="border-b border-surface-border bg-surface-container-lowest h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">Mathématiques</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">4</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">16.50</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">3</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Très bon trimestre. Travail sérieux et régulier. Continuez ainsi.</td>
+</tr>
+<!-- Physique-Chimie -->
+<tr class="border-b border-surface-border bg-surface-container-low h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">Physique-Chimie</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">3</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">14.00</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">6</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Bon niveau d'ensemble, participe bien à l'oral.</td>
+</tr>
+<!-- SVT -->
+<tr class="border-b border-surface-border bg-surface-container-lowest h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">SVT</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">3</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">12.50</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">11</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Résultats satisfaisants, mais un manque d'attention en fin de trimestre.</td>
+</tr>
+<!-- Français -->
+<tr class="border-b border-surface-border bg-surface-container-low h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">Français</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">4</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">15.00</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">2</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Excellent travail de rédaction. Beaucoup de pertinence dans les analyses.</td>
+</tr>
+<!-- Histoire-Géo -->
+<tr class="border-b border-surface-border bg-surface-container-lowest h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">Histoire-Géographie</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">2</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">11.00</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">15</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Trimestre moyen. Il faut approfondir l'apprentissage des leçons.</td>
+</tr>
+<!-- Anglais -->
+<tr class="border-b border-surface-border bg-surface-container-low h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">Anglais LV1</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">3</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">17.25</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">1</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Excellent niveau, participation active et pertinente.</td>
+</tr>
+<!-- EPS -->
+<tr class="border-b border-surface-border bg-surface-container-lowest h-row-dense">
+<td class="py-2 px-4 font-semibold text-text-primary">EPS</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">1</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono font-bold text-text-primary">14.50</td>
+<td class="py-2 px-4 text-center font-data-mono text-data-mono text-text-secondary">8</td>
+<td class="py-2 px-4 text-text-secondary text-sm">Bon investissement dans les cycles de sport collectifs.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Footer Summary Grid -->
+<div class="grid grid-cols-2 gap-6 mb-12">
+<!-- Global Averages -->
+<div class="bg-primary-fixed p-6 border border-surface-border rounded-DEFAULT">
+<div class="flex justify-between items-center mb-4 border-b border-primary-fixed-dim pb-2">
+<span class="font-headline-sm text-headline-sm text-on-primary-fixed-variant font-bold">Moyenne Générale</span>
+<span class="font-data-mono text-[20px] font-bold text-on-primary-fixed-variant">14.78</span>
+</div>
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-md text-label-md text-on-primary-fixed-variant opacity-80">Moyenne Classe</span>
+<span class="font-data-mono text-data-mono text-on-primary-fixed-variant opacity-80">12.35</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-label-md text-label-md text-on-primary-fixed-variant opacity-80">Rang Général</span>
+<span class="font-data-mono text-data-mono font-bold text-on-primary-fixed-variant">4 / 28</span>
+</div>
+</div>
+<!-- Global Appreciation -->
+<div class="bg-surface-container-low p-6 border border-surface-border rounded-DEFAULT">
+<h3 class="font-label-md text-label-md text-text-secondary mb-2 uppercase tracking-wide">Avis du Conseil de Classe</h3>
+<p class="font-body-md text-body-md text-text-primary italic">"Un trimestre très satisfaisant dans l'ensemble. Élève sérieux et moteur pour la classe. Félicitations du conseil de classe accordées à l'unanimité."</p>
+</div>
+</div>
+<!-- Signatures -->
+<div class="flex justify-between mt-8 pt-8 border-t border-surface-border">
+<div class="text-center w-1/3">
+<p class="font-label-md text-label-md text-text-secondary mb-16">Le Professeur Principal</p>
+<p class="font-body-md text-body-md text-text-primary border-t border-surface-border pt-2 w-3/4 mx-auto">Mme. LEFEBVRE</p>
+</div>
+<div class="text-center w-1/3">
+<p class="font-label-md text-label-md text-text-secondary mb-16">Signature des Parents</p>
+<p class="font-body-sm text-body-sm text-text-secondary border-t border-surface-border pt-2 w-3/4 mx-auto italic">(Lu et pris connaissance)</p>
+</div>
+<div class="text-center w-1/3">
+<p class="font-label-md text-label-md text-text-secondary mb-16">Le Chef d'Établissement</p>
+<p class="font-body-md text-body-md text-text-primary border-t border-surface-border pt-2 w-3/4 mx-auto">M. DUBOIS</p>
+</div>
+</div>
+<div class="mt-8 text-center">
+<p class="font-label-md text-label-md text-outline opacity-50">Document généré par EduSync ERP - Confidentiel</p>
+</div>
+</div>
+</main>
+</div>
+</body></html>

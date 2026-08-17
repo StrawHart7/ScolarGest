@@ -1,0 +1,112 @@
+import type { Config } from 'tailwindcss';
+
+// Tokens from Docs/DESIGN.md (Luminous Institutional).
+const config: Config = {
+  content: ['./src/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        surface: {
+          DEFAULT: '#f8f9fb',
+          dim: '#d9dadc',
+          bright: '#f8f9fb',
+          container: {
+            lowest: '#ffffff',
+            low: '#FBFBFC',
+            DEFAULT: '#edeef0',
+            high: '#e7e8ea',
+            highest: '#e1e2e4',
+          },
+          variant: '#e1e2e4',
+          border: '#DFE1E6',
+          tint: '#0c56d0',
+        },
+        'on-surface': {
+          DEFAULT: '#191c1e',
+          variant: '#434654',
+        },
+        'inverse-surface': '#2e3132',
+        'inverse-on-surface': '#f0f1f3',
+        outline: {
+          DEFAULT: '#737685',
+          variant: '#c3c6d6',
+        },
+        primary: {
+          DEFAULT: '#003d9b',
+          container: '#0052cc',
+          on: '#ffffff',
+          'on-container': '#c4d2ff',
+          fixed: '#dae2ff',
+          'fixed-dim': '#b2c5ff',
+          'on-fixed': '#001848',
+          'on-fixed-variant': '#0040a2',
+        },
+        'inverse-primary': '#b2c5ff',
+        secondary: {
+          DEFAULT: '#4f5f7b',
+          container: '#cdddff',
+          on: '#ffffff',
+          'on-container': '#51617e',
+          fixed: '#d6e3ff',
+          'fixed-dim': '#b7c7e8',
+          'on-fixed': '#091c35',
+          'on-fixed-variant': '#374763',
+        },
+        tertiary: {
+          DEFAULT: '#004e33',
+          container: '#056846',
+          on: '#ffffff',
+          'on-container': '#91e4b9',
+          fixed: '#a0f4c8',
+          'fixed-dim': '#85d7ad',
+          'on-fixed': '#002113',
+          'on-fixed-variant': '#005236',
+        },
+        error: {
+          DEFAULT: '#ba1a1a',
+          container: '#ffdad6',
+          on: '#ffffff',
+          'on-container': '#93000a',
+        },
+        background: '#f8f9fb',
+        'on-background': '#191c1e',
+        'text-primary': '#172B4D',
+        'text-secondary': '#44546F',
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
+      },
+      fontSize: {
+        'display-sm': ['24px', { lineHeight: '32px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'headline-md': ['18px', { lineHeight: '24px', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'headline-sm': ['16px', { lineHeight: '24px', fontWeight: '600' }],
+        'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],
+        'body-sm': ['13px', { lineHeight: '18px', fontWeight: '400' }],
+        'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.02em', fontWeight: '600' }],
+        'data-mono': ['12px', { lineHeight: '16px', fontWeight: '400' }],
+      },
+      borderRadius: {
+        sm: '0.125rem',
+        DEFAULT: '0.25rem',
+        md: '0.375rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+      },
+      spacing: {
+        sidebar: '260px',
+        header: '56px',
+        'container-pad': '24px',
+        gutter: '16px',
+        'row-dense': '32px',
+        'row-standard': '44px',
+      },
+      boxShadow: {
+        floating: '0px 4px 12px rgba(9, 30, 66, 0.08)',
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

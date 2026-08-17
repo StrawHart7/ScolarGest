@@ -1,0 +1,334 @@
+<!DOCTYPE html><html class="light" lang="fr"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>EduSync ERP - Saisie des Notes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-low": "#f3f3fb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#001848",
+                        "secondary-fixed-dim": "#b7c7e7",
+                        "surface-bright": "#faf8ff",
+                        "tertiary-container": "#004e33",
+                        "secondary-container": "#cdddff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#51617d",
+                        "surface-tint": "#2f59b7",
+                        "outline-variant": "#c4c6d4",
+                        "tertiary-fixed-dim": "#92d5b1",
+                        "primary-fixed": "#dae2ff",
+                        "tertiary-fixed": "#aef1cc",
+                        "text-primary": "#172B4D",
+                        "secondary-fixed": "#d6e3ff",
+                        "surface-container": "#edeef0",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f0f0f9",
+                        "primary-container": "#003d9b",
+                        "inverse-surface": "#2f3037",
+                        "on-background": "#1a1b21",
+                        "on-secondary-fixed-variant": "#374762",
+                        "surface-container-highest": "#e2e2ea",
+                        "surface-container-high": "#e8e7f0",
+                        "on-tertiary-fixed-variant": "#065136",
+                        "surface-border": "#DFE1E6",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "text-secondary": "#44546F",
+                        "inverse-primary": "#b2c5ff",
+                        "on-tertiary-container": "#7dbe9c",
+                        "on-surface-variant": "#434652",
+                        "surface": "#f8f9fb",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#08409e",
+                        "error": "#ba1a1a",
+                        "outline": "#747783",
+                        "on-primary-container": "#91afff",
+                        "secondary": "#4f5f7b",
+                        "surface-variant": "#e2e2ea",
+                        "primary": "#00296d",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#004e33",
+                        "background": "#faf8ff",
+                        "surface-dim": "#d9d9e2",
+                        "on-secondary-fixed": "#0a1c34",
+                        "on-surface": "#1a1b21"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "row-standard": "44px",
+                        "header-height": "56px",
+                        "unit": "4px",
+                        "row-dense": "32px",
+                        "sidebar-width": "260px",
+                        "container-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-sm": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "display-sm": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "data-mono": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased flex">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-screen flex flex-col py-gutter border-r border-surface-border bg-surface dark:bg-surface-dim h-full w-sidebar-width hidden md:flex z-40">
+<div class="px-gutter mb-6 flex items-center gap-3">
+<img alt="Institution Logo" class="w-8 h-8 object-contain rounded" data-alt="A small, modern, abstract institutional logo for an academy, featuring a stylized globe or shield in deep blue and white, set against a pristine white background. The logo should evoke academic excellence, precision, and modernity, suitable for an enterprise school management system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8tlENjwfDBVtpDIcL3aNt-0SK-LwOnpdLXw95GxuNnqs61eo3v6PgOPDUDXyFsn0BqgLwKVUqvtEtmm9g8MQu1aU8snKm5-IbTQWvuLY-AC_qtMcNW8hAF7JqL1gHDW354UYRQKI3_SFhmYpZT0uiPwWmuDA2zy9i-9IyE9b8xtkinJORq4gbYKacWDVV5uv7Ym73qvqW1OeeeH2Ft6APkyecX7S-YDcsNkX78PW9MJTMkDiOZdPNOw">
+<div>
+<h1 class="text-headline-sm font-headline-sm font-bold text-primary">Global Academy</h1>
+<p class="text-label-md font-label-md text-on-surface-variant">Admin Portal</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-unit flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-label-md font-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-label-md font-label-md">Students</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-secondary-container dark:bg-primary-container text-primary dark:text-on-primary-container font-semibold scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined fill" data-icon="school">school</span>
+<span class="text-label-md font-label-md">Academic</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="text-label-md font-label-md">Finance</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="text-label-md font-label-md">Staff</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-label-md font-label-md">Reports</span>
+</a>
+</div>
+<div class="px-unit mt-auto flex flex-col gap-1 border-t border-surface-border pt-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="contact_support">contact_support</span>
+<span class="text-label-md font-label-md">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="text-label-md font-label-md">Log Out</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-sidebar-width min-h-screen relative">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-container-padding h-header-height sticky top-0 z-50 border-b border-surface-border dark:border-outline-variant bg-surface-container-lowest dark:bg-surface-container-lowest text-primary dark:text-primary-fixed-dim">
+<div class="flex items-center gap-4 flex-1">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim md:hidden">EduSync ERP</span>
+<div class="hidden md:flex relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-9 pr-3 h-[36px] bg-surface-container-lowest border border-surface-border rounded-lg text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="Rechercher..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="ml-2 w-8 h-8 rounded-full bg-surface-container-high border border-surface-border overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a teacher or administrator, neutral background, modern corporate lighting, high quality portrait suitable for an enterprise dashboard avatar. The person looks approachable yet professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiSbSs4pT9DZpU8Gzp2tVOLe0-v6nf6dBZYnls-BX_vo54opEF0m-03LjqOFKSfyOz554X2kgfg1vDRyo1DThnpaQNAo1fF50NY_X2YnjBQfKw4ssuTLfz3YSF59kbwcOpQMJb6UMZ-7be8riiUk9ad6RLwaCjI3VmAPEtp4x26XgZXIUD552p2hYpHTI9GpGkIX8LBAqD4EKExBqYXX8ABf9eS_g4LYzVXYq2b_Y3Qlx9jqrVGiVsDw">
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-container-padding bg-background overflow-x-hidden">
+<div class="max-w-[1200px] mx-auto space-y-6">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-surface-border pb-4">
+<div>
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="text-label-md font-label-md">Année Scolaire 2023-2024</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-label-md font-label-md">Trimestre 1</span>
+</div>
+<h2 class="text-display-sm font-display-sm text-text-primary">Saisie des Notes</h2>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-lowest p-2 rounded-lg border border-surface-border shadow-sm">
+<div class="flex flex-col px-3 border-r border-surface-border">
+<span class="text-[10px] text-on-surface-variant font-label-md uppercase tracking-wider">Classe</span>
+<span class="text-headline-sm font-headline-sm text-primary">6ème A</span>
+</div>
+<div class="flex flex-col px-3">
+<span class="text-[10px] text-on-surface-variant font-label-md uppercase tracking-wider">Matière</span>
+<span class="text-headline-sm font-headline-sm text-primary">Mathématiques</span>
+</div>
+</div>
+</div>
+<!-- Grid Container -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border shadow-sm overflow-hidden flex flex-col">
+<!-- Toolbar -->
+<div class="p-4 border-b border-surface-border flex flex-wrap gap-4 items-center justify-between bg-surface-bright">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">info</span>
+<span class="text-body-sm font-body-sm text-text-secondary">Note maximale: 20. Les cellules vides ne seront pas calculées.</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 bg-surface p-1 rounded-md border border-surface-border"><div class="flex items-center gap-1.5 px-2"><span class="w-2.5 h-2.5 rounded-full bg-secondary-container"></span><span class="text-[11px] font-label-md text-on-surface-variant">Brouillon</span></div><div class="flex items-center gap-1.5 px-2 border-l border-surface-border"><span class="w-2.5 h-2.5 rounded-full bg-tertiary-container"></span><span class="text-[11px] font-label-md text-on-surface-variant">Validé</span></div></div>
+</div>
+</div>
+<!-- Table Wrapper -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container border-b border-surface-border">
+<th class="py-3 px-4 text-label-md font-label-md text-on-surface-variant sticky left-0 bg-surface-container z-10 w-24">Matricule</th>
+<th class="py-3 px-4 text-label-md font-label-md text-on-surface-variant sticky left-24 bg-surface-container z-10 min-w-[200px]">Nom &amp; Prénoms</th>
+<th class="py-3 px-3 text-center border-l border-surface-border">
+<div class="text-label-md font-label-md text-primary">Interro 1</div>
+<div class="text-[10px] text-on-surface-variant mt-0.5">Coef 1</div>
+</th>
+<th class="py-3 px-3 text-center border-l border-surface-border">
+<div class="text-label-md font-label-md text-primary">Interro 2</div>
+<div class="text-[10px] text-on-surface-variant mt-0.5">Coef 1</div>
+</th>
+<th class="py-3 px-3 text-center border-l border-surface-border bg-surface-container-high">
+<div class="text-label-md font-label-md text-primary">Devoir</div>
+<div class="text-[10px] text-on-surface-variant mt-0.5">Coef 2</div>
+</th>
+<th class="py-3 px-3 text-center border-l border-surface-border">
+<div class="text-label-md font-label-md text-primary">Composition</div>
+<div class="text-[10px] text-on-surface-variant mt-0.5">Coef 4</div>
+</th>
+<th class="py-3 px-4 text-right border-l border-surface-border text-label-md font-label-md text-on-surface-variant">Moy. Provisoire</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-border text-body-sm font-body-sm">
+<!-- Student Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group h-row-dense">
+<td class="py-2 px-4 text-data-mono font-data-mono text-text-secondary sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low">M23001</td>
+<td class="py-2 px-4 font-medium text-text-primary sticky left-24 bg-surface-container-lowest group-hover:bg-surface-container-low">BAMBA Amadou</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="14.5">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="16">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center bg-surface-container/30">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="12">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-surface-container-lowest border border-outline-variant rounded py-1 px-1 focus:border-primary focus:ring-1 focus:ring-primary transition-all h-8" max="20" min="0" placeholder="--" step="0.25" type="number">
+</td>
+<td class="py-2 px-4 text-right border-l border-surface-border text-data-mono font-data-mono text-text-secondary">13.62</td>
+</tr>
+<!-- Student Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors group h-row-dense bg-surface-bright/50">
+<td class="py-2 px-4 text-data-mono font-data-mono text-text-secondary sticky left-0 bg-surface-bright/50 group-hover:bg-surface-container-low">M23045</td>
+<td class="py-2 px-4 font-medium text-text-primary sticky left-24 bg-surface-bright/50 group-hover:bg-surface-container-low">DIOP Fatou</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="18">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="19">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center bg-surface-container/30">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="17.5">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-surface-container-lowest border border-outline-variant rounded py-1 px-1 focus:border-primary focus:ring-1 focus:ring-primary transition-all h-8" max="20" min="0" placeholder="--" step="0.25" type="number">
+</td>
+<td class="py-2 px-4 text-right border-l border-surface-border text-data-mono font-data-mono text-text-secondary">18.00</td>
+</tr>
+<!-- Student Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group h-row-dense">
+<td class="py-2 px-4 text-data-mono font-data-mono text-text-secondary sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low">M23102</td>
+<td class="py-2 px-4 font-medium text-text-primary sticky left-24 bg-surface-container-lowest group-hover:bg-surface-container-low">KONE Moussa</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-error bg-error-container/20 border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="08.5">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="11">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center bg-surface-container/30">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-transparent border border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-bright rounded py-1 px-1 transition-all h-8" max="20" min="0" step="0.25" type="number" value="10">
+</td>
+<td class="py-1 px-2 border-l border-surface-border text-center">
+<input class="w-16 text-center text-data-mono font-data-mono text-text-primary bg-surface-container-lowest border border-outline-variant rounded py-1 px-1 focus:border-primary focus:ring-1 focus:ring-primary transition-all h-8" max="20" min="0" placeholder="--" step="0.25" type="number">
+</td>
+<td class="py-2 px-4 text-right border-l border-surface-border text-data-mono font-data-mono text-error font-medium">09.87</td>
+</tr>
+<!-- Add more rows as needed for visual density -->
+</tbody>
+</table>
+</div>
+<!-- Footer Actions -->
+<div class="p-4 border-t border-surface-border bg-surface-container-lowest flex justify-end items-center gap-4 sticky bottom-0">
+<span class="text-label-md font-label-md text-on-surface-variant mr-auto">Dernière sauvegarde: 10:42</span>
+<button class="h-10 px-6 rounded-lg border border-surface-border text-text-primary font-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Enregistrer le brouillon
+                        </button>
+<button class="h-10 px-6 rounded-lg bg-primary text-on-primary font-label-md hover:bg-on-primary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            Soumettre pour validation
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+
+</body></html>

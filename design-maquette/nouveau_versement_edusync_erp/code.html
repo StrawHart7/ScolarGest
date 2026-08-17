@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nouveau versement - EduCore ERP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed-variant": "#08409e",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "surface-container-high": "#e8e7f0",
+                      "outline": "#747783",
+                      "on-tertiary-fixed-variant": "#065136",
+                      "error-container": "#ffdad6",
+                      "surface-variant": "#e2e2ea",
+                      "error": "#ba1a1a",
+                      "background": "#faf8ff",
+                      "inverse-surface": "#2f3037",
+                      "on-surface": "#1a1b21",
+                      "secondary-fixed-dim": "#b7c7e7",
+                      "secondary-container": "#cdddff",
+                      "on-primary-fixed": "#001848",
+                      "primary-fixed": "#dae2ff",
+                      "secondary-fixed": "#d6e3ff",
+                      "surface-border": "#DFE1E6",
+                      "tertiary": "#004e33",
+                      "on-secondary-fixed-variant": "#374762",
+                      "surface-bright": "#faf8ff",
+                      "on-surface-variant": "#434652",
+                      "tertiary-fixed": "#aef1cc",
+                      "surface": "#f8f9fb",
+                      "on-secondary-fixed": "#0a1c34",
+                      "on-primary-container": "#91afff",
+                      "surface-dim": "#d9d9e2",
+                      "tertiary-container": "#004e33",
+                      "inverse-on-surface": "#f0f0f9",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed-dim": "#92d5b1",
+                      "surface-container": "#edeef0",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#00296d",
+                      "surface-container-highest": "#e2e2ea",
+                      "text-primary": "#172B4D",
+                      "secondary": "#4f5f7b",
+                      "on-tertiary-container": "#7dbe9c",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#2f59b7",
+                      "text-secondary": "#44546F",
+                      "surface-container-low": "#f3f3fb",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c4c6d4",
+                      "on-background": "#1a1b21",
+                      "primary-container": "#003d9b",
+                      "on-error": "#ffffff",
+                      "on-secondary-container": "#51617d",
+                      "inverse-primary": "#b2c5ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "header-height": "56px",
+                      "container-padding": "24px",
+                      "gutter": "16px",
+                      "sidebar-width": "260px",
+                      "row-standard": "44px",
+                      "unit": "4px",
+                      "row-dense": "32px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "jetbrainsMono"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "display-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-sm": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+      </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex">
+<!-- Navigation Shell - SideNavBar -->
+<aside class="hidden md:flex flex-col fixed left-0 top-0 h-full w-sidebar-width border-r border-surface-border bg-surface">
+<div class="flex flex-col h-full py-4">
+<!-- Brand Area -->
+<div class="px-container-padding mb-8">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded object-cover" data-alt="A clean, modern corporate logo for an educational institution named EduCore West Africa, set against a pristine white background with subtle blue and grey accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD15t5ZyAXGyGkr95_ljKiphM_0XEKCxn95cSs6g7tt9t5lYHcFLUkiZUtGrd6C6wk9Aevy3wWjqquLBndkSso-EbsqSpkbE6Mb3ZVizLrlhkP6G6oza1MgzRuEGKzE3v5MZGyJJzf2PiVP7Pd2rYW4u4rWvszK93AaXEQ_PaMrdDSSjZhGSJytkGnHb4wUCIjHF3l_vcK6nitcc5MG1Nr-fD1wDSIyvTXzYKE5654pa7qtqgmo_JTD2A"/>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary">EduCore West Africa</h1>
+<span class="font-label-md text-label-md text-on-surface-variant">Admin Portal</span>
+</div>
+</div>
+</div>
+<!-- Main Nav -->
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">group</span>
+                    Students
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">school</span>
+                    Academic
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 bg-secondary-container text-primary rounded-lg font-bold transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined fill" style="font-variation-settings: 'FILL' 1;">payments</span>
+                    Finance
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">badge</span>
+                    Staff
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">assessment</span>
+                    Reports
+                </a>
+</nav>
+<!-- Footer Nav -->
+<nav class="px-4 mt-auto space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">help</span>
+                    Support
+                </a>
+</nav>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-sidebar-width flex flex-col h-screen">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 h-header-height z-40 bg-surface-container-lowest border-b border-surface-border flex items-center justify-between px-container-padding w-full md:w-[calc(100%-260px)] ml-auto">
+<div class="flex items-center">
+<h2 class="font-headline-md text-headline-md font-bold text-primary hidden md:block">EduCore ERP</h2>
+<!-- Mobile Menu Button -->
+<button class="md:hidden text-on-surface-variant p-2 mr-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="h-[32px] pl-9 pr-4 rounded-full bg-surface border border-surface-border font-label-md text-label-md focus:outline-none focus:border-primary text-on-surface placeholder:text-outline w-64" placeholder="Search..." type="text"/>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-opacity active:opacity-70 p-2 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-opacity active:opacity-70 p-2">
+<span class="material-symbols-outlined">mail</span>
+</button>
+<button class="hidden lg:flex items-center gap-2 h-row-dense px-4 bg-surface-container border border-surface-border rounded-lg text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Quick Action
+                </button>
+<div class="h-8 w-px bg-surface-border mx-2"></div>
+<img alt="User Administrator Profile" class="w-8 h-8 rounded-full border border-surface-border object-cover cursor-pointer" data-alt="A professional headshot of a school administrator in a modern office setting, soft natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBobU_9jdSnyNzZV-yFmOwINkj9zdg4s8auZDRCHCJ4o5kjaVXeYqfpPoeBaDWp6tBq6hqMv3p7tC680yxjcZX8b6X4IXowWU9RKrDfD7PQYW5uQJ2COLPk7tTWFmCyYUGBDJmZ_QZBLDG05tjroiw6degi6aB_g3jOjwFNHA2dmN_PDxr9N5-Jf47U9ej8SzY3tuUpB5ZTii3ILXxseMF73D1DR1QPmBmuubmqlzvWdFwHVF-pcX0_dw"/>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 mt-header-height p-container-padding bg-surface-low overflow-y-auto">
+<!-- Context Header -->
+<div class="mb-6 flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md mb-1">
+<a class="hover:text-primary" href="#">Finance</a>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<a class="hover:text-primary" href="#">Paiements</a>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span>Nouveau</span>
+</div>
+<h2 class="font-display-sm text-display-sm text-on-surface">Nouveau versement</h2>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-2 rounded-lg hover:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Form Container - Focused Layout -->
+<div class="max-w-3xl mx-auto bg-surface-container-lowest border border-surface-border rounded-xl shadow-sm overflow-hidden">
+<!-- Form Header -->
+<div class="bg-surface-container-low px-6 py-4 border-b border-surface-border flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Détails de l'encaissement</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Saisissez les informations relatives au paiement reçu.</p>
+</div>
+</div>
+<form class="p-6 space-y-6">
+<!-- Section 1: Identification -->
+<div class="space-y-4">
+<h4 class="font-label-md text-label-md text-secondary uppercase tracking-wider">Identification</h4>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1">Élève concerné</label>
+<div class="flex items-center gap-3 p-3 bg-surface border border-surface-border rounded-lg">
+<img class="w-10 h-10 rounded object-cover" data-alt="A clear, professional portrait photo of a student in a neat school uniform, bright and optimistic expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEx0ySOgNsD1MRfTons0vpTaIYjN-FgT_iRUFU2gaI1bBdGEofkFWnIBnMM0ePPMwXEPMjkSYVGegoYQwYHnprHU1TT-Wurd9kuQwLQ4xwwrooYfSk14gZm2w4dL95OjjMrOOqEtIh26G1JITENoFDO_su9IdAHZnvwGrl3KGl_HYy9vTHo5FBxxtLycgiHcSBgEh5GjP-BXc8ipXzbuG32nY_tbWCiK-M8Dc7O7lU56OAKOq2QR5Wmw"/>
+<div class="flex-1">
+<div class="font-headline-sm text-headline-sm text-on-surface">Mamadou Diallo</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant flex gap-4">
+<span>Matricule: <span class="font-data-mono text-data-mono">STU-23-0045</span></span>
+<span>Classe: 3ème B</span>
+</div>
+</div>
+<span class="px-2 py-1 bg-tertiary-container text-on-tertiary-container rounded font-label-md text-label-md">Actif</span>
+</div>
+<p class="mt-1 font-body-sm text-body-sm text-outline">Reference en lecture seule depuis le dossier élève.</p>
+</div>
+</div>
+<hr class="border-surface-border"/>
+<!-- Section 2: Transaction Details -->
+<div class="space-y-4">
+<h4 class="font-label-md text-label-md text-secondary uppercase tracking-wider">Détails de la transaction</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Montant -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1" for="montant">Montant à encaisser <span class="text-error">*</span></label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 font-data-mono text-data-mono text-on-surface-variant">XOF</span>
+<input class="w-full h-row-standard pl-12 pr-4 bg-surface-container-lowest border border-surface-border rounded-lg font-data-mono text-data-mono text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="montant" placeholder="0.00" required="" type="number"/>
+</div>
+</div>
+<!-- Date -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1" for="date">Date du versement <span class="text-error">*</span></label>
+<div class="relative">
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">calendar_today</span>
+<input class="w-full h-row-standard pl-4 pr-10 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="date" required="" type="date"/>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Mode de paiement -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1" for="mode">Mode de paiement <span class="text-error">*</span></label>
+<div class="relative">
+<select class="w-full h-row-standard pl-4 pr-10 appearance-none bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="mode" required="">
+<option disabled="" selected="" value="">Sélectionner...</option>
+<option value="especes">Espèces</option>
+<option value="cheque">Chèque</option>
+<option value="virement">Virement bancaire</option>
+<option value="mobile">Mobile Money</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Référence -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1" for="reference">Référence de transaction</label>
+<input class="w-full h-row-standard px-4 bg-surface-container-lowest border border-surface-border rounded-lg font-data-mono text-data-mono text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="reference" placeholder="Ex: CHQ-00123 ou TXN-987" type="text"/>
+<p class="mt-1 font-body-sm text-body-sm text-outline">Requis pour chèque, virement ou mobile money.</p>
+</div>
+</div>
+</div>
+<hr class="border-surface-border"/>
+<!-- Section 3: Notes -->
+<div class="space-y-4">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1" for="notes">Note / Commentaire (Optionnel)</label>
+<textarea class="w-full p-4 bg-surface-container-lowest border border-surface-border rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none" id="notes" placeholder="Informations complémentaires concernant ce versement..." rows="3"></textarea>
+</div>
+</div>
+<!-- Actions -->
+<div class="pt-6 flex items-center justify-end gap-4">
+<button class="h-row-standard px-6 font-label-md text-label-md text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors" type="button">
+                            Annuler
+                        </button>
+<button class="h-row-standard px-6 font-label-md text-label-md bg-primary text-on-primary rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-2" type="submit">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            Valider l'encaissement
+                        </button>
+</div>
+</form>
+</div>
+</main>
+</div>
+</body></html>

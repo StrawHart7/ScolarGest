@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduSync ERP - Décisions en attente</title>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-border": "#DFE1E6",
+                        "primary-fixed": "#dae2ff",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#004e33",
+                        "on-primary-container": "#91afff",
+                        "on-secondary-container": "#51617d",
+                        "surface": "#f8f9fb",
+                        "text-secondary": "#44546F",
+                        "outline": "#747783",
+                        "surface-container": "#eeedf6",
+                        "on-secondary-fixed-variant": "#374762",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "tertiary-fixed-dim": "#92d5b1",
+                        "inverse-surface": "#2f3037",
+                        "surface-tint": "#2f59b7",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#0a1c34",
+                        "on-primary-fixed": "#001848",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#08409e",
+                        "on-surface-variant": "#434652",
+                        "primary": "#00296d",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-background": "#1a1b21",
+                        "on-tertiary-fixed-variant": "#065136",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#7dbe9c",
+                        "surface-container-highest": "#e2e2ea",
+                        "secondary-fixed-dim": "#b7c7e7",
+                        "inverse-on-surface": "#f0f0f9",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#003d9b",
+                        "text-primary": "#172B4D",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#cdddff",
+                        "on-surface": "#1a1b21",
+                        "outline-variant": "#c4c6d4",
+                        "surface-container-high": "#e8e7f0",
+                        "surface-dim": "#d9d9e2",
+                        "tertiary": "#004e33",
+                        "tertiary-fixed": "#aef1cc",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#e2e2ea",
+                        "surface-bright": "#faf8ff",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f3f3fb",
+                        "inverse-primary": "#b2c5ff",
+                        "on-tertiary-fixed": "#002113",
+                        "secondary": "#4f5f7b",
+                        "background": "#faf8ff"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "row-standard": "44px",
+                        "row-dense": "32px",
+                        "gutter": "16px",
+                        "container-padding": "24px",
+                        "header-height": "56px",
+                        "sidebar-width": "260px",
+                        "unit": "4px"
+                    },
+                    fontFamily: {
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-sm": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "data-mono": ["jetbrainsMono"],
+                        "label-md": ["Inter"]
+                    },
+                    fontSize: {
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-sm": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen w-screen overflow-hidden flex selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- SideNavBar (Shared Component) -->
+<!-- Applying style_shell_layout, style_bg_color, style_separation_logic -->
+<nav class="hidden md:flex flex-col w-sidebar-width bg-surface dark:bg-surface-dim border-r border-surface-border h-screen py-gutter z-40 fixed left-0 top-0">
+<!-- Header -->
+<div class="px-container-padding pb-6 mb-2 border-b border-surface-border">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center overflow-hidden border border-surface-border">
+<!-- Placeholder Image for Institution Logo -->
+<img alt="Institution Logo" class="w-full h-full object-cover" data-alt="A minimalist, geometric logo design for a modern educational institution. The logo features abstract interlocking shapes in deep navy blue and crisp white, set against a light grey background. Clean lines, corporate aesthetic, high quality vector style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1DMWbzTvJpMVPjvsbz9AnzGAyFS89gvT-o2wsc5bwtaKqkDs5oUIc0HPus-Hzfr7qi1IA5bcfhyXB_T3fs0GVNBXXknpCXxlJWS2YocerTV4RkHBe7l97YfokqgduJ6H3piwU3dKX_I8ku-FMu-6v2iM1xaBrJfs7EJdEOPboZOhvKcwM9BPtWCr0Mv-LctIuIyxkGmR0xKPjKxNGYQi0w1FHschNH_vXgrBSirZaUfTnfGb7t2xrIA"/>
+</div>
+<div>
+<!-- Applying style_brand_logo -->
+<h1 class="text-headline-sm font-headline-sm font-bold text-primary">Global Academy</h1>
+<!-- Applying style_typography Body -->
+<p class="text-body-sm font-body-sm text-text-secondary">Admin Portal</p>
+</div>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<div class="flex-1 overflow-y-auto px-4 flex flex-col gap-1">
+<!-- Dashboard (Active) -->
+<!-- Applying style_active_navigation, style_universal_hover, style_interactions -->
+<a class="flex items-center gap-3 px-3 h-row-standard bg-secondary-container dark:bg-primary-container text-primary dark:text-on-primary-container font-semibold rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-label-md font-label-md">Dashboard</span>
+</a>
+<!-- Students (Inactive) -->
+<!-- Applying style_inactive_navigation, style_universal_hover -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="group">group</span>
+<span class="text-label-md font-label-md">Students</span>
+</a>
+<!-- Academic (Inactive) -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="school">school</span>
+<span class="text-label-md font-label-md">Academic</span>
+</a>
+<!-- Finance (Inactive) -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments">payments</span>
+<span class="text-label-md font-label-md">Finance</span>
+</a>
+<!-- Staff (Inactive) -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="badge">badge</span>
+<span class="text-label-md font-label-md">Staff</span>
+</a>
+<!-- Reports (Inactive) -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+<span class="text-label-md font-label-md">Reports</span>
+</a>
+</div>
+<!-- Footer Navigation Tabs -->
+<div class="px-4 mt-auto pt-4 border-t border-surface-border flex flex-col gap-1">
+<!-- Support -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="contact_support">contact_support</span>
+<span class="text-label-md font-label-md">Support</span>
+</a>
+<!-- Log Out -->
+<a class="flex items-center gap-3 px-3 h-row-standard rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+<span class="text-label-md font-label-md">Log Out</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-w-0 md:ml-sidebar-width relative">
+<!-- TopNavBar (Shared Component) -->
+<!-- Applying style_shell_layout, style_bg_color, style_separation_logic -->
+<header class="flex justify-between items-center w-full px-container-padding h-header-height sticky top-0 z-30 bg-surface-container-lowest dark:bg-surface-container-lowest border-b border-surface-border dark:border-outline-variant flat no shadows">
+<!-- Left Side: Search Bar & Mobile Menu -->
+<div class="flex items-center gap-4 flex-1">
+<button class="md:hidden p-2 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<!-- Search Bar (on_left) -->
+<div class="hidden md:flex relative max-w-md w-full items-center">
+<span class="material-symbols-outlined absolute left-3 text-text-secondary text-[20px]" data-icon="search">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface rounded-lg border border-surface-border focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-sm font-body-sm transition-all placeholder:text-text-secondary" placeholder="Search students, staff, or documents..." type="text"/>
+</div>
+</div>
+<!-- Right Side: Actions & Profile -->
+<div class="flex items-center gap-2">
+<!-- Trailing Icons -->
+<!-- Applying style_inactive_navigation, style_universal_hover -->
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-low transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface-container-lowest"></span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<!-- Profile Divider -->
+<div class="h-6 w-px bg-surface-border mx-2"></div>
+<!-- Profile Image -->
+<button class="w-8 h-8 rounded-full overflow-hidden border border-surface-border hover:opacity-80 transition-opacity">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Professional headshot of a mature school administrator. Confident expression, wearing a dark blue suit jacket. Bright, well-lit studio photography, soft white background, high resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAH3wOU3S0xS4f1bMA8E94fqRIfeLP_RtYu9ryWsPdpDBRXrn6qVZ-Hah0QakKolgovyRps4LWOX1MPxBSWDybLzIUmHrOwLias64sEI5A3KTfsLPXM4Gz8UuHp2qjf8eclrKyq95uvyftZ2S1tZlzeDImI6uD4wHialQOB1nxPKtexu3nQy0pnb-VnGWvprZDiYnO8Oe3qEcY6OK0Tbqzpq_M2IC9m-dnXOPPSHO4vZrmX205uI04XXA"/>
+</button>
+</div>
+</header>
+<!-- Dashboard Canvas (Blurred Background behind modal) -->
+<main class="flex-1 overflow-auto p-container-padding bg-surface filter blur-sm pointer-events-none transition-all duration-300">
+<div class="max-w-7xl mx-auto space-y-6">
+<!-- Welcome Section -->
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-display-sm font-display-sm text-text-primary">Directeur Dashboard</h2>
+<p class="text-body-md font-body-md text-text-secondary mt-1">Overview of institutional metrics</p>
+</div>
+</div>
+<!-- Bento Grid Placeholders -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Metric Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border p-6 h-48 flex flex-col justify-between">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center"></div>
+<div class="h-8 bg-surface-container rounded w-1/2 mt-auto"></div>
+<div class="h-4 bg-surface-container rounded w-1/3 mt-2"></div>
+</div>
+<!-- Metric Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border p-6 h-48 flex flex-col justify-between">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center"></div>
+<div class="h-8 bg-surface-container rounded w-2/3 mt-auto"></div>
+<div class="h-4 bg-surface-container rounded w-1/4 mt-2"></div>
+</div>
+<!-- Metric Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-border p-6 h-48 flex flex-col justify-between">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center"></div>
+<div class="h-8 bg-surface-container rounded w-1/2 mt-auto"></div>
+<div class="h-4 bg-surface-container rounded w-1/2 mt-2"></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- MODAL OVERLAY (The core task) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-on-background/30 backdrop-blur-md p-4 animate-in fade-in duration-200">
+<!-- Modal Container: White, soft shadow, clinical institutional feel -->
+<div class="bg-surface-container-lowest w-full max-w-2xl rounded-xl border border-surface-border shadow-2xl shadow-on-background/5 overflow-hidden flex flex-col">
+<!-- Modal Header -->
+<div class="px-8 py-6 border-b border-surface-border flex justify-between items-center bg-surface-container-lowest sticky top-0">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-error-container/20 flex items-center justify-center text-error">
+<span class="material-symbols-outlined" data-icon="pending_actions">pending_actions</span>
+</div>
+<div>
+<h2 class="text-display-sm font-display-sm text-text-primary tracking-tight">Décisions en attente</h2>
+<p class="text-body-sm font-body-sm text-text-secondary mt-1">Actions requises pour procéder</p>
+</div>
+</div>
+<!-- Optional close button, though flow suggests approval is needed -->
+<button class="w-8 h-8 rounded flex items-center justify-center text-text-secondary hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Modal Content (List of decisions) -->
+<div class="flex-1 overflow-y-auto p-8 bg-surface-bright">
+<div class="flex flex-col gap-3">
+<!-- Item 1 -->
+<div class="group bg-surface-container-lowest border border-surface-border rounded-lg p-5 flex items-center justify-between hover:border-outline-variant hover:shadow-sm transition-all duration-200">
+<div class="flex items-start gap-4">
+<div class="mt-1 w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="fact_check">fact_check</span>
+</div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-text-primary">Validation de notes - Terminale A</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-label-md bg-secondary-container text-on-secondary-container uppercase tracking-wider">Académique</span>
+<span class="text-body-sm font-body-sm text-text-secondary">Soumis il y a 2 heures</span>
+</div>
+</div>
+</div>
+<button class="h-10 px-6 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2 shrink-0 shadow-sm">
+                            Examiner
+                            <span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Item 2 -->
+<div class="group bg-surface-container-lowest border border-surface-border rounded-lg p-5 flex items-center justify-between hover:border-outline-variant hover:shadow-sm transition-all duration-200">
+<div class="flex items-start gap-4">
+<div class="mt-1 w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="person_add">person_add</span>
+</div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-text-primary">Demande d'inscription - Kouamé Koffi</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-label-md bg-surface-tint/10 text-surface-tint uppercase tracking-wider">Admission</span>
+<span class="text-body-sm font-body-sm text-text-secondary">Nouveau dossier complet</span>
+</div>
+</div>
+</div>
+<button class="h-10 px-6 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2 shrink-0 shadow-sm">
+                            Examiner
+                            <span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Item 3 -->
+<div class="group bg-surface-container-lowest border border-surface-border rounded-lg p-5 flex items-center justify-between hover:border-outline-variant hover:shadow-sm transition-all duration-200">
+<div class="flex items-start gap-4">
+<div class="mt-1 w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="shopping_cart">shopping_cart</span>
+</div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-text-primary">Demande d'achat - Matériel Informatique</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-label-md bg-error-container text-on-error-container uppercase tracking-wider">Finance</span>
+<span class="text-data-mono font-data-mono text-text-secondary">Montant: 2,450.00 FCFA</span>
+</div>
+</div>
+</div>
+<button class="h-10 px-6 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2 shrink-0 shadow-sm">
+                            Examiner
+                            <span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="px-8 py-4 border-t border-surface-border bg-surface-container-lowest flex justify-end">
+<p class="text-label-md font-label-md text-text-secondary">Veuillez examiner toutes les demandes pour débloquer le tableau de bord.</p>
+</div>
+</div>
+</div>
+</body></html>

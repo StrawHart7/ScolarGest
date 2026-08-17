@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion Scolaire Nouvelle Génération — Dossier de présentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+
+  /* ============ TOKENS ============ */
+  :root{
+    --ink-900:#0B1930;
+    --ink-800:#152A4C;
+    --ink-700:#213b64;
+    --paper:#F6F3EC;
+    --card:#FFFFFF;
+    --gold:#C0902F;
+    --gold-light:#E4C179;
+    --gold-soft:#F1E3C6;
+    --text-900:#1B2431;
+    --text-600:#5B6472;
+    --text-500:#7A8290;
+    --line:#E4DFD3;
+    --line-dark:rgba(255,255,255,0.14);
+    --radius-lg:22px;
+    --radius-md:16px;
+    --radius-sm:10px;
+    --shadow-card:0 1px 2px rgba(11,25,48,0.05), 0 16px 28px -16px rgba(11,25,48,0.22);
+    --shadow-card-hover:0 20px 40px -14px rgba(11,25,48,0.30);
+    --container:1180px;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *,*::before,*::after{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--text-900);
+    font-family:'Inter', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:'Fraunces', serif;
+    margin:0;
+    color:inherit;
+  }
+
+  p{ margin:0; }
+
+  .container{
+    max-width:var(--container);
+    margin-inline:auto;
+    padding-inline:clamp(20px,5vw,64px);
+  }
+
+  a{ color:inherit; }
+
+  :focus-visible{
+    outline:2.5px solid var(--gold);
+    outline-offset:3px;
+  }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:0.72rem;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:22px;
+    height:1px;
+    background:var(--gold);
+    display:inline-block;
+  }
+
+  /* reveal-on-scroll */
+  .reveal{
+    opacity:0;
+    transform:translateY(18px);
+    transition:opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.is-visible{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* ============ TOPBAR ============ */
+  .topbar{
+    background:var(--ink-900);
+    border-bottom:1px solid var(--line-dark);
+  }
+  .topbar-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding-block:16px;
+    flex-wrap:wrap;
+  }
+  .brandmark{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brandmark-icon{
+    width:30px;
+    height:30px;
+    flex:0 0 auto;
+  }
+  .brandmark-text{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.04em;
+    color:#EDEAE0;
+  }
+  .brandmark-text b{ color:#fff; font-weight:600; }
+  .topbar-meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:#9BA6BC;
+    letter-spacing:0.04em;
+  }
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(circle at 82% 18%, rgba(192,144,47,0.20), transparent 46%),
+      linear-gradient(155deg, var(--ink-900) 0%, var(--ink-800) 62%, var(--ink-700) 100%);
+    overflow:hidden;
+    padding-block:clamp(64px,10vw,108px);
+  }
+  .hero-deco{
+    position:absolute;
+    top:-10%;
+    right:-8%;
+    width:min(620px,60vw);
+    height:min(620px,60vw);
+    pointer-events:none;
+    opacity:0.5;
+  }
+  .hero-inner{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:56px;
+    flex-wrap:wrap;
+  }
+  .hero-text{
+    flex:1 1 520px;
+    max-width:680px;
+  }
+  .hero-text .eyebrow{ color:var(--gold-light); margin-bottom:22px; }
+  .hero-text .eyebrow::before{ background:var(--gold-light); }
+  .hero h1{
+    font-size:clamp(2.4rem,5vw,4.1rem);
+    font-weight:600;
+    line-height:1.06;
+    letter-spacing:-0.015em;
+    color:#fff;
+    margin-bottom:22px;
+  }
+  .hero h1 em{
+    font-style:italic;
+    color:var(--gold-light);
+  }
+  .hero-subtitle{
+    font-size:clamp(1.05rem,1.6vw,1.22rem);
+    color:rgba(255,255,255,0.78);
+    max-width:560px;
+    margin-bottom:30px;
+  }
+  .hero-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:34px;
+  }
+  .hero-chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.74rem;
+    letter-spacing:0.03em;
+    color:#EDEAE0;
+    border:1px solid var(--line-dark);
+    background:rgba(255,255,255,0.04);
+    padding:8px 14px;
+    border-radius:999px;
+  }
+  .hero-note{
+    font-size:0.92rem;
+    color:rgba(255,255,255,0.55);
+    max-width:520px;
+  }
+
+  /* stamp / seal */
+  .stamp-wrap{
+    flex:0 0 auto;
+    display:flex;
+    justify-content:center;
+    width:200px;
+  }
+  .stamp{
+    width:190px;
+    height:190px;
+    transform:rotate(-9deg);
+  }
+  .stamp-spin{
+    animation:spin 50s linear infinite;
+    transform-origin:95px 95px;
+  }
+  @keyframes spin{
+    from{ transform:rotate(0deg); }
+    to{ transform:rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .stamp-spin{ animation:none; }
+  }
+
+  /* ============ SECTION HEAD ============ */
+  .section{ padding-block:clamp(56px,8vw,96px); }
+  .section-head{
+    max-width:680px;
+    margin-bottom:48px;
+  }
+  .section-head .eyebrow{ margin-bottom:16px; }
+  .section-head h2{
+    font-size:clamp(1.7rem,3vw,2.5rem);
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--ink-900);
+    margin-bottom:16px;
+  }
+  .section-head p{
+    color:var(--text-600);
+    font-size:1.02rem;
+    line-height:1.65;
+  }
+  .section-head.on-dark h2{ color:#fff; }
+  .section-head.on-dark p{ color:rgba(255,255,255,0.66); }
+  .section-head.on-dark .eyebrow{ color:var(--gold-light); }
+  .section-head.on-dark .eyebrow::before{ background:var(--gold-light); }
+
+  /* ============ MODULE CARDS (section 1) ============ */
+  .modules-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:22px;
+  }
+  .module-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    padding:30px 28px;
+    box-shadow:var(--shadow-card);
+    transition:transform 0.35s ease, box-shadow 0.35s ease;
+  }
+  .module-card:hover{
+    transform:translateY(-4px);
+    box-shadow:var(--shadow-card-hover);
+  }
+  .module-icon{
+    width:48px;
+    height:48px;
+    border-radius:var(--radius-sm);
+    background:var(--gold-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.3rem;
+    margin-bottom:18px;
+  }
+  .module-card h3{
+    font-size:1.14rem;
+    font-weight:600;
+    color:var(--ink-900);
+    margin-bottom:10px;
+  }
+  .module-card p{
+    color:var(--text-600);
+    font-size:0.94rem;
+    line-height:1.65;
+    margin-bottom:16px;
+  }
+  .tag-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.02em;
+    color:var(--ink-800);
+    border:1px solid var(--line);
+    padding:5px 10px;
+    border-radius:999px;
+    background:#FBFAF6;
+  }
+
+  /* ============ FEASIBILITY (section 2, dark band) ============ */
+  .section-dark{
+    background:linear-gradient(175deg, var(--ink-900), var(--ink-800));
+  }
+  .constraints-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:20px;
+  }
+  .constraint-card{
+    background:rgba(255,255,255,0.045);
+    border:1px solid var(--line-dark);
+    border-radius:var(--radius-md);
+    padding:26px 24px;
+  }
+  .constraint-icon{
+    width:42px;
+    height:42px;
+    border-radius:var(--radius-sm);
+    background:rgba(228,193,121,0.14);
+    border:1px solid rgba(228,193,121,0.3);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.15rem;
+    margin-bottom:16px;
+  }
+  .constraint-card h3{
+    font-family:'Inter', sans-serif;
+    font-size:1.02rem;
+    font-weight:600;
+    color:#fff;
+    margin-bottom:8px;
+  }
+  .constraint-card p{
+    color:rgba(255,255,255,0.62);
+    font-size:0.9rem;
+    line-height:1.6;
+  }
+  .constraints-footnote{
+    margin-top:34px;
+    padding-top:28px;
+    border-top:1px solid var(--line-dark);
+    color:rgba(255,255,255,0.55);
+    font-size:0.92rem;
+    line-height:1.65;
+    max-width:720px;
+  }
+  .constraints-footnote b{ color:#fff; font-weight:600; }
+
+  /* ============ QUESTIONS (section 3) ============ */
+  .questions-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:22px;
+  }
+  .qcard{
+    position:relative;
+    background:var(--card);
+    border:1.5px dashed var(--line);
+    border-radius:var(--radius-md);
+    padding:26px 26px 24px;
+  }
+  .qmark{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    background:var(--ink-900);
+    color:var(--gold-light);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:0.9rem;
+    margin-bottom:16px;
+  }
+  .qcard h3{
+    font-family:'Inter', sans-serif;
+    font-size:1.02rem;
+    font-weight:600;
+    color:var(--ink-900);
+    margin-bottom:8px;
+    line-height:1.4;
+  }
+  .qcard p{
+    color:var(--text-600);
+    font-size:0.92rem;
+    line-height:1.6;
+  }
+
+  /* ============ FUTURE (section 4) ============ */
+  .future-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+    margin-bottom:28px;
+  }
+  @media (max-width:720px){
+    .future-grid{ grid-template-columns:1fr; }
+  }
+  .future-col{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    padding:28px 26px;
+  }
+  .future-col h3{
+    font-family:'IBM Plex Mono', monospace;
+    text-transform:uppercase;
+    font-size:0.76rem;
+    letter-spacing:0.08em;
+    font-weight:600;
+    margin-bottom:18px;
+  }
+  .future-col.up h3{ color:#2E7D5C; }
+  .future-col.down h3{ color:#B45B37; }
+  .future-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:13px;
+  }
+  .future-list li{
+    display:flex;
+    gap:10px;
+    font-size:0.94rem;
+    line-height:1.55;
+    color:var(--text-600);
+  }
+  .future-list li::before{
+    flex:0 0 auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+    margin-top:1px;
+  }
+  .future-col.up li::before{ content:"+"; color:#2E7D5C; font-weight:600; }
+  .future-col.down li::before{ content:"–"; color:#B45B37; font-weight:600; }
+
+  .conclusion-banner{
+    background:var(--gold-soft);
+    border:1px solid var(--gold-light);
+    border-radius:var(--radius-md);
+    padding:24px 28px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .conclusion-banner .mark{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:1.5rem;
+    color:var(--gold);
+    flex:0 0 auto;
+  }
+  .conclusion-banner p{
+    color:var(--ink-900);
+    font-size:0.98rem;
+    line-height:1.6;
+    font-weight:500;
+  }
+
+  /* ============ FOOTER ============ */
+  .footer{
+    background:linear-gradient(175deg, var(--ink-900), var(--ink-800));
+    padding-block:clamp(56px,8vw,88px);
+  }
+  .footer-inner{
+    display:flex;
+    justify-content:space-between;
+    gap:48px;
+    flex-wrap:wrap;
+  }
+  .footer-text{
+    flex:1 1 420px;
+    max-width:520px;
+  }
+  .footer-text h2{
+    font-size:clamp(1.5rem,2.6vw,2rem);
+    color:#fff;
+    font-weight:600;
+    margin-bottom:14px;
+  }
+  .footer-text p{
+    color:rgba(255,255,255,0.62);
+    font-size:0.98rem;
+    line-height:1.65;
+  }
+  .signoff{
+    flex:1 1 340px;
+    max-width:420px;
+    background:rgba(255,255,255,0.045);
+    border:1px solid var(--line-dark);
+    border-radius:var(--radius-md);
+    padding:26px 26px 22px;
+  }
+  .signoff-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--gold-light);
+    margin-bottom:20px;
+  }
+  .signoff-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px solid var(--line-dark);
+    padding-bottom:12px;
+    margin-bottom:18px;
+    font-size:0.88rem;
+    color:rgba(255,255,255,0.5);
+  }
+  .signoff-line{
+    border-bottom:1px solid var(--line-dark);
+    height:34px;
+    margin-bottom:16px;
+  }
+  .signoff-label{
+    font-size:0.78rem;
+    color:rgba(255,255,255,0.4);
+    margin-top:-12px;
+  }
+  .footer-bottom{
+    margin-top:48px;
+    padding-top:24px;
+    border-top:1px solid var(--line-dark);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:rgba(255,255,255,0.4);
+    letter-spacing:0.03em;
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- ============ TOPBAR ============ -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="brandmark">
+        <svg class="brandmark-icon" viewBox="0 0 30 30" fill="none">
+          <circle cx="15" cy="15" r="13" stroke="#C0902F" stroke-width="1.4"/>
+          <circle cx="15" cy="15" r="4.2" fill="#C0902F"/>
+        </svg>
+        <span class="brandmark-text">GESTION SCOLAIRE · <b>Dossier de présentation</b></span>
+      </div>
+      <div class="topbar-meta">Document de travail — 28 juillet 2026</div>
+    </div>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <svg class="hero-deco" viewBox="0 0 600 600" fill="none">
+      <circle cx="420" cy="180" r="260" stroke="white" stroke-opacity="0.06" stroke-width="1"/>
+      <circle cx="420" cy="180" r="190" stroke="white" stroke-opacity="0.08" stroke-width="1"/>
+      <circle cx="420" cy="180" r="120" stroke="#E4C179" stroke-opacity="0.18" stroke-width="1"/>
+    </svg>
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <span class="eyebrow">Application de gestion scolaire</span>
+        <h1>Gestion scolaire,<br>nouvelle <em>génération</em>.</h1>
+        <p class="hero-subtitle">Une application desktop moderne, conçue pour remplacer durablement la gestion manuelle et les fichiers Excel de votre établissement.</p>
+        <div class="hero-chips">
+          <span class="hero-chip">100% hors-ligne</span>
+          <span class="hero-chip">Données stockées localement</span>
+          <span class="hero-chip">Bulletins &amp; reçus en PDF</span>
+        </div>
+        <p class="hero-note">Ce document résume notre travail d'analyse depuis nos échanges. Il sert de base commune avant que je ne commence à développer — n'hésitez pas à le corriger là où il ne vous correspond pas.</p>
+      </div>
+      <div class="stamp-wrap">
+        <svg class="stamp stamp-spin" viewBox="0 0 190 190">
+          <defs>
+            <path id="circlePath" d="M 95,95 m -72,0 a 72,72 0 1,1 144,0 a 72,72 0 1,1 -144,0"/>
+          </defs>
+          <circle cx="95" cy="95" r="86" fill="none" stroke="#E4C179" stroke-width="1.2"/>
+          <circle cx="95" cy="95" r="72" fill="none" stroke="#E4C179" stroke-width="1" stroke-dasharray="2 4"/>
+          <text font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" fill="#E4C179" letter-spacing="2.5">
+            <textPath href="#circlePath" startOffset="0%">AVANT-PROJET · BASE DE DISCUSSION · </textPath>
+          </text>
+          <text x="95" y="90" text-anchor="middle" font-family="Fraunces, serif" font-style="italic" font-size="16" fill="#fff">À valider</text>
+          <text x="95" y="110" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" letter-spacing="1.5" fill="#E4C179">ENSEMBLE</text>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ SECTION 1 — COMPRÉHENSION ============ -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Section 01 — Compréhension du besoin</span>
+        <h2>Ce que j'ai compris du projet</h2>
+        <p>Voici, sous forme de synthèse, ce que je retiens de nos échanges. Chaque module ci-dessous correspond à une partie du logiciel que nous allons construire ensemble — prenez le temps de vérifier que cela correspond bien à votre vision, c'est tout l'objet de ce document.</p>
+      </div>
+
+      <div class="modules-grid">
+        <div class="module-card reveal">
+          <div class="module-icon">🔐</div>
+          <h3>Utilisateurs &amp; rôles</h3>
+          <p>Chaque personne se connecte avec son propre compte sécurisé. Trois profils sont prévus : Administrateur (accès complet), Enseignant (saisie des notes) et Comptable (gestion des paiements), chacun ne voyant que ce qui le concerne.</p>
+          <div class="tag-row"><span class="tag">Admin</span><span class="tag">Enseignant</span><span class="tag">Comptable</span></div>
+        </div>
+
+        <div class="module-card reveal">
+          <div class="module-icon">⚙️</div>
+          <h3>Paramètres de l'établissement</h3>
+          <p>Avant toute utilisation, l'application se configure à l'image de votre établissement : matières, classes, choix du régime (trimestres ou semestres), enseignants, et jusqu'au format de vos reçus de paiement.</p>
+          <div class="tag-row"><span class="tag">Matières &amp; classes</span><span class="tag">Trim. / Sem.</span><span class="tag">Reçus personnalisés</span></div>
+        </div>
+
+        <div class="module-card reveal">
+          <div class="module-icon">🎓</div>
+          <h3>Gestion des élèves</h3>
+          <p>Chaque élève est inscrit une seule fois. Son dossier suit ensuite son évolution année après année — actif, diplômé, transféré ou exclu — sans jamais avoir à ressaisir ses informations à chaque rentrée.</p>
+          <div class="tag-row"><span class="tag">Inscription unique</span><span class="tag">4 statuts</span><span class="tag">Historique annuel</span></div>
+        </div>
+
+        <div class="module-card reveal">
+          <div class="module-icon">📊</div>
+          <h3>Notes &amp; bulletins</h3>
+          <p>Les notes sont saisies par matière, avec leur coefficient et leur type (devoir, composition, examen). L'application calcule automatiquement les moyennes pondérées, le rang de chaque élève et sa mention, puis génère le bulletin en PDF.</p>
+          <div class="tag-row"><span class="tag">Moyennes pondérées</span><span class="tag">Rang &amp; mention</span><span class="tag">Export PDF</span></div>
+        </div>
+
+        <div class="module-card reveal">
+          <div class="module-icon">🧾</div>
+          <h3>Paiements &amp; reçus</h3>
+          <p>Chaque classe a un montant de scolarité de référence, ajustable élève par élève si besoin. Les versements sont libres et multiples, le reste à payer se met à jour automatiquement, et chaque paiement génère un reçu PDF numéroté et définitif, conservé dans une bibliothèque consultable à tout moment.</p>
+          <div class="tag-row"><span class="tag">Versements libres</span><span class="tag">Reçus numérotés</span><span class="tag">Restant dû auto</span></div>
+        </div>
+
+        <div class="module-card reveal">
+          <div class="module-icon">💾</div>
+          <h3>Sauvegarde des données</h3>
+          <p>À tout moment, l'ensemble des données peut être exporté vers une clé USB ou un dossier de votre choix, pour garder une copie de sécurité en dehors de l'ordinateur principal.</p>
+          <div class="tag-row"><span class="tag">Export USB</span><span class="tag">Export dossier</span><span class="tag">À la demande</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 2 — FAISABILITÉ ============ -->
+  <section class="section section-dark">
+    <div class="container">
+      <div class="section-head on-dark reveal">
+        <span class="eyebrow">Section 02 — Faisabilité &amp; contraintes</span>
+        <h2>Un projet réalisable, encadré par quatre principes</h2>
+        <p>Ce projet est tout à fait réalisable techniquement. Avant de nous lancer, voici les principes qui vont encadrer la construction du logiciel — il est important que nous soyons alignés dessus dès le départ.</p>
+      </div>
+
+      <div class="constraints-grid">
+        <div class="constraint-card reveal">
+          <div class="constraint-icon">🖥️</div>
+          <h3>100% hors-ligne</h3>
+          <p>L'application fonctionne sans connexion internet au quotidien. Vous pouvez saisir des notes, encaisser un paiement ou éditer un bulletin même sans réseau.</p>
+        </div>
+        <div class="constraint-card reveal">
+          <div class="constraint-icon">🔒</div>
+          <h3>Données stockées localement</h3>
+          <p>Toutes les informations restent sur l'ordinateur de l'établissement, sous votre contrôle, sans dépendre d'un serveur externe.</p>
+        </div>
+        <div class="constraint-card reveal">
+          <div class="constraint-icon">🗓️</div>
+          <h3>Licence annuelle</h3>
+          <p>L'usage est protégé par une licence renouvelable chaque année : une licence pour un établissement, sur un ordinateur. Une période de grâce et des alertes vous préviennent avant toute expiration.</p>
+        </div>
+        <div class="constraint-card reveal">
+          <div class="constraint-icon">🤝</div>
+          <h3>Sauvegarde partagée</h3>
+          <p>L'application propose un export simple de vos données, mais la sauvegarde régulière (clé USB, disque externe…) reste une responsabilité partagée entre le logiciel et l'établissement.</p>
+        </div>
+      </div>
+
+      <div class="constraints-footnote reveal">
+        <b>À propos des délais :</b> je travaille seul sur ce projet et je préfère vous donner une estimation réaliste plutôt qu'optimiste. Les délais de réalisation vous seront communiqués séparément, une fois ce périmètre validé ensemble.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3 — ZONES D'OMBRE ============ -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Section 03 — Points à valider ensemble</span>
+        <h2>Zones d'ombre à éclaircir ensemble</h2>
+        <p>Certains points méritent encore votre avis avant que je commence à coder. Ce ne sont pas des problèmes — ce sont des décisions que nous devons prendre ensemble pour que le logiciel corresponde exactement à votre façon de travailler.</p>
+      </div>
+
+      <div class="questions-grid">
+        <div class="qcard reveal">
+          <span class="qmark">?</span>
+          <h3>Comment calculer précisément la moyenne ?</h3>
+          <p>Une composition doit-elle peser plus lourd qu'un devoir dans le calcul de la moyenne ? Si oui, selon quelle règle exacte souhaitez-vous que je l'applique ?</p>
+        </div>
+        <div class="qcard reveal">
+          <span class="qmark">?</span>
+          <h3>À quoi doit ressembler le bulletin ?</h3>
+          <p>L'idéal serait de partir d'un bulletin papier que vous utilisez déjà, pour que je reproduise fidèlement sa présentation actuelle.</p>
+        </div>
+        <div class="qcard reveal">
+          <span class="qmark">?</span>
+          <h3>Comment fonctionnent les paiements par tranches ?</h3>
+          <p>Combien de tranches prévoyez-vous, avec quelles échéances, et quelle marge de flexibilité pour les familles ?</p>
+        </div>
+        <div class="qcard reveal">
+          <span class="qmark">?</span>
+          <h3>Que recouvre exactement le terme « Origine » ?</h3>
+          <p>S'agit-il uniquement de Devoir / Composition / Examen, ou d'une autre classification que vous utilisez pour vos évaluations ?</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 4 — MODE EN LIGNE FUTUR ============ -->
+  <section class="section section-dark">
+    <div class="container">
+      <div class="section-head on-dark reveal">
+        <span class="eyebrow">Section 04 — Perspective future (hors périmètre actuel)</span>
+        <h2>Et un mode en ligne, plus tard ?</h2>
+        <p>Ce que je vous présente ici concerne uniquement la version hors-ligne. Il est toutefois utile d'évoquer dès maintenant une évolution possible, pour que vous ayez une vision complète.</p>
+      </div>
+
+      <div class="future-grid">
+        <div class="future-col up reveal">
+          <h3>Ce qu'un mode en ligne faciliterait</h3>
+          <ul class="future-list">
+            <li>Une sauvegarde automatique et sécurisée sur un serveur distant.</li>
+            <li>Des mises à jour instantanées, sans réinstallation.</li>
+            <li>Un accès possible depuis plusieurs appareils.</li>
+            <li>Une gestion des licences simplifiée.</li>
+          </ul>
+        </div>
+        <div class="future-col down reveal">
+          <h3>Ce que cela impliquerait</h3>
+          <ul class="future-list">
+            <li>Une connexion internet stable et permanente, nécessaire pour utiliser l'application — un obstacle possible selon la localisation de l'établissement.</li>
+            <li>Un coût d'hébergement serveur récurrent, à prévoir chaque mois.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="conclusion-banner reveal">
+        <span class="mark">”</span>
+        <p>Pour votre contexte actuel, la version hors-ligne reste le choix le plus adapté, le plus robuste et le plus simple à mettre en place dès maintenant.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER / VALIDATION ============ -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-text reveal">
+        <h2>Prochaine étape</h2>
+        <p>Merci d'avoir pris le temps de lire ce document. La suite est simple : échanger ensemble sur les points de la section 03, valider ce périmètre, puis je pourrai démarrer le développement en toute confiance.</p>
+      </div>
+      <div class="signoff reveal">
+        <div class="signoff-title">Validation du périmètre</div>
+        <div class="signoff-row"><span>Nom</span></div>
+        <div class="signoff-line"></div>
+        <div class="signoff-row"><span>Date</span></div>
+        <div class="signoff-line"></div>
+        <div class="signoff-row"><span>Signature</span></div>
+        <div class="signoff-line"></div>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <span>Dossier de présentation — v1</span>
+      <span>Gestion Scolaire · 28 juillet 2026</span>
+    </div>
+  </footer>
+
+<script>
+  (function(){
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var items = document.querySelectorAll('.reveal');
+    if(prefersReduced || !('IntersectionObserver' in window)){
+      items.forEach(function(el){ el.classList.add('is-visible'); });
+      return;
+    }
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    items.forEach(function(el){ observer.observe(el); });
+  })();
+</script>
+
+</body>
+</html>

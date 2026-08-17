@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Historique des versements - EduCore ERP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed-variant": "#08409e",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "surface-container-high": "#e8e7f0",
+                      "outline": "#747783",
+                      "on-tertiary-fixed-variant": "#065136",
+                      "error-container": "#ffdad6",
+                      "surface-variant": "#e2e2ea",
+                      "error": "#ba1a1a",
+                      "background": "#faf8ff",
+                      "inverse-surface": "#2f3037",
+                      "on-surface": "#1a1b21",
+                      "secondary-fixed-dim": "#b7c7e7",
+                      "secondary-container": "#cdddff",
+                      "on-primary-fixed": "#001848",
+                      "primary-fixed": "#dae2ff",
+                      "secondary-fixed": "#d6e3ff",
+                      "surface-border": "#DFE1E6",
+                      "tertiary": "#004e33",
+                      "on-secondary-fixed-variant": "#374762",
+                      "surface-bright": "#faf8ff",
+                      "on-surface-variant": "#434652",
+                      "tertiary-fixed": "#aef1cc",
+                      "surface": "#f8f9fb",
+                      "on-secondary-fixed": "#0a1c34",
+                      "on-primary-container": "#91afff",
+                      "surface-dim": "#d9d9e2",
+                      "tertiary-container": "#004e33",
+                      "inverse-on-surface": "#f0f0f9",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed-dim": "#92d5b1",
+                      "surface-container": "#edeef0",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#00296d",
+                      "surface-container-highest": "#e2e2ea",
+                      "text-primary": "#172B4D",
+                      "secondary": "#4f5f7b",
+                      "on-tertiary-container": "#7dbe9c",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#2f59b7",
+                      "text-secondary": "#44546F",
+                      "surface-container-low": "#f3f3fb",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c4c6d4",
+                      "on-background": "#1a1b21",
+                      "primary-container": "#003d9b",
+                      "on-error": "#ffffff",
+                      "on-secondary-container": "#51617d",
+                      "inverse-primary": "#b2c5ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "header-height": "56px",
+                      "container-padding": "24px",
+                      "gutter": "16px",
+                      "sidebar-width": "260px",
+                      "row-standard": "44px",
+                      "unit": "4px",
+                      "row-dense": "32px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "display-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-sm": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<aside class="bg-surface text-primary font-body-md text-body-md fixed left-0 top-0 h-full w-sidebar-width border-r border-surface-border hidden md:flex flex-col py-4 z-50">
+<!-- Header -->
+<div class="px-6 mb-8 flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover bg-surface-container-high" data-alt="A clean, modern geometric logo design in shades of blue and white, suitable for a corporate educational institution. The logo is minimalist and professional, set against a pristine white background with sharp, clean lines and no distracting elements. High resolution and perfectly centered." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvD9X6TTBTXjNMX7B4bU-hGXjViZHTqGyFW_NjP95SC18LCHVHiQO8an_Al4Nm9SuwY0cf6AhYSkupCzVQcPhJGj1t7PFwQgHYDVoBPcA0atToseXw1WOkcF38f0uZopiZz5iAu5zvIR9Duxgvuk919pu1vJfQoL8qEwo7dw12feJDxXR74VxYMxOnm-P6EYS2GZdwiZH5umi8IhwualP8-QSE-MXcKvJrE3DOAhxnD-GN9zdbyYy6vg"/>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary">EduCore West Africa</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Admin Portal</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+                Students
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+                Academic
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 bg-secondary-container text-primary rounded-lg font-bold transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="payments" data-weight="fill">payments</span>
+                Finance
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+                Staff
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+                Reports
+            </a>
+</nav>
+<!-- Footer Tabs -->
+<div class="mt-auto px-3 pt-4 border-t border-surface-border">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                Support
+            </a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col md:ml-sidebar-width h-full w-full">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest text-primary font-label-md text-label-md fixed top-0 right-0 h-header-height z-40 border-b border-surface-border flex items-center justify-between px-container-padding w-full md:w-[calc(100%-260px)] ml-auto">
+<!-- Left/Search -->
+<div class="flex items-center gap-4 flex-1">
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-opacity active:opacity-70 p-2">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="hidden sm:flex items-center bg-surface-container-low border border-surface-border rounded-lg px-3 py-1.5 w-64 focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-outline mr-2 text-[18px]" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 p-0 text-body-sm w-full text-on-surface placeholder-outline font-body-sm h-6" placeholder="Search..." type="text"/>
+</div>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-opacity active:opacity-70 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-opacity active:opacity-70">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</button>
+</div>
+<div class="h-6 w-px bg-surface-border hidden sm:block"></div>
+<button class="hidden sm:flex items-center gap-2 bg-primary text-on-primary px-4 h-row-dense rounded-lg font-label-md hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                    Quick Action
+                </button>
+<img class="w-8 h-8 rounded-full border-2 border-surface-border object-cover cursor-pointer" data-alt="Professional headshot of a corporate administrator, wearing a crisp white shirt and a dark blazer. The lighting is studio quality, bright and neutral, creating a clean and authoritative corporate portrait suitable for an enterprise software dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAltUDX6FL5O07jLADT_KY_MUhjMoMFcpHOnsULrGJc3hUrDS2pESQyRlB_oOjGPmhEArkrS-TAmpBusi_5jcL3iXRJKBirtzKZwQTJFE_1eYHznEi-8sVOZc-Shl5OW8jP8ncTzC6jaThS_JIPpJXkH2Nw3nc7RYYryBSfksVL8nNG_TZ4ENpvrOJnLuR80UMl0w6oaG_M9xFfL4OD8RSjMNJ38DWD6YKAwONX46vwVUB1nrz0HYkrYg"/>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 overflow-y-auto mt-header-height p-container-padding bg-surface-bright">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+<div>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md mb-1">
+<a class="hover:text-primary transition-colors" href="#">Finance</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Facture #FCT-2024-089</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-primary">Historique</span>
+</div>
+<h2 class="font-display-sm text-display-sm text-primary">Historique des versements</h2>
+</div>
+<button class="flex items-center justify-center gap-2 bg-primary text-on-primary px-5 h-row-standard rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="add_circle">add_circle</span>
+                    Enregistrer un paiement
+                </button>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Financial Summary Card (Top/Left Bento) -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-surface-border p-6 flex flex-col justify-between">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Solde Restant</p>
+<h3 class="font-display-sm text-display-sm text-error font-data-mono">450,000 FCFA</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Sur un total de 1,200,000 FCFA</p>
+</div>
+<div class="mt-6 pt-6 border-t border-surface-border">
+<div class="flex justify-between items-center mb-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Progression des paiements</span>
+<span class="font-label-md text-label-md text-tertiary-container font-data-mono">62.5%</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary-container h-full rounded-full" style="width: 62.5%"></div>
+</div>
+</div>
+</div>
+<!-- Invoice Details (Top/Right Bento) -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-surface-border p-6 flex items-center">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Étudiant</p>
+<p class="font-body-md text-body-md text-on-surface font-semibold">Kouadio, Marie</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Matricule</p>
+<p class="font-body-md text-body-md text-on-surface font-data-mono">MAT-2023-8901</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Classe</p>
+<p class="font-body-md text-body-md text-on-surface">Terminale D</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Statut</p>
+<span class="inline-flex items-center px-2 py-1 rounded-md bg-secondary-container text-on-secondary-container font-label-md text-label-md">En Cours</span>
+</div>
+</div>
+</div>
+<!-- Payments Table (Bottom Full Width) -->
+<div class="lg:col-span-12 bg-surface-container-lowest rounded-xl border border-surface-border overflow-hidden flex flex-col">
+<div class="px-6 py-4 border-b border-surface-border bg-surface-container-low flex justify-between items-center">
+<h4 class="font-headline-sm text-headline-sm text-primary">Détail des versements</h4>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="download">download</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-border bg-surface-container-lowest">
+<th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-40">Date</th>
+<th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Reçu #</th>
+<th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Mode</th>
+<th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Montant</th>
+<th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Enregistré par</th>
+<th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-16 text-center">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm divide-y divide-surface-border">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors h-row-dense">
+<td class="px-6 py-2 font-data-mono text-on-surface">15 Sep 2024</td>
+<td class="px-6 py-2 font-data-mono text-primary font-semibold">REC-001</td>
+<td class="px-6 py-2">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="account_balance">account_balance</span>
+                                            Virement
+                                        </div>
+</td>
+<td class="px-6 py-2 font-data-mono text-right text-on-surface font-semibold">500,000 FCFA</td>
+<td class="px-6 py-2 text-on-surface-variant">Koffi A. (Comptable)</td>
+<td class="px-6 py-2 text-center">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="print">print</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors h-row-dense">
+<td class="px-6 py-2 font-data-mono text-on-surface">10 Oct 2024</td>
+<td class="px-6 py-2 font-data-mono text-primary font-semibold">REC-045</td>
+<td class="px-6 py-2">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="payments">payments</span>
+                                            Espèces
+                                        </div>
+</td>
+<td class="px-6 py-2 font-data-mono text-right text-on-surface font-semibold">250,000 FCFA</td>
+<td class="px-6 py-2 text-on-surface-variant">Diallo S. (Caisse)</td>
+<td class="px-6 py-2 text-center">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="print">print</span>
+</button>
+</td>
+</tr>
+<!-- Empty State / Footer Summary -->
+<tr class="bg-surface-container-lowest border-t-2 border-surface-border h-row-standard">
+<td class="px-6 py-3 font-label-md text-label-md text-on-surface-variant text-right uppercase" colspan="3">Total Versé</td>
+<td class="px-6 py-3 font-data-mono text-tertiary-container font-bold text-right text-[14px]">750,000 FCFA</td>
+<td colspan="2"></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

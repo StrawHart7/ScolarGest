@@ -1,0 +1,441 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Facture détaillée - Bamba Amadou - EduSync ERP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed-variant": "#08409e",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "surface-container-high": "#e8e7f0",
+                      "outline": "#747783",
+                      "on-tertiary-fixed-variant": "#065136",
+                      "error-container": "#ffdad6",
+                      "surface-variant": "#e2e2ea",
+                      "error": "#ba1a1a",
+                      "background": "#faf8ff",
+                      "inverse-surface": "#2f3037",
+                      "on-surface": "#1a1b21",
+                      "secondary-fixed-dim": "#b7c7e7",
+                      "secondary-container": "#cdddff",
+                      "on-primary-fixed": "#001848",
+                      "primary-fixed": "#dae2ff",
+                      "secondary-fixed": "#d6e3ff",
+                      "surface-border": "#DFE1E6",
+                      "tertiary": "#004e33",
+                      "on-secondary-fixed-variant": "#374762",
+                      "surface-bright": "#faf8ff",
+                      "on-surface-variant": "#434652",
+                      "tertiary-fixed": "#aef1cc",
+                      "surface": "#f8f9fb",
+                      "on-secondary-fixed": "#0a1c34",
+                      "on-primary-container": "#91afff",
+                      "surface-dim": "#d9d9e2",
+                      "tertiary-container": "#004e33",
+                      "inverse-on-surface": "#f0f0f9",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed-dim": "#92d5b1",
+                      "surface-container": "#edeef0",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#00296d",
+                      "surface-container-highest": "#e2e2ea",
+                      "text-primary": "#172B4D",
+                      "secondary": "#4f5f7b",
+                      "on-tertiary-container": "#7dbe9c",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#2f59b7",
+                      "text-secondary": "#44546F",
+                      "surface-container-low": "#f3f3fb",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c4c6d4",
+                      "on-background": "#1a1b21",
+                      "primary-container": "#003d9b",
+                      "on-error": "#ffffff",
+                      "on-secondary-container": "#51617d",
+                      "inverse-primary": "#b2c5ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "header-height": "56px",
+                      "container-padding": "24px",
+                      "gutter": "16px",
+                      "sidebar-width": "260px",
+                      "row-standard": "44px",
+                      "unit": "4px",
+                      "row-dense": "32px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "display-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-sm": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width border-r border-surface-border dark:border-outline bg-surface dark:bg-surface-dim z-50 hidden md:flex flex-col">
+<div class="flex flex-col h-full py-4">
+<div class="px-container-padding mb-8">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="school">school</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim">EduCore West Africa</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Admin Portal</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+                    Students
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+                    Academic
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 bg-secondary-container dark:bg-primary-container text-primary dark:text-on-primary-container rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                    Finance
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+                    Staff
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+                    Reports
+                </a>
+</nav>
+<div class="px-4 mt-auto border-t border-surface-border pt-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Settings
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                    Support
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col w-full md:ml-sidebar-width h-full">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 h-header-height z-40 border-b border-surface-border dark:border-outline bg-surface-container-lowest dark:bg-surface-dim flex items-center justify-between px-container-padding w-full md:w-[calc(100%-260px)] ml-auto">
+<div class="flex items-center">
+<!-- Mobile menu button (hidden on desktop) -->
+<button class="md:hidden mr-4 text-on-surface-variant hover:text-primary transition-opacity active:opacity-70">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="hidden md:flex items-center bg-surface-container-low rounded-lg px-3 py-1.5 border border-surface-border">
+<span class="material-symbols-outlined text-outline mr-2" data-icon="search" style="font-size: 18px;">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-sm font-body-sm p-0 w-64 placeholder-outline" placeholder="Search..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-opacity active:opacity-70">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-opacity active:opacity-70">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</button>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 h-row-dense rounded hover:bg-primary-container hover:text-on-primary-container transition-colors ml-2 hidden sm:block">
+                    Quick Action
+                </button>
+<div class="w-8 h-8 rounded-full overflow-hidden ml-2 border border-surface-border">
+<img alt="User Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a school administrator, middle-aged, smiling slightly, set against a neutral, light-mode background. The lighting is soft and even, suggesting a professional corporate or institutional environment. The style is realistic and modern, suitable for an enterprise ERP avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFrdQdUsaK_CfvDwi2R5CwPc__60GeeF8hb4hLREYEV4wz2_Gbe_AeK8DM_nwL426-c6EfUy23vuem_w7_eGTqWmXuLf6eaEiG_FTAyC2uY09N6ggWGgXN8NxzRAQB4Q_1N-AY7AKNSJ6RYHMy4yQzMSAOXfhXF1f1d91LWtury3fXjbyd_ZMWkImS1pc8W9duiH4O06ywhzryB7PrAFMWTttVGxJS6ijEHI__ceyuNACJl79v6bermg">
+</div>
+</div>
+</header>
+<!-- Page Content Canvas -->
+<main class="flex-1 overflow-y-auto mt-header-height p-container-padding bg-background w-full">
+<div class="max-w-7xl mx-auto space-y-6">
+<!-- Page Header (Student Identity) -->
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-lg bg-surface-container-high border border-surface-border overflow-hidden shrink-0">
+<img alt="Student Photo" class="w-full h-full object-cover" data-alt="A portrait of a young male student from West Africa, wearing a neat school uniform. He has a neutral, attentive expression. The background is a simple, blurred school classroom in daylight. The lighting is bright and clean, fitting a modern institutional style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmFx3--Vc6atquw4D0fGGiKw_CTp6W23r5KgJYIpBZMnlZdb1xYzRl2AsKbgrCVdVUuGOmacC7RtBCLP8LddIPO7sZQX1sqSILehh2GYqRwEbyfa7YJcdB_b5emISzbJI3b1hlWzyvrqJyPl_StRULWKZ3NUco0Qw3zlrjzgYcSamYD8yhK65LK0KuNmXTaAUoBKXHR61tHfu-dGy4KAeg0DQn19str-EQu_CE5CXq2f5p8AD2s2ChyA">
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h2 class="font-display-sm text-display-sm text-primary">Bamba Amadou</h2>
+<span class="bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded font-label-md text-label-md">6ème A</span>
+</div>
+<p class="font-body-md text-body-md text-secondary">Matricule: STU-23-0891 • Statut: Actif</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="h-row-dense px-4 border border-surface-border rounded bg-surface-container-lowest hover:bg-surface-container-low text-on-surface font-label-md text-label-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="print" style="font-size: 18px;">print</span>
+                            Imprimer
+                        </button>
+<button class="h-row-dense px-4 bg-primary text-on-primary rounded hover:bg-primary-container hover:text-on-primary-container font-label-md text-label-md transition-colors flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined" data-icon="add_card" style="font-size: 18px;">add_card</span>
+                            Nouveau Paiement
+                        </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Main Facture Table Card (Spans 2 columns) -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-surface-border rounded-xl shadow-sm flex flex-col">
+<div class="p-6 border-b border-surface-border">
+<h3 class="font-headline-md text-headline-md text-text-primary">Facture Annuelle 2023-2024</h3>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">Détail des frais et obligations financières.</p>
+</div>
+<div class="flex-1 overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-surface-border px-6">
+<th class="p-4 font-label-md text-label-md text-text-secondary w-1/3 px-6">Désignation</th>
+<th class="p-4 font-label-md text-label-md text-text-secondary text-right px-6">Montant (FCFA)</th>
+<th class="p-4 font-label-md text-label-md text-text-secondary text-right px-6">Payé (FCFA)</th>
+<th class="p-4 font-label-md text-label-md text-text-secondary text-center px-6">Statut</th>
+<th class="p-4 font-label-md text-label-md text-text-secondary w-10 px-6"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-border">
+<tr class="hover:bg-surface-container-low/50 transition-colors h-row-dense">
+<td class="p-4 font-body-md text-body-md text-on-surface px-6">Frais d'inscription</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">50 000</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">50 000</td>
+<td class="p-4 text-center px-6">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary-container font-label-md text-label-md">
+                                                Soldé
+                                            </span>
+</td>
+<td class="p-4 text-right px-6">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors h-row-dense">
+<td class="p-4 font-body-md text-body-md text-on-surface px-6">Scolarité T1</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">150 000</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">150 000</td>
+<td class="p-4 text-center px-6">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary-container font-label-md text-label-md">
+                                                Soldé
+                                            </span>
+</td>
+<td class="p-4 text-right px-6">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors h-row-dense">
+<td class="p-4 font-body-md text-body-md text-on-surface px-6">Scolarité T2</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">150 000</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">50 000</td>
+<td class="p-4 text-center px-6">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container/50 text-on-secondary-container font-label-md text-label-md">
+                                                Partiel
+                                            </span>
+</td>
+<td class="p-4 text-right px-6">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors h-row-dense bg-surface-container-lowest">
+<td class="p-4 font-body-md text-body-md text-on-surface px-6">Scolarité T3</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">150 000</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">0</td>
+<td class="p-4 text-center px-6">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-label-md">
+                                                En attente
+                                            </span>
+</td>
+<td class="p-4 text-right px-6">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors h-row-dense">
+<td class="p-4 font-body-md text-body-md text-on-surface px-6">Cantine (Annuel)</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">120 000</td>
+<td class="p-4 font-data-mono text-data-mono text-on-surface text-right px-6">0</td>
+<td class="p-4 text-center px-6">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-error-container/30 text-error font-label-md text-label-md">
+                                                Impayé
+                                            </span>
+</td>
+<td class="p-4 text-right px-6">
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Summary Column -->
+<div class="flex flex-col gap-6">
+<!-- Financial Summary Card -->
+<div class="bg-primary-container/10 border border-primary-container/20 rounded-xl p-6 flex flex-col justify-between h-full min-h-[300px] relative overflow-hidden">
+<!-- Subtle background accent -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary mb-6">Synthèse</h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-text-secondary">Total Facturé</span>
+<span class="font-data-mono text-[14px] leading-[20px] font-semibold text-on-surface">620 000 FCFA</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-text-secondary">Total Réglé</span>
+<span class="font-data-mono text-[14px] leading-[20px] font-semibold text-tertiary">250 000 FCFA</span>
+</div>
+<div class="w-full bg-surface-border h-1.5 rounded-full overflow-hidden mt-2">
+<div class="bg-tertiary h-full rounded-full" style="width: 40%;"></div>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-primary-container/20">
+<div class="flex justify-between items-end">
+<span class="font-headline-sm text-headline-sm text-primary">Solde Restant</span>
+<span class="font-data-mono text-[24px] leading-[32px] font-bold text-error">370 000 FCFA</span>
+</div>
+</div>
+</div>
+<!-- Recent Transactions Mini-list -->
+<div class="bg-surface-container-lowest border border-surface-border rounded-xl p-6 shadow-sm">
+<div class="flex justify-between items-center mb-4">
+<h4 class="font-headline-sm text-headline-sm text-text-primary">Derniers paiements</h4>
+<a class="font-label-md text-label-md text-primary hover:underline" href="#">Voir tout</a>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined" data-icon="arrow_downward" style="font-size: 16px;">arrow_downward</span>
+</div>
+<div class="flex-1">
+<p class="font-body-sm text-body-sm text-on-surface font-medium">Scolarité T2 (Partiel)</p>
+<p class="font-label-md text-label-md text-text-secondary">15 Oct 2023 • Espèces</p>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface text-right">
+                                        50 000
+                                    </div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined" data-icon="arrow_downward" style="font-size: 16px;">arrow_downward</span>
+</div>
+<div class="flex-1">
+<p class="font-body-sm text-body-sm text-on-surface font-medium">Scolarité T1</p>
+<p class="font-label-md text-label-md text-text-secondary">02 Sep 2023 • Virement</p>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface text-right">
+                                        150 000
+                                    </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+
+</body></html>
