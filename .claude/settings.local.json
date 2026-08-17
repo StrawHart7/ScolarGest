@@ -12,7 +12,19 @@
       "Bash(git config *)",
       "Bash(gh auth *)",
       "Bash(git ls-remote *)",
-      "Bash(git count-objects *)"
+      "Bash(git count-objects *)",
+      "Bash(npx @sentry/wizard@latest -i nextjs --saas --org hartkitco --project scolargest)",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,StartTime,CPU\")",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(npm cache *)",
+      "Bash(timeout 2 echo x)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx supabase *)",
+      "Bash(npm run *)",
+      "Bash(git restore *)",
+      "Bash(grep -iE \"\\\\.env$|sentryclirc|scheduled_tasks|tsbuildinfo\")"
     ]
   }
 }

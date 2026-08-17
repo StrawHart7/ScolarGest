@@ -1,15 +1,30 @@
+'use client';
+
+import { useFormState, useFormStatus } from 'react-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { login } from './actions';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? 'Connexion...' : 'Se connecter'}
+    </Button>
+  );
+}
 
 export default function LoginPage() {
+  const [error, formAction] = useFormState(login, null);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface px-4">
       <Card className="w-full max-w-md p-8">
         <h1 className="text-display-sm mb-1 text-text-primary">ScoolAdmin</h1>
         <p className="text-body-sm mb-6 text-text-secondary">Connexion à votre espace</p>
-        <form className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" autoComplete="email" required />
@@ -24,9 +39,8 @@ export default function LoginPage() {
               required
             />
           </div>
-          <Button type="submit" className="w-full">
-            Se connecter
-          </Button>
+          {error && <p className="text-body-sm text-error">{error}</p>}
+          <SubmitButton />
         </form>
       </Card>
     </main>

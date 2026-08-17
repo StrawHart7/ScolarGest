@@ -20,3 +20,9 @@ prisma/migrations/dev.db*
 Docs/
 Plannification/
 design-maquette/
+# Sentry Config File
+.env.sentry-build-plugin
+
+# Local build/tooling artifacts
+tsconfig.tsbuildinfo
+.claude/scheduled_tasks.lock

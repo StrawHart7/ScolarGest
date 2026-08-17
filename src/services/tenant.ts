@@ -1,5 +1,6 @@
-import type { Role } from '@prisma/client';
 import { createClient } from '@/lib/supabase/server';
+
+export type Role = 'SUPER_ADMIN' | 'DIRECTEUR' | 'SECRETAIRE' | 'COMPTABLE' | 'ENSEIGNANT';
 
 export interface TenantContext {
   userId: string;

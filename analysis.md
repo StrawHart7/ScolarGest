@@ -41,33 +41,35 @@ du DIRECTEUR (ex. un propriétaire/fondateur au-dessus du directeur pédagogique
 - Doc 06 (corps) : un enseignant **n'a pas forcément** de compte (relation `Enseignant 0..1 Utilisateur`).
 - Doc 06 (Modifications) : le compte devient **obligatoire** pour tout enseignant actif (traçabilité).
 - Or l'email de l'enseignant est facultatif dans la structure, alors qu'un compte
-  (surtout via un fournisseur d'identité type Clerk) exige un email unique.
+  (surtout via un fournisseur d'identité type Supabase Auth) exige un email unique.
 
 **Q2. Tout enseignant actif doit-il obligatoirement avoir un compte + un email ? Comment
 gère-t-on l'enseignant réel sans email (fréquent) : email fictif, compte créé par le
 directeur sans email, ou on garde l'enseignant « sans compte » comme cas légitime ?**
 
-> **RÉPONSE** : Compte obligatoire pour tout enseignant actif. Le Directeur fournit un email à la création (email personnel ou générique de l'école). Clerk envoie une invitation. L'email devient identifiant unique — pas d'enseignant actif sans compte.
+> **RÉPONSE** : Compte obligatoire pour tout enseignant actif. Le Directeur fournit un email à la création (email personnel ou générique de l'école). Supabase Auth envoie une invitation. L'email devient identifiant unique — pas d'enseignant actif sans compte.
 
 ---
 
-## 3. Authentification : champ `mot_de_passe_hash` vs fournisseur externe (Clerk)
+## 3. Authentification : champ `mot_de_passe_hash` vs fournisseur externe (Supabase Auth)
 
 - Doc 03 : entité `Utilisateur` avec `mot_de_passe_hash`, plus récupération/expiration
   gérées par nous.
-- Doc 02 (Modifications) : figer la stack sur **Clerk** + section sur la liaison
-  compte Clerk ↔ Utilisateur (provisioning → invitation → binding par email).
+- Doc 02 (Modifications) : figer la stack sur **Supabase Auth** + section sur la liaison
+  compte Supabase Auth ↔ Utilisateur (provisioning → invitation → binding par email).
 
 Ces deux visions s'excluent : soit on stocke et gère nous-mêmes les mots de passe, soit
-Clerk est la source de vérité de l'identité et notre table `Utilisateur` ne contient
+Supabase Auth est la source de vérité de l'identité et notre table `Utilisateur` ne contient
 plus de hash mais un `clerk_user_id` + un rôle + un `etablissement_id`.
 
-**Q3. On confirme Clerk comme fournisseur d'identité (donc on supprime
+**Q3. On confirme Supabase Auth comme fournisseur d'identité (donc on supprime
 `mot_de_passe_hash` et on ajoute `clerk_user_id`) ? Ou on préfère une auth maison /
 autre solution pour garder la maîtrise (coût, résidence des données, comptes sans
 email) ?**
 
-> **RÉPONSE** : Clerk confirmé pour l'authentification principale. Mais il existe un **second facteur applicatif** (step-up auth) : un PIN à 6 chiffres, géré par nous (stocké hashé dans notre table `Utilisateur`), requis au moment de valider une action d'approbation. Ce PIN est distinct du mot de passe Clerk — c'est une signature électronique interne. Tous les rôles qui reçoivent des demandes d'approbation possèdent ce PIN (actuellement : la Secrétaire). La table `Utilisateur` supprime `mot_de_passe_hash` / `token_reinitialisation` / `expiration_token`, et ajoute `clerk_user_id` + `pin_approbation_hash`.
+> **RÉPONSE** : Supabase Auth confirmé pour l'authentification principale. Mais il existe un **second facteur applicatif** (step-up auth) : un PIN à 6 chiffres, géré par nous (stocké hashé dans notre table `Utilisateur`), requis au moment de valider une action d'approbation. Ce PIN est distinct du mot de passe Supabase Auth — c'est une signature électronique interne. Tous les rôles qui reçoivent des demandes d'approbation possèdent ce PIN (actuellement : la Secrétaire). La table `Utilisateur` supprime `mot_de_passe_hash` / `token_reinitialisation` / `expiration_token`, et ajoute `clerk_user_id` + `pin_approbation_hash`.
+
+> **Modifications** : pas de `clerk_user_id` — l'identité Supabase Auth est directement la clé primaire (`utilisateur.id = auth.users.id`), pas de colonne séparée. `pin_approbation_hash` inchangé.
 
 ---
 
@@ -77,7 +79,7 @@ email) ?**
   absolue. Mais c'est une isolation **purement applicative** : une seule requête mal
   filtrée expose les données d'une autre école.
 - Rien n'est dit sur le **Row Level Security (RLS) PostgreSQL**, qui est justement le
-  filet de sécurité que Supabase encourage. Avec Clerk comme auth, brancher le RLS sur
+  filet de sécurité que Supabase encourage. Avec Supabase Auth comme auth, brancher le RLS sur
   le tenant demande un travail spécifique (JWT → claim tenant).
 
 **Q4. Veut-on une isolation défendue aussi au niveau base (RLS Postgres), ou on assume
@@ -86,6 +88,8 @@ requête passe par un « repository » qui injecte le tenant) ? Ce choix change 
 l'architecture technique.**
 
 > **RÉPONSE** : Isolation applicative stricte via repository pattern. Chaque accès aux données passe par une couche centralisée qui injecte `etablissement_id` obligatoirement. Pas de RLS Postgres en v1 (incompatibilité Prisma, complexité inutile). Peut être ajouté post-lancement si audit de sécurité l'exige.
+
+> **Modifications** : décision inversée — le projet reste sur Supabase (pas de Prisma), donc RLS Postgres est activé dès la v1 (`supabase/migrations/0001_init.sql`) sur `etablissement_id`, avec bypass `SUPER_ADMIN`. La couche service applique toujours un filtre explicite en défense en profondeur, mais l'isolation n'est plus purement applicative.
 
 ---
 
@@ -329,7 +333,7 @@ totalement ? Faut-il un chemin de migration SQLite → SaaS ?**
 
 Avant le PLAN, les 4 vraiment structurantes :
 
-1. **Q3/Q4** — Auth + isolation : Clerk + RLS, ou auth maison + isolation applicative.
+1. **Q3/Q4** — Auth + isolation : Supabase Auth + RLS, ou auth maison + isolation applicative.
    (Détermine toute l'architecture technique.)
 2. **Q16/Q17** — Full web vs mode hors-ligne, et sort du MVP desktop.
    (Détermine si c'est un « vrai » SaaS pur ou un hybride.)

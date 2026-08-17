@@ -1,7 +1,8 @@
-# PLAN — ScoolAdmin (SaaS de gestion scolaire)
+# PLAN — ScolarGest (SaaS de gestion scolaire)
 
 > Feuille de route de développement vers un produit fonctionnel.
 > Toutes les décisions de conception sont tranchées dans `analysis.md` (Q0–Q17).
+> Style : aucun emoji nulle part dans le produit (UI, documents générés, notifications).
 
 ---
 
@@ -13,9 +14,9 @@
 | Style | Tailwind CSS (tokens `DESIGN.md`) + shadcn/ui |
 | Données / formulaires | TanStack Query, react-hook-form, Zod |
 | Base de données | PostgreSQL (Supabase) |
-| ORM | Prisma |
-| Isolation tenant | Applicative — repository injectant `etablissement_id` |
-| Authentification principale | Supabase Auth (`@supabase/ssr`, claims `etablissement_id` + `role` via Auth Hooks) |
+| Accès données | `@supabase/supabase-js` / `@supabase/ssr` (pas d'ORM) |
+| Isolation tenant | Row Level Security (RLS) Postgres via Supabase, sur `etablissement_id` |
+| Authentification principale | Supabase Auth (`@supabase/ssr`, claims `etablissement_id` + `role` dans `app_metadata`) |
 | Step-up auth | PIN 6 chiffres hashé en interne (`pin_approbation_hash`) |
 | Stockage fichiers | Supabase Storage |
 | Génération PDF | HTML → PDF via Playwright (serveur) |
@@ -28,7 +29,7 @@
 
 1. **Logique métier hors UI** — toute règle (calculs, workflows) vit dans une couche `services`/`domain`, jamais dans les composants React.
 2. **Organisation par domaine** — `students/`, `teachers/`, `finance/`, `academics/`, `reports/`, `identity/`, chacun avec `models/` `services/` `validations/` `components/`.
-3. **Tenant partout** — aucun accès aux données sans passer par la couche qui filtre `etablissement_id`. Interdit d'appeler Prisma directement depuis une route.
+3. **Tenant partout** — isolation appliquée en base via RLS Postgres (Supabase) sur `etablissement_id`, doublée d'un filtre explicite côté service (défense en profondeur). Interdit d'appeler le client Supabase directement depuis une route sans passer par la couche service.
 4. **Pas de suppression destructive** — statut `ANNULE`/`ARCHIVE`, jamais de `DELETE` sur données sensibles (paiements, notes, factures, inscriptions).
 5. **Audit** — chaque action sensible écrit une entrée `AuditLog` (ancienne/nouvelle valeur).
 6. **Historisation** — coefficients, affectations, inscriptions sont rattachés à une année scolaire ; changer une valeur ne casse jamais un ancien document.
@@ -44,7 +45,7 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 ---
 
-### Phase 0 — Fondations (socle technique)
+### Phase 0 — Fondations (socle technique) — ✅ TERMINÉE (2026-08-17)
 
 **Objectif** : un squelette déployable, sécurisé, avec le modèle de données complet et la couche tenant en place.
 
@@ -52,15 +53,16 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 - Repo, conventions ESLint/Prettier, CI (lint + typecheck + tests), environnements (dev / preview / prod).
 - Design system : tokens `DESIGN.md` → config Tailwind, composants de base shadcn/ui (Button, Input, Table, Card, Badge, Sidebar) au style « Luminous Institutional ».
 - **Référence de maquettes** : avant de créer une nouvelle page, chercher dans `/design-maquette` le sous-dossier correspondant à la page (nommage `nom_de_la_page_edusync_erp`) et l'inspecter pour en reprendre le style avant implémentation.
-- **Schéma Prisma complet** du noyau métier (issu du doc 10) — toutes les entités, relations, contraintes, enums.
-  - Entités clés : `Utilisateur` (clerk_user_id + pin_approbation_hash), `Etablissement`, `AnneeScolaire`, `Cycle`, `CycleEtablissement`, `Niveau` (niveau_suivant_id), `Serie`, `Classe`, `Eleve`, `Inscription`, `Responsable`, `EleveResponsable`, `Enseignant`, `AffectationEnseignant`, `TitulariteClasse`, `Matiere`, `ProgrammeEtablissement`, `CoefficientMatiere` (annee_scolaire_id), `Evaluation`, `Note`, `TypeFrais`, `TarifScolaire` (classe_id), `FactureEleve`, `LigneFacture`, `Paiement`, `Document`, `PlanAbonnement`, `AbonnementEtablissement`, `PaiementAbonnement`, `AuditLog`.
+- **Schéma SQL Supabase complet** du noyau métier (issu du doc 10), en migrations versionnées (`supabase/migrations/`) — toutes les entités, relations, contraintes, enums, policies RLS.
+  - Entités clés : `Utilisateur` (id = auth.users.id, pin_approbation_hash), `Etablissement`, `AnneeScolaire`, `Cycle`, `CycleEtablissement`, `Niveau` (niveau_suivant_id), `Serie`, `Classe`, `Eleve`, `Inscription`, `Responsable`, `EleveResponsable`, `Enseignant`, `AffectationEnseignant`, `TitulariteClasse`, `Matiere`, `ProgrammeEtablissement`, `CoefficientMatiere` (annee_scolaire_id), `Evaluation`, `Note`, `TypeFrais`, `TarifScolaire` (classe_id), `FactureEleve`, `LigneFacture`, `Paiement`, `Document`, `PlanAbonnement`, `AbonnementEtablissement`, `PaiementAbonnement`, `AuditLog`.
 - Migrations initiales + seed des **catalogues système Togo** : cycles, niveaux fixes avec `niveau_suivant_id`, séries lycée.
-- Couche d'accès tenant : `getTenantContext()` depuis Clerk + repository de base + guard middleware.
-- Intégration Clerk : login, session, extraction `etablissement_id` + `role` depuis les claims.
-- Helper `auditLog()` réutilisable.
+- Couche d'accès tenant : `getTenantContext()` (lit `role` + `etablissement_id` depuis le JWT Supabase `app_metadata`) + RLS Postgres par table.
+- Intégration Supabase Auth : login (Server Action `signInWithPassword`), session, middleware de refresh, extraction `etablissement_id` + `role` depuis les claims.
+- Helper `auditLog()` réutilisable, vérifié en conditions réelles (RLS + FK `utilisateur`).
 - Layout applicatif (sidebar 260px, header 56px) conforme au design.
+- Sentry (`@sentry/nextjs`) configuré (org `hartkitco`, projet `scolargest`).
 
-**DoD** : un utilisateur de test se connecte via Clerk ; toute requête de démo filtrée par tenant ; CI verte ; migrations rejouables depuis zéro ; schéma revu contre doc 10 et validé.
+**DoD** — validé le 2026-08-17 : utilisateur de test connecté via Supabase Auth (SUPER_ADMIN et DIRECTEUR) ; RLS testée avec 2 établissements distincts, isolation confirmée ; audit log vérifié via bouton de test sur `/dashboard` ; CI verte ; schéma revu contre doc 10.
 
 ---
 
@@ -71,13 +73,13 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Livrables** :
 - **Back-office SUPER_ADMIN** :
   - Création d'un établissement + activation des cycles (`CycleEtablissement`).
-  - Création du compte Directeur (provisioning Clerk → invitation email).
+  - Création du compte Directeur (provisioning Supabase Auth → invitation email).
   - Console abonnements (lecture, validation paiements manuels).
 - **Gestion années scolaires** : statuts PREPARATION / ACTIVE / TERMINEE, contrainte une seule ACTIVE par école.
 - **Gestion classes** : niveau + série optionnelle (lycée) + année scolaire + capacité + tarifs par classe.
 - **Gestion utilisateurs** (par le Directeur) :
   - 5 rôles fixes : SUPER_ADMIN, DIRECTEUR, SECRETAIRE, COMPTABLE, ENSEIGNANT.
-  - Invitation / activation via Clerk.
+  - Invitation / activation via Supabase Auth.
   - Configuration du PIN d'approbation (step-up auth) pour les rôles concernés (Secrétaire, Directeur).
 - Matrice de permissions par rôle (accès lecture seule croisés selon doc 03).
 
@@ -111,7 +113,7 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 **Livrables** :
 - CRUD **Enseignant** : matricule auto `ENS-{annee}-{seq}` par établissement et par année scolaire, statuts.
-  - Compte Clerk **obligatoire** pour tout enseignant ACTIF — email requis à la création, invitation Clerk envoyée automatiquement.
+  - Compte Supabase Auth **obligatoire** pour tout enseignant ACTIF — email requis à la création, invitation Supabase Auth envoyée automatiquement.
 - **AffectationEnseignant** : enseignant × classe × matière × année scolaire.
   - L'affectation contrôle les droits de saisie de notes (un prof ne saisit que ses affectations).
 - **TitulariteClasse** : 0 ou 1 titulaire par classe.
@@ -294,7 +296,7 @@ Rappel des décisions clés impactant le développement :
 |---|---|
 | Supabase Auth + PIN step-up | Phase 0 : `pin_approbation_hash` dans `Utilisateur`, claims via Auth Hooks |
 | Isolation applicative (pas RLS) | Phase 0 : repository pattern obligatoire partout |
-| Compte enseignant obligatoire | Phase 3 : email requis, invitation Clerk automatique |
+| Compte enseignant obligatoire | Phase 3 : email requis, invitation Supabase Auth automatique |
 | Tarifs par classe (immuables) | Phase 6 : `classe_id` dans `TarifScolaire` |
 | Facture auto à l'inscription | Phase 2 + 6 : génération à la validation de l'inscription |
 | Coefficients historisés dès v1 | Phase 0 : `annee_scolaire_id` dans `CoefficientMatiere` |

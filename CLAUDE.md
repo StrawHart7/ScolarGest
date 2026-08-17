@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ScoolAdmin** is a multi-tenant SaaS web application for private school management in West Africa (initially targeting Togo). The project is currently in the pre-development phase: architecture is fully designed but no implementation code exists yet. The `/MVP` directory contains an abandoned PyQt6/SQLite desktop prototype — ignore it entirely.
+**ScolarGest** (working directory and some legacy docs still say "ScoolAdmin" — same project, `ScolarGest` is the final product name) is a multi-tenant SaaS web application for private school management in West Africa (initially targeting Togo). Phase 0 (foundations) is complete — see Development Phases below. The `/MVP` directory contains an abandoned PyQt6/SQLite desktop prototype — ignore it entirely.
+
+No emojis anywhere in the product: UI copy, generated documents, notifications, etc.
 
 ## Tech Stack
 
@@ -14,9 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Styling | Tailwind CSS + shadcn/ui |
 | Forms & Validation | react-hook-form + Zod |
 | Server State | TanStack Query |
-| Auth | Supabase Auth (`@supabase/ssr`, custom claims via Auth Hooks) |
-| Database | PostgreSQL via Supabase |
-| ORM | Prisma |
+| Auth | Supabase Auth (`@supabase/ssr`, custom claims `role` + `etablissement_id` in `app_metadata`) |
+| Database | PostgreSQL via Supabase, accessed via `@supabase/supabase-js` / `@supabase/ssr` (no ORM) |
 | File Storage | Supabase Storage |
 | PDF Generation | HTML → PDF via Playwright (server-side) |
 | Unit Tests | Vitest |
@@ -25,26 +26,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-The project scaffold does not exist yet (created in Phase 0). Expected commands once scaffolded:
-
 ```bash
 npm run dev          # Next.js dev server
 npm run build        # Production build
 npm run lint         # ESLint + Prettier
 npm run test         # Vitest unit tests
 npm run test:e2e     # Playwright E2E tests
-npx prisma migrate dev  # Apply DB migrations
-npx prisma generate  # Regenerate Prisma client after schema changes
+npx supabase db push    # Apply DB migrations (supabase/migrations/*.sql)
+npx supabase db reset   # Reset local DB and reapply migrations + seed
 ```
 
 ## Architecture
 
-### Directory Structure (planned)
+### Directory Structure
 
 ```
 src/
 ├── app/              # Next.js App Router — pages and layouts only
-│   ├── (auth)/       # Clerk auth flows
+│   ├── (auth)/       # Supabase Auth flows (login, etc.)
 │   └── [module]/     # Domain-specific routes
 ├── modules/          # One subdirectory per business domain
 │   ├── students/
@@ -54,26 +53,25 @@ src/
 │   ├── reports/
 │   └── identity/
 ├── services/         # Shared cross-domain business services
-├── database/         # Prisma client instance, shared queries
+├── database/         # Supabase client instances, shared queries
 └── security/         # Tenant guards, audit helpers, auth middleware
 ```
 
-Each module follows the same internal structure: `models/` (TS types + Prisma types), `services/` (business logic), `validations/` (Zod schemas), `components/` (React UI).
+Each module follows the same internal structure: `models/` (TS types), `services/` (business logic), `validations/` (Zod schemas), `components/` (React UI).
 
 ### Data Flow
 
 ```
-Request → Clerk Auth middleware
-  → Tenant context extracted (etablissement_id)
+Request → Supabase Auth middleware (session refresh)
+  → Tenant context extracted from JWT app_metadata (getTenantContext())
   → Next.js Server Action / Route Handler
   → Service layer (business rules)
-  → Data access layer (applies tenant filter on every query)
-  → Prisma → PostgreSQL
+  → Supabase client (`@supabase/supabase-js` / `@supabase/ssr`) → PostgreSQL
 ```
 
 ### Multi-Tenancy
 
-Every table includes `etablissement_id`. Isolation is **applicative** (not database-level RLS) — the data access layer must always filter by tenant. Never write a query that omits `etablissement_id` on a tenant-scoped table.
+Every table includes `etablissement_id`. Isolation is enforced at the **database level via Supabase Row Level Security (RLS)** policies (see `supabase/migrations/0001_init.sql`) — every tenant-scoped table has a policy comparing `etablissement_id` against the caller's JWT claim (`auth_etablissement_id()`), with a `SUPER_ADMIN` bypass. Still always pass `etablissement_id` explicitly in application code (defense in depth, and RLS aside, cleaner queries) — never rely solely on RLS to omit it from a query's `.eq()` filters.
 
 ### Non-Negotiable Invariants
 
@@ -90,7 +88,7 @@ All business rules live in `Docs/`. Read the relevant file before implementing a
 | File | Domain |
 |---|---|
 | `Docs/02-Architecture.md` | Technical architecture, tenant isolation, stack decisions |
-| `Docs/03-…Identité…` | Users, roles, permissions, Clerk integration |
+| `Docs/03-…Identité…` | Users, roles, permissions, Supabase Auth integration |
 | `Docs/04-…Structure scolaire.md` | Schools, cycles, academic years, levels, classes |
 | `Docs/05-…élèves.md` | Students, legal guardians, enrollment |
 | `Docs/06-…Enseignants.md` | Teachers, subject and class assignments |
@@ -104,7 +102,7 @@ Where a section is labelled **"Modifications"**, treat it as the authoritative o
 
 ## Development Phases
 
-See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Prisma schema, Clerk wiring, design tokens) is the prerequisite for everything. `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) is done. Phase 1 (établissement, structure scolaire & utilisateurs) is next. `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
 
 ## Design System
 
