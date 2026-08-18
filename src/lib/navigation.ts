@@ -14,17 +14,20 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Cycles', href: '/etablissement/cycles' },
         { label: 'Années scolaires', href: '/etablissement/annees-scolaires' },
         { label: 'Classes', href: '/etablissement/classes' },
+        { label: 'Élèves', href: '/etablissement/eleves' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
       ];
     case 'SECRETAIRE':
       return [
         { label: 'Tableau de bord', href: '/dashboard' },
         { label: 'Classes', href: '/etablissement/classes' },
+        { label: 'Élèves', href: '/etablissement/eleves' },
       ];
     case 'COMPTABLE':
       return [
         { label: 'Tableau de bord', href: '/dashboard' },
         { label: 'Classes', href: '/etablissement/classes' },
+        { label: 'Élèves', href: '/etablissement/eleves' },
       ];
     case 'ENSEIGNANT':
       return [{ label: 'Tableau de bord', href: '/dashboard' }];

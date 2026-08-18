@@ -42,7 +42,7 @@ export async function generateMatriculeEleve(anneeScolaireId: string): Promise<s
   if (error) throw error;
 
   const nextSeq = last ? parseInt(last.matricule.slice(prefix.length), 10) + 1 : 1;
-  return `${prefix}${pad(nextSeq)}`;
+  return `${prefix}${pad(nextSeq, 6)}`;
 }
 
 export async function generateMatriculeEnseignant(anneeScolaireId: string): Promise<string> {

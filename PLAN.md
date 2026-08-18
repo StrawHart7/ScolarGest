@@ -98,12 +98,12 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Objectif** : gérer la population scolaire et son inscription annuelle.
 
 **Livrables** :
-- CRUD **Élève** : matricule auto `ELV-{annee}-{seq}` par établissement et par année scolaire, `ancien_matricule`, statuts.
-- **Responsables** + relation N–N `EleveResponsable` (lien de parenté, principal).
-- **Inscription** : élève × année × classe, règle d'unicité (une inscription ACTIVE par élève par année), décision de fin d'année (ADMIS / REDOUBLANT / DEPART).
-- **Génération automatique de la FactureEleve** à l'inscription : lignes auto depuis les `TarifScolaire` de la classe, éditables par le Comptable avant validation.
-- **Passage automatique en fin d'année** : le système propose le passage des élèves admis selon `niveau_suivant_id` ; le Directeur/Secrétaire valide ou ajuste élève par élève.
-- **Import Excel** élèves + responsables : upload → mapping colonnes → validation Zod → rapport d'erreurs ligne par ligne → import transactionnel.
+- [x] CRUD **Élève** : matricule auto `ELV-{annee}-{seq}` par établissement et par année scolaire, `ancien_matricule`, statuts.
+- [x] **Responsables** + relation N–N `EleveResponsable` (lien de parenté, principal).
+- [x] **Inscription** : élève × année × classe, règle d'unicité (une inscription ACTIVE par élève par année), décision de fin d'année (ADMIS / REDOUBLANT / DEPART).
+- [x] **Génération automatique de la FactureEleve** à l'inscription : lignes auto depuis les `TarifScolaire` de la classe (squelette à 0 si aucun tarif configuré). L'édition des lignes par le Comptable avant validation reste différée à la Phase 6 (Finances) — décision produit documentée dans le plan de Phase 2.
+- [x] **Passage automatique en fin d'année** : le système propose le passage des élèves admis selon `niveau_suivant_id` ; le Directeur/Secrétaire valide ou ajuste élève par élève.
+- [x] **Import Excel** élèves + responsables : upload → gabarit de colonnes fixe → validation Zod → rapport d'erreurs ligne par ligne → import transactionnel.
 
 **Dépend de** : Phase 1.
 
