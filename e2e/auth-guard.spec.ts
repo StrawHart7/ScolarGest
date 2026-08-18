@@ -20,6 +20,10 @@ const PROTECTED_ROUTES = [
   '/etablissement/eleves/nouvelle',
   '/etablissement/eleves/import',
   '/etablissement/eleves/passage',
+  '/etablissement/enseignants',
+  '/etablissement/enseignants/nouveau',
+  '/etablissement/enseignants/import',
+  '/etablissement/mes-classes',
   '/utilisateurs',
   '/utilisateurs/inviter',
 ];

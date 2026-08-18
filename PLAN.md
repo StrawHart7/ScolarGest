@@ -116,12 +116,12 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Objectif** : savoir qui enseigne quoi, à qui, quand.
 
 **Livrables** :
-- CRUD **Enseignant** : matricule auto `ENS-{annee}-{seq}` par établissement et par année scolaire, statuts.
-  - Compte Supabase Auth **obligatoire** pour tout enseignant ACTIF — email requis à la création, invitation Supabase Auth envoyée automatiquement.
-- **AffectationEnseignant** : enseignant × classe × matière × année scolaire.
-  - L'affectation contrôle les droits de saisie de notes (un prof ne saisit que ses affectations).
-- **TitulariteClasse** : 0 ou 1 titulaire par classe.
-- Import Excel enseignants + affectations.
+- [x] CRUD **Enseignant** : matricule auto `ENS-{annee}-{seq}` par établissement et par année scolaire, statuts.
+  - [x] Compte Supabase Auth **obligatoire** pour tout enseignant — email requis à la création, invitation Supabase Auth envoyée automatiquement.
+- [x] **AffectationEnseignant** : enseignant × classe × matière × année scolaire.
+  - L'affectation contrôle les droits de saisie de notes (un prof ne saisit que ses affectations) — vérification effective de la saisie différée à la Phase 4, périmètre de lecture posé dès Phase 3.
+- [x] **TitulariteClasse** : 0 ou 1 titulaire par classe.
+- [x] Import Excel enseignants + affectations.
 
 **Dépend de** : Phases 1–2 (peut avancer en parallèle de Phase 4 sur les matières).
 

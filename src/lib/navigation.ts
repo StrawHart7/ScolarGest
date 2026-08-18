@@ -15,6 +15,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Années scolaires', href: '/etablissement/annees-scolaires' },
         { label: 'Classes', href: '/etablissement/classes' },
         { label: 'Élèves', href: '/etablissement/eleves' },
+        { label: 'Enseignants', href: '/etablissement/enseignants' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
       ];
     case 'SECRETAIRE':
@@ -22,6 +23,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Tableau de bord', href: '/dashboard' },
         { label: 'Classes', href: '/etablissement/classes' },
         { label: 'Élèves', href: '/etablissement/eleves' },
+        { label: 'Enseignants', href: '/etablissement/enseignants' },
       ];
     case 'COMPTABLE':
       return [
@@ -30,7 +32,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Élèves', href: '/etablissement/eleves' },
       ];
     case 'ENSEIGNANT':
-      return [{ label: 'Tableau de bord', href: '/dashboard' }];
+      return [
+        { label: 'Tableau de bord', href: '/dashboard' },
+        { label: 'Mes classes', href: '/etablissement/mes-classes' },
+      ];
     default:
       return [];
   }

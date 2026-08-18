@@ -4,6 +4,7 @@ import { getTenantContext } from '@/services/tenant';
 import { getClasse } from '@/services/classe';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
 
 export default async function ClasseDetailPage({ params }: { params: { id: string } }) {
@@ -38,6 +39,11 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
                   {classe.niveau.nom}
                   {classe.serie ? ` — Série ${classe.serie.nom}` : ''}
                 </p>
+              </div>
+              <div className="ml-auto">
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/etablissement/classes/${classe.id}/affectations`}>Affectations</Link>
+                </Button>
               </div>
             </div>
 
