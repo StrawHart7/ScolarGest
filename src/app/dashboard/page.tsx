@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { getSidebarItems } from '@/lib/navigation';
 import { triggerTestAuditLog } from './actions';
-
-const SIDEBAR_ITEMS = [{ label: 'Tableau de bord', href: '/dashboard' }];
 
 async function SuperAdminOnlySection() {
   try {
@@ -61,7 +60,12 @@ export default async function DashboardPage() {
     .limit(5);
 
   return (
-    <AppLayout items={SIDEBAR_ITEMS} schoolName="ScolarGest" role={ctx.role} userName={ctx.email}>
+    <AppLayout
+      items={getSidebarItems(ctx.role)}
+      schoolName="ScolarGest"
+      role={ctx.role}
+      userName={ctx.email}
+    >
       <div className="space-y-6">
       <Card className="max-w-lg p-6">
         <h1 className="text-display-sm mb-4 text-text-primary">Contexte tenant (debug)</h1>

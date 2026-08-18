@@ -36,28 +36,39 @@ npx supabase db push    # Apply DB migrations (supabase/migrations/*.sql)
 npx supabase db reset   # Reset local DB and reapply migrations + seed
 ```
 
+**`supabase/seed.sql` only runs with `db reset` (local).** It never runs on `db push`, so any remote/staging/prod project set up via `db push` alone will be missing the system catalogs (cycles, niveaux, séries, plans d'abonnement) unless they were also captured in a versioned migration. System-catalog seed data (rows with no `etablissement_id`, i.e. not tenant data) must additionally live in a numbered migration (see `supabase/migrations/0003_seed_catalogues.sql`, idempotent via `on conflict`) so `db push` alone provisions a fully working environment.
+
 ## Architecture
 
 ### Directory Structure
 
+As actually implemented since Phase 0/1 (simpler than the originally planned per-domain `modules/` layout — services live flat in `src/services/`, one file per domain, not nested under `models/`/`validations/`/`components/` subfolders):
+
 ```
 src/
-├── app/              # Next.js App Router — pages and layouts only
-│   ├── (auth)/       # Supabase Auth flows (login, etc.)
-│   └── [module]/     # Domain-specific routes
-├── modules/          # One subdirectory per business domain
-│   ├── students/
-│   ├── teachers/
-│   ├── finance/
-│   ├── academics/
-│   ├── reports/
-│   └── identity/
-├── services/         # Shared cross-domain business services
-├── database/         # Supabase client instances, shared queries
-└── security/         # Tenant guards, audit helpers, auth middleware
+├── app/              # Next.js App Router — pages, layouts, and colocated
+│   │                 # Server Actions (actions.ts) + small client components
+│   │                 # per route (e.g. a form component next to its page.tsx)
+│   ├── (auth)/       # Supabase Auth flows (login, forgot/update password)
+│   └── [domain]/     # Domain-specific routes (super-admin/, etablissement/,
+│                     # utilisateurs/, profil/, dashboard/)
+├── services/         # One file per domain (tenant, authorization, audit,
+│                     # etablissement, annee-scolaire, classe, structure,
+│                     # utilisateur, abonnement, pin, matricule,
+│                     # document-numero) — business logic + tenant guard
+│                     # (`requireRole`) + `auditLog()` call for sensitive writes
+├── components/
+│   ├── ui/           # shadcn-style primitives (Button, Card, Input, Select,
+│   │                 # DatePicker/Calendar, Badge, StatCard, …)
+│   └── layout/       # AppLayout, Sidebar, Header, PageHeader
+└── lib/
+    ├── supabase/     # client.ts (browser), server.ts (SSR, cookie-based,
+    │                 # RLS-scoped), admin.ts (service-role, bypasses RLS —
+    │                 # only for Server Actions provisioning Auth users)
+    └── navigation.ts # getSidebarItems(role) — per-role nav item lists
 ```
 
-Each module follows the same internal structure: `models/` (TS types), `services/` (business logic), `validations/` (Zod schemas), `components/` (React UI).
+Server Actions live in an `actions.ts` file next to the `page.tsx` that uses them (Zod-validated `FormData` in, `redirect()` or a message string out) — see `src/app/(auth)/login/actions.ts` for the reference pattern.
 
 ### Data Flow
 
@@ -102,10 +113,12 @@ Where a section is labelled **"Modifications"**, treat it as the authoritative o
 
 ## Development Phases
 
-See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) is done. Phase 1 (établissement, structure scolaire & utilisateurs) is next. `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) is done. Phase 1 (établissement, structure scolaire & utilisateurs) is in progress — core flows implemented, detail pages and E2E tests remain (see `PLAN.md` for the exact checklist). `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
 
 ## Design System
 
 The design system is called **Luminous Institutional**. All color tokens, typography scale, spacing, and component variants are defined in `DESIGN.md`. Tailwind config must be derived from those tokens, not from Tailwind defaults.
 
 Before creating any new page, check the `/design-maquette` directory for a subfolder matching the page (e.g. `dashboard_directeur_edusync_erp`), and inspect it to match the intended style before implementing.
+
+**Never use native `<select>` or `<input type="date">` directly** — their dropdown/calendar popups are rendered by the OS/browser and cannot be styled, which breaks the design system. Use `src/components/ui/select.tsx` (Radix Select — still form-submits via a real hidden `<select>`, so it drops into existing `FormData`-based Server Actions unchanged) and `src/components/ui/date-picker.tsx` (Popover + `calendar.tsx`, submits an ISO `yyyy-MM-dd` via a hidden input) instead.

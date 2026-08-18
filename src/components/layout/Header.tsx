@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
 export interface HeaderProps {
@@ -12,15 +13,15 @@ export function Header({ schoolName, role, userName }: HeaderProps) {
       <div className="text-headline-sm text-text-primary">{schoolName ?? ''}</div>
       <div className="flex items-center gap-3">
         {role && <Badge variant="primary">{role}</Badge>}
-        <button
-          type="button"
+        <Link
+          href="/profil"
           className="flex h-9 items-center gap-2 rounded px-2 text-body-md text-text-secondary hover:bg-surface-container"
         >
           <span className="grid h-7 w-7 place-items-center rounded-full bg-secondary text-secondary-on text-label-md">
             {(userName ?? 'U').slice(0, 1).toUpperCase()}
           </span>
           <span className="hidden sm:inline">{userName}</span>
-        </button>
+        </Link>
       </div>
     </header>
   );
