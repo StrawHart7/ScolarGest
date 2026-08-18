@@ -25,7 +25,19 @@
       "Bash(npm run *)",
       "Bash(git restore *)",
       "Bash(grep -iE \"\\\\.env$|sentryclirc|scheduled_tasks|tsbuildinfo\")",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(git checkout *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(npm ls *)",
+      "Bash(curl -s http://localhost:3000/etablissement/classes)",
+      "Bash(curl -s \"http://localhost:3000/etablissement/classes\")",
+      "Bash(curl -s http://localhost:3000/login)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(npx playwright *)",
+      "Bash(rm -rf .next)",
+      "Bash(git pull *)",
+      "Bash(git merge *)",
+      "Bash(git commit *)"
     ]
   }
 }

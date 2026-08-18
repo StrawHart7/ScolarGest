@@ -67,26 +67,29 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 ---
 
-### Phase 1 — Établissement, structure scolaire & utilisateurs
+### Phase 1 — Établissement, structure scolaire & utilisateurs — ✅ TERMINÉE (2026-08-18)
 
 **Objectif** : le back-office minimal permettant à notre équipe de créer une école et au Directeur de gérer sa structure et ses utilisateurs.
 
 **Livrables** :
 - **Back-office SUPER_ADMIN** :
-  - Création d'un établissement + activation des cycles (`CycleEtablissement`).
-  - Création du compte Directeur (provisioning Supabase Auth → invitation email).
-  - Console abonnements (lecture, validation paiements manuels).
-- **Gestion années scolaires** : statuts PREPARATION / ACTIVE / TERMINEE, contrainte une seule ACTIVE par école.
-- **Gestion classes** : niveau + série optionnelle (lycée) + année scolaire + capacité + tarifs par classe.
+  - `/super-admin` — liste des établissements + cartes KPI.
+  - `/super-admin/etablissements/nouveau` — création d'un établissement + provisioning du compte Directeur (Supabase Auth → invitation email).
+  - `/super-admin/etablissements/[id]` — détail école (info, abonnements, utilisateurs).
+  - `/super-admin/abonnements` — console abonnements : lecture par école, création, validation manuelle des paiements, suspension.
+- **Gestion cycles** : `/etablissement/cycles`, activation par le Directeur (catalogue système seedé via `supabase/migrations/0003_seed_catalogues.sql`).
+- **Gestion années scolaires** : `/etablissement/annees-scolaires` (+ page de détail `[id]`), statuts PREPARATION / ACTIVE / TERMINEE, contrainte une seule ACTIVE par école (enforced en base).
+- **Gestion classes** — structure ✅ / tarifs ⏸️ : `/etablissement/classes` (+ page de détail `[id]`), niveau + série optionnelle (lycée, cascade cycle→niveau→série) + année scolaire + capacité. **Tarifs par classe volontairement différés à la Phase 6** (Finances) — `TypeFrais`/`TarifScolaire` n'existent pas encore, décision actée pour ne pas dupliquer le travail avec le domaine financier complet.
 - **Gestion utilisateurs** (par le Directeur) :
-  - 5 rôles fixes : SUPER_ADMIN, DIRECTEUR, SECRETAIRE, COMPTABLE, ENSEIGNANT.
-  - Invitation / activation via Supabase Auth.
-  - Configuration du PIN d'approbation (step-up auth) pour les rôles concernés (Secrétaire, Directeur).
-- Matrice de permissions par rôle (accès lecture seule croisés selon doc 03).
+  - `/utilisateurs`, `/utilisateurs/inviter`, `/utilisateurs/[id]` — 5 rôles fixes, invitation / activation via Supabase Auth, désactivation.
+  - `/profil` — configuration du PIN d'approbation (step-up auth) pour Directeur/Secrétaire.
+- Matrice de permissions par rôle (accès lecture seule croisés selon doc 03) — non implémentée en UI dédiée ; appliquée via `requireRole()` par page/action (pas de système de permissions dynamique, conforme CLAUDE.md).
+- Composants UI réutilisables ajoutés : `Select`/`DatePicker`/`Calendar` (Radix + react-day-picker, remplacent les `<select>`/`<input type="date">` natifs non stylables), `StatCard`, badges en pastille.
+- Tests E2E Playwright (`e2e/auth-guard.spec.ts`) : garde d'authentification sur toutes les routes protégées de la phase, rendu de `/login`, échec de connexion, `/forgot-password`. Parcours **authentifiés** (SUPER_ADMIN/Directeur) validés manuellement — pas encore automatisés faute de comptes de test dédiés en CI (à faire quand des comptes de test seront provisionnés).
 
 **Dépend de** : Phase 0.
 
-**DoD** : parcours complet « SUPER_ADMIN crée l'école → crée le Directeur → Directeur invite une Secrétaire → Directeur crée une année active → crée des classes avec tarifs » ; permissions vérifiées par rôle ; tests E2E du parcours.
+**DoD** — validé le 2026-08-18 : parcours complet « SUPER_ADMIN crée l'école → crée le Directeur → Directeur invite une Secrétaire → Directeur crée une année active → crée des classes » testé manuellement ; permissions vérifiées par rôle via `requireRole()` ; garde d'authentification couverte par tests E2E Playwright (parcours authentifiés couverts manuellement, à automatiser une fois des comptes de test provisionnés).
 
 ---
 
