@@ -15,7 +15,7 @@ export function Sidebar({ items }: { items: SidebarItem[] }) {
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-sidebar flex-col border-r border-surface-border bg-surface-container-low md:flex">
       <div className="flex h-header items-center border-b border-surface-border px-6">
-        <span className="text-headline-md text-text-primary">ScoolAdmin</span>
+        <span className="text-headline-md text-text-primary">ScolarGest</span>
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-0.5 px-3">

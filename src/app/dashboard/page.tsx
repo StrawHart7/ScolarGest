@@ -1,8 +1,40 @@
 import { getTenantContext } from '@/services/tenant';
+import { requireRole } from '@/services/authorization';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { triggerTestAuditLog } from './actions';
+
+const SIDEBAR_ITEMS = [{ label: 'Tableau de bord', href: '/dashboard' }];
+
+async function SuperAdminOnlySection() {
+  try {
+    await requireRole(); // aucun rôle listé => seul SUPER_ADMIN passe
+  } catch (e) {
+    return (
+      <Card className="max-w-lg p-6">
+        <h2 className="text-display-sm mb-2 text-text-primary">
+          Section réservée SUPER_ADMIN (test requireRole)
+        </h2>
+        <p className="text-body-sm text-error">
+          {e instanceof Error ? e.message : 'Accès refusé'}
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="max-w-lg p-6">
+      <h2 className="text-display-sm mb-2 text-text-primary">
+        Section réservée SUPER_ADMIN (test requireRole)
+      </h2>
+      <p className="text-body-sm text-text-secondary">
+        Tu vois ce bloc parce que requireRole() t&apos;a laissé passer.
+      </p>
+    </Card>
+  );
+}
 
 export default async function DashboardPage() {
   let ctx;
@@ -29,7 +61,8 @@ export default async function DashboardPage() {
     .limit(5);
 
   return (
-    <main className="space-y-6 p-8">
+    <AppLayout items={SIDEBAR_ITEMS} schoolName="ScolarGest" role={ctx.role} userName={ctx.email}>
+      <div className="space-y-6">
       <Card className="max-w-lg p-6">
         <h1 className="text-display-sm mb-4 text-text-primary">Contexte tenant (debug)</h1>
         <dl className="space-y-2 text-body-sm text-text-secondary">
@@ -78,6 +111,9 @@ export default async function DashboardPage() {
           )}
         </div>
       </Card>
-    </main>
+
+        <SuperAdminOnlySection />
+      </div>
+    </AppLayout>
   );
 }

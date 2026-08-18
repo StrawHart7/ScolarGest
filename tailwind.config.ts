@@ -92,6 +92,8 @@ const config: Config = {
         md: '0.375rem',
         lg: '0.5rem',
         xl: '0.75rem',
+        '2xl': '1rem',
+        '3xl': '1.5rem',
       },
       spacing: {
         sidebar: '260px',
@@ -103,6 +105,9 @@ const config: Config = {
       },
       boxShadow: {
         floating: '0px 4px 12px rgba(9, 30, 66, 0.08)',
+        premium: '0 20px 40px -10px rgba(0, 41, 109, 0.1), 0 10px 20px -5px rgba(0, 41, 109, 0.05)',
+        glow: '0 0 20px rgba(0, 41, 109, 0.15)',
+        subtle: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
       },
     },
   },

@@ -128,15 +128,15 @@
 
 ## 5. Infrastructure technique (Phase 0)
 
-- [ ] Repo GitHub initialisé avec `.gitignore`, `README.md`
-- [ ] Next.js 14+ App Router initialisé (TypeScript strict)
-- [ ] ESLint + Prettier configurés
-- [ ] Tailwind CSS configuré avec les tokens `DESIGN.md` (couleurs, typographie, espacement)
-- [ ] shadcn/ui initialisé avec le thème Luminous Institutional
-- [ ] Prisma initialisé et connecté à Supabase
-- [ ] `@supabase/ssr` configuré (middleware, client serveur, client client)
-- [ ] Vitest configuré (tests unitaires)
-- [ ] Playwright configuré (tests E2E + génération PDF)
+- [x] Repo GitHub initialisé avec `.gitignore`, `README.md`
+- [x] Next.js 14+ App Router initialisé (TypeScript strict)
+- [x] ESLint + Prettier configurés
+- [x] Tailwind CSS configuré avec les tokens `DESIGN.md` (couleurs, typographie, espacement)
+- [x] shadcn/ui initialisé avec le thème Luminous Institutional
+- [x] Accès données via `@supabase/supabase-js`/`@supabase/ssr` (pas d'ORM Prisma — décision révisée, voir `CLAUDE.md`)
+- [x] `@supabase/ssr` configuré (middleware, client serveur, client client)
+- [x] Vitest configuré (tests unitaires)
+- [x] Playwright configuré (tests E2E + génération PDF)
 - [ ] CI GitHub Actions : lint + typecheck + tests unitaires à chaque push
 - [ ] Déploiement automatique Vercel sur `main`
 - [ ] Preview deployments sur PRs
@@ -146,19 +146,19 @@
 ## 6. Design system — composants de base
 
 ### Tokens à implémenter (depuis `DESIGN.md`)
-- [ ] Palette de couleurs Luminous Institutional dans `tailwind.config.ts`
-- [ ] Typographie (famille, tailles, poids)
-- [ ] Espacement et border-radius personnalisés
+- [x] Palette de couleurs Luminous Institutional dans `tailwind.config.ts`
+- [x] Typographie (famille, tailles, poids)
+- [x] Espacement et border-radius personnalisés
 - [ ] Ombres et élévations
 
 ### Composants shadcn/ui à configurer
-- [ ] Button (variantes : primary, secondary, ghost, destructive)
-- [ ] Input
+- [x] Button (variantes : primary, secondary, ghost, destructive)
+- [x] Input
 - [ ] Textarea
 - [ ] Select
 - [ ] Checkbox
-- [ ] Badge
-- [ ] Card
+- [x] Badge
+- [x] Card
 - [ ] Table (avec tri et pagination)
 - [ ] Dialog / Modal
 - [ ] Drawer (mobile)
@@ -173,8 +173,8 @@
 - [ ] Progress
 
 ### Composants applicatifs partagés
-- [ ] `AppLayout` — sidebar 260px + header 56px + zone contenu
-- [ ] `Sidebar` — navigation par rôle (items différents selon le rôle)
+- [x] `AppLayout` — sidebar 260px + header 56px + zone contenu
+- [x] `Sidebar` — navigation par rôle (items différents selon le rôle)
 - [ ] `Header` — nom école, rôle utilisateur, menu profil
 - [ ] `PageHeader` — titre de page + actions principales
 - [ ] `DataTable` — tableau avec tri, filtre, pagination, export
@@ -193,11 +193,11 @@
 ## 7. Maquettes — pages par rôle
 
 ### Authentification (tous rôles)
-- [ ] `/login` — connexion email + mot de passe
-- [ ] `/auth/reset-password` — demande de réinitialisation
-- [ ] `/auth/update-password` — définir un nouveau mot de passe (depuis email)
+- [x] `/login` — connexion email + mot de passe (+ Google OAuth)
+- [x] `/forgot-password` — demande de réinitialisation
+- [x] `/update-password` — définir un nouveau mot de passe (depuis email)
 - [ ] `/auth/accept-invite` — accepter une invitation + définir mot de passe + configurer PIN (si rôle approbateur)
-- [ ] `/auth/callback` — callback Supabase Auth (redirect silencieux)
+- [x] `/auth/callback` — callback Supabase Auth (redirect silencieux)
 
 ---
 
@@ -304,12 +304,12 @@
 - [ ] Calcul classement général
 
 ### Services critiques
-- [ ] `getTenantContext()` — extrait `etablissement_id` + `role` du JWT Supabase
-- [ ] `auditLog()` — helper d'audit réutilisable
-- [ ] `generateMatriculeEleve()` — séquence par établissement + année scolaire
-- [ ] `generateMatriculeEnseignant()` — séquence par établissement + année scolaire
-- [ ] `generateNumeroDocument()` — séquence par établissement + année scolaire + type
-- [ ] `verifyPin()` — vérification du PIN step-up (hash bcrypt)
+- [x] `getTenantContext()` — extrait `etablissement_id` + `role` du JWT Supabase
+- [x] `auditLog()` — helper d'audit réutilisable
+- [x] `generateMatriculeEleve()` — séquence par établissement + année scolaire
+- [x] `generateMatriculeEnseignant()` — séquence par établissement + année scolaire
+- [x] `generateNumeroDocument()` — séquence par établissement + année scolaire + type
+- [x] `verifyPin()` — vérification du PIN step-up (hash bcrypt)
 - [ ] `generateFactureFromInscription()` — auto-génère les lignes de facture depuis les tarifs de la classe
 - [ ] `proposePassageAutomatique()` — génère les propositions de passage via `niveau_suivant_id`
 - [ ] `generateBulletinPDF()` — Playwright server-side
@@ -379,7 +379,7 @@ Checklist que le SUPER_ADMIN suit pour configurer une nouvelle école :
 - [ ] `list.md` — cette liste ✅
 - [ ] `Docs/01` à `Docs/10` — spécifications métier ✅
 - [ ] `DESIGN.md` — design system Luminous Institutional ✅
-- [ ] `README.md` — à créer (setup local, commandes, architecture)
-- [ ] Schéma Prisma commenté — à créer en Phase 0
+- [x] `README.md` — setup local, commandes, architecture
+- [x] Schéma SQL Supabase commenté (`supabase/migrations/0001_init.sql`)
 - [ ] Runbook de support — à créer en Phase 9
 - [ ] Procédure de déploiement — à créer en Phase 9

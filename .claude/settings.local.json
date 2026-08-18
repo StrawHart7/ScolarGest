@@ -24,7 +24,8 @@
       "Bash(npx supabase *)",
       "Bash(npm run *)",
       "Bash(git restore *)",
-      "Bash(grep -iE \"\\\\.env$|sentryclirc|scheduled_tasks|tsbuildinfo\")"
+      "Bash(grep -iE \"\\\\.env$|sentryclirc|scheduled_tasks|tsbuildinfo\")",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }
