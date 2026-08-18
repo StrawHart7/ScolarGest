@@ -34,7 +34,10 @@
       "Bash(curl -s http://localhost:3000/login)",
       "Bash(curl -s http://localhost:3000/)",
       "Bash(npx playwright *)",
-      "Bash(rm -rf .next)"
+      "Bash(rm -rf .next)",
+      "Bash(git pull *)",
+      "Bash(git merge *)",
+      "Bash(git commit *)"
     ]
   }
 }
