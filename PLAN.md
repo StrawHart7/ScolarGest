@@ -308,3 +308,70 @@ Rappel des décisions clés impactant le développement :
 | Pas de mode hors-ligne | Phase 9 supprimée — pas de PWA ni PowerSync |
 | Numérotation par établissement/année | Phases 2, 5, 6 : séquences isolées |
 | Passage automatique via `niveau_suivant_id` | Phase 0 (schéma) + Phase 2 (UI) |
+
+---
+
+## 7. Workflow d'exécution d'une phase
+
+> Objectif : qu'un seul prompt du type « on attaque la Phase N » suffise à obtenir une phase **conçue, implémentée, vérifiée et testée**, sans redécouvrir à chaque fois les pièges déjà rencontrés. Suivre les étapes dans l'ordre — ne pas sauter la vérification continue (étape 3) pour « gagner du temps », c'est justement ce qui coûte le plus cher plus tard.
+
+### Étape 0 — Cadrage
+
+- Relire la section de la phase concernée dans ce fichier (Objectif, Livrables, Dépend de, DoD).
+- Lire les fichiers `Docs/0X-…` pertinents (voir table dans `CLAUDE.md`) — ne jamais implémenter une règle métier de mémoire, la vérifier dans la doc.
+- Vérifier `analysis.md` pour toute décision (Q0–Q17) qui impacte la phase.
+- Vérifier ce qui existe déjà en base (`supabase/migrations/*.sql`) et dans `src/services/` — ne jamais recréer un service ou une table qui existe déjà sous un autre nom.
+- Repérer les maquettes concernées dans `/design-maquette` (voir convention dans `CLAUDE.md` § Design System).
+
+### Étape 1 — Plan
+
+- Utiliser `EnterPlanMode` dès que la phase touche plus de 2-3 fichiers ou qu'il y a un choix d'implémentation (c'est presque toujours le cas pour une phase entière).
+- Découper la phase en **milestones verticaux** (une fonctionnalité utilisable de bout en bout à chaque étape), pas en couches horizontales (« tous les services », puis « toutes les pages »).
+- Si un livrable de la phase déborde sur le domaine d'une autre phase (ex. tarifs de classe qui touchent la Finance) : le signaler explicitement dans le plan et proposer de différer, plutôt que d'improviser un bout de schéma en avance.
+- Poser les questions de produit ouvertes via `AskUserQuestion` **avant** de coder, pas après — un scope mal calé coûte plus cher à corriger une fois écrit.
+
+### Étape 2 — Implémentation
+
+Conventions à respecter systématiquement (voir `CLAUDE.md` pour le détail) :
+- Un fichier par domaine dans `src/services/`, jamais d'appel Supabase direct depuis une page/Server Action.
+- Chaque service mutateur : garde `requireRole(...)` en première ligne + `auditLog()` sur les écritures sensibles.
+- Pattern Server Action : `actions.ts` colocalisé au `page.tsx`, validation Zod, `FormData` en entrée, `redirect()` ou message d'erreur en sortie (voir `src/app/(auth)/login/actions.ts`).
+- UI : réutiliser les composants de `src/components/ui/` (`Select`/`DatePicker` — jamais les éléments natifs, voir `CLAUDE.md`) ; comparer à la maquette du dossier correspondant avant de considérer une page terminée.
+- RLS + filtre applicatif explicite (`etablissementId`) sur chaque requête, même si RLS suffirait seule (défense en profondeur, cf. CLAUDE.md).
+- Toute nouvelle table de catalogue système (sans `etablissement_id`) : la seed correspondante doit vivre dans une **migration numérotée** (`on conflict` idempotent), pas seulement dans `supabase/seed.sql` — sinon elle ne sera jamais provisionnée sur un environnement distant (`db push` n'exécute pas `seed.sql`, seul `db reset` le fait). Piège déjà rencontré en Phase 1.
+
+### Étape 3 — Vérification continue (à chaque milestone, pas seulement à la fin)
+
+- `npm run build` et `npm run lint` après **chaque** milestone livré, pas en fin de phase — un échec de build découvert après 5 pages est 5x plus coûteux à isoler.
+- Si un build échoue avec une erreur `Cannot find module './XXX.js'` ou similaire sans rapport avec le code modifié : cache `.next` corrompu (build précédent interrompu) — supprimer `.next` et relancer, ne pas chercher le bug dans le code.
+- Si un correctif de style/couleur/texte semble ne jamais s'appliquer en dev alors que le code source est correct : suspecter un **cache webpack dev périmé** (serveur `npm run dev` resté ouvert trop longtemps, watcher qui a raté un changement). Vérifier en comparant le HTML réellement servi (`curl` sur une page publique, chercher les classes attendues) au code source — si ça ne correspond pas, c'est le cache, pas le code. Corriger : arrêter le serveur, supprimer `.next`, relancer.
+
+### Étape 4 — Debug
+
+- Ne jamais deviner un bug visuel/runtime sans le reproduire : lire le HTML/CSS réellement servi (`curl`, ou lecture du `.next/static/css/**` généré par un build de prod) plutôt que de relire le composant en boucle en espérant repérer l'erreur à l'œil.
+- Un service qui écrit en base : tester d'abord la requête isolément (petit script Node avec le client `service-role`, voir pattern utilisé en Phase 1 pour diagnostiquer le catalogue `cycle` vide) avant de soupçonner la couche UI.
+- Toute action qui écrit des données réelles ou envoie un email réel (invitation Supabase Auth, etc.) : ne jamais l'exécuter soi-même sans confirmation explicite de l'utilisateur — demander d'abord si l'environnement est dev/staging ou le seul projet existant.
+
+### Étape 5 — Tests
+
+- **Unitaires (Vitest)** : obligatoires avant toute UI pour la logique de calcul pure (moteur de notes en Phase 4, calcul de solde en Phase 6, génération de matricule/numéro de document) — cf. principe #7 de ce document.
+- **E2E (Playwright)** :
+  - Config dédiée avec un **port différent de celui du serveur de dev habituel** (ex. `3100`) et `command: npx next start -p 3100` sur un build déjà fait (`npm run build` séparé) — lancer `next dev` ou un `build && start` combiné dans `webServer` est plus lent et plus fragile (compilation à froid par route, risque de collision de port avec un `npm run dev` déjà ouvert dans un autre terminal).
+  - Toujours vérifier qu'aucun autre serveur ne tourne déjà sur le port choisi avant de lancer — `reuseExistingServer: false` en local pour éviter de tester par erreur contre le serveur de dev de l'utilisateur.
+  - Ce qui est testable sans compte : gardes d'authentification (chaque route protégée redirige bien vers `/login`), rendu des pages publiques, chemins d'erreur (identifiants invalides).
+  - Ce qui exige un compte de test réel (parcours SUPER_ADMIN/Directeur authentifiés) : ne pas créer de compte soi-même (ça enverrait de vraies invitations) — demander à l'utilisateur des identifiants de test dédiés, sinon documenter clairement que ce parcours reste validé manuellement.
+  - Assertions sur des textes d'erreur retournés par un service externe (Supabase Auth) : rester tolérant au contenu exact (le réseau peut renvoyer un message différent d'une tentative à l'autre) — vérifier le comportement observable (redirection, état du bouton) plutôt qu'une chaîne de caractères précise.
+
+### Étape 6 — Livrables & mise à jour de la documentation
+
+- Cocher dans ce fichier (`PLAN.md`) chaque livrable de la phase au fur et à mesure, pas en bloc à la fin.
+- Marquer l'en-tête de la phase `✅ TERMINÉE (date)` seulement quand la DoD est réellement remplie (build vert, lint vert, tests E2E verts, parcours manuel validé) — pas quand le code est juste écrit.
+- Si une décision durable pour les phases suivantes a émergé (convention de composant, piège d'infra, périmètre volontairement différé vers une autre phase) : l'enregistrer dans `CLAUDE.md`, pas seulement dans le message de conversation — sinon elle sera redécouverte à la dure la prochaine fois.
+- Mettre à jour `list.md` si la phase couvre des éléments qui y sont listés.
+
+### Étape 7 — Clôture
+
+- Méthode confirmée : **une branche Git par phase**, mergée sur `main` une fois la DoD atteinte.
+- `git add` ciblé (jamais `-A` aveugle), commit avec message décrivant la phase livrée, `push`.
+- Merge sur `main` (demander confirmation avant tout `push --force` ou réécriture d'historique — jamais nécessaire dans ce flux).
+- Créer la branche de la phase suivante (`phase-N-slug-descriptif`) et repartir à l'Étape 0 pour cette phase.

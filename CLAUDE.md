@@ -113,7 +113,9 @@ Where a section is labelled **"Modifications"**, treat it as the authoritative o
 
 ## Development Phases
 
-See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) is done. Phase 1 (établissement, structure scolaire & utilisateurs) is in progress — core flows implemented, detail pages and E2E tests remain (see `PLAN.md` for the exact checklist). `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) and Phase 1 (établissement, structure scolaire & utilisateurs) are done. `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+
+**Starting a new phase**: follow `PLAN.md` § 7 "Workflow d'exécution d'une phase" step by step (scoping → plan → implementation → continuous build/lint verification → debug → tests → deliverables/doc updates → branch-per-phase closeout). It captures concrete pitfalls hit during Phase 1 (stale `.next`/webpack dev caches, `db push` not running `seed.sql`, Playwright port collisions with a running `next dev`) — do not rediscover them.
 
 ## Design System
 
