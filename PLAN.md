@@ -161,22 +161,28 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 ---
 
-### Phase 5 — Documents : bulletins & reçus (PDF)
+### Phase 5 — Documents : bulletins & reçus (PDF) — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : produire les documents officiels.
 
 **Livrables** :
-- **Bulletin** trimestriel PDF — contenu complet (doc 09) : en-tête école, en-tête élève, tableau des résultats par matière (moyennes, coefficients, rang matière, appréciation, professeur), synthèse (moyenne générale, rang, statistiques classe), zone de signature physique.
-  - Même format pour tous les niveaux (maternelle, primaire, collège, lycée) — barème /20.
-- **Reçu de paiement** PDF.
-- Entité `Document` (référence, type, objet lié, statut GENERE / OBSOLETE / ARCHIVE) + stockage dans Supabase Storage.
-- **Numérotation par établissement et par année scolaire** : `BUL-{annee}-{seq}`, `REC-{annee}-{seq}` ; l'année = année de début de l'année scolaire.
-- Régénération possible d'un bulletin existant (produit le même résultat).
-- Audit de génération tracé dans `AuditLog`.
+- [x] **Bulletin** trimestriel PDF — contenu complet (doc 09) : en-tête école, en-tête élève, tableau des résultats par matière (moyennes, coefficients, rang matière, professeur), synthèse (moyenne générale, rang, statistiques classe, moyenne annuelle best-effort), zone de signature physique. (Note : la colonne "appréciation du professeur" de la maquette est un texte libre par matière qui n'existe dans aucun modèle de données — Phase 4 n'a défini qu'une appréciation globale automatique via `appreciation()`. Le bulletin affiche donc le nom du professeur par matière plutôt qu'un texte d'appréciation par matière ; l'appréciation générale automatique reste affichée dans la synthèse.)
+  - [x] Même format pour tous les niveaux (maternelle, primaire, collège, lycée) — barème /20.
+- [x] **Reçu de paiement** PDF (template + `genererRecuPaiement(paiementId)`, sans écran de saisie — l'enregistrement de paiement reste Phase 6, décision actée avec l'utilisateur en Phase 5, même schéma que les tarifs différés en Phase 1/2).
+- [x] Entité `Document` (référence, type, objet lié, statut GENERE / OBSOLETE / ARCHIVE) + stockage dans Supabase Storage (migration `0007_phase5_storage_bucket.sql` — bucket `documents` privé, **appliquée sur le projet distant le 2026-08-19** via `npx supabase db push --include-all`, en même temps que 0003 à 0006 qui avaient été exécutées à la main sans être enregistrées dans l'historique de migrations).
+- [x] **Numérotation par établissement et par année scolaire** : `BUL-{annee}-{seq}`, `REC-{annee}-{seq}` ; l'année = année de début de l'année scolaire (réutilise `generateNumeroDocument`, Phase 0).
+- [x] Régénération possible d'un bulletin existant (produit le même résultat si aucune donnée sous-jacente n'a changé) : l'ancien document passe `OBSOLETE`, le nouveau est créé `GENERE` — jamais de suppression.
+- [x] Audit de génération tracé dans `AuditLog` (`GENERER_BULLETIN` / `REGENERER_BULLETIN` / `GENERER_RECU`).
 
 **Dépend de** : Phase 4 (bulletins), Phase 2 (factures/reçus via Phase 6).
 
 **DoD** : bulletin généré conforme au design ; régénération donne un document identique ; numérotation cohérente et séquentielle par école ; audit de génération présent.
+
+**Validation manuelle (2026-08-19)** : parcours réel exécuté sur un build de production (port 3100) contre le projet Supabase distant, avec un compte SECRETAIRE de test et le jeu de données de démonstration (`npm run seed:demo`) — génération d'un bulletin depuis `/etablissement/notes/bulletins` (6ème A, 1er trimestre), régénération depuis `/etablissement/eleves/[id]/bulletins`. Constaté : PDF valides d'une page (~81 Ko) déposés dans le bucket, numérotation séquentielle `BUL-2025-000001` → `000004`, ancien document passé `OBSOLETE` à la régénération, entrées `GENERER_BULLETIN` / `REGENERER_BULLETIN` dans `audit_log`, et taille identique à un octet près entre deux générations du même bulletin (seule la date de génération diffère). Ce parcours a révélé un blocage que les tests unitaires ne pouvaient pas voir (`getEtablissement` mocké) : `getEtablissement` était gardé par `requireRole()` sans argument, donc réservé au SUPER_ADMIN, alors que `genererBulletin` et `genererRecuPaiement` en ont besoin pour l'en-tête du document — toute génération par un Directeur, une Secrétaire ou un Comptable échouait avec « Accès refusé ». Corrigé : lecture ouverte aux rôles école, restreinte à leur propre établissement.
+
+**Reste à valider en Phase 6** : le reçu (`genererRecuPaiement`) n'a pas d'écran en Phase 5 par décision de périmètre, donc son parcours réel n'est couvert que par ses tests unitaires ; il emprunte le même pipeline que le bulletin (numérotation, upload, `Document`, audit), désormais validé de bout en bout, et bénéficie du correctif `getEtablissement` ci-dessus.
+
+**Note d'implémentation** : le rendu PDF réel (Playwright + Chromium headless) a été vérifié manuellement pendant l'implémentation — `npx playwright install chromium` a réussi et un appel Node direct produit un buffer PDF valide. Le test Vitest correspondant (`src/lib/pdf/__tests__/render.test.ts`) est gardé derrière `RUN_PDF_TESTS=1` : dans le pool de workers Vitest de cet environnement de développement, le lancement de Chromium comme sous-processus imbriqué bloque indéfiniment ou fait planter le worker (artefact de sandboxing de l'environnement, pas du code) — voir commentaire en tête du fichier de test.
 
 ---
 

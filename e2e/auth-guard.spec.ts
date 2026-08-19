@@ -30,6 +30,7 @@ const PROTECTED_ROUTES = [
   '/etablissement/notes/saisie',
   '/etablissement/notes/approbation',
   '/etablissement/notes/resultats',
+  '/etablissement/notes/bulletins',
   '/utilisateurs',
   '/utilisateurs/inviter',
 ];

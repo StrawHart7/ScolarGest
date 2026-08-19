@@ -20,6 +20,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Programme & coefficients', href: '/etablissement/programme' },
         { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
         { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
+        { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
       ];
     case 'SECRETAIRE':
@@ -32,6 +33,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Programme & coefficients', href: '/etablissement/programme' },
         { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
         { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
+        { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
       ];
     case 'COMPTABLE':
       return [

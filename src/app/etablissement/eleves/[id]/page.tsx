@@ -57,6 +57,12 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                   <Link href={`/etablissement/eleves/${eleve.id}/inscription`}>Inscrire</Link>
                 </Button>
               )}
+              <Button asChild size="sm" variant="secondary">
+                <Link href={`/etablissement/eleves/${eleve.id}/bulletins`}>
+                  <FileText className="h-4 w-4" aria-hidden />
+                  Bulletins
+                </Link>
+              </Button>
               {canWrite && <ArchiverEleveButton eleveId={eleve.id} />}
             </div>
           </CardContent>
