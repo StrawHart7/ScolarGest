@@ -26,6 +26,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
         { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
+        { label: 'Rapports & exports', href: '/rapports' },
         { label: 'Mon abonnement', href: '/abonnement' },
       ];
     case 'SECRETAIRE':
@@ -40,6 +41,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
         { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
         { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
+        { label: 'Rapports & exports', href: '/rapports' },
       ];
     case 'COMPTABLE':
       return [
@@ -49,6 +51,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
         { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
         { label: 'Import financier', href: '/etablissement/finances/import' },
+        { label: 'Rapports & exports', href: '/rapports' },
         { label: 'Classes', href: '/etablissement/classes' },
         { label: 'Élèves', href: '/etablissement/eleves' },
       ];
@@ -58,6 +61,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Mes classes', href: '/etablissement/mes-classes' },
         { label: 'Saisie des notes', href: '/etablissement/notes/saisie' },
         { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
+        { label: 'Rapports & exports', href: '/rapports' },
       ];
     default:
       return [];

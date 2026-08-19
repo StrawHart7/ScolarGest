@@ -39,6 +39,7 @@ const PROTECTED_ROUTES = [
   '/utilisateurs',
   '/utilisateurs/inviter',
   '/abonnement',
+  '/rapports',
 ];
 
 for (const route of PROTECTED_ROUTES) {

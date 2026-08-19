@@ -18,8 +18,14 @@ export interface CreateAnneeScolaireInput {
   dateFin: string;
 }
 
+/**
+ * Années scolaires de l'établissement. Ouverte à l'ENSEIGNANT : c'est un
+ * catalogue interne sans donnée sensible, et tous ses écrans en dépendent
+ * (mes classes, saisie des notes, rapports) — l'en exclure faisait échouer
+ * l'espace enseignant en entier.
+ */
 export async function listAnneesScolaires(): Promise<AnneeScolaire[]> {
-  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('annee_scolaire')
@@ -31,7 +37,7 @@ export async function listAnneesScolaires(): Promise<AnneeScolaire[]> {
 }
 
 export async function getAnneeScolaire(id: string): Promise<AnneeScolaire> {
-  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('annee_scolaire')

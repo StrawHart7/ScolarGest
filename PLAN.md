@@ -253,22 +253,34 @@ Le principe retenu : **ne jamais prendre les données de l'école en otage**. Un
 
 ---
 
-### Phase 8 — Dashboard, rapports & exports
+### Phase 8 — Dashboard, rapports & exports — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : transformer les données en pilotage.
 
 **Livrables** :
-- **Dashboard par rôle** :
-  - DIRECTEUR : vue globale (élèves, classes, finance, académique) + flux d'activité (bulletins générés, paiements, inscriptions, modifications de notes — informatif uniquement).
-  - COMPTABLE : état financier (revenus attendus, encaissés, impayés).
-  - SECRETAIRE : inscriptions, bulletins à générer.
-  - ENSEIGNANT : ses classes, ses évaluations.
-- **Rapports** : liste élèves, liste enseignants, effectifs, état paiements, résultats par classe.
-- **Exports** Excel/CSV/PDF avec périmètre par rôle (voir doc 09, section 9).
+- [x] **Dashboard par rôle** (`/dashboard`, remplace la page de debug de la Phase 0) : DIRECTEUR (élèves, classes, enseignants, finance, académique + flux d'activité), COMPTABLE (attendu / encaissé / reste à recouvrer, taux de recouvrement), SECRETAIRE (inscriptions, notes à approuver, bulletins), ENSEIGNANT (ses classes, ses matières, ses évaluations, ses notes en brouillon). Chaque rôle a sa propre fonction de service : un Comptable ne déclenche pas les requêtes académiques et un Enseignant ne déclenche jamais de requête financière — le périmètre se joue dans le service, pas dans le JSX.
+- [x] **Flux d'activité Directeur** — informatif uniquement (doc 09 §12), construit depuis `audit_log`.
+- [x] **Rapports** : liste élèves, liste enseignants, effectifs par classe, état des paiements, résultats par classe (`/rapports`).
+- [x] **Exports** Excel / CSV / PDF avec périmètre par rôle (doc 09 §9), via `/api/rapports/export`.
 
 **Dépend de** : Phases 2–7.
 
 **DoD** : chaque rôle voit uniquement son périmètre ; chiffres du dashboard réconciliés avec les données sources ; exports testés avec des données réelles.
+
+**Décisions d'implémentation** :
+- *Une forme unique de rapport* (`src/lib/export/rapport.ts`) : titre, colonnes, lignes, totaux. La même structure alimente l'aperçu à l'écran et les trois formats. Ajouter un rapport, c'est écrire une fonction et déclarer ses rôles — il devient exportable dans les trois formats sans code supplémentaire.
+- *Matrice d'accès dans le service*, pas dans l'UI : `RAPPORTS` porte les rôles autorisés et `construireRapport` applique `requireRole` à partir de cette déclaration. Un export est un accès aux données comme un autre.
+- *Route Handler plutôt que Server Action pour le téléchargement* : une Server Action renvoie une valeur sérialisée à React, pas un fichier avec ses en-têtes. La route renvoie directement un `Content-Disposition: attachment`, sans faire transiter un binaire en base64 dans le payload RSC.
+- *CSV en points-virgules avec BOM UTF-8* : c'est ce qu'attend Excel en configuration française. Sans cela, les accents sont cassés et toutes les colonnes atterrissent dans la première.
+
+**Validation manuelle (2026-08-19)** : parcours réel sur un build de production avec les trois comptes de démonstration. Tableaux de bord conformes par rôle (Comptable : 67 800 000 F attendus, 46 634 500 F encaissés, 130/270 factures soldées). Exports Excel réellement téléchargés pour le Comptable et la Secrétaire. Périmètre vérifié côté API : Secrétaire → export `PAIEMENTS` **403**, Enseignant → export `ELEVES` **403**, Enseignant → `RESULTATS` sur sa classe **200** (données réelles), sur une classe hors de ses affectations **403**.
+
+Ce parcours a révélé trois défauts, tous corrigés :
+1. **`listAnneesScolaires` excluait l'ENSEIGNANT**, ce qui faisait échouer en 500 non seulement `/rapports` mais aussi `/etablissement/mes-classes` et `/etablissement/notes/saisie` — donc l'espace enseignant en entier, depuis les Phases 3-4. La lecture des années scolaires est désormais ouverte à ce rôle (catalogue interne sans donnée sensible dont tous ses écrans dépendent).
+2. **`/rapports` appelait `listClasses`** pour peupler le sélecteur, réservé aux rôles administratifs. Le sélecteur de l'enseignant est maintenant construit depuis ses affectations — ce qui est de toute façon le périmètre que le rapport lui autorise.
+3. **Le rapport « Résultats par classe » dépassait 60 secondes** : il s'appuyait sur `getClassementClasse`, qui appelle `getMoyennesEleve` élève par élève (N+1 de requêtes vers une base distante). Il est réécrit en chargement groupé — programme, coefficients, évaluations et notes en cinq requêtes, puis calcul en mémoire via les fonctions pures de `calcul-moyennes.ts` (aucune règle de calcul réimplémentée). Mesuré : **60 s+ → 7 s** pour une classe de 18 élèves.
+
+**À traiter en Phase 10** : `getClassementClasse` (Phase 4) ne vérifie que le rôle et laisserait un enseignant lire le classement d'une classe qui n'est pas la sienne. La restriction est appliquée dans le rapport, mais elle mérite d'être portée par le service lui-même. Son N+1 subsiste aussi pour l'écran `/etablissement/notes/resultats`.
 
 ---
 
