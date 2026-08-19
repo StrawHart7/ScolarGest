@@ -1,5 +1,6 @@
 import { Wallet } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
+import { peutEcrire } from '@/services/abonnement';
 import { listTypesFrais } from '@/services/type-frais';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,8 @@ import { TypeFraisRowActions } from './TypeFraisRowActions';
 export default async function TypesFraisPage() {
   const ctx = await getTenantContext();
   const typesFrais = await listTypesFrais(true);
-  const canWrite = ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN';
+  const canWrite =
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
 
   return (
     <AppLayout

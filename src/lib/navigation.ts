@@ -26,6 +26,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
         { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
+        { label: 'Mon abonnement', href: '/abonnement' },
       ];
     case 'SECRETAIRE':
       return [

@@ -38,6 +38,7 @@ const PROTECTED_ROUTES = [
   '/etablissement/finances/import',
   '/utilisateurs',
   '/utilisateurs/inviter',
+  '/abonnement',
 ];
 
 for (const route of PROTECTED_ROUTES) {

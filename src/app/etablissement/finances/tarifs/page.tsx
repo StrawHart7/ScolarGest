@@ -1,6 +1,7 @@
 import { AlertTriangle, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { getTenantContext } from '@/services/tenant';
+import { peutEcrire } from '@/services/abonnement';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listTypesFrais } from '@/services/type-frais';
@@ -20,7 +21,8 @@ export default async function TarifsPage({
   searchParams: { anneeScolaireId?: string; classeId?: string };
 }) {
   const ctx = await getTenantContext();
-  const canWrite = ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN';
+  const canWrite =
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');

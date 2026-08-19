@@ -1,4 +1,5 @@
 import { getTenantContext } from '@/services/tenant';
+import { peutEcrire } from '@/services/abonnement';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,8 @@ import { ImportPaiementsForm } from './ImportForm';
 
 export default async function ImportPaiementsPage() {
   const ctx = await getTenantContext();
-  const canWrite = ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN';
+  const canWrite =
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
 

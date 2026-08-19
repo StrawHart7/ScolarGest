@@ -216,22 +216,40 @@ Ce parcours a révélé un bug invisible en test automatisé : les champs montan
 
 ---
 
-### Phase 7 — Abonnement SaaS (côté plateforme)
+### Phase 7 — Abonnement SaaS (côté plateforme) — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : gérer la relation commerciale plateforme ↔ écoles.
 
 **Livrables** :
-- **PlanAbonnement** (mensuel / annuel), **AbonnementEtablissement**, **PaiementAbonnement** — strictement séparés des finances école.
-- Statuts : ACTIF / EXPIRE / SUSPENDU — **pas de statut ESSAI** (entrée uniquement par demande de démo validée par SUPER_ADMIN).
-- **Console SUPER_ADMIN** :
-  - Suivi des abonnements par école.
-  - Validation manuelle d'un paiement (virement / Mobile Money) → passage de l'abonnement à ACTIF.
-  - Suspension manuelle.
-- Comportement à l'expiration : à définir lors de l'implémentation (bandeau d'avertissement → blocage progressif).
+- [x] **PlanAbonnement** (mensuel / annuel), **AbonnementEtablissement**, **PaiementAbonnement** — strictement séparés des finances école (tables, services et écrans distincts ; `paiement_abonnement` n'est jamais joint à `paiement`).
+- [x] Statuts : ACTIF / EXPIRE / SUSPENDU — **pas de statut ESSAI**. L'expiration est constatée par `fn_expirer_abonnements()` et, en lecture, déduite de la date par `statutEffectif()` — un abonnement échu est traité comme expiré même si le balayage n'a pas encore tourné.
+- [x] **Console SUPER_ADMIN** : suivi par école avec statut effectif et jours restants, validation manuelle d'un paiement, suspension, **réactivation** et **renouvellement** (choix du plan à cette occasion, ce qui permet la conversion mensuel → annuel).
+- [x] **Comportement à l'expiration** — la question laissée ouverte par le doc 08 §22 et Q15 d'`analysis.md`, tranchée ici (voir ci-dessous).
 
 **Dépend de** : Phase 1.
 
 **DoD** : cycle « SUPER_ADMIN crée école → abonnement ACTIF → SUPER_ADMIN valide paiement manuel → renouvellement → expiration → suspension » ; séparation financière stricte vérifiée.
+
+**Décision — effet de l'expiration** (`src/services/abonnement-acces.ts`) : quatre niveaux d'accès.
+
+| Niveau | Déclencheur | Effet |
+|---|---|---|
+| OK | actif, plus de 30 jours restants | rien |
+| AVERTISSEMENT | actif, échéance dans 30 jours ou moins | bandeau, aucun blocage |
+| LECTURE_SEULE | EXPIRE, ou aucun abonnement enregistré | consultation et documents accessibles, écritures refusées |
+| BLOQUE | SUSPENDU | accès applicatif fermé, redirection vers `/abonnement` |
+
+Le principe retenu : **ne jamais prendre les données de l'école en otage**. Une école qui n'a pas payé perd le droit d'écrire, pas celui de consulter ni d'imprimer les bulletins de ses élèves. C'est aussi le choix commercialement sain — une école bloquée en pleine session d'examens résilie, une école en lecture seule appelle pour payer. La suspension est plus stricte parce qu'elle est une décision explicite du SUPER_ADMIN, pas un oubli d'échéance.
+
+**Point d'application du verrou** : le middleware (`src/lib/supabase/middleware.ts`). C'est le seul passage commun à toutes les écritures — les Server Actions de Next arrivent en POST sur la route courante. Filtrer là évite d'ajouter une garde dans chacun des services mutateurs, et surtout d'en oublier un. Le coût est maîtrisé : la lecture de l'abonnement n'a lieu que sur les requêtes non-GET et sur les navigations vers l'espace école. `/abonnement`, `/profil` et les routes d'authentification restent toujours accessibles — enfermer un directeur hors de sa page d'abonnement le priverait du moyen de régulariser. Le SUPER_ADMIN n'est jamais restreint.
+
+**Renouvellement** : `fn_renouveler_abonnement` crée la période suivante sans jamais modifier la précédente (même logique d'historisation que les tarifs scolaires). Elle démarre à la fin de l'ancienne si celle-ci est à venir (pas de jour perdu), sinon aujourd'hui (pas de période rétroactive facturée). Le nouvel abonnement naît **SUSPENDU** : l'accès n'est ouvert qu'à la validation du paiement, conformément au processus manuel du doc 08 §21.
+
+**Validation manuelle (2026-08-19)** : l'abonnement de l'établissement de démonstration arrivait justement à échéance ce jour-là, ce qui a fourni un cas réel sans manipulation de données. Constaté sur un build de production : bandeau « lecture seule » affiché, consultation du suivi des paiements intacte (276 factures), tentative d'encaissement **refusée en 403** par le middleware, page `/abonnement` accessible et affichant `EXPIRE`. Puis `fn_expirer_abonnements` (1 abonnement basculé), `fn_renouveler_abonnement` vers le plan annuel (période 2026-08-19 → 2027-08-19, créée SUSPENDU), validation du paiement → `ACTIF` : bandeau disparu, écriture de nouveau acceptée (POST 200), formulaire de création de tarif réapparu.
+
+**Note d'ergonomie** : les écrans finance masquent leurs commandes d'écriture quand l'accès est en lecture seule (`peutEcrire()`), pour ne pas laisser cliquer un bouton qui renverrait 403. Le reste de l'application s'appuie encore uniquement sur le bandeau et le refus middleware — généraliser ce masquage est un point à traiter en Phase 11 (design et améliorations).
+
+**Note d'infrastructure** : `fn_expirer_abonnements` est en `security definer`, contrairement aux RPC des phases précédentes. Les policies de `abonnement_etablissement` réservent l'écriture au SUPER_ADMIN, or l'expiration doit pouvoir être constatée sans qu'un SUPER_ADMIN soit connecté. La fonction ne fait qu'une transition dictée par la date et ne prend aucun paramètre, elle ne peut donc pas servir à élever des privilèges. Sans planificateur dans le MVP, elle est appelée à l'ouverture de la console plateforme.
 
 ---
 

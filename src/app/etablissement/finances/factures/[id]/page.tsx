@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Wallet } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
+import { peutEcrire } from '@/services/abonnement';
 import { getFactureDetail, type StatutFacture } from '@/services/facture';
 import { listTypesFrais } from '@/services/type-frais';
 import { listDocumentsParType } from '@/services/document';
@@ -40,7 +41,8 @@ const MODE_LABEL: Record<string, string> = {
 
 export default async function FactureDetailPage({ params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
-  const canWrite = ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN';
+  const canWrite =
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
 
   let facture;
   try {
