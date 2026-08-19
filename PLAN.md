@@ -186,23 +186,33 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 ---
 
-### Phase 6 — Finances de l'établissement
+### Phase 6 — Finances de l'établissement — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : facturer les élèves et encaisser.
 
 **Livrables** :
-- **TypeFrais** : catégories de frais par établissement.
-- **TarifScolaire** (par classe × TypeFrais × AnneeScolaire) — **immuable après création** ; correction = nouveau tarif.
-- **FactureEleve** + **LigneFacture** — auto-générée à la validation de l'inscription ; lignes éditables par le Comptable avant validation de la facture.
-- **Paiement** en plusieurs tranches : modes ESPECES / CHEQUE / VIREMENT / MOBILE_MONEY / AUTRE, calcul du solde, statuts informatifs (PAYE / PARTIEL / IMPAYE / ANNULE) — **aucun blocage système**.
-- Annulation de paiement : statut `ANNULE` + nouveau paiement, jamais de suppression.
-- Reçu PDF généré via Phase 5.
-- Import de l'historique financier avec validation.
-- Accès par rôle : COMPTABLE (lecture + écriture), DIRECTEUR (lecture), SECRETAIRE (lecture seule), ENSEIGNANT (aucun accès).
+- [x] **TypeFrais** : catégories de frais par établissement (`/etablissement/finances/types-frais`). Jamais supprimé (les factures historiques le référencent) — désactivable via `statut`.
+- [x] **TarifScolaire** (par classe × TypeFrais × AnneeScolaire) — **immuable après création** (`/etablissement/finances/tarifs`). Il n'existe volontairement aucune fonction `updateTarif`/`deleteTarif` dans `src/services/tarif.ts` : la contrainte unique DB empêche en plus de contourner l'immuabilité par un doublon.
+- [x] **FactureEleve** + **LigneFacture** — auto-générée à l'inscription depuis la Phase 2 (`fn_inscrire_eleve`) ; lignes ajustables par le Comptable (remises, frais spéciaux) via `fn_modifier_lignes_facture`, qui remplace la liste complète et recalcule total + statut en une transaction.
+- [x] **Paiement** en plusieurs tranches : tous les modes, solde calculé, statuts informatifs — **aucun blocage système**. Une référence est exigée hors espèces (sans elle un chèque ou un Mobile Money n'est pas rapprochable).
+- [x] Annulation de paiement : statut `ANNULE` + recalcul du statut de la facture, jamais de suppression. Un motif est demandé et journalisé.
+- [x] Reçu PDF généré via le service Phase 5, depuis la facture détaillée.
+- [x] Import de l'historique financier avec validation (`/etablissement/finances/import`), gabarit `matricule | montant | date_paiement | mode_paiement | reference`. Chaque ligne passe par la même RPC qu'une saisie manuelle : un import n'est pas une porte dérobée aux contrôles métier.
+- [x] Accès par rôle : COMPTABLE (lecture + écriture), DIRECTEUR (lecture), SECRETAIRE (lecture seule), ENSEIGNANT (aucun accès).
 
 **Dépend de** : Phases 1–2.
 
 **DoD** : inscrire un élève → facture auto générée → Comptable ajuste une ligne → enregistrer 3 paiements partiels → générer reçu → annuler un paiement (mouvement inverse tracé) ; jamais de suppression dans `AuditLog`.
+
+**Décisions d'implémentation** :
+- *Point de non-retour des lignes de facture* : le doc 08 §8 parle d'ajustements « avant validation de la facture », mais `facture_eleve` (0001_init.sql) n'a pas d'état BROUILLON/VALIDE. Plutôt que d'ajouter un état au schéma, le **premier encaissement** fait office de validation : au-delà, les lignes sont figées (règle portée par `fn_modifier_lignes_facture`, pas seulement par l'UI). Cela évite qu'un total change sous des reçus déjà remis aux familles.
+- *Écriture financière réservée au Comptable* : le doc 08 §17 donne au Directeur une « lecture complète » seulement, ce qui est appliqué à la lettre. Conséquence à connaître : une école sans utilisateur COMPTABLE ne peut rien encaisser — si cela pose problème en exploitation, c'est une décision produit à trancher, pas un contournement à improviser dans le code.
+- *Dépassement du solde refusé* : `fn_enregistrer_paiement` rejette un versement supérieur au reste dû. Sans notion d'avoir ni de remboursement au MVP, un tel montant est presque toujours une faute de frappe.
+- *Atomicité en base* : versement, annulation, édition de lignes et annulation de facture passent par des RPC `security invoker` (`0008_phase6_finance_rpc.sql`) — un enchaînement de requêtes REST laisserait une fenêtre où le statut de la facture ne correspond plus à ses paiements.
+
+**Validation manuelle (2026-08-19)** : parcours réel sur un build de production (port 3100) contre le projet Supabase distant, connecté avec le compte COMPTABLE de démonstration — suivi des paiements (276 factures), ouverture d'une facture PARTIEL (solde 78 000), encaissement de 500 FCFA en espèces (solde 77 500, statut recalculé), génération du reçu `REC-2025-000001` (PDF valide, 70 Ko), puis annulation du versement (statut `ANNULE`, solde revenu à 78 000). Les trois actions `ENREGISTRER_PAIEMENT`, `GENERER_RECU` et `ANNULER_PAIEMENT` sont présentes dans `audit_log`.
+
+Ce parcours a révélé un bug invisible en test automatisé : les champs montant portaient `step={500}` avec `min={1}`, donc la validation HTML5 du navigateur **bloquait silencieusement** la soumission de tout montant qui n'était pas `1 + k×500` — aucun POST n'était émis, aucun message affiché. Corrigé en `step={1}` sur les trois formulaires de montant (versement, tarif, lignes de facture). Leçon générale : sur un champ monétaire, ne jamais utiliser `step` comme suggestion d'incrément — c'est une contrainte de validation.
 
 ---
 

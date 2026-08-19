@@ -21,6 +21,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
         { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
         { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
+        { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
+        { label: 'Versements', href: '/etablissement/finances/paiements' },
+        { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
+        { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
       ];
     case 'SECRETAIRE':
@@ -34,10 +38,16 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
         { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
         { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
+        { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
       ];
     case 'COMPTABLE':
       return [
         { label: 'Tableau de bord', href: '/dashboard' },
+        { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
+        { label: 'Versements', href: '/etablissement/finances/paiements' },
+        { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
+        { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
+        { label: 'Import financier', href: '/etablissement/finances/import' },
         { label: 'Classes', href: '/etablissement/classes' },
         { label: 'Élèves', href: '/etablissement/eleves' },
       ];

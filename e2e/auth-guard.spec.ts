@@ -31,6 +31,11 @@ const PROTECTED_ROUTES = [
   '/etablissement/notes/approbation',
   '/etablissement/notes/resultats',
   '/etablissement/notes/bulletins',
+  '/etablissement/finances/types-frais',
+  '/etablissement/finances/tarifs',
+  '/etablissement/finances/factures',
+  '/etablissement/finances/paiements',
+  '/etablissement/finances/import',
   '/utilisateurs',
   '/utilisateurs/inviter',
 ];

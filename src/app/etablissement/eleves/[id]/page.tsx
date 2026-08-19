@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, UserCircle2, FileText } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
-import { getFacturesEleve, calculerSoldeFacture } from '@/services/facture';
+import { getFacturesEleve } from '@/services/facture';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -181,9 +181,14 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                     </Badge>
                   </div>
                   <p className="mt-1 text-body-sm text-text-secondary" data-mono>
-                    Total : {f.montantTotal.toLocaleString('fr-FR')} FCFA — Solde :{' '}
-                    {calculerSoldeFacture(f).toLocaleString('fr-FR')} FCFA
+                    Total : {f.montantTotal.toLocaleString('fr-FR')} FCFA
                   </p>
+                  <Link
+                    href={`/etablissement/finances/factures/${f.id}`}
+                    className="text-body-sm text-primary hover:underline"
+                  >
+                    Ouvrir la facture (versements et solde)
+                  </Link>
                   {f.lignes.length > 0 && (
                     <ul className="mt-2 space-y-1 text-body-sm text-text-secondary">
                       {f.lignes.map((l) => (
