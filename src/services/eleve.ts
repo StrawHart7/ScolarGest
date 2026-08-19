@@ -116,6 +116,41 @@ export async function listEleves(filters: ListElevesFilters = {}): Promise<Eleve
   return (data ?? []) as unknown as Eleve[];
 }
 
+/**
+ * Élèves ACTIVE (inscription) d'une classe pour une année scolaire. Ouvert à
+ * ENSEIGNANT (contrairement à listEleves/getEleve) — consommé par les écrans
+ * académiques en lecture/saisie (résultats, saisie des notes) qui leur sont
+ * accessibles pour leurs classes affectées.
+ */
+export async function listElevesInscritsClasse(
+  classeId: string,
+  anneeScolaireId: string,
+): Promise<Eleve[]> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT');
+  const supabase = createClient();
+
+  const { data: inscriptions, error: insError } = await supabase
+    .from('inscription')
+    .select('eleveId')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('classeId', classeId)
+    .eq('anneeScolaireId', anneeScolaireId)
+    .eq('statut', 'ACTIVE');
+  if (insError) throw insError;
+
+  const ids = (inscriptions ?? []).map((i) => i.eleveId);
+  if (ids.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('eleve')
+    .select(ELEVE_FIELDS)
+    .eq('etablissementId', ctx.etablissementId)
+    .in('id', ids)
+    .order('nom');
+  if (error) throw error;
+  return (data ?? []) as unknown as Eleve[];
+}
+
 export async function getEleve(id: string): Promise<EleveAvecDetails> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();

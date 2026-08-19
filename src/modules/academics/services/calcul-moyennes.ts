@@ -95,15 +95,15 @@ export function moyenneAnnuelle(
  */
 export function appreciation(moy: number): string {
   if (moy < 0 || moy > 20) throw new Error('Moyenne hors barème /20');
-  if (moy < 6) return 'Très faible';
-  if (moy < 8) return 'Faible';
+  if (moy < 4) return 'Médiocre';
+  if (moy < 6) return 'Très Mal';
+  if (moy < 8) return 'Très Insuffisant';
   if (moy < 10) return 'Insuffisant';
   if (moy < 12) return 'Passable';
-  if (moy < 14) return 'Assez bien';
+  if (moy < 14) return 'Assez Bien';
   if (moy < 16) return 'Bien';
-  if (moy < 18) return 'Très bien';
-  if (moy < 19) return 'Excellent';
-  return 'Exceptionnel';
+  if (moy < 18) return 'Très Bien';
+  return 'Excellent';
 }
 
 export interface RankingEntry {

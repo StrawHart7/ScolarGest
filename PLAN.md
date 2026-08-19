@@ -134,25 +134,26 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Objectif** : matières, coefficients, notes et calcul fiable des moyennes.
 
 **Livrables** :
-- **Matières** personnalisables par établissement + catalogue standard activable.
-- **ProgrammeEtablissement** : niveau × matière, obligatoire/facultatif, ordre d'affichage.
-- **CoefficientMatiere** : programme + série optionnelle + `annee_scolaire_id` (historisé dès v1).
-- **Évaluations** : INTERROGATION (max 3/période), DEVOIR, COMPOSITION ; trimestres T1/T2/T3 ; contrainte d'unicité (classe + matière + type + période + numéro).
-- **Notes** + **moteur de calcul** en cascade (couvert par tests unitaires avant l'UI) :
+- [x] **Matières** personnalisables par établissement (`/etablissement/matieres`, service `matiere.ts` étendu en Phase 4). Catalogue standard activable : non fait (pas de catalogue système de matières pré-seedé — seulement la création manuelle par établissement, jugé suffisant pour le MVP).
+- [x] **ProgrammeEtablissement** : niveau × matière, obligatoire/facultatif, ordre d'affichage (`/etablissement/programme`, service `programme.ts`).
+- [x] **CoefficientMatiere** : programme + série optionnelle + `annee_scolaire_id`, historisé dès v1 — même année = update, nouvelle année = nouvelle ligne (`/etablissement/programme/coefficients`, service `coefficient.ts`).
+- [x] **Évaluations** : INTERROGATION (max 3/période), DEVOIR, COMPOSITION ; trimestres T1/T2/T3 ; contrainte d'unicité (classe + matière + type + période + numéro). UI enseignant : `/etablissement/notes/saisie` (sélection classe/matière/période limitée aux affectations actives + création d'évaluation).
+- [x] **Notes** + **moteur de calcul** en cascade (couvert par 29 tests unitaires dans `calcul-moyennes.test.ts`, écrits avant l'UI) :
   - Moy. interros = somme / nombre saisis (si 0 interro : composante ignorée)
   - Moy. classe = (moy. interros + devoir) / 2 (si composante manquante : calcul sur ce qui existe)
   - Moy. matière = (moy. classe + composition) / 2
   - Moy. trimestrielle = Σ(moy. matière × coeff) / Σ(coefficients) — matières facultatives sans note exclues
   - Moy. annuelle = (T1 + T2 + T3) / 3
   - Arrondi : 2 décimales
-- **Appréciations automatiques** (9 tranches de 0 à 20, voir doc 07).
-- **Classement** par moyenne générale ET par matière.
-- **Cycle de validation des notes** :
+  - Saisie/soumission : `/etablissement/notes/saisie/[evaluationId]` (grille élève × note, brouillon puis soumission, bascule en lecture seule "verrouillé" une fois soumis).
+- [x] **Appréciations automatiques** (9 tranches de 0 à 20, doc 07 §11 — bug de tranches/libellés corrigé dans le scaffold existant `appreciation()` pour matcher exactement la doc).
+- [x] **Classement** par moyenne générale (`classement()` du moteur pur, exposé via `getClassementClasse`). Par matière : la fonction `classement()` est générique et réutilisable par matière, mais aucun écran dédié au classement par matière n'a été construit (seul `/etablissement/notes/resultats` affiche le classement général) — à compléter si besoin en Phase 5 pour les bulletins.
+- [x] **Cycle de validation des notes** :
   - `BROUILLON` : saisie libre par l'Enseignant
   - `SOUMISE` : note prise en compte dans les calculs
   - `EN_ATTENTE` : modification post-soumission demandée → file d'approbation Secrétaire
   - `VALIDE` / `REJETE` : après action Secrétaire avec PIN
-- **Interface d'approbation** pour la Secrétaire : modal à la connexion listant les notes `EN_ATTENTE`, actions Valider / Rejeter / Proposer une modification, saisie du PIN avant chaque action.
+- [x] **Interface d'approbation** pour la Secrétaire (et le Directeur) : page listant les notes `EN_ATTENTE` avec contexte complet (élève, classe, matière, évaluation, ancienne/nouvelle valeur, demandeur), modal PIN avec actions Approuver / Rejeter (motif), confirmation post-action. (Note : implémentée en page dédiée `/etablissement/notes/approbation`, pas en modal à la connexion — le déclenchement "modal à la connexion" reste à faire si souhaité dans un futur milestone.)
 
 **Dépend de** : Phases 1–3.
 

@@ -16,6 +16,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Classes', href: '/etablissement/classes' },
         { label: 'Élèves', href: '/etablissement/eleves' },
         { label: 'Enseignants', href: '/etablissement/enseignants' },
+        { label: 'Matières', href: '/etablissement/matieres' },
+        { label: 'Programme & coefficients', href: '/etablissement/programme' },
+        { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
+        { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
         { label: 'Utilisateurs', href: '/utilisateurs' },
       ];
     case 'SECRETAIRE':
@@ -24,6 +28,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Classes', href: '/etablissement/classes' },
         { label: 'Élèves', href: '/etablissement/eleves' },
         { label: 'Enseignants', href: '/etablissement/enseignants' },
+        { label: 'Matières', href: '/etablissement/matieres' },
+        { label: 'Programme & coefficients', href: '/etablissement/programme' },
+        { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
+        { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
       ];
     case 'COMPTABLE':
       return [
@@ -35,6 +43,8 @@ export function getSidebarItems(role: Role): SidebarItem[] {
       return [
         { label: 'Tableau de bord', href: '/dashboard' },
         { label: 'Mes classes', href: '/etablissement/mes-classes' },
+        { label: 'Saisie des notes', href: '/etablissement/notes/saisie' },
+        { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
       ];
     default:
       return [];
