@@ -124,24 +124,25 @@ describe('moyenneAnnuelle', () => {
 
 describe('appreciation', () => {
   it('bornes tranches', () => {
-    expect(appreciation(0)).toBe('Très faible');
-    expect(appreciation(5.99)).toBe('Très faible');
-    expect(appreciation(6)).toBe('Faible');
-    expect(appreciation(7.99)).toBe('Faible');
+    expect(appreciation(0)).toBe('Médiocre');
+    expect(appreciation(3.99)).toBe('Médiocre');
+    expect(appreciation(4)).toBe('Très Mal');
+    expect(appreciation(5.99)).toBe('Très Mal');
+    expect(appreciation(6)).toBe('Très Insuffisant');
+    expect(appreciation(7.99)).toBe('Très Insuffisant');
     expect(appreciation(8)).toBe('Insuffisant');
     expect(appreciation(9.99)).toBe('Insuffisant');
     expect(appreciation(10)).toBe('Passable');
     expect(appreciation(11.99)).toBe('Passable');
-    expect(appreciation(12)).toBe('Assez bien');
-    expect(appreciation(13.99)).toBe('Assez bien');
+    expect(appreciation(12)).toBe('Assez Bien');
+    expect(appreciation(13.99)).toBe('Assez Bien');
     expect(appreciation(14)).toBe('Bien');
     expect(appreciation(15.99)).toBe('Bien');
-    expect(appreciation(16)).toBe('Très bien');
-    expect(appreciation(17.99)).toBe('Très bien');
+    expect(appreciation(16)).toBe('Très Bien');
+    expect(appreciation(17.99)).toBe('Très Bien');
     expect(appreciation(18)).toBe('Excellent');
-    expect(appreciation(18.99)).toBe('Excellent');
-    expect(appreciation(19)).toBe('Exceptionnel');
-    expect(appreciation(20)).toBe('Exceptionnel');
+    expect(appreciation(19)).toBe('Excellent');
+    expect(appreciation(20)).toBe('Excellent');
   });
   it('hors barème → throw', () => {
     expect(() => appreciation(-1)).toThrow();

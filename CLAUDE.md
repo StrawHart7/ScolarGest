@@ -34,7 +34,13 @@ npm run test         # Vitest unit tests
 npm run test:e2e     # Playwright E2E tests
 npx supabase db push    # Apply DB migrations (supabase/migrations/*.sql)
 npx supabase db reset   # Reset local DB and reapply migrations + seed
+
+npm run seed:demo -- --list                                 # list établissements
+npm run seed:demo -- --etablissement <uuid>                 # fictitious data for manual testing
+npm run seed:demo -- --purge --seed --etablissement <uuid>  # wipe that demo data and re-seed
 ```
+
+`scripts/seed-demo.ts` (service-role, deterministic) fills one existing établissement with a full cursus — classes, matières, programme, coefficients, élèves, responsables, inscriptions, enseignants, affectations, évaluations, notes — plus the finance side (types de frais, tarifs, factures, paiements), and creates SECRETAIRE / COMPTABLE / ENSEIGNANT test accounts (password `Demo2026!`). It deliberately produces varied states (statuts de facture mixtes, absences, one class left in `BROUILLON`/`SOUMISE` at T3) so every screen has something to show. `--purge` does real hard deletes — test bases only.
 
 **`supabase/seed.sql` only runs with `db reset` (local).** It never runs on `db push`, so any remote/staging/prod project set up via `db push` alone will be missing the system catalogs (cycles, niveaux, séries, plans d'abonnement) unless they were also captured in a versioned migration. System-catalog seed data (rows with no `etablissement_id`, i.e. not tenant data) must additionally live in a numbered migration (see `supabase/migrations/0003_seed_catalogues.sql`, idempotent via `on conflict`) so `db push` alone provisions a fully working environment.
 
@@ -67,6 +73,8 @@ src/
     │                 # only for Server Actions provisioning Auth users)
     └── navigation.ts # getSidebarItems(role) — per-role nav item lists
 ```
+
+**`requireRole()` with no arguments means SUPER_ADMIN only** — it is not "any authenticated user". Writing it on a service that école roles legitimately call silently locks them out, and unit tests won't catch it when the service is mocked by its callers (this is exactly how Phase 5 shipped a `getEtablissement` that made every bulletin/reçu generation fail for Directeur, Secrétaire and Comptable). When a service must be readable tenant-wide, list the roles explicitly and compare the requested `etablissementId` against `ctx.etablissementId` yourself.
 
 Server Actions live in an `actions.ts` file next to the `page.tsx` that uses them (Zod-validated `FormData` in, `redirect()` or a message string out) — see `src/app/(auth)/login/actions.ts` for the reference pattern.
 
@@ -113,7 +121,9 @@ Where a section is labelled **"Modifications"**, treat it as the authoritative o
 
 ## Development Phases
 
-See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) is done. Phase 1 (établissement, structure scolaire & utilisateurs) is in progress — core flows implemented, detail pages and E2E tests remain (see `PLAN.md` for the exact checklist). `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) and Phase 1 (établissement, structure scolaire & utilisateurs) are done. `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+
+**Starting a new phase**: follow `PLAN.md` § 7 "Workflow d'exécution d'une phase" step by step (scoping → plan → implementation → continuous build/lint verification → debug → tests → deliverables/doc updates → branch-per-phase closeout). It captures concrete pitfalls hit during Phase 1 (stale `.next`/webpack dev caches, `db push` not running `seed.sql`, Playwright port collisions with a running `next dev`) — do not rediscover them.
 
 ## Design System
 

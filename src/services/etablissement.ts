@@ -33,8 +33,17 @@ export async function listEtablissements(): Promise<Etablissement[]> {
   return data ?? [];
 }
 
+/**
+ * Lecture d'un établissement. Le SUPER_ADMIN lit n'importe quel établissement
+ * (console plateforme) ; les rôles école ne lisent que le leur — nécessaire
+ * pour l'en-tête des documents officiels générés côté école (bulletins,
+ * reçus), qui ont besoin du nom, de l'adresse et du contact de l'école.
+ */
 export async function getEtablissement(id: string): Promise<Etablissement> {
-  await requireRole();
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  if (ctx.role !== 'SUPER_ADMIN' && id !== ctx.etablissementId) {
+    throw new Error('Accès refusé: établissement différent');
+  }
   const supabase = createClient();
   const { data, error } = await supabase
     .from('etablissement')

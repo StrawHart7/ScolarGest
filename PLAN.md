@@ -98,12 +98,12 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Objectif** : gérer la population scolaire et son inscription annuelle.
 
 **Livrables** :
-- CRUD **Élève** : matricule auto `ELV-{annee}-{seq}` par établissement et par année scolaire, `ancien_matricule`, statuts.
-- **Responsables** + relation N–N `EleveResponsable` (lien de parenté, principal).
-- **Inscription** : élève × année × classe, règle d'unicité (une inscription ACTIVE par élève par année), décision de fin d'année (ADMIS / REDOUBLANT / DEPART).
-- **Génération automatique de la FactureEleve** à l'inscription : lignes auto depuis les `TarifScolaire` de la classe, éditables par le Comptable avant validation.
-- **Passage automatique en fin d'année** : le système propose le passage des élèves admis selon `niveau_suivant_id` ; le Directeur/Secrétaire valide ou ajuste élève par élève.
-- **Import Excel** élèves + responsables : upload → mapping colonnes → validation Zod → rapport d'erreurs ligne par ligne → import transactionnel.
+- [x] CRUD **Élève** : matricule auto `ELV-{annee}-{seq}` par établissement et par année scolaire, `ancien_matricule`, statuts.
+- [x] **Responsables** + relation N–N `EleveResponsable` (lien de parenté, principal).
+- [x] **Inscription** : élève × année × classe, règle d'unicité (une inscription ACTIVE par élève par année), décision de fin d'année (ADMIS / REDOUBLANT / DEPART).
+- [x] **Génération automatique de la FactureEleve** à l'inscription : lignes auto depuis les `TarifScolaire` de la classe (squelette à 0 si aucun tarif configuré). L'édition des lignes par le Comptable avant validation reste différée à la Phase 6 (Finances) — décision produit documentée dans le plan de Phase 2.
+- [x] **Passage automatique en fin d'année** : le système propose le passage des élèves admis selon `niveau_suivant_id` ; le Directeur/Secrétaire valide ou ajuste élève par élève.
+- [x] **Import Excel** élèves + responsables : upload → gabarit de colonnes fixe → validation Zod → rapport d'erreurs ligne par ligne → import transactionnel.
 
 **Dépend de** : Phase 1.
 
@@ -116,12 +116,12 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Objectif** : savoir qui enseigne quoi, à qui, quand.
 
 **Livrables** :
-- CRUD **Enseignant** : matricule auto `ENS-{annee}-{seq}` par établissement et par année scolaire, statuts.
-  - Compte Supabase Auth **obligatoire** pour tout enseignant ACTIF — email requis à la création, invitation Supabase Auth envoyée automatiquement.
-- **AffectationEnseignant** : enseignant × classe × matière × année scolaire.
-  - L'affectation contrôle les droits de saisie de notes (un prof ne saisit que ses affectations).
-- **TitulariteClasse** : 0 ou 1 titulaire par classe.
-- Import Excel enseignants + affectations.
+- [x] CRUD **Enseignant** : matricule auto `ENS-{annee}-{seq}` par établissement et par année scolaire, statuts.
+  - [x] Compte Supabase Auth **obligatoire** pour tout enseignant — email requis à la création, invitation Supabase Auth envoyée automatiquement.
+- [x] **AffectationEnseignant** : enseignant × classe × matière × année scolaire.
+  - L'affectation contrôle les droits de saisie de notes (un prof ne saisit que ses affectations) — vérification effective de la saisie différée à la Phase 4, périmètre de lecture posé dès Phase 3.
+- [x] **TitulariteClasse** : 0 ou 1 titulaire par classe.
+- [x] Import Excel enseignants + affectations.
 
 **Dépend de** : Phases 1–2 (peut avancer en parallèle de Phase 4 sur les matières).
 
@@ -134,25 +134,26 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 **Objectif** : matières, coefficients, notes et calcul fiable des moyennes.
 
 **Livrables** :
-- **Matières** personnalisables par établissement + catalogue standard activable.
-- **ProgrammeEtablissement** : niveau × matière, obligatoire/facultatif, ordre d'affichage.
-- **CoefficientMatiere** : programme + série optionnelle + `annee_scolaire_id` (historisé dès v1).
-- **Évaluations** : INTERROGATION (max 3/période), DEVOIR, COMPOSITION ; trimestres T1/T2/T3 ; contrainte d'unicité (classe + matière + type + période + numéro).
-- **Notes** + **moteur de calcul** en cascade (couvert par tests unitaires avant l'UI) :
+- [x] **Matières** personnalisables par établissement (`/etablissement/matieres`, service `matiere.ts` étendu en Phase 4). Catalogue standard activable : non fait (pas de catalogue système de matières pré-seedé — seulement la création manuelle par établissement, jugé suffisant pour le MVP).
+- [x] **ProgrammeEtablissement** : niveau × matière, obligatoire/facultatif, ordre d'affichage (`/etablissement/programme`, service `programme.ts`).
+- [x] **CoefficientMatiere** : programme + série optionnelle + `annee_scolaire_id`, historisé dès v1 — même année = update, nouvelle année = nouvelle ligne (`/etablissement/programme/coefficients`, service `coefficient.ts`).
+- [x] **Évaluations** : INTERROGATION (max 3/période), DEVOIR, COMPOSITION ; trimestres T1/T2/T3 ; contrainte d'unicité (classe + matière + type + période + numéro). UI enseignant : `/etablissement/notes/saisie` (sélection classe/matière/période limitée aux affectations actives + création d'évaluation).
+- [x] **Notes** + **moteur de calcul** en cascade (couvert par 29 tests unitaires dans `calcul-moyennes.test.ts`, écrits avant l'UI) :
   - Moy. interros = somme / nombre saisis (si 0 interro : composante ignorée)
   - Moy. classe = (moy. interros + devoir) / 2 (si composante manquante : calcul sur ce qui existe)
   - Moy. matière = (moy. classe + composition) / 2
   - Moy. trimestrielle = Σ(moy. matière × coeff) / Σ(coefficients) — matières facultatives sans note exclues
   - Moy. annuelle = (T1 + T2 + T3) / 3
   - Arrondi : 2 décimales
-- **Appréciations automatiques** (9 tranches de 0 à 20, voir doc 07).
-- **Classement** par moyenne générale ET par matière.
-- **Cycle de validation des notes** :
+  - Saisie/soumission : `/etablissement/notes/saisie/[evaluationId]` (grille élève × note, brouillon puis soumission, bascule en lecture seule "verrouillé" une fois soumis).
+- [x] **Appréciations automatiques** (9 tranches de 0 à 20, doc 07 §11 — bug de tranches/libellés corrigé dans le scaffold existant `appreciation()` pour matcher exactement la doc).
+- [x] **Classement** par moyenne générale (`classement()` du moteur pur, exposé via `getClassementClasse`). Par matière : la fonction `classement()` est générique et réutilisable par matière, mais aucun écran dédié au classement par matière n'a été construit (seul `/etablissement/notes/resultats` affiche le classement général) — à compléter si besoin en Phase 5 pour les bulletins.
+- [x] **Cycle de validation des notes** :
   - `BROUILLON` : saisie libre par l'Enseignant
   - `SOUMISE` : note prise en compte dans les calculs
   - `EN_ATTENTE` : modification post-soumission demandée → file d'approbation Secrétaire
   - `VALIDE` / `REJETE` : après action Secrétaire avec PIN
-- **Interface d'approbation** pour la Secrétaire : modal à la connexion listant les notes `EN_ATTENTE`, actions Valider / Rejeter / Proposer une modification, saisie du PIN avant chaque action.
+- [x] **Interface d'approbation** pour la Secrétaire (et le Directeur) : page listant les notes `EN_ATTENTE` avec contexte complet (élève, classe, matière, évaluation, ancienne/nouvelle valeur, demandeur), modal PIN avec actions Approuver / Rejeter (motif), confirmation post-action. (Note : implémentée en page dédiée `/etablissement/notes/approbation`, pas en modal à la connexion — le déclenchement "modal à la connexion" reste à faire si souhaité dans un futur milestone.)
 
 **Dépend de** : Phases 1–3.
 
@@ -160,22 +161,28 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 ---
 
-### Phase 5 — Documents : bulletins & reçus (PDF)
+### Phase 5 — Documents : bulletins & reçus (PDF) — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : produire les documents officiels.
 
 **Livrables** :
-- **Bulletin** trimestriel PDF — contenu complet (doc 09) : en-tête école, en-tête élève, tableau des résultats par matière (moyennes, coefficients, rang matière, appréciation, professeur), synthèse (moyenne générale, rang, statistiques classe), zone de signature physique.
-  - Même format pour tous les niveaux (maternelle, primaire, collège, lycée) — barème /20.
-- **Reçu de paiement** PDF.
-- Entité `Document` (référence, type, objet lié, statut GENERE / OBSOLETE / ARCHIVE) + stockage dans Supabase Storage.
-- **Numérotation par établissement et par année scolaire** : `BUL-{annee}-{seq}`, `REC-{annee}-{seq}` ; l'année = année de début de l'année scolaire.
-- Régénération possible d'un bulletin existant (produit le même résultat).
-- Audit de génération tracé dans `AuditLog`.
+- [x] **Bulletin** trimestriel PDF — contenu complet (doc 09) : en-tête école, en-tête élève, tableau des résultats par matière (moyennes, coefficients, rang matière, professeur), synthèse (moyenne générale, rang, statistiques classe, moyenne annuelle best-effort), zone de signature physique. (Note : la colonne "appréciation du professeur" de la maquette est un texte libre par matière qui n'existe dans aucun modèle de données — Phase 4 n'a défini qu'une appréciation globale automatique via `appreciation()`. Le bulletin affiche donc le nom du professeur par matière plutôt qu'un texte d'appréciation par matière ; l'appréciation générale automatique reste affichée dans la synthèse.)
+  - [x] Même format pour tous les niveaux (maternelle, primaire, collège, lycée) — barème /20.
+- [x] **Reçu de paiement** PDF (template + `genererRecuPaiement(paiementId)`, sans écran de saisie — l'enregistrement de paiement reste Phase 6, décision actée avec l'utilisateur en Phase 5, même schéma que les tarifs différés en Phase 1/2).
+- [x] Entité `Document` (référence, type, objet lié, statut GENERE / OBSOLETE / ARCHIVE) + stockage dans Supabase Storage (migration `0007_phase5_storage_bucket.sql` — bucket `documents` privé, **appliquée sur le projet distant le 2026-08-19** via `npx supabase db push --include-all`, en même temps que 0003 à 0006 qui avaient été exécutées à la main sans être enregistrées dans l'historique de migrations).
+- [x] **Numérotation par établissement et par année scolaire** : `BUL-{annee}-{seq}`, `REC-{annee}-{seq}` ; l'année = année de début de l'année scolaire (réutilise `generateNumeroDocument`, Phase 0).
+- [x] Régénération possible d'un bulletin existant (produit le même résultat si aucune donnée sous-jacente n'a changé) : l'ancien document passe `OBSOLETE`, le nouveau est créé `GENERE` — jamais de suppression.
+- [x] Audit de génération tracé dans `AuditLog` (`GENERER_BULLETIN` / `REGENERER_BULLETIN` / `GENERER_RECU`).
 
 **Dépend de** : Phase 4 (bulletins), Phase 2 (factures/reçus via Phase 6).
 
 **DoD** : bulletin généré conforme au design ; régénération donne un document identique ; numérotation cohérente et séquentielle par école ; audit de génération présent.
+
+**Validation manuelle (2026-08-19)** : parcours réel exécuté sur un build de production (port 3100) contre le projet Supabase distant, avec un compte SECRETAIRE de test et le jeu de données de démonstration (`npm run seed:demo`) — génération d'un bulletin depuis `/etablissement/notes/bulletins` (6ème A, 1er trimestre), régénération depuis `/etablissement/eleves/[id]/bulletins`. Constaté : PDF valides d'une page (~81 Ko) déposés dans le bucket, numérotation séquentielle `BUL-2025-000001` → `000004`, ancien document passé `OBSOLETE` à la régénération, entrées `GENERER_BULLETIN` / `REGENERER_BULLETIN` dans `audit_log`, et taille identique à un octet près entre deux générations du même bulletin (seule la date de génération diffère). Ce parcours a révélé un blocage que les tests unitaires ne pouvaient pas voir (`getEtablissement` mocké) : `getEtablissement` était gardé par `requireRole()` sans argument, donc réservé au SUPER_ADMIN, alors que `genererBulletin` et `genererRecuPaiement` en ont besoin pour l'en-tête du document — toute génération par un Directeur, une Secrétaire ou un Comptable échouait avec « Accès refusé ». Corrigé : lecture ouverte aux rôles école, restreinte à leur propre établissement.
+
+**Reste à valider en Phase 6** : le reçu (`genererRecuPaiement`) n'a pas d'écran en Phase 5 par décision de périmètre, donc son parcours réel n'est couvert que par ses tests unitaires ; il emprunte le même pipeline que le bulletin (numérotation, upload, `Document`, audit), désormais validé de bout en bout, et bénéficie du correctif `getEtablissement` ci-dessus.
+
+**Note d'implémentation** : le rendu PDF réel (Playwright + Chromium headless) a été vérifié manuellement pendant l'implémentation — `npx playwright install chromium` a réussi et un appel Node direct produit un buffer PDF valide. Le test Vitest correspondant (`src/lib/pdf/__tests__/render.test.ts`) est gardé derrière `RUN_PDF_TESTS=1` : dans le pool de workers Vitest de cet environnement de développement, le lancement de Chromium comme sous-processus imbriqué bloque indéfiniment ou fait planter le worker (artefact de sandboxing de l'environnement, pas du code) — voir commentaire en tête du fichier de test.
 
 ---
 
@@ -308,3 +315,70 @@ Rappel des décisions clés impactant le développement :
 | Pas de mode hors-ligne | Phase 9 supprimée — pas de PWA ni PowerSync |
 | Numérotation par établissement/année | Phases 2, 5, 6 : séquences isolées |
 | Passage automatique via `niveau_suivant_id` | Phase 0 (schéma) + Phase 2 (UI) |
+
+---
+
+## 7. Workflow d'exécution d'une phase
+
+> Objectif : qu'un seul prompt du type « on attaque la Phase N » suffise à obtenir une phase **conçue, implémentée, vérifiée et testée**, sans redécouvrir à chaque fois les pièges déjà rencontrés. Suivre les étapes dans l'ordre — ne pas sauter la vérification continue (étape 3) pour « gagner du temps », c'est justement ce qui coûte le plus cher plus tard.
+
+### Étape 0 — Cadrage
+
+- Relire la section de la phase concernée dans ce fichier (Objectif, Livrables, Dépend de, DoD).
+- Lire les fichiers `Docs/0X-…` pertinents (voir table dans `CLAUDE.md`) — ne jamais implémenter une règle métier de mémoire, la vérifier dans la doc.
+- Vérifier `analysis.md` pour toute décision (Q0–Q17) qui impacte la phase.
+- Vérifier ce qui existe déjà en base (`supabase/migrations/*.sql`) et dans `src/services/` — ne jamais recréer un service ou une table qui existe déjà sous un autre nom.
+- Repérer les maquettes concernées dans `/design-maquette` (voir convention dans `CLAUDE.md` § Design System).
+
+### Étape 1 — Plan
+
+- Utiliser `EnterPlanMode` dès que la phase touche plus de 2-3 fichiers ou qu'il y a un choix d'implémentation (c'est presque toujours le cas pour une phase entière).
+- Découper la phase en **milestones verticaux** (une fonctionnalité utilisable de bout en bout à chaque étape), pas en couches horizontales (« tous les services », puis « toutes les pages »).
+- Si un livrable de la phase déborde sur le domaine d'une autre phase (ex. tarifs de classe qui touchent la Finance) : le signaler explicitement dans le plan et proposer de différer, plutôt que d'improviser un bout de schéma en avance.
+- Poser les questions de produit ouvertes via `AskUserQuestion` **avant** de coder, pas après — un scope mal calé coûte plus cher à corriger une fois écrit.
+
+### Étape 2 — Implémentation
+
+Conventions à respecter systématiquement (voir `CLAUDE.md` pour le détail) :
+- Un fichier par domaine dans `src/services/`, jamais d'appel Supabase direct depuis une page/Server Action.
+- Chaque service mutateur : garde `requireRole(...)` en première ligne + `auditLog()` sur les écritures sensibles.
+- Pattern Server Action : `actions.ts` colocalisé au `page.tsx`, validation Zod, `FormData` en entrée, `redirect()` ou message d'erreur en sortie (voir `src/app/(auth)/login/actions.ts`).
+- UI : réutiliser les composants de `src/components/ui/` (`Select`/`DatePicker` — jamais les éléments natifs, voir `CLAUDE.md`) ; comparer à la maquette du dossier correspondant avant de considérer une page terminée.
+- RLS + filtre applicatif explicite (`etablissementId`) sur chaque requête, même si RLS suffirait seule (défense en profondeur, cf. CLAUDE.md).
+- Toute nouvelle table de catalogue système (sans `etablissement_id`) : la seed correspondante doit vivre dans une **migration numérotée** (`on conflict` idempotent), pas seulement dans `supabase/seed.sql` — sinon elle ne sera jamais provisionnée sur un environnement distant (`db push` n'exécute pas `seed.sql`, seul `db reset` le fait). Piège déjà rencontré en Phase 1.
+
+### Étape 3 — Vérification continue (à chaque milestone, pas seulement à la fin)
+
+- `npm run build` et `npm run lint` après **chaque** milestone livré, pas en fin de phase — un échec de build découvert après 5 pages est 5x plus coûteux à isoler.
+- Si un build échoue avec une erreur `Cannot find module './XXX.js'` ou similaire sans rapport avec le code modifié : cache `.next` corrompu (build précédent interrompu) — supprimer `.next` et relancer, ne pas chercher le bug dans le code.
+- Si un correctif de style/couleur/texte semble ne jamais s'appliquer en dev alors que le code source est correct : suspecter un **cache webpack dev périmé** (serveur `npm run dev` resté ouvert trop longtemps, watcher qui a raté un changement). Vérifier en comparant le HTML réellement servi (`curl` sur une page publique, chercher les classes attendues) au code source — si ça ne correspond pas, c'est le cache, pas le code. Corriger : arrêter le serveur, supprimer `.next`, relancer.
+
+### Étape 4 — Debug
+
+- Ne jamais deviner un bug visuel/runtime sans le reproduire : lire le HTML/CSS réellement servi (`curl`, ou lecture du `.next/static/css/**` généré par un build de prod) plutôt que de relire le composant en boucle en espérant repérer l'erreur à l'œil.
+- Un service qui écrit en base : tester d'abord la requête isolément (petit script Node avec le client `service-role`, voir pattern utilisé en Phase 1 pour diagnostiquer le catalogue `cycle` vide) avant de soupçonner la couche UI.
+- Toute action qui écrit des données réelles ou envoie un email réel (invitation Supabase Auth, etc.) : ne jamais l'exécuter soi-même sans confirmation explicite de l'utilisateur — demander d'abord si l'environnement est dev/staging ou le seul projet existant.
+
+### Étape 5 — Tests
+
+- **Unitaires (Vitest)** : obligatoires avant toute UI pour la logique de calcul pure (moteur de notes en Phase 4, calcul de solde en Phase 6, génération de matricule/numéro de document) — cf. principe #7 de ce document.
+- **E2E (Playwright)** :
+  - Config dédiée avec un **port différent de celui du serveur de dev habituel** (ex. `3100`) et `command: npx next start -p 3100` sur un build déjà fait (`npm run build` séparé) — lancer `next dev` ou un `build && start` combiné dans `webServer` est plus lent et plus fragile (compilation à froid par route, risque de collision de port avec un `npm run dev` déjà ouvert dans un autre terminal).
+  - Toujours vérifier qu'aucun autre serveur ne tourne déjà sur le port choisi avant de lancer — `reuseExistingServer: false` en local pour éviter de tester par erreur contre le serveur de dev de l'utilisateur.
+  - Ce qui est testable sans compte : gardes d'authentification (chaque route protégée redirige bien vers `/login`), rendu des pages publiques, chemins d'erreur (identifiants invalides).
+  - Ce qui exige un compte de test réel (parcours SUPER_ADMIN/Directeur authentifiés) : ne pas créer de compte soi-même (ça enverrait de vraies invitations) — demander à l'utilisateur des identifiants de test dédiés, sinon documenter clairement que ce parcours reste validé manuellement.
+  - Assertions sur des textes d'erreur retournés par un service externe (Supabase Auth) : rester tolérant au contenu exact (le réseau peut renvoyer un message différent d'une tentative à l'autre) — vérifier le comportement observable (redirection, état du bouton) plutôt qu'une chaîne de caractères précise.
+
+### Étape 6 — Livrables & mise à jour de la documentation
+
+- Cocher dans ce fichier (`PLAN.md`) chaque livrable de la phase au fur et à mesure, pas en bloc à la fin.
+- Marquer l'en-tête de la phase `✅ TERMINÉE (date)` seulement quand la DoD est réellement remplie (build vert, lint vert, tests E2E verts, parcours manuel validé) — pas quand le code est juste écrit.
+- Si une décision durable pour les phases suivantes a émergé (convention de composant, piège d'infra, périmètre volontairement différé vers une autre phase) : l'enregistrer dans `CLAUDE.md`, pas seulement dans le message de conversation — sinon elle sera redécouverte à la dure la prochaine fois.
+- Mettre à jour `list.md` si la phase couvre des éléments qui y sont listés.
+
+### Étape 7 — Clôture
+
+- Méthode confirmée : **une branche Git par phase**, mergée sur `main` une fois la DoD atteinte.
+- `git add` ciblé (jamais `-A` aveugle), commit avec message décrivant la phase livrée, `push`.
+- Merge sur `main` (demander confirmation avant tout `push --force` ou réécriture d'historique — jamais nécessaire dans ce flux).
+- Créer la branche de la phase suivante (`phase-N-slug-descriptif`) et repartir à l'Étape 0 pour cette phase.

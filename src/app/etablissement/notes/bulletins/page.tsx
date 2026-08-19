@@ -1,0 +1,104 @@
+import { Users2 } from 'lucide-react';
+import { getTenantContext } from '@/services/tenant';
+import { listAnneesScolaires } from '@/services/annee-scolaire';
+import { listClasses } from '@/services/classe';
+import { listElevesInscritsClasse } from '@/services/eleve';
+import type { Periode } from '@/services/evaluation';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { getSidebarItems } from '@/lib/navigation';
+import { BulletinsFiltres } from './BulletinsFiltres';
+import { BulletinsListe } from './BulletinsListe';
+
+export default async function BulletinsPage({
+  searchParams,
+}: {
+  searchParams: { classeId?: string; periode?: Periode; anneeScolaireId?: string };
+}) {
+  const ctx = await getTenantContext();
+
+  const annees = await listAnneesScolaires();
+  const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
+  const anneeScolaireId = searchParams.anneeScolaireId || anneeActive?.id || annees[0]?.id;
+  const periode: Periode = searchParams.periode ?? 'TRIMESTRE_1';
+
+  const classes = anneeScolaireId ? await listClasses(anneeScolaireId) : [];
+  const classeId = searchParams.classeId || classes[0]?.id;
+
+  return (
+    <AppLayout
+      items={getSidebarItems(ctx.role)}
+      schoolName="ScolarGest"
+      role={ctx.role}
+      userName={ctx.email}
+    >
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-display-sm text-text-primary">Génération de bulletins</h1>
+          <p className="text-body-sm text-text-secondary">
+            Sélectionnez une classe et une période pour générer les bulletins trimestriels des élèves
+            inscrits. Assurez-vous que les notes du trimestre concerné ont été saisies et approuvées
+            avant de générer.
+          </p>
+        </div>
+
+        <Card>
+          <div className="border-b border-surface-border p-4">
+            <BulletinsFiltres
+              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+              classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+              defaultAnneeScolaireId={anneeScolaireId ?? ''}
+              defaultClasseId={classeId ?? ''}
+              defaultPeriode={periode}
+            />
+          </div>
+
+          {!anneeScolaireId || !classeId ? (
+            <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
+              <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
+              <p className="text-body-sm text-text-secondary">
+                {classes.length === 0
+                  ? 'Aucune classe disponible pour cette année scolaire.'
+                  : 'Sélectionnez une classe pour afficher les élèves.'}
+              </p>
+            </CardContent>
+          ) : (
+            <ElevesListe classeId={classeId} periode={periode} anneeScolaireId={anneeScolaireId} />
+          )}
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}
+
+async function ElevesListe({
+  classeId,
+  periode,
+  anneeScolaireId,
+}: {
+  classeId: string;
+  periode: Periode;
+  anneeScolaireId: string;
+}) {
+  const eleves = await listElevesInscritsClasse(classeId, anneeScolaireId);
+
+  if (eleves.length === 0) {
+    return (
+      <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
+        <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
+        <p className="text-body-sm text-text-secondary">
+          Aucun élève inscrit (statut ACTIF) dans cette classe pour cette année scolaire.
+        </p>
+      </CardContent>
+    );
+  }
+
+  return (
+    <BulletinsListe
+      eleves={eleves.map((e) => ({ id: e.id, nom: e.nom, prenoms: e.prenoms, matricule: e.matricule }))}
+      classeId={classeId}
+      periode={periode}
+      anneeScolaireId={anneeScolaireId}
+    />
+  );
+}
