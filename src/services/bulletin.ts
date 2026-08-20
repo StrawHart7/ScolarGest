@@ -11,6 +11,7 @@ import { generateNumeroDocument } from './document-numero';
 import { enregistrerDocument, marquerObsolete, getDocument, type Document } from './document';
 import { renderHtmlToPdf } from '@/lib/pdf/render';
 import { renderBulletinHtml, periodeLabel } from '@/lib/pdf/templates/bulletin';
+import { renderBulletinSecondaireHtml } from '@/lib/pdf/templates/bulletin-secondaire';
 import type { Periode } from './evaluation';
 
 const BUCKET = 'documents';
@@ -20,6 +21,7 @@ interface EleveRow {
   nom: string;
   prenoms: string;
   matricule: string;
+  sexe: 'M' | 'F';
   dateNaissance: string;
 }
 
@@ -27,7 +29,7 @@ async function getEleveRow(eleveId: string): Promise<EleveRow> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('eleve')
-    .select('id, nom, prenoms, matricule, "dateNaissance"')
+    .select('id, nom, prenoms, matricule, sexe, "dateNaissance"')
     .eq('id', eleveId)
     .single();
   if (error) throw error;
@@ -52,7 +54,7 @@ async function buildPdf(
     })(),
   ]);
 
-  const html = renderBulletinHtml({
+  const entree = {
     etablissement: {
       nom: etablissement.nom,
       adresse: etablissement.adresse,
@@ -67,12 +69,21 @@ async function buildPdf(
       prenoms: eleve.prenoms,
       dateNaissance: eleve.dateNaissance,
       matricule: eleve.matricule,
+      sexe: eleve.sexe,
     },
     classeNom: classe.nom,
     reference,
     dateGeneration: new Date().toISOString(),
     donnees,
-  });
+  };
+
+  // Le Collège et le Lycée utilisent le modèle officiel du Ministère fourni
+  // par l'établissement ; les autres cycles conservent le gabarit générique.
+  const cycle = classe.niveau.cycle?.nom;
+  const html =
+    cycle === 'COLLEGE' || cycle === 'LYCEE'
+      ? renderBulletinSecondaireHtml(entree)
+      : renderBulletinHtml(entree);
 
   return renderHtmlToPdf(html);
 }

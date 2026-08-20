@@ -284,7 +284,7 @@ Ce parcours a révélé trois défauts, tous corrigés :
 
 ---
 
-### Phase 8.5 — Refonte UX/UI, performance et corrections métier — 🚧 EN COURS (2026-08-20)
+### Phase 8.5 — Refonte UX/UI, performance et corrections métier — ✅ TERMINÉE (2026-08-20)
 
 **Origine** : retours d'usage manuels consignés dans `remarques_avant_phase9.txt` (2026-08-20),
 après passage complet sur les rôles Directeur, Secrétaire, Enseignant et Comptable.
@@ -389,8 +389,64 @@ rappel des moyennes, moyenne la plus forte et la plus faible, décision du conse
 du chef d'établissement et signatures.
 Le modèle **Collège/Lycée uniquement** : les autres cycles conservent le gabarit actuel.
 
-**DoD** : build / lint / typecheck / unit / E2E verts ; parcours manuel repassé sur les quatre
-rôles ; aucun point de `remarques_avant_phase9.txt` non traité ou non explicitement reporté.
+**DoD** : build / lint / typecheck / unit / E2E verts ; aucun point de
+`remarques_avant_phase9.txt` non traité ou non explicitement reporté.
+
+#### Décisions prises pendant la phase
+
+- **`activerAnneeScolaire` ne clôture plus l'année en cours.** Elle la basculait
+  silencieusement en `TERMINEE` pour libérer l'index unique partiel. Figer notes,
+  bulletins et facturation d'une année entière ne peut pas être un effet de bord :
+  l'activation échoue désormais tant que l'année en cours n'est pas explicitement
+  clôturée, et la clôture affiche puis journalise un bilan (notes en attente,
+  factures non soldées, reste à recouvrer). Ce bilan est **informatif, pas
+  bloquant** : clôturer avec des impayés est le cas courant, et c'est au Directeur
+  de trancher.
+- **Approbation des notes recentrée sur la Secrétaire seule** (doc 03). L'ouvrir
+  aussi au Directeur diluait la responsabilité sans que personne ne traite la file.
+- **Soumettre des notes ne crée aucune demande d'approbation** — comportement
+  conforme au doc 07 § 14 : une note `SOUMISE` est immédiatement officielle, seule
+  la *correction* d'une note soumise passe par la file. Le retour d'usage signalait
+  l'inverse : c'était une attente, pas un défaut. L'écran d'approbation l'explique
+  désormais explicitement plutôt que d'afficher un état vide muet.
+- **Le nom d'une classe devient une composition** `Niveau + Série + Indice` au lieu
+  d'une saisie libre, qui produisait « 6e A », « 6ème-A » et « 6EME A » pour la même
+  classe, sans rattrapage possible ensuite dans les bulletins et les exports.
+- **Séries du lycée** (migration `0010`) : le catalogue n'en portait que six. Faute
+  de savoir laquelle manquait, l'ensemble standard du baccalauréat togolais a été
+  ajouté — une série inutilisée ne coûte qu'une ligne de catalogue, une série
+  absente bloque une création de classe. **À faire valider par l'établissement.**
+- **Zones non modélisées du bulletin officiel** (absences, retards, punitions,
+  exclusions, tableau d'honneur, félicitations, décision du conseil, observation du
+  chef d'établissement) : rendues vides, comme sur le modèle papier où elles sont
+  remplies à la main. Les renseigner dans l'application demanderait une table
+  d'assiduité et une table de conseil de classe — **non fait, à arbitrer.**
+
+#### Défauts corrigés que les suites automatisées ne voyaient pas
+
+- `/etablissement/notes/resultats` ne s'affichait **jamais** : `getClassementClasse`
+  bouclait `getMoyennesEleve` en série, puis la page relançait un `getMoyennesEleve`
+  par élève, chacun rechargeant classe, programme, évaluations et un
+  `getCoefficient` par matière. Remplacé par une lecture groupée en six requêtes
+  (`services/resultats-classe.ts`), quelle que soit la taille de la classe.
+- `getTenantContext` était réévalué à chaque `requireRole()`, soit un aller-retour
+  réseau vers Supabase Auth par service touché. Mémoïsé par requête.
+- **Coefficients** : changer de série laissait les valeurs de la série précédente
+  affichées. `defaultValue` n'est lu qu'au montage et le composant restait monté —
+  on saisissait donc les coefficients d'une série par-dessus ceux d'une autre.
+- **Périmètre enseignant** : `getClassementClasse` ne vérifiait que le rôle. Un
+  enseignant pouvait lire le classement de n'importe quelle classe en changeant
+  l'identifiant dans l'URL. (Point qui était noté « à traiter en Phase 10 ».)
+- **Boutons illisibles** : `text-white` était écrasé par la couleur héritée sur les
+  boutons rendus via `asChild`, d'où un libellé noir sur fond bleu et sur fond rouge.
+- **Aucune déconnexion** n'existait dans l'application.
+
+#### Reporté explicitement
+
+- Masquer les contrôles d'écriture en mode abonnement lecture seule n'est fait que
+  sur les écrans finance.
+- `DIRECTEUR` peut encore appeler `soumettreNotes` et `demanderModification` au
+  niveau service ; seule la file d'approbation lui a été fermée.
 
 ---
 

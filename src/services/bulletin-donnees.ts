@@ -47,6 +47,8 @@ export interface SyntheseBulletin {
   effectifClasse: number;
   meilleureMoyenneClasse: number | null;
   plusFaibleMoyenneClasse: number | null;
+  /** Moyenne générale de la classe — figure sur le bulletin officiel. */
+  moyenneGeneraleClasse: number | null;
   moyenneAnnuelle: number | null;
 }
 
@@ -223,6 +225,10 @@ export async function getDonneesBulletin(
     .filter((v): v is number => v !== null);
   const meilleureMoyenneClasse = moyennesClasse.length > 0 ? Math.max(...moyennesClasse) : null;
   const plusFaibleMoyenneClasse = moyennesClasse.length > 0 ? Math.min(...moyennesClasse) : null;
+  const moyenneGeneraleClasse =
+    moyennesClasse.length > 0
+      ? Number((moyennesClasse.reduce((s, m) => s + m, 0) / moyennesClasse.length).toFixed(2))
+      : null;
 
   // Moyenne annuelle: uniquement si les 3 trimestres ont des données (best effort,
   // ne bloque jamais la génération d'un bulletin trimestriel).
@@ -251,6 +257,7 @@ export async function getDonneesBulletin(
       effectifClasse,
       meilleureMoyenneClasse,
       plusFaibleMoyenneClasse,
+      moyenneGeneraleClasse,
       moyenneAnnuelle: moyAnnuelle,
     },
   };
