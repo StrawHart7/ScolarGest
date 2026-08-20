@@ -52,19 +52,24 @@ export function RechercheListe({
   className?: string;
 }) {
   const { majParametres, enAttente, searchParams } = useMajParametres();
-  const [valeur, setValeur] = React.useState(searchParams.get('q') ?? '');
-  const premierRendu = React.useRef(true);
+  const termeUrl = searchParams.get('q') ?? '';
+  const [valeur, setValeur] = React.useState(termeUrl);
 
   // Recherche dynamique : on attend une pause de frappe plutôt que de lancer
   // une requête serveur à chaque caractère.
+  //
+  // La comparaison avec le terme présent dans l'URL n'est pas une optimisation,
+  // c'est la condition de sortie. `majParametres` se reconstruit à chaque
+  // changement de `searchParams` — donc à chaque navigation, pagination
+  // comprise. Sans cette garde, cliquer sur « suivant » relançait l'effet, qui
+  // réécrivait `q` et, ce faisant, effaçait `page` : on retombait aussitôt sur
+  // la première page. On ne repart donc que si la saisie diverge réellement de
+  // l'URL, c'est-à-dire quand l'utilisateur a tapé quelque chose.
   React.useEffect(() => {
-    if (premierRendu.current) {
-      premierRendu.current = false;
-      return;
-    }
+    if (valeur === termeUrl) return;
     const minuteur = setTimeout(() => majParametres({ q: valeur || undefined }), 300);
     return () => clearTimeout(minuteur);
-  }, [valeur, majParametres]);
+  }, [valeur, termeUrl, majParametres]);
 
   return (
     <div className={cn('relative w-full sm:w-72', className)}>
