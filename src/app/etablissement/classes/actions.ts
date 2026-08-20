@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClasse } from '@/services/classe';
 
@@ -39,5 +39,8 @@ export async function creerClasse(_prevState: string | null, formData: FormData)
     return e instanceof Error ? e.message : 'Erreur lors de la création';
   }
 
-  redirect(`/etablissement/classes?anneeScolaireId=${data.anneeScolaireId}`);
+  // Le formulaire est désormais un modal sur la page de liste : on revalide
+  // au lieu de rediriger, et on signale le succès par 'OK'.
+  revalidatePath('/etablissement/classes');
+  return 'OK';
 }

@@ -1,22 +1,29 @@
 import Link from 'next/link';
 import { CreditCard, Plus } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { listAbonnements } from '@/services/abonnement';
+import { listAbonnements, listPlans, expirerAbonnementsEchus } from '@/services/abonnement';
+import { statutEffectif, joursAvantEcheance } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
-import { SuspendreButton } from './SuspendreButton';
+import { AbonnementRowActions } from './AbonnementRowActions';
 
 const STATUT_BADGE = {
   ACTIF: 'success',
   EXPIRE: 'error',
   SUSPENDU: 'neutral',
+  AUCUN: 'neutral',
 } as const;
 
 export default async function AbonnementsPage() {
   const ctx = await getTenantContext();
+  // Constate les échéances dépassées avant d'afficher : sans planificateur
+  // dans le MVP, l'ouverture de la console est le point de passage naturel.
+  // `expirerAbonnementsEchus` doit précéder la lecture des abonnements (elle en
+  // change le statut) ; les plans, eux, ne dépendent de rien.
+  const [, plans] = await Promise.all([expirerAbonnementsEchus(), listPlans()]);
   const abonnements = await listAbonnements();
 
   return (
@@ -61,6 +68,7 @@ export default async function AbonnementsPage() {
                       <th className="px-3 py-2 font-semibold">Plan</th>
                       <th className="px-3 py-2 font-semibold">Statut</th>
                       <th className="px-3 py-2 font-semibold">Échéance</th>
+                      <th className="px-3 py-2 font-semibold">Reste</th>
                       <th className="py-2 pl-3 pr-5 text-right font-semibold">Action</th>
                     </tr>
                   </thead>
@@ -75,21 +83,31 @@ export default async function AbonnementsPage() {
                           {a.plan.nom} ({Number(a.plan.prix).toLocaleString('fr-FR')} FCFA)
                         </td>
                         <td className="px-3 py-2">
-                          <Badge shape="pill" variant={STATUT_BADGE[a.statut]}>
-                            {a.statut}
+                          <Badge shape="pill" variant={STATUT_BADGE[statutEffectif(a)]}>
+                            {statutEffectif(a)}
                           </Badge>
                         </td>
                         <td className="px-3 py-2 text-text-secondary" data-mono>
                           {new Date(a.dateFin).toLocaleDateString('fr-FR')}
                         </td>
+                        <td className="px-3 py-2 text-text-secondary">
+                          {joursAvantEcheance(a.dateFin) > 0
+                            ? `${joursAvantEcheance(a.dateFin)} j`
+                            : `échu depuis ${Math.abs(joursAvantEcheance(a.dateFin))} j`}
+                        </td>
                         <td className="py-2 pl-3 pr-5">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-col items-end gap-2">
                             <Button asChild variant="secondary" size="sm">
                               <Link href={`/super-admin/abonnements/${a.id}/paiement`}>
                                 Valider un paiement
                               </Link>
                             </Button>
-                            {a.statut !== 'SUSPENDU' && <SuspendreButton abonnementId={a.id} />}
+                            <AbonnementRowActions
+                              abonnementId={a.id}
+                              statut={a.statut}
+                              planActuelId={a.planId}
+                              plans={plans.map((p) => ({ id: p.id, nom: p.nom }))}
+                            />
                           </div>
                         </td>
                       </tr>

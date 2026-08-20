@@ -3,14 +3,13 @@ import { getTenantContext } from '@/services/tenant';
 import { listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listProgramme } from '@/services/programme';
-import { getCoefficient } from '@/services/coefficient';
+import { listCoefficients } from '@/services/coefficient';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { NiveauSelector, type NiveauOption } from '../NiveauSelector';
 import { SerieSelector } from './SerieSelector';
-import { CoefficientRow } from './CoefficientRow';
+import { CoefficientsForm, type LigneCoefficient } from './CoefficientsForm';
 
 export default async function CoefficientsPage({
   searchParams,
@@ -37,18 +36,30 @@ export default async function CoefficientsPage({
   const niveauId = searchParams.niveauId ?? niveaux[0]?.id;
   const cycleDuNiveau = niveauxParCycle.find((c) => c.niveaux.some((n) => n.id === niveauId));
   const series = cycleDuNiveau ? await listSeriesParCycle(cycleDuNiveau.cycleId) : [];
-  const serieId = series.some((s) => s.id === searchParams.serieId) ? (searchParams.serieId ?? null) : null;
+  const serieId = series.some((s) => s.id === searchParams.serieId)
+    ? (searchParams.serieId ?? null)
+    : null;
 
   const programme = niveauId ? await listProgramme(niveauId) : [];
 
-  const lignes = anneeActive
-    ? await Promise.all(
-        programme.map(async (p) => ({
-          programme: p,
-          coefficient: await getCoefficient(p.id, anneeActive.id, serieId),
-        })),
+  // Une seule requête pour tous les coefficients du niveau, au lieu d'un
+  // `getCoefficient()` par matière.
+  const coefficients = anneeActive
+    ? await listCoefficients(
+        programme.map((p) => p.id),
+        anneeActive.id,
+        serieId,
       )
-    : [];
+    : new Map<string, number>();
+
+  const lignes: LigneCoefficient[] = programme.map((p) => ({
+    programmeEtablissementId: p.id,
+    matiereNom: p.matiere.nom,
+    obligatoire: p.obligatoire,
+    coefficient: coefficients.get(p.id) ?? null,
+  }));
+
+  const serieCourante = series.find((s) => s.id === serieId);
 
   return (
     <AppLayout
@@ -60,10 +71,10 @@ export default async function CoefficientsPage({
       <div className="space-y-6">
         <div>
           <h1 className="text-display-sm text-text-primary">Coefficients</h1>
-          <p className="text-body-md text-text-secondary">
-            Coefficients par matière, niveau, série (le cas échéant) et année scolaire — historisés
-            par année : modifier l&apos;année en cours met à jour la valeur, une nouvelle année crée
-            une nouvelle entrée.
+          <p className="max-w-3xl text-body-md text-text-secondary">
+            Coefficients par matière, niveau, série et année scolaire. Ils sont historisés par
+            année : modifier l&apos;année en cours met à jour la valeur, une nouvelle année crée une
+            nouvelle entrée — les bulletins déjà édités ne changent jamais.
           </p>
         </div>
 
@@ -83,8 +94,8 @@ export default async function CoefficientsPage({
             </CardContent>
           </Card>
         ) : (
-          <>
-            <div className="flex flex-wrap items-center gap-3">
+          <Card>
+            <div className="flex flex-wrap items-center gap-3 border-b border-surface-border p-4">
               <NiveauSelector
                 niveaux={niveaux}
                 value={niveauId ?? ''}
@@ -93,55 +104,30 @@ export default async function CoefficientsPage({
               {series.length > 0 && niveauId && (
                 <SerieSelector niveauId={niveauId} series={series} value={serieId ?? 'aucune'} />
               )}
-              <span className="text-body-sm text-text-secondary">
-                Année active : {anneeActive.libelle}
+              <span className="ml-auto text-body-sm text-text-secondary">
+                Année {anneeActive.libelle}
+                {serieCourante ? ` — série ${serieCourante.nom}` : ''}
               </span>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Coefficients du niveau</CardTitle>
-              </CardHeader>
-              {programme.length === 0 ? (
-                <CardContent className="py-10 text-center text-body-md text-text-secondary">
-                  Ce niveau n&apos;a aucune matière au programme. Ajoutez-en dans « Programme par
-                  niveau ».
-                </CardContent>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Matière</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Coefficient</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lignes.map(({ programme: p, coefficient }) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.matiere.nom}</TableCell>
-                        <TableCell className="text-text-secondary">
-                          {p.obligatoire ? 'Obligatoire' : 'Facultative'}
-                        </TableCell>
-                        <TableCell>
-                          {canWrite ? (
-                            <CoefficientRow
-                              programmeEtablissementId={p.id}
-                              anneeScolaireId={anneeActive.id}
-                              serieId={serieId}
-                              coefficientActuel={coefficient?.coefficient ?? null}
-                            />
-                          ) : (
-                            (coefficient?.coefficient ?? '—')
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          </>
+            {programme.length === 0 ? (
+              <CardContent className="py-10 text-center text-body-md text-text-secondary">
+                Ce niveau n&apos;a aucune matière au programme. Ajoutez-en dans « Programme par
+                niveau ».
+              </CardContent>
+            ) : (
+              <CoefficientsForm
+                // Remonter le formulaire au changement de niveau ou de série
+                // garantit que les champs repartent des valeurs de la
+                // sélection courante.
+                key={`${niveauId}-${serieId ?? 'sans-serie'}`}
+                anneeScolaireId={anneeActive.id}
+                serieId={serieId}
+                lignes={lignes}
+                modifiable={canWrite}
+              />
+            )}
+          </Card>
         )}
       </div>
     </AppLayout>

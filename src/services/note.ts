@@ -2,9 +2,10 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { getEnseignantParUtilisateur } from './enseignant';
-import { verifyPin } from './pin';
+import { exigerPin } from './pin';
 import { listProgramme } from './programme';
-import { getCoefficient } from './coefficient';
+import { listCoefficients } from './coefficient';
+import { getResultatsClasse } from './resultats-classe';
 import type { Periode } from './evaluation';
 import {
   moyenneInterros,
@@ -12,8 +13,6 @@ import {
   moyenneMatiere,
   moyenneTrimestrielle,
   appreciation,
-  classement,
-  type RankingEntry,
 } from '@/modules/academics/services/calcul-moyennes';
 
 export type StatutNote = 'BROUILLON' | 'SOUMISE' | 'EN_ATTENTE' | 'VALIDE' | 'REJETE';
@@ -261,23 +260,9 @@ export async function demanderModification(
   return data as unknown as Note;
 }
 
-async function verifierPin(pin: string): Promise<void> {
-  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('utilisateur')
-    .select('"pinApprobationHash"')
-    .eq('id', ctx.userId)
-    .single();
-  if (error) throw error;
-  if (!data.pinApprobationHash) {
-    throw new Error('Aucun PIN d\'approbation configuré pour votre compte.');
-  }
-  const valid = await verifyPin(pin, data.pinApprobationHash as string);
-  if (!valid) {
-    throw new Error('PIN invalide.');
-  }
-}
+// Le step-up PIN vit dans `pin.ts` : il est partagé par toutes les actions
+// sensibles, pas seulement par l'approbation des notes.
+const verifierPin = (pin: string) => exigerPin(pin, 'SECRETAIRE');
 
 /** Approuve une demande de modification : applique valeurProposee → valeur, statut → VALIDE. */
 export async function approuverModification(noteId: string, pin: string): Promise<Note> {
@@ -401,10 +386,14 @@ interface NoteEnAttenteRow {
 /**
  * File d'attente d'approbation: toutes les notes EN_ATTENTE de l'établissement
  * courant, avec le contexte nécessaire à la décision (élève, classe, matière,
- * évaluation, ancienne/nouvelle valeur, demandeur). Réservé Directeur/Secrétaire.
+ * évaluation, ancienne/nouvelle valeur, demandeur).
+ *
+ * Réservé à la **Secrétaire** : l'approbation des notes ne relève pas du
+ * Directeur (doc 03). L'ouvrir aux deux rôles diluait la responsabilité sans
+ * que personne ne traite la file.
  */
 export async function listNotesEnAttente(): Promise<NoteEnAttente[]> {
-  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const ctx = await requireRole('SECRETAIRE');
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -522,6 +511,13 @@ export async function getMoyennesEleve(
     }
   }
 
+  // Tous les coefficients en une requête plutôt qu'une par matière.
+  const coefficients = await listCoefficients(
+    programme.map((item: { id: string }) => item.id),
+    anneeScolaireId,
+    classe.serieId ?? null,
+  );
+
   const matieres: MoyenneMatiereEleve[] = [];
   for (const item of programme) {
     const matiereEvaluations = (evaluations ?? []).filter(
@@ -543,13 +539,11 @@ export async function getMoyennesEleve(
     const moyClasse = moyenneClasse(moyInterros, devoir);
     const moyMatiere = moyenneMatiere(moyClasse, composition);
 
-    const coef = await getCoefficient(item.id, anneeScolaireId, classe.serieId ?? null);
-
     matieres.push({
       matiereId: item.matiereId,
       matiereNom: item.matiere.nom,
       obligatoire: item.obligatoire,
-      coefficient: coef?.coefficient ?? 0,
+      coefficient: coefficients.get(item.id) ?? 0,
       moyenne: moyMatiere,
     });
   }
@@ -572,38 +566,23 @@ export interface ClassementEntry {
   rang: number | null;
 }
 
-/** Moyennes + classement dense de tous les élèves ACTIFS d'une classe. */
+/**
+ * Moyennes + classement dense de tous les élèves ACTIFS d'une classe.
+ *
+ * Délègue à `getResultatsClasse()` : l'implémentation précédente appelait
+ * `getMoyennesEleve()` en série, une fois par élève, ce qui produisait des
+ * centaines d'aller-retours vers la base. Le contrôle de périmètre enseignant
+ * est également porté par ce service.
+ */
 export async function getClassementClasse(
   classeId: string,
   periode: Periode,
   anneeScolaireId: string,
 ): Promise<ClassementEntry[]> {
-  await requireRole('DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT');
-  const supabase = createClient();
-
-  const { data: inscriptions, error } = await supabase
-    .from('inscription')
-    .select('"eleveId"')
-    .eq('classeId', classeId)
-    .eq('anneeScolaireId', anneeScolaireId)
-    .eq('statut', 'ACTIVE');
-  if (error) throw error;
-
-  const results: MoyennesEleveResult[] = [];
-  for (const inscr of inscriptions ?? []) {
-    results.push(await getMoyennesEleve(inscr.eleveId, classeId, periode, anneeScolaireId));
-  }
-
-  const ranking: RankingEntry[] = results.map((r) => ({
-    id: r.eleveId,
-    moyenne: r.moyenneTrimestrielle,
-  }));
-  const ranked = classement(ranking);
-  const rangById = new Map(ranked.map((r) => [r.id, r.rang]));
-
-  return results.map((r) => ({
-    eleveId: r.eleveId,
-    moyenneTrimestrielle: r.moyenneTrimestrielle,
-    rang: rangById.get(r.eleveId) ?? null,
+  const resultats = await getResultatsClasse(classeId, periode, anneeScolaireId);
+  return resultats.eleves.map((e) => ({
+    eleveId: e.eleveId,
+    moyenneTrimestrielle: e.moyenneTrimestrielle,
+    rang: e.rang,
   }));
 }

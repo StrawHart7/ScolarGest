@@ -10,8 +10,14 @@ vi.mock('../enseignant', () => ({
 }));
 
 const mockVerifyPin = vi.fn();
+// `exigerPin` (step-up partagé) lit le hash en base puis délègue à
+// `verifyPin`. Le mock reproduit ce contrat : la vérification du PIN reste
+// pilotée par `mockVerifyPin`, comme avant l'extraction depuis note.ts.
 vi.mock('../pin', () => ({
   verifyPin: (...args: unknown[]) => mockVerifyPin(...args),
+  exigerPin: async (pin: string) => {
+    if (!(await mockVerifyPin(pin, 'hash'))) throw new Error('PIN invalide.');
+  },
 }));
 
 function makeChain(result: { data: unknown; error: unknown; count?: number }) {
@@ -142,16 +148,13 @@ describe('approuverModification', () => {
   });
 
   it('mauvais PIN échoue et n\'altère rien', async () => {
-    const pinChain = makeChain({ data: { pinApprobationHash: 'hash' }, error: null });
-    mockFrom.mockImplementationOnce(() => pinChain);
     mockVerifyPin.mockResolvedValue(false);
 
     await expect(approuverModification('note1', '000000')).rejects.toThrow('PIN invalide');
-    expect(mockFrom).toHaveBeenCalledTimes(1); // seule la vérification PIN a eu lieu
+    expect(mockFrom).not.toHaveBeenCalled(); // rien n'est lu ni écrit
   });
 
   it('bon PIN applique valeurProposee → valeur et statut VALIDE', async () => {
-    const pinChain = makeChain({ data: { pinApprobationHash: 'hash' }, error: null });
     const existingChain = makeChain({
       data: { id: 'note1', statut: 'EN_ATTENTE', valeur: 12, valeurProposee: 16 },
       error: null,
@@ -162,7 +165,6 @@ describe('approuverModification', () => {
     });
 
     mockFrom
-      .mockImplementationOnce(() => pinChain)
       .mockImplementationOnce(() => existingChain)
       .mockImplementationOnce(() => updateChain);
     mockVerifyPin.mockResolvedValue(true);

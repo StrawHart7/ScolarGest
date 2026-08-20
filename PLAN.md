@@ -186,61 +186,267 @@ Chaque phase liste : objectif, livrables, dépendances, et Définition de Termin
 
 ---
 
-### Phase 6 — Finances de l'établissement
+### Phase 6 — Finances de l'établissement — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : facturer les élèves et encaisser.
 
 **Livrables** :
-- **TypeFrais** : catégories de frais par établissement.
-- **TarifScolaire** (par classe × TypeFrais × AnneeScolaire) — **immuable après création** ; correction = nouveau tarif.
-- **FactureEleve** + **LigneFacture** — auto-générée à la validation de l'inscription ; lignes éditables par le Comptable avant validation de la facture.
-- **Paiement** en plusieurs tranches : modes ESPECES / CHEQUE / VIREMENT / MOBILE_MONEY / AUTRE, calcul du solde, statuts informatifs (PAYE / PARTIEL / IMPAYE / ANNULE) — **aucun blocage système**.
-- Annulation de paiement : statut `ANNULE` + nouveau paiement, jamais de suppression.
-- Reçu PDF généré via Phase 5.
-- Import de l'historique financier avec validation.
-- Accès par rôle : COMPTABLE (lecture + écriture), DIRECTEUR (lecture), SECRETAIRE (lecture seule), ENSEIGNANT (aucun accès).
+- [x] **TypeFrais** : catégories de frais par établissement (`/etablissement/finances/types-frais`). Jamais supprimé (les factures historiques le référencent) — désactivable via `statut`.
+- [x] **TarifScolaire** (par classe × TypeFrais × AnneeScolaire) — **immuable après création** (`/etablissement/finances/tarifs`). Il n'existe volontairement aucune fonction `updateTarif`/`deleteTarif` dans `src/services/tarif.ts` : la contrainte unique DB empêche en plus de contourner l'immuabilité par un doublon.
+- [x] **FactureEleve** + **LigneFacture** — auto-générée à l'inscription depuis la Phase 2 (`fn_inscrire_eleve`) ; lignes ajustables par le Comptable (remises, frais spéciaux) via `fn_modifier_lignes_facture`, qui remplace la liste complète et recalcule total + statut en une transaction.
+- [x] **Paiement** en plusieurs tranches : tous les modes, solde calculé, statuts informatifs — **aucun blocage système**. Une référence est exigée hors espèces (sans elle un chèque ou un Mobile Money n'est pas rapprochable).
+- [x] Annulation de paiement : statut `ANNULE` + recalcul du statut de la facture, jamais de suppression. Un motif est demandé et journalisé.
+- [x] Reçu PDF généré via le service Phase 5, depuis la facture détaillée.
+- [x] Import de l'historique financier avec validation (`/etablissement/finances/import`), gabarit `matricule | montant | date_paiement | mode_paiement | reference`. Chaque ligne passe par la même RPC qu'une saisie manuelle : un import n'est pas une porte dérobée aux contrôles métier.
+- [x] Accès par rôle : COMPTABLE (lecture + écriture), DIRECTEUR (lecture), SECRETAIRE (lecture seule), ENSEIGNANT (aucun accès).
 
 **Dépend de** : Phases 1–2.
 
 **DoD** : inscrire un élève → facture auto générée → Comptable ajuste une ligne → enregistrer 3 paiements partiels → générer reçu → annuler un paiement (mouvement inverse tracé) ; jamais de suppression dans `AuditLog`.
 
+**Décisions d'implémentation** :
+- *Point de non-retour des lignes de facture* : le doc 08 §8 parle d'ajustements « avant validation de la facture », mais `facture_eleve` (0001_init.sql) n'a pas d'état BROUILLON/VALIDE. Plutôt que d'ajouter un état au schéma, le **premier encaissement** fait office de validation : au-delà, les lignes sont figées (règle portée par `fn_modifier_lignes_facture`, pas seulement par l'UI). Cela évite qu'un total change sous des reçus déjà remis aux familles.
+- *Écriture financière réservée au Comptable* : le doc 08 §17 donne au Directeur une « lecture complète » seulement, ce qui est appliqué à la lettre. Conséquence à connaître : une école sans utilisateur COMPTABLE ne peut rien encaisser — si cela pose problème en exploitation, c'est une décision produit à trancher, pas un contournement à improviser dans le code.
+- *Dépassement du solde refusé* : `fn_enregistrer_paiement` rejette un versement supérieur au reste dû. Sans notion d'avoir ni de remboursement au MVP, un tel montant est presque toujours une faute de frappe.
+- *Atomicité en base* : versement, annulation, édition de lignes et annulation de facture passent par des RPC `security invoker` (`0008_phase6_finance_rpc.sql`) — un enchaînement de requêtes REST laisserait une fenêtre où le statut de la facture ne correspond plus à ses paiements.
+
+**Validation manuelle (2026-08-19)** : parcours réel sur un build de production (port 3100) contre le projet Supabase distant, connecté avec le compte COMPTABLE de démonstration — suivi des paiements (276 factures), ouverture d'une facture PARTIEL (solde 78 000), encaissement de 500 FCFA en espèces (solde 77 500, statut recalculé), génération du reçu `REC-2025-000001` (PDF valide, 70 Ko), puis annulation du versement (statut `ANNULE`, solde revenu à 78 000). Les trois actions `ENREGISTRER_PAIEMENT`, `GENERER_RECU` et `ANNULER_PAIEMENT` sont présentes dans `audit_log`.
+
+Ce parcours a révélé un bug invisible en test automatisé : les champs montant portaient `step={500}` avec `min={1}`, donc la validation HTML5 du navigateur **bloquait silencieusement** la soumission de tout montant qui n'était pas `1 + k×500` — aucun POST n'était émis, aucun message affiché. Corrigé en `step={1}` sur les trois formulaires de montant (versement, tarif, lignes de facture). Leçon générale : sur un champ monétaire, ne jamais utiliser `step` comme suggestion d'incrément — c'est une contrainte de validation.
+
 ---
 
-### Phase 7 — Abonnement SaaS (côté plateforme)
+### Phase 7 — Abonnement SaaS (côté plateforme) — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : gérer la relation commerciale plateforme ↔ écoles.
 
 **Livrables** :
-- **PlanAbonnement** (mensuel / annuel), **AbonnementEtablissement**, **PaiementAbonnement** — strictement séparés des finances école.
-- Statuts : ACTIF / EXPIRE / SUSPENDU — **pas de statut ESSAI** (entrée uniquement par demande de démo validée par SUPER_ADMIN).
-- **Console SUPER_ADMIN** :
-  - Suivi des abonnements par école.
-  - Validation manuelle d'un paiement (virement / Mobile Money) → passage de l'abonnement à ACTIF.
-  - Suspension manuelle.
-- Comportement à l'expiration : à définir lors de l'implémentation (bandeau d'avertissement → blocage progressif).
+- [x] **PlanAbonnement** (mensuel / annuel), **AbonnementEtablissement**, **PaiementAbonnement** — strictement séparés des finances école (tables, services et écrans distincts ; `paiement_abonnement` n'est jamais joint à `paiement`).
+- [x] Statuts : ACTIF / EXPIRE / SUSPENDU — **pas de statut ESSAI**. L'expiration est constatée par `fn_expirer_abonnements()` et, en lecture, déduite de la date par `statutEffectif()` — un abonnement échu est traité comme expiré même si le balayage n'a pas encore tourné.
+- [x] **Console SUPER_ADMIN** : suivi par école avec statut effectif et jours restants, validation manuelle d'un paiement, suspension, **réactivation** et **renouvellement** (choix du plan à cette occasion, ce qui permet la conversion mensuel → annuel).
+- [x] **Comportement à l'expiration** — la question laissée ouverte par le doc 08 §22 et Q15 d'`analysis.md`, tranchée ici (voir ci-dessous).
 
 **Dépend de** : Phase 1.
 
 **DoD** : cycle « SUPER_ADMIN crée école → abonnement ACTIF → SUPER_ADMIN valide paiement manuel → renouvellement → expiration → suspension » ; séparation financière stricte vérifiée.
 
+**Décision — effet de l'expiration** (`src/services/abonnement-acces.ts`) : quatre niveaux d'accès.
+
+| Niveau | Déclencheur | Effet |
+|---|---|---|
+| OK | actif, plus de 30 jours restants | rien |
+| AVERTISSEMENT | actif, échéance dans 30 jours ou moins | bandeau, aucun blocage |
+| LECTURE_SEULE | EXPIRE, ou aucun abonnement enregistré | consultation et documents accessibles, écritures refusées |
+| BLOQUE | SUSPENDU | accès applicatif fermé, redirection vers `/abonnement` |
+
+Le principe retenu : **ne jamais prendre les données de l'école en otage**. Une école qui n'a pas payé perd le droit d'écrire, pas celui de consulter ni d'imprimer les bulletins de ses élèves. C'est aussi le choix commercialement sain — une école bloquée en pleine session d'examens résilie, une école en lecture seule appelle pour payer. La suspension est plus stricte parce qu'elle est une décision explicite du SUPER_ADMIN, pas un oubli d'échéance.
+
+**Point d'application du verrou** : le middleware (`src/lib/supabase/middleware.ts`). C'est le seul passage commun à toutes les écritures — les Server Actions de Next arrivent en POST sur la route courante. Filtrer là évite d'ajouter une garde dans chacun des services mutateurs, et surtout d'en oublier un. Le coût est maîtrisé : la lecture de l'abonnement n'a lieu que sur les requêtes non-GET et sur les navigations vers l'espace école. `/abonnement`, `/profil` et les routes d'authentification restent toujours accessibles — enfermer un directeur hors de sa page d'abonnement le priverait du moyen de régulariser. Le SUPER_ADMIN n'est jamais restreint.
+
+**Renouvellement** : `fn_renouveler_abonnement` crée la période suivante sans jamais modifier la précédente (même logique d'historisation que les tarifs scolaires). Elle démarre à la fin de l'ancienne si celle-ci est à venir (pas de jour perdu), sinon aujourd'hui (pas de période rétroactive facturée). Le nouvel abonnement naît **SUSPENDU** : l'accès n'est ouvert qu'à la validation du paiement, conformément au processus manuel du doc 08 §21.
+
+**Validation manuelle (2026-08-19)** : l'abonnement de l'établissement de démonstration arrivait justement à échéance ce jour-là, ce qui a fourni un cas réel sans manipulation de données. Constaté sur un build de production : bandeau « lecture seule » affiché, consultation du suivi des paiements intacte (276 factures), tentative d'encaissement **refusée en 403** par le middleware, page `/abonnement` accessible et affichant `EXPIRE`. Puis `fn_expirer_abonnements` (1 abonnement basculé), `fn_renouveler_abonnement` vers le plan annuel (période 2026-08-19 → 2027-08-19, créée SUSPENDU), validation du paiement → `ACTIF` : bandeau disparu, écriture de nouveau acceptée (POST 200), formulaire de création de tarif réapparu.
+
+**Note d'ergonomie** : les écrans finance masquent leurs commandes d'écriture quand l'accès est en lecture seule (`peutEcrire()`), pour ne pas laisser cliquer un bouton qui renverrait 403. Le reste de l'application s'appuie encore uniquement sur le bandeau et le refus middleware — généraliser ce masquage est un point à traiter en Phase 11 (design et améliorations).
+
+**Note d'infrastructure** : `fn_expirer_abonnements` est en `security definer`, contrairement aux RPC des phases précédentes. Les policies de `abonnement_etablissement` réservent l'écriture au SUPER_ADMIN, or l'expiration doit pouvoir être constatée sans qu'un SUPER_ADMIN soit connecté. La fonction ne fait qu'une transition dictée par la date et ne prend aucun paramètre, elle ne peut donc pas servir à élever des privilèges. Sans planificateur dans le MVP, elle est appelée à l'ouverture de la console plateforme.
+
 ---
 
-### Phase 8 — Dashboard, rapports & exports
+### Phase 8 — Dashboard, rapports & exports — ✅ TERMINÉE (2026-08-19)
 
 **Objectif** : transformer les données en pilotage.
 
 **Livrables** :
-- **Dashboard par rôle** :
-  - DIRECTEUR : vue globale (élèves, classes, finance, académique) + flux d'activité (bulletins générés, paiements, inscriptions, modifications de notes — informatif uniquement).
-  - COMPTABLE : état financier (revenus attendus, encaissés, impayés).
-  - SECRETAIRE : inscriptions, bulletins à générer.
-  - ENSEIGNANT : ses classes, ses évaluations.
-- **Rapports** : liste élèves, liste enseignants, effectifs, état paiements, résultats par classe.
-- **Exports** Excel/CSV/PDF avec périmètre par rôle (voir doc 09, section 9).
+- [x] **Dashboard par rôle** (`/dashboard`, remplace la page de debug de la Phase 0) : DIRECTEUR (élèves, classes, enseignants, finance, académique + flux d'activité), COMPTABLE (attendu / encaissé / reste à recouvrer, taux de recouvrement), SECRETAIRE (inscriptions, notes à approuver, bulletins), ENSEIGNANT (ses classes, ses matières, ses évaluations, ses notes en brouillon). Chaque rôle a sa propre fonction de service : un Comptable ne déclenche pas les requêtes académiques et un Enseignant ne déclenche jamais de requête financière — le périmètre se joue dans le service, pas dans le JSX.
+- [x] **Flux d'activité Directeur** — informatif uniquement (doc 09 §12), construit depuis `audit_log`.
+- [x] **Rapports** : liste élèves, liste enseignants, effectifs par classe, état des paiements, résultats par classe (`/rapports`).
+- [x] **Exports** Excel / CSV / PDF avec périmètre par rôle (doc 09 §9), via `/api/rapports/export`.
 
 **Dépend de** : Phases 2–7.
 
 **DoD** : chaque rôle voit uniquement son périmètre ; chiffres du dashboard réconciliés avec les données sources ; exports testés avec des données réelles.
+
+**Décisions d'implémentation** :
+- *Une forme unique de rapport* (`src/lib/export/rapport.ts`) : titre, colonnes, lignes, totaux. La même structure alimente l'aperçu à l'écran et les trois formats. Ajouter un rapport, c'est écrire une fonction et déclarer ses rôles — il devient exportable dans les trois formats sans code supplémentaire.
+- *Matrice d'accès dans le service*, pas dans l'UI : `RAPPORTS` porte les rôles autorisés et `construireRapport` applique `requireRole` à partir de cette déclaration. Un export est un accès aux données comme un autre.
+- *Route Handler plutôt que Server Action pour le téléchargement* : une Server Action renvoie une valeur sérialisée à React, pas un fichier avec ses en-têtes. La route renvoie directement un `Content-Disposition: attachment`, sans faire transiter un binaire en base64 dans le payload RSC.
+- *CSV en points-virgules avec BOM UTF-8* : c'est ce qu'attend Excel en configuration française. Sans cela, les accents sont cassés et toutes les colonnes atterrissent dans la première.
+
+**Validation manuelle (2026-08-19)** : parcours réel sur un build de production avec les trois comptes de démonstration. Tableaux de bord conformes par rôle (Comptable : 67 800 000 F attendus, 46 634 500 F encaissés, 130/270 factures soldées). Exports Excel réellement téléchargés pour le Comptable et la Secrétaire. Périmètre vérifié côté API : Secrétaire → export `PAIEMENTS` **403**, Enseignant → export `ELEVES` **403**, Enseignant → `RESULTATS` sur sa classe **200** (données réelles), sur une classe hors de ses affectations **403**.
+
+Ce parcours a révélé trois défauts, tous corrigés :
+1. **`listAnneesScolaires` excluait l'ENSEIGNANT**, ce qui faisait échouer en 500 non seulement `/rapports` mais aussi `/etablissement/mes-classes` et `/etablissement/notes/saisie` — donc l'espace enseignant en entier, depuis les Phases 3-4. La lecture des années scolaires est désormais ouverte à ce rôle (catalogue interne sans donnée sensible dont tous ses écrans dépendent).
+2. **`/rapports` appelait `listClasses`** pour peupler le sélecteur, réservé aux rôles administratifs. Le sélecteur de l'enseignant est maintenant construit depuis ses affectations — ce qui est de toute façon le périmètre que le rapport lui autorise.
+3. **Le rapport « Résultats par classe » dépassait 60 secondes** : il s'appuyait sur `getClassementClasse`, qui appelle `getMoyennesEleve` élève par élève (N+1 de requêtes vers une base distante). Il est réécrit en chargement groupé — programme, coefficients, évaluations et notes en cinq requêtes, puis calcul en mémoire via les fonctions pures de `calcul-moyennes.ts` (aucune règle de calcul réimplémentée). Mesuré : **60 s+ → 7 s** pour une classe de 18 élèves.
+
+**À traiter en Phase 10** : `getClassementClasse` (Phase 4) ne vérifie que le rôle et laisserait un enseignant lire le classement d'une classe qui n'est pas la sienne. La restriction est appliquée dans le rapport, mais elle mérite d'être portée par le service lui-même. Son N+1 subsiste aussi pour l'écran `/etablissement/notes/resultats`.
+
+---
+
+### Phase 8.5 — Refonte UX/UI, performance et corrections métier — ✅ TERMINÉE (2026-08-20)
+
+**Origine** : retours d'usage manuels consignés dans `remarques_avant_phase9.txt` (2026-08-20),
+après passage complet sur les rôles Directeur, Secrétaire, Enseignant et Comptable.
+La Phase 9 (durcissement & mise en production) est **décalée après cette phase** : elle gèle
+un état (revue de sécurité, matrice de permissions, E2E des parcours critiques, go/no-go), et
+geler avant la refonte reviendrait à la repayer intégralement.
+
+**Périmètre** : correctifs et mise en conformité. Les *améliorations* (nouveaux graphiques,
+animations décoratives, refonte d'ergonomie non signalée) restent hors périmètre et passent
+après la mise en production.
+
+#### Lot 1 — Fondations design system
+
+Tout le reste en dépend ; à faire en premier.
+
+- **Toasts** : composant `Toaster` global + hook `useToast` (succès / erreur / info). Aucune
+  confirmation n'est aujourd'hui remontée à l'utilisateur autrement que par un rechargement muet.
+- **Modal flottant réutilisable** (`Dialog` Radix) — base des formulaires « nouveau X »,
+  du PIN et des confirmations.
+- **Boutons** : corriger la couleur de texte sur fonds bleu et rouge (contraste illisible),
+  renforcer les états `hover`/`active`, ajouter un état `pending` (spinner) piloté par
+  `useFormStatus` pour tout bouton de soumission.
+- **Hover** : remonter le contraste des survols (lignes de tableau, items de sidebar, cartes) —
+  actuellement le changement de couleur est à peine perceptible.
+- **Scrollbar** personnalisée alignée sur les tokens `Luminous Institutional`.
+- **États de chargement** : `loading.tsx` par segment de route + squelettes de tableau, pour
+  ne plus laisser un écran figé pendant les 3–6 s d'un aller-retour Supabase.
+- **DatePicker** : navigation par mois/année (sélecteurs) pour atteindre une date éloignée
+  (dates de naissance) sans cliquer mois par mois.
+
+#### Lot 2 — Performance
+
+Une action prend aujourd'hui 3 à 6 s, ce qui n'est pas exploitable.
+
+- Profiler les écrans les plus lents et supprimer les requêtes en cascade restantes
+  (même traitement que le correctif Phase 8 sur « Résultats par classe » : 60 s → 7 s).
+- `/etablissement/notes/resultats` **ne s'affiche jamais** (compile puis reste bloqué) —
+  N+1 de `getClassementClasse` encore présent sur cet écran. Bloquant.
+- Mutualiser les lectures répétées (`getTenantContext`, année active, établissement) via
+  `React.cache` sur la durée d'une requête.
+- Revue des index Postgres sur les colonnes de filtre les plus sollicitées.
+- Perception : `useOptimistic` / `router.refresh()` ciblé plutôt que rechargement complet.
+
+#### Lot 3 — Navigation et information architecture
+
+- **Sidebar** : ramener à 5–6 entrées par rôle (aujourd'hui jusqu'à 18 pour le Directeur),
+  avec icône sur chaque entrée, et `Paramètres` + `Aide` en sticky en bas.
+- Chaque entrée regroupante ouvre une **page d'accueil de section** listant ses
+  fonctionnalités en blocs (ex. `Élèves` → inscriptions, facturation, responsables).
+- `Mon abonnement` sort de la sidebar (profil ou section Établissement).
+- **Header** : supprimer le second « ScolarGest » (doublon du sidebar), le remplacer par une
+  **barre de recherche globale dynamique** ; ajouter `Paramètres`, `Aide`, `Notifications`
+  en icônes à côté du profil, avec les pages correspondantes rattachées au profil.
+
+#### Lot 4 — Listes : pagination, recherche, tri, filtres
+
+Transversal à toutes les listes de la plateforme.
+
+- **Pagination** ~10 lignes par page, navigation horizontale par boutons directionnels, de
+  sorte qu'aucune liste n'oblige à scroller pour atteindre la dernière ligne ni les actions
+  situées en dessous (cas bloquant constaté sur `Tarifs` : « Nouveau tarif » inatteignable).
+- **Recherche dynamique** + **tri** + **filtres** sur chaque liste.
+- **Masquer le matricule** dans les listes ; il reste sur la fiche de l'élève.
+
+#### Lot 5 — Step-up PIN et modales de formulaire
+
+- Généraliser la **demande de PIN** sur les actions irréversibles ou sensibles : activation
+  d'un cycle (verrouillage définitif), activation d'une année scolaire, et l'ensemble des
+  actions d'approbation listées au doc 03. Aujourd'hui le PIN n'est demandé quasiment nulle part.
+- **Profil** : la section « PIN de confirmation » devient discrète et ouvre un modal flottant.
+- Les pages `/nouvelle` deviennent des **modales flottantes** (année scolaire, classe,
+  inscription d'un élève, etc.).
+
+#### Lot 6 — Corrections métier
+
+- **Années scolaires** : une année ne doit plus passer automatiquement à `TERMINEE`.
+  Concevoir un **flux de clôture d'année** explicite (à spécifier avant implémentation).
+- **Classes** : le nom devient une **composition guidée** `Niveau + Série + Indice (A, B, …)`
+  au lieu d'une saisie libre ; compléter la liste des séries (une série manque).
+- **Élèves** : sortir le passage de cohorte de la section Élèves et le refondre **par classe**
+  (avec une option « faire passer tous les admis ») ; rendre la section « Responsables légaux »
+  modifiable ; dans « Facturation », remplacer l'ouverture implicite de la facture par un bouton.
+- **Programme & coefficients** : supprimer la colonne « ordre d'affichage » (inutile) ; rendre
+  la gestion des coefficients visible ; remplacer l'enregistrement matière par matière.
+  **Bug** : au changement de série, les coefficients affichés conservent les valeurs de la
+  série précédente au lieu de charger les leurs.
+- **Approbation des notes** : les notes soumises par un enseignant ne génèrent **aucune**
+  demande d'approbation visible. À corriger, et à recentrer sur la **Secrétaire** seule —
+  le Directeur n'intervient pas sur les notes (doc 03).
+- **Dashboard Directeur** : donner du corps à « Activité récente » ; « Recouvrement » occupe
+  beaucoup d'espace pour peu d'information — graphique ou format compact.
+- **Dashboard Secrétaire** : raccourcis en blocs ; « Inscrire un élève » en modal.
+
+#### Lot 7 — Bulletin Collège/Lycée
+
+Reproduire **à l'identique** le modèle officiel fourni (`Bulletin_LOKI_KILO.pdf`, format
+Ministère des Enseignements Primaire et Secondaire / République Togolaise) : en-tête à trois
+colonnes, encart Sexe/Statut, tableau des matières (Moy. Classe, Compo, Moy. Géné, Coef, Note
+Définitive, Rang, Appréciation, Nom du professeur, Signature), bloc absences/retards/punitions/
+exclusions, tableau d'honneur / félicitations / encouragements / avertissement / blâme,
+rappel des moyennes, moyenne la plus forte et la plus faible, décision du conseil, observation
+du chef d'établissement et signatures.
+Le modèle **Collège/Lycée uniquement** : les autres cycles conservent le gabarit actuel.
+
+**DoD** : build / lint / typecheck / unit / E2E verts ; aucun point de
+`remarques_avant_phase9.txt` non traité ou non explicitement reporté.
+
+#### Décisions prises pendant la phase
+
+- **`activerAnneeScolaire` ne clôture plus l'année en cours.** Elle la basculait
+  silencieusement en `TERMINEE` pour libérer l'index unique partiel. Figer notes,
+  bulletins et facturation d'une année entière ne peut pas être un effet de bord :
+  l'activation échoue désormais tant que l'année en cours n'est pas explicitement
+  clôturée, et la clôture affiche puis journalise un bilan (notes en attente,
+  factures non soldées, reste à recouvrer). Ce bilan est **informatif, pas
+  bloquant** : clôturer avec des impayés est le cas courant, et c'est au Directeur
+  de trancher.
+- **Approbation des notes recentrée sur la Secrétaire seule** (doc 03). L'ouvrir
+  aussi au Directeur diluait la responsabilité sans que personne ne traite la file.
+- **Soumettre des notes ne crée aucune demande d'approbation** — comportement
+  conforme au doc 07 § 14 : une note `SOUMISE` est immédiatement officielle, seule
+  la *correction* d'une note soumise passe par la file. Le retour d'usage signalait
+  l'inverse : c'était une attente, pas un défaut. L'écran d'approbation l'explique
+  désormais explicitement plutôt que d'afficher un état vide muet.
+- **Le nom d'une classe devient une composition** `Niveau + Série + Indice` au lieu
+  d'une saisie libre, qui produisait « 6e A », « 6ème-A » et « 6EME A » pour la même
+  classe, sans rattrapage possible ensuite dans les bulletins et les exports.
+- **Séries du lycée** (migration `0010`) : le catalogue n'en portait que six. Faute
+  de savoir laquelle manquait, l'ensemble standard du baccalauréat togolais a été
+  ajouté — une série inutilisée ne coûte qu'une ligne de catalogue, une série
+  absente bloque une création de classe. **À faire valider par l'établissement.**
+- **Zones non modélisées du bulletin officiel** (absences, retards, punitions,
+  exclusions, tableau d'honneur, félicitations, décision du conseil, observation du
+  chef d'établissement) : rendues vides, comme sur le modèle papier où elles sont
+  remplies à la main. Les renseigner dans l'application demanderait une table
+  d'assiduité et une table de conseil de classe — **non fait, à arbitrer.**
+
+#### Défauts corrigés que les suites automatisées ne voyaient pas
+
+- `/etablissement/notes/resultats` ne s'affichait **jamais** : `getClassementClasse`
+  bouclait `getMoyennesEleve` en série, puis la page relançait un `getMoyennesEleve`
+  par élève, chacun rechargeant classe, programme, évaluations et un
+  `getCoefficient` par matière. Remplacé par une lecture groupée en six requêtes
+  (`services/resultats-classe.ts`), quelle que soit la taille de la classe.
+- `getTenantContext` était réévalué à chaque `requireRole()`, soit un aller-retour
+  réseau vers Supabase Auth par service touché. Mémoïsé par requête.
+- **Coefficients** : changer de série laissait les valeurs de la série précédente
+  affichées. `defaultValue` n'est lu qu'au montage et le composant restait monté —
+  on saisissait donc les coefficients d'une série par-dessus ceux d'une autre.
+- **Périmètre enseignant** : `getClassementClasse` ne vérifiait que le rôle. Un
+  enseignant pouvait lire le classement de n'importe quelle classe en changeant
+  l'identifiant dans l'URL. (Point qui était noté « à traiter en Phase 10 ».)
+- **Boutons illisibles** : `text-white` était écrasé par la couleur héritée sur les
+  boutons rendus via `asChild`, d'où un libellé noir sur fond bleu et sur fond rouge.
+- **Aucune déconnexion** n'existait dans l'application.
+
+#### Reporté explicitement
+
+- Masquer les contrôles d'écriture en mode abonnement lecture seule n'est fait que
+  sur les écrans finance.
+- `DIRECTEUR` peut encore appeler `soumettreNotes` et `demanderModification` au
+  niveau service ; seule la file d'approbation lui a été fermée.
 
 ---
 
@@ -276,7 +482,7 @@ Phase 1 ──► Phase 2 ──► Phase 3 ─┐
     │
     └──────────────► Phase 7
 
-Phases 2–7 ──► Phase 8 ──► Phase 9
+Phases 2–7 ──► Phase 8 ──► Phase 8.5 ──► Phase 9
 ```
 
 **Parallélisation possible** une fois Phase 1 stable :

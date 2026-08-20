@@ -19,9 +19,11 @@ const STATUT_BADGE: Record<string, { label: string; variant: 'success' | 'neutra
 };
 
 export default async function FicheEnseignantPage({ params }: { params: { id: string } }) {
-  const ctx = await getTenantContext();
-  const enseignant = await getEnseignant(params.id);
-  const annees = await listAnneesScolaires();
+  const [ctx, enseignant, annees] = await Promise.all([
+    getTenantContext(),
+    getEnseignant(params.id),
+    listAnneesScolaires(),
+  ]);
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const affectations = anneeActive
     ? await listAffectationsEnseignant(params.id, anneeActive.id)

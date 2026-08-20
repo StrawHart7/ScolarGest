@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
+import { exigerPin } from './pin';
 import { auditLog } from './audit';
 
 export interface Cycle {
@@ -47,8 +48,13 @@ export async function listCyclesActifs(): Promise<CycleEtablissement[]> {
   return (data ?? []) as unknown as CycleEtablissement[];
 }
 
-export async function activerCycle(cycleId: string): Promise<void> {
+/**
+ * L'activation d'un cycle est définitive : une fois activé, il ne peut plus
+ * être modifié. Elle exige donc le PIN de confirmation du Directeur.
+ */
+export async function activerCycle(cycleId: string, pin: string): Promise<void> {
   const ctx = await requireRole('DIRECTEUR');
+  await exigerPin(pin, 'DIRECTEUR');
   const supabase = createClient();
   const { error } = await supabase
     .from('cycle_etablissement')

@@ -1,59 +1,96 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import * as React from 'react';
+import { useFormState } from 'react-dom';
+import { Pencil, Power } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Button, SubmitButton } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/toast';
 import type { Matiere } from '@/services/matiere';
 import { modifierMatiereAction } from './actions';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {pending ? 'Enregistrement...' : 'Enregistrer'}
-    </Button>
-  );
-}
-
 export function MatiereRowActions({ matiere }: { matiere: Matiere }) {
-  const [editing, setEditing] = useState(false);
-  const [error, formAction] = useFormState(modifierMatiereAction, null);
-  const [pendingToggle, startTransition] = useTransition();
+  const [resultat, formAction] = useFormState(modifierMatiereAction, null);
+  const [ouvert, setOuvert] = React.useState(false);
+  const [bascule, demarrerBascule] = React.useTransition();
+  const { succes, erreur } = useToast();
+  const dernier = React.useRef<string | null>(null);
 
-  if (editing) {
-    return (
-      <form action={formAction} className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="id" value={matiere.id} />
-        <Input name="nom" defaultValue={matiere.nom} className="h-8 w-40" />
-        <Input name="code" defaultValue={matiere.code ?? ''} className="h-8 w-24" />
-        <SubmitButton />
-        <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-          Annuler
-        </Button>
-        {error && <p className="w-full text-body-sm text-error">{error}</p>}
-      </form>
-    );
-  }
+  React.useEffect(() => {
+    if (!resultat || resultat === dernier.current) return;
+    dernier.current = resultat;
+    if (resultat === 'OK') {
+      setOuvert(false);
+      succes('Matière modifiée');
+    } else {
+      erreur('Modification refusée', resultat);
+    }
+  }, [resultat, succes, erreur]);
+
+  const basculerStatut = () => {
+    const donnees = new FormData();
+    donnees.set('id', matiere.id);
+    donnees.set('statut', matiere.statut === 'ACTIF' ? 'INACTIF' : 'ACTIF');
+    demarrerBascule(async () => {
+      const reponse = await modifierMatiereAction(null, donnees);
+      if (reponse === 'OK') {
+        succes(matiere.statut === 'ACTIF' ? 'Matière désactivée' : 'Matière activée');
+      } else if (reponse) {
+        erreur('Changement de statut refusé', reponse);
+      }
+    });
+  };
 
   return (
     <div className="flex items-center gap-2">
-      <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
-        Modifier
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={pendingToggle}
-        onClick={() => {
-          const formData = new FormData();
-          formData.set('id', matiere.id);
-          formData.set('statut', matiere.statut === 'ACTIF' ? 'INACTIF' : 'ACTIF');
-          startTransition(() => {
-            void modifierMatiereAction(null, formData);
-          });
-        }}
-      >
+      <Dialog open={ouvert} onOpenChange={setOuvert}>
+        <Button size="sm" variant="secondary" onClick={() => setOuvert(true)}>
+          <Pencil className="h-3.5 w-3.5" aria-hidden />
+          Modifier
+        </Button>
+
+        <DialogContent taille="sm">
+          <form action={formAction}>
+            <input type="hidden" name="id" value={matiere.id} />
+            <DialogHeader>
+              <DialogTitle>Modifier la matière</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`nom-${matiere.id}`}>Nom</Label>
+                <Input id={`nom-${matiere.id}`} name="nom" defaultValue={matiere.nom} required />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`code-${matiere.id}`}>Code</Label>
+                <Input id={`code-${matiere.id}`} name="code" defaultValue={matiere.code ?? ''} />
+              </div>
+            </DialogBody>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost" size="sm">
+                  Annuler
+                </Button>
+              </DialogClose>
+              <SubmitButton size="sm" libelleEnCours="Enregistrement…">
+                Enregistrer
+              </SubmitButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Button size="sm" variant="ghost" chargement={bascule} onClick={basculerStatut}>
+        <Power className="h-3.5 w-3.5" aria-hidden />
         {matiere.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
       </Button>
     </div>

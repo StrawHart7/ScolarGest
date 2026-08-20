@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { createAnneeScolaire, activerAnneeScolaire } from '@/services/annee-scolaire';
+import {
+  activerAnneeScolaire,
+  cloturerAnneeScolaire,
+  createAnneeScolaire,
+} from '@/services/annee-scolaire';
 
 const schema = z.object({
   libelle: z.string().min(4, 'Libellé requis (ex: 2026-2027)'),
@@ -24,6 +27,9 @@ export async function creerAnneeScolaire(
   if (!parsed.success) {
     return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
   }
+  if (parsed.data.dateFin <= parsed.data.dateDebut) {
+    return 'La date de fin doit être postérieure à la date de début.';
+  }
 
   try {
     await createAnneeScolaire(parsed.data);
@@ -31,10 +37,35 @@ export async function creerAnneeScolaire(
     return e instanceof Error ? e.message : 'Erreur lors de la création';
   }
 
-  redirect('/etablissement/annees-scolaires');
+  revalidatePath('/etablissement/annees-scolaires');
+  return 'OK';
 }
 
-export async function activerAnnee(anneeScolaireId: string): Promise<void> {
-  await activerAnneeScolaire(anneeScolaireId);
+/** Renvoie `null` en cas de succès, le message d'erreur sinon. */
+export async function activerAnnee(pin: string, donnees: FormData): Promise<string | null> {
+  const anneeScolaireId = String(donnees.get('anneeScolaireId') ?? '');
+  if (!anneeScolaireId) return 'Année scolaire introuvable.';
+
+  try {
+    await activerAnneeScolaire(anneeScolaireId, pin);
+  } catch (erreur) {
+    return erreur instanceof Error ? erreur.message : "Erreur lors de l'activation";
+  }
+
   revalidatePath('/etablissement/annees-scolaires');
+  return null;
+}
+
+export async function cloturerAnnee(pin: string, donnees: FormData): Promise<string | null> {
+  const anneeScolaireId = String(donnees.get('anneeScolaireId') ?? '');
+  if (!anneeScolaireId) return 'Année scolaire introuvable.';
+
+  try {
+    await cloturerAnneeScolaire(anneeScolaireId, pin);
+  } catch (erreur) {
+    return erreur instanceof Error ? erreur.message : 'Erreur lors de la clôture';
+  }
+
+  revalidatePath('/etablissement/annees-scolaires');
+  return null;
 }

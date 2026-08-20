@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { listProgramme } from './programme';
-import { getCoefficient } from './coefficient';
+import { listCoefficients } from './coefficient';
 import { listAffectationsClasse } from './affectation';
 import { getClassementClasse, getMoyennesEleve } from './note';
 import type { Periode } from './evaluation';
@@ -47,6 +47,8 @@ export interface SyntheseBulletin {
   effectifClasse: number;
   meilleureMoyenneClasse: number | null;
   plusFaibleMoyenneClasse: number | null;
+  /** Moyenne générale de la classe — figure sur le bulletin officiel. */
+  moyenneGeneraleClasse: number | null;
   moyenneAnnuelle: number | null;
 }
 
@@ -171,11 +173,18 @@ export async function getDonneesBulletin(
   const matieres: MatiereBulletinDetail[] = [];
   const matiereInputsPourTrimestre: { moyenne: number | null; coefficient: number; obligatoire: boolean }[] = [];
 
+  // Tous les coefficients en une requête : la boucle en faisait une par
+  // matière, soit une douzaine d'allers-retours séquentiels par bulletin.
+  const coefficients = await listCoefficients(
+    programme.map((item) => item.id),
+    anneeScolaireId,
+    classe.serieId ?? null,
+  );
+
   for (const item of programme) {
     const matiereEvaluations = evaluationRows.filter((e) => e.matiereId === item.matiereId);
 
-    const coef = await getCoefficient(item.id, anneeScolaireId, classe.serieId ?? null);
-    const coefficient = coef?.coefficient ?? 0;
+    const coefficient = coefficients.get(item.id) ?? 0;
 
     const eleveDetail = calculerMoyenneMatiere(eleveId, matiereEvaluations, notesByEvaluation);
 
@@ -223,6 +232,10 @@ export async function getDonneesBulletin(
     .filter((v): v is number => v !== null);
   const meilleureMoyenneClasse = moyennesClasse.length > 0 ? Math.max(...moyennesClasse) : null;
   const plusFaibleMoyenneClasse = moyennesClasse.length > 0 ? Math.min(...moyennesClasse) : null;
+  const moyenneGeneraleClasse =
+    moyennesClasse.length > 0
+      ? Number((moyennesClasse.reduce((s, m) => s + m, 0) / moyennesClasse.length).toFixed(2))
+      : null;
 
   // Moyenne annuelle: uniquement si les 3 trimestres ont des données (best effort,
   // ne bloque jamais la génération d'un bulletin trimestriel).
@@ -251,6 +264,7 @@ export async function getDonneesBulletin(
       effectifClasse,
       meilleureMoyenneClasse,
       plusFaibleMoyenneClasse,
+      moyenneGeneraleClasse,
       moyenneAnnuelle: moyAnnuelle,
     },
   };

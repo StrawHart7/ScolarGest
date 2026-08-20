@@ -5,11 +5,28 @@
 
 import * as Sentry from '@sentry/nextjs';
 
+/**
+ * Échantillonnage des traces.
+ *
+ * La valeur d'origine (1) traçait **100 %** des requêtes et poussait chaque
+ * transaction vers l'ingestion Sentry en Allemagne. Sur le runtime edge, cela
+ * concernait le middleware, c'est-à-dire absolument toutes les requêtes de
+ * l'application ; et sur serverless, le vidage du tampon est attendu avant que
+ * la réponse ne parte. Autrement dit, chaque navigation payait un aller-retour
+ * réseau supplementaire pour de l'observabilité.
+ *
+ * En développement on ne trace rien (le diagnostic se fait dans la console) ;
+ * en production 10 % suffisent à surveiller les tendances. La variable
+ * d'environnement permet de remonter ponctuellement pour une investigation.
+ */
+const tauxTraces = Number(
+  process.env.SENTRY_TRACES_SAMPLE_RATE ?? (process.env.NODE_ENV === 'production' ? 0.1 : 0),
+);
+
 Sentry.init({
   dsn: 'https://0cfb1f926f830472965cf2d7787c34c0@o4511927539859456.ingest.de.sentry.io/4511927550476368',
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  tracesSampleRate: tauxTraces,
 
   // Enable logs to be sent to Sentry
   enableLogs: true,

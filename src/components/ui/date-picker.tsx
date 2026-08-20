@@ -14,6 +14,10 @@ export interface DatePickerProps {
   defaultValue?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** Première année sélectionnable (défaut : il y a 100 ans). */
+  anneeMin?: number;
+  /** Dernière année sélectionnable (défaut : dans 10 ans). */
+  anneeMax?: number;
 }
 
 function parseIsoDate(value?: string): Date | undefined {
@@ -28,7 +32,18 @@ function parseIsoDate(value?: string): Date | undefined {
  * (yyyy-MM-dd) hidden input, so it drops into existing FormData-based Server
  * Actions unchanged — form validation stays server-side (Zod).
  */
-export function DatePicker({ id, name, defaultValue, placeholder, disabled }: DatePickerProps) {
+export function DatePicker({
+  id,
+  name,
+  defaultValue,
+  placeholder,
+  disabled,
+  anneeMin,
+  anneeMax,
+}: DatePickerProps) {
+  const anneeCourante = new Date().getFullYear();
+  const debut = new Date(anneeMin ?? anneeCourante - 100, 0, 1);
+  const fin = new Date(anneeMax ?? anneeCourante + 10, 11, 31);
   const [date, setDate] = React.useState<Date | undefined>(parseIsoDate(defaultValue));
   const [open, setOpen] = React.useState(false);
   const iso = date ? format(date, 'yyyy-MM-dd') : '';
@@ -57,6 +72,9 @@ export function DatePicker({ id, name, defaultValue, placeholder, disabled }: Da
           selected={date}
           defaultMonth={date}
           locale={fr}
+          captionLayout="dropdown"
+          startMonth={debut}
+          endMonth={fin}
           onSelect={(next) => {
             setDate(next);
             setOpen(false);

@@ -40,7 +40,7 @@ export default async function CyclesPage() {
                     {actif ? (
                       <Badge variant="success">Activé</Badge>
                     ) : ctx.role === 'DIRECTEUR' ? (
-                      <ActiverCycleButton cycleId={cycle.id} />
+                      <ActiverCycleButton cycleId={cycle.id} nom={cycle.nom} />
                     ) : (
                       <Badge variant="neutral">Inactif</Badge>
                     )}

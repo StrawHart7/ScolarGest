@@ -11,7 +11,7 @@ export interface Classe {
   nom: string;
   capacite: number | null;
   createdAt: string;
-  niveau: { nom: string };
+  niveau: { nom: string; cycle: { nom: string } | null };
   serie: { nom: string } | null;
 }
 
@@ -29,7 +29,7 @@ export async function listClasses(anneeScolaireId: string): Promise<Classe[]> {
   const { data, error } = await supabase
     .from('classe')
     .select(
-      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom), serie:serie(nom)',
+      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, cycle:cycle(nom)), serie:serie(nom)',
     )
     .eq('etablissementId', ctx.etablissementId)
     .eq('anneeScolaireId', anneeScolaireId)
@@ -44,7 +44,7 @@ export async function getClasse(id: string): Promise<Classe> {
   const { data, error } = await supabase
     .from('classe')
     .select(
-      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom), serie:serie(nom)',
+      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, cycle:cycle(nom)), serie:serie(nom)',
     )
     .eq('id', id)
     .eq('etablissementId', ctx.etablissementId)
@@ -67,7 +67,7 @@ export async function createClasse(input: CreateClasseInput): Promise<Classe> {
       capacite: input.capacite || null,
     })
     .select(
-      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom), serie:serie(nom)',
+      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, cycle:cycle(nom)), serie:serie(nom)',
     )
     .single();
   if (error) throw error;

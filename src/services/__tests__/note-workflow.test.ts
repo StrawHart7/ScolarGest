@@ -15,8 +15,14 @@ vi.mock('../enseignant', () => ({
 }));
 
 const mockVerifyPin = vi.fn();
+// `exigerPin` (step-up partagé) lit le hash en base puis délègue à
+// `verifyPin`. Le mock reproduit ce contrat : la vérification du PIN reste
+// pilotée par `mockVerifyPin`, comme avant l'extraction depuis note.ts.
 vi.mock('../pin', () => ({
   verifyPin: (...args: unknown[]) => mockVerifyPin(...args),
+  exigerPin: async (pin: string) => {
+    if (!(await mockVerifyPin(pin, 'hash'))) throw new Error('PIN invalide.');
+  },
 }));
 
 function makeChain(result: { data: unknown; error: unknown; count?: number }) {
@@ -149,19 +155,17 @@ describe('Cycle complet: saisie -> soumission -> demande de modification -> appr
     });
 
     it('mauvais PIN: échoue, rien n\'est modifié, auditLog PAS appelé', async () => {
-      const pinChain = makeChain({ data: { pinApprobationHash: 'hash' }, error: null });
-      mockFrom.mockImplementationOnce(() => pinChain);
       mockVerifyPin.mockResolvedValue(false);
 
       await expect(approuverModification('note1', '000000')).rejects.toThrow('PIN invalide');
 
-      // Seule la vérification du PIN a été exécutée : aucune lecture/écriture de la note.
-      expect(mockFrom).toHaveBeenCalledTimes(1);
+      // Le step-up PIN vit dans `pin.ts` depuis la Phase 8.5 : un PIN refusé
+      // n'entraîne plus aucune requête depuis `note.ts`.
+      expect(mockFrom).not.toHaveBeenCalled();
       expect(mockAuditLog).not.toHaveBeenCalled();
     });
 
     it('bon PIN: statut VALIDE, valeur = ancienne valeurProposee, auditLog appelé', async () => {
-      const pinChain = makeChain({ data: { pinApprobationHash: 'hash' }, error: null });
       const existingChain = makeChain({
         data: { id: 'note1', statut: 'EN_ATTENTE', valeur: 14, valeurProposee: 17 },
         error: null,
@@ -172,7 +176,6 @@ describe('Cycle complet: saisie -> soumission -> demande de modification -> appr
       });
 
       mockFrom
-        .mockImplementationOnce(() => pinChain)
         .mockImplementationOnce(() => existingChain)
         .mockImplementationOnce(() => updateChain);
       mockVerifyPin.mockResolvedValue(true);
@@ -201,18 +204,15 @@ describe('Cycle complet: saisie -> soumission -> demande de modification -> appr
     });
 
     it('mauvais PIN: échoue, rien n\'est modifié, auditLog PAS appelé', async () => {
-      const pinChain = makeChain({ data: { pinApprobationHash: 'hash' }, error: null });
-      mockFrom.mockImplementationOnce(() => pinChain);
       mockVerifyPin.mockResolvedValue(false);
 
       await expect(rejeterModification('note1', '999999', 'Motif')).rejects.toThrow('PIN invalide');
 
-      expect(mockFrom).toHaveBeenCalledTimes(1);
+      expect(mockFrom).not.toHaveBeenCalled();
       expect(mockAuditLog).not.toHaveBeenCalled();
     });
 
     it('bon PIN: statut REJETE, valeur d\'origine conservée, auditLog appelé', async () => {
-      const pinChain = makeChain({ data: { pinApprobationHash: 'hash' }, error: null });
       const existingChain = makeChain({
         data: { id: 'note1', statut: 'EN_ATTENTE', valeur: 14, valeurProposee: 17 },
         error: null,
@@ -223,7 +223,6 @@ describe('Cycle complet: saisie -> soumission -> demande de modification -> appr
       });
 
       mockFrom
-        .mockImplementationOnce(() => pinChain)
         .mockImplementationOnce(() => existingChain)
         .mockImplementationOnce(() => updateChain);
       mockVerifyPin.mockResolvedValue(true);
