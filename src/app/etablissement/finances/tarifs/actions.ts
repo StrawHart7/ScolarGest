@@ -36,5 +36,7 @@ export async function creerTarifAction(
   }
 
   revalidatePath('/etablissement/finances/tarifs');
-  return null;
+  // 'OK' plutôt que null : le formulaire en modal doit pouvoir distinguer
+  // « rien ne s'est encore passé » de « succès » pour se fermer.
+  return 'OK';
 }

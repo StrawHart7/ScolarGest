@@ -3,18 +3,40 @@ import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
 import { listTypesFrais } from '@/services/type-frais';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  FiltreListe,
+  PaginationListe,
+  RechercheListe,
+  TriColonne,
+} from '@/components/ui/liste-toolbar';
+import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { TypeFraisForm } from './TypeFraisForm';
 import { TypeFraisRowActions } from './TypeFraisRowActions';
 
-export default async function TypesFraisPage() {
+export default async function TypesFraisPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const ctx = await getTenantContext();
   const typesFrais = await listTypesFrais(true);
   const canWrite =
     (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
+
+  const parametres = lireParametresListe(searchParams, { tri: 'nom' });
+  const statutFiltre = searchParams.statut;
+  const filtres =
+    typeof statutFiltre === 'string' && statutFiltre
+      ? typesFrais.filter((t) => t.statut === statutFiltre)
+      : typesFrais;
+  const page = preparerListe(filtres, parametres, {
+    champsRecherche: (t) => [t.nom, t.description],
+    valeursTri: { nom: (t) => t.nom, statut: (t) => t.statut },
+  });
 
   return (
     <AppLayout
@@ -32,22 +54,26 @@ export default async function TypesFraisPage() {
           </p>
         </div>
 
-        {canWrite && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Nouveau type de frais</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TypeFraisForm />
-            </CardContent>
-          </Card>
-        )}
-
         <Card>
-          <CardHeader>
-            <CardTitle>Liste des types de frais</CardTitle>
-          </CardHeader>
-          {typesFrais.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+            <RechercheListe placeholder="Libellé ou description…" />
+            <FiltreListe
+              parametre="statut"
+              libelle="Statut"
+              options={[
+                { valeur: 'ACTIF', libelle: 'Actif' },
+                { valeur: 'INACTIF', libelle: 'Inactif' },
+              ]}
+              libelleTout="Tous les statuts"
+            />
+            {canWrite && (
+              <div className="ml-auto">
+                <TypeFraisForm />
+              </div>
+            )}
+          </div>
+
+          {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Wallet className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-md text-text-primary">Aucun type de frais créé.</p>
@@ -60,14 +86,14 @@ export default async function TypesFraisPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Libellé</TableHead>
+                  <TriColonne cle="nom">Libellé</TriColonne>
                   <TableHead>Description</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TriColonne cle="statut">Statut</TriColonne>
                   {canWrite && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {typesFrais.map((typeFrais) => (
+                {page.lignes.map((typeFrais) => (
                   <TableRow key={typeFrais.id}>
                     <TableCell className="font-medium">{typeFrais.nom}</TableCell>
                     <TableCell className="text-text-secondary">
@@ -91,6 +117,15 @@ export default async function TypesFraisPage() {
               </TableBody>
             </Table>
           )}
+
+          <PaginationListe
+            page={page.page}
+            nombrePages={page.nombrePages}
+            debut={page.debut}
+            fin={page.fin}
+            total={page.total}
+            libelle="type(s) de frais"
+          />
         </Card>
       </div>
     </AppLayout>

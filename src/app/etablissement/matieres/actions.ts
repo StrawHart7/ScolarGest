@@ -34,7 +34,7 @@ export async function creerMatiereAction(
   }
 
   revalidatePath('/etablissement/matieres');
-  return null;
+  return 'OK';
 }
 
 const updateSchema = z.object({
@@ -74,5 +74,5 @@ export async function modifierMatiereAction(
   }
 
   revalidatePath('/etablissement/matieres');
-  return null;
+  return 'OK';
 }

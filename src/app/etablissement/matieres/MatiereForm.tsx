@@ -1,39 +1,32 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { FormulaireModal } from '@/components/ui/form-modal';
 import { creerMatiereAction } from './actions';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? 'Création...' : 'Ajouter la matière'}
-    </Button>
-  );
-}
-
 export function MatiereForm() {
-  const [error, formAction] = useFormState(creerMatiereAction, null);
-
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3">
+    <FormulaireModal
+      action={creerMatiereAction}
+      titre="Nouvelle matière"
+      description="La matière alimente le programme des niveaux et les affectations d’enseignants."
+      declencheur="Nouvelle matière"
+      libelleValidation="Ajouter la matière"
+      messageSucces="Matière créée"
+    >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nom">Nom</Label>
-        <Input id="nom" name="nom" placeholder="Mathématiques" required className="w-56" />
+        <Input id="nom" name="nom" placeholder="Mathématiques" required />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="code">Code</Label>
-        <Input id="code" name="code" placeholder="MATH" className="w-32" />
+        <Input id="code" name="code" placeholder="MATH" />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="description">Description</Label>
-        <Input id="description" name="description" placeholder="Optionnel" className="w-64" />
+        <Input id="description" name="description" placeholder="Optionnel" />
       </div>
-      <SubmitButton />
-      {error && <p className="w-full text-body-sm text-error">{error}</p>}
-    </form>
+    </FormulaireModal>
   );
 }

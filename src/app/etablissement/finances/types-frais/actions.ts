@@ -31,7 +31,7 @@ export async function creerTypeFraisAction(
   }
 
   revalidatePath('/etablissement/finances/types-frais');
-  return null;
+  return 'OK';
 }
 
 const updateSchema = z.object({
@@ -68,5 +68,5 @@ export async function modifierTypeFraisAction(
   }
 
   revalidatePath('/etablissement/finances/types-frais');
-  return null;
+  return 'OK';
 }

@@ -1,4 +1,4 @@
-import { AlertTriangle, Coins } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import Link from 'next/link';
 import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
@@ -7,8 +7,14 @@ import { listClasses } from '@/services/classe';
 import { listTypesFrais } from '@/services/type-frais';
 import { listTarifs, totalTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  PaginationListe,
+  RechercheListe,
+  TriColonne,
+} from '@/components/ui/liste-toolbar';
+import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { TarifsFiltres } from './TarifsFiltres';
 import { TarifForm } from './TarifForm';
@@ -18,20 +24,36 @@ const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} FC
 export default async function TarifsPage({
   searchParams,
 }: {
-  searchParams: { anneeScolaireId?: string; classeId?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
+  const lireUnique = (cle: string): string | undefined => {
+    const brut = searchParams[cle];
+    const valeur = Array.isArray(brut) ? brut[0] : brut;
+    return valeur && valeur.length > 0 ? valeur : undefined;
+  };
   const ctx = await getTenantContext();
   const canWrite =
     (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
-  const anneeScolaireId = searchParams.anneeScolaireId || anneeActive?.id || annees[0]?.id;
+  const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
 
   const classes = anneeScolaireId ? await listClasses(anneeScolaireId) : [];
   const typesFrais = await listTypesFrais();
-  const classeId = searchParams.classeId;
+  const classeId = lireUnique('classeId');
   const tarifs = anneeScolaireId ? await listTarifs(anneeScolaireId, classeId) : [];
+
+  const parametres = lireParametresListe(searchParams, { tri: 'classe' });
+  const page = preparerListe(tarifs, parametres, {
+    champsRecherche: (t) => [t.classe?.nom, t.typeFrais?.nom],
+    valeursTri: {
+      classe: (t) => t.classe?.nom,
+      type: (t) => t.typeFrais?.nom,
+      montant: (t) => Number(t.montant),
+      date: (t) => t.createdAt,
+    },
+  });
 
   return (
     <AppLayout
@@ -49,26 +71,25 @@ export default async function TarifsPage({
           </p>
         </div>
 
-        <div className="flex items-start gap-3 rounded-lg border border-error/20 bg-error/5 p-4">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-error" aria-hidden />
-          <div>
-            <p className="text-label-md font-semibold text-error">Attention</p>
-            <p className="text-body-sm text-text-secondary">
-              Un tarif est immuable une fois créé : il ne peut être ni modifié ni supprimé, pour
-              préserver l&apos;intégrité des factures déjà émises. Pour corriger un montant, ajustez
-              les lignes des factures concernées tant qu&apos;aucun versement n&apos;a été encaissé.
-            </p>
-          </div>
-        </div>
-
         <Card>
-          <div className="border-b border-surface-border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
             <TarifsFiltres
               annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
               classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
               defaultAnneeScolaireId={anneeScolaireId ?? ''}
               defaultClasseId={classeId ?? ''}
             />
+            <div className="flex items-center gap-3">
+              <RechercheListe placeholder="Rechercher un tarif…" />
+              {canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 && (
+                <TarifForm
+                  anneeScolaireId={anneeScolaireId}
+                  classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+                  typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
+                  defaultClasseId={classeId ?? ''}
+                />
+              )}
+            </div>
           </div>
 
           {tarifs.length === 0 ? (
@@ -78,19 +99,38 @@ export default async function TarifsPage({
               <p className="text-body-sm text-text-secondary">
                 Sans tarif, la facture générée à l&apos;inscription reste à 0.
               </p>
+              {typesFrais.length === 0 && (
+                <p className="text-body-sm text-text-secondary">
+                  Créez d&apos;abord au moins un{' '}
+                  <Link
+                    href="/etablissement/finances/types-frais"
+                    className="text-primary-container hover:underline"
+                  >
+                    type de frais
+                  </Link>
+                  .
+                </p>
+              )}
+              {classes.length === 0 && (
+                <p className="text-body-sm text-text-secondary">
+                  Aucune classe n&apos;existe sur cette année scolaire.
+                </p>
+              )}
             </CardContent>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Classe</TableHead>
-                  <TableHead>Type de frais</TableHead>
-                  <TableHead className="text-right">Montant</TableHead>
-                  <TableHead>Créé le</TableHead>
+                  <TriColonne cle="classe">Classe</TriColonne>
+                  <TriColonne cle="type">Type de frais</TriColonne>
+                  <TriColonne cle="montant" numerique>
+                    Montant
+                  </TriColonne>
+                  <TriColonne cle="date">Créé le</TriColonne>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tarifs.map((tarif) => (
+                {page.lignes.map((tarif) => (
                   <TableRow key={tarif.id}>
                     <TableCell className="font-medium">{tarif.classe?.nom ?? '—'}</TableCell>
                     <TableCell>{tarif.typeFrais?.nom ?? '—'}</TableCell>
@@ -114,40 +154,17 @@ export default async function TarifsPage({
               </TableBody>
             </Table>
           )}
+
+          <PaginationListe
+            page={page.page}
+            nombrePages={page.nombrePages}
+            debut={page.debut}
+            fin={page.fin}
+            total={page.total}
+            libelle="tarif(s)"
+          />
         </Card>
 
-        {canWrite && anneeScolaireId && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Nouveau tarif</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {typesFrais.length === 0 ? (
-                <p className="text-body-sm text-text-secondary">
-                  Créez d&apos;abord au moins un{' '}
-                  <Link
-                    href="/etablissement/finances/types-frais"
-                    className="text-primary hover:underline"
-                  >
-                    type de frais
-                  </Link>
-                  .
-                </p>
-              ) : classes.length === 0 ? (
-                <p className="text-body-sm text-text-secondary">
-                  Aucune classe sur cette année scolaire.
-                </p>
-              ) : (
-                <TarifForm
-                  anneeScolaireId={anneeScolaireId}
-                  classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-                  typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
-                  defaultClasseId={classeId ?? ''}
-                />
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </AppLayout>
   );

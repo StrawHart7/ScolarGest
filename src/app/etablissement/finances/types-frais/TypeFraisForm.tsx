@@ -1,35 +1,29 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { FormulaireModal } from '@/components/ui/form-modal';
 import { creerTypeFraisAction } from './actions';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? 'Création...' : 'Ajouter le type de frais'}
-    </Button>
-  );
-}
-
 export function TypeFraisForm() {
-  const [error, formAction] = useFormState(creerTypeFraisAction, null);
-
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3">
+    <FormulaireModal
+      action={creerTypeFraisAction}
+      titre="Nouveau type de frais"
+      description="Une catégorie facturable. Son montant se définit ensuite classe par classe, dans les tarifs."
+      declencheur="Nouveau type de frais"
+      libelleValidation="Ajouter le type de frais"
+      messageSucces="Type de frais créé"
+      detailSucces="Définissez maintenant son tarif par classe."
+    >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nom">Libellé</Label>
-        <Input id="nom" name="nom" placeholder="Scolarité 1er trimestre" required className="w-64" />
+        <Input id="nom" name="nom" placeholder="Scolarité 1er trimestre" required />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="description">Description</Label>
-        <Input id="description" name="description" placeholder="Optionnel" className="w-72" />
+        <Input id="description" name="description" placeholder="Optionnel" />
       </div>
-      <SubmitButton />
-      {error && <p className="w-full text-body-sm text-error">{error}</p>}
-    </form>
+    </FormulaireModal>
   );
 }
