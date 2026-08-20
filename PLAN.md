@@ -450,22 +450,103 @@ Le modèle **Collège/Lycée uniquement** : les autres cycles conservent le gaba
 
 ---
 
-### Phase 9 — Durcissement & mise en production
+### Phase 9 — Durcissement & mise en production — EN COURS
 
 **Objectif** : passer d'un produit fonctionnel à un produit livrable.
 
 **Livrables** :
 - **Revue de sécurité** :
-  - Isolation tenant testée par tentative d'accès croisé entre écoles.
-  - Vérification des permissions par rôle (matrice complète).
-  - Step-up auth (PIN) testé sur toutes les actions d'approbation.
-- Couverture `AuditLog` complète sur toutes les actions listées dans le doc 03.
-- Tests E2E des parcours critiques (inscription, paiement, note, bulletin, approbation).
-- Tests de charge légers (simulation multi-école).
-- Sauvegardes automatiques (Supabase), journalisation, monitoring.
-- **Procédure d'onboarding** : checklist de configuration d'une nouvelle école par notre équipe (cycles, année, classes, tarifs, utilisateurs, import données initiales).
+  - [x] Isolation tenant testée par tentative d'accès croisé entre écoles
+        (`scripts/verifier-isolation.ts` : 9 tentatives, 0 fuite).
+  - [x] Vérification des permissions par rôle (matrice complète) —
+        `Docs/11-Matrice-permissions.md`, générée depuis le code et figée par un
+        instantané versionné.
+  - [ ] Step-up auth (PIN) testé sur toutes les actions d'approbation —
+        couvert au niveau service, pas encore de bout en bout dans l'UI.
+- [x] Couverture `AuditLog` complète sur les actions du doc 03 § 12
+      (`audit-couverture.test.ts`).
+- [ ] Tests E2E des parcours critiques — **permissions livrées** (3 rôles,
+      suite complète à 57 tests verts) ; parcours en **écriture** non livrés,
+      voir « Arbitrage en attente » ci-dessous.
+- [ ] Sauvegardes (Supabase), journalisation, monitoring — procédure rédigée
+      (`Docs/12-Exploitation.md`), **restauration non encore testée**.
+- [x] **Procédure d'onboarding** : `Docs/13-Onboarding-etablissement.md` —
+      rédigée, pas encore jouée sur une école réelle.
+- [x] Bilan go/no-go : `Docs/14-Go-no-go.md`.
 
-**DoD** : checklist de sécurité passée ; une école réelle configurée de bout en bout depuis la checklist d'onboarding ; go/no-go documenté.
+**DoD** : checklist de sécurité passée ; une école réelle configurée de bout en
+bout depuis la checklist d'onboarding ; go/no-go documenté.
+
+#### Défauts corrigés pendant la phase
+
+Aucun n'était une fuite exploitable — la RLS tenait — mais tous reposaient sur
+une policy sans filet applicatif, contre la règle de défense en profondeur :
+
+- `getAbonnementCourant` acceptait un `etablissementId` arbitraire sans garde.
+- `listPaiementsAbonnement` n'avait aucune garde.
+- `listPlans` et les trois catalogues de `structure.ts` étaient lisibles sans
+  session.
+- `enregistrerDocument` et `marquerObsolete` n'exigeaient qu'une session.
+- **La connexion n'était pas journalisée du tout**, ni par mot de passe ni par
+  Google, alors que le doc 03 § 12 l'exige. Les échecs le sont aussi désormais :
+  c'est leur répétition qui révèle une attaque.
+- `createEtablissement`, qui ouvre un tenant, ne laissait aucune trace.
+- `/sentry-example-page` était exposée en production.
+- Une route refusée affichait « Application error: a client-side exception has
+  occurred » — un écran blanc en anglais, indiscernable d'une panne. Remplacé
+  par une frontière d'erreur qui distingue le refus d'accès de la panne
+  (`src/app/error.tsx`).
+
+#### Décisions prises pendant la phase
+
+- **Tests de charge multi-école reportés** après la mise en production : le plan
+  Supabase gratuit rend la mesure peu représentative et expose au dépassement de
+  quota. Dette assumée, à reprendre sur un plan payant.
+- **`journaliserConnexion` n'échoue jamais** et écrit via la clé service-role.
+  À l'inverse d'`auditLog`, qui lève volontairement : perdre la trace d'un
+  paiement doit annuler le paiement, mais un incident sur la table d'audit ne
+  doit pas empêcher tout le monde de se connecter. Sur un échec de connexion, il
+  n'y a de toute façon aucune session à laquelle rattacher l'écriture.
+- **`/abonnement` reste ouverte à tous les rôles**, mais l'historique des
+  règlements est réservé au Directeur. Fermer la page priverait un utilisateur
+  bloqué de l'explication de son blocage.
+- **La Secrétaire garde un accès finance en lecture seule** (doc 08 § 17) : ce
+  n'est pas un trou, c'est documenté. Les tests E2E le vérifient comme tel.
+
+#### Arbitrage en attente : E2E des parcours en écriture
+
+L'invariant « pas de suppression physique » sur les paiements, notes et
+inscriptions signifie qu'un E2E qui encaisse un paiement laisse une ligne
+**définitive**, à chaque exécution. La base contient déjà 285 élèves et des
+comptes réels. Trois voies, détaillées dans `Docs/14-Go-no-go.md` § 4 : école
+jetable dédiée, écritures assumées dans l'école de démo, ou validation manuelle
+consignée comme dette.
+
+#### Harnais E2E : deux corrections de fond
+
+- Le serveur de production met **106 à 208 s** à démarrer sur cette machine, ce
+  qui faisait expirer Playwright avant qu'un test ne s'exécute. Délai relevé à
+  300 s et réutilisation d'un serveur déjà lancé sur le port dédié 3100 — le
+  `next dev` du développeur écoute sur 3000, la confusion que le réglage
+  d'origine voulait éviter ne peut donc pas se produire.
+- Chaque test se reconnectait dans son `beforeEach` : une vingtaine d'allers-retours
+  vers Supabase Auth pour une suite qui n'en demande que quatre, et un test qui
+  clignotait au gré de la charge. Session ouverte une fois par rôle
+  (`e2e/auth.setup.ts`) et réutilisée via `storageState` : durée passée de 8,0
+  à 2,6 minutes, et plus aucun test instable.
+
+#### Outils livrés
+
+```bash
+npx tsx scripts/matrice-permissions.ts              # régénère Docs/11
+npx tsx scripts/matrice-permissions.ts --verifier   # échoue si Docs/11 est périmé
+npx tsx scripts/matrice-permissions.ts --instantane # régénère l'instantané des tests
+npx tsx scripts/verifier-isolation.ts               # accès croisé entre deux écoles
+npx tsx scripts/verifier-isolation.ts --purge       # supprime les écoles de test
+```
+
+Les E2E authentifiés lisent `.env.e2e` (ignoré par Git). Sans ce fichier, ils se
+**sautent** au lieu d'échouer : le dépôt reste clonable et vert sans secrets.
 
 ---
 

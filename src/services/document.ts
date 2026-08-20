@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
-import { getTenantContext } from './tenant';
 
 export type TypeDocument = 'BULLETIN' | 'RECU' | 'RAPPORT';
 export type StatutDocument = 'GENERE' | 'OBSOLETE' | 'ARCHIVE';
@@ -31,8 +30,13 @@ export interface EnregistrerDocumentInput {
 }
 
 /** Insère une ligne `document` après upload Storage réussi. */
+/**
+ * Enregistre un document généré. Helper interne appelé par `bulletin.ts` et
+ * `recu.ts`, tous deux déjà gardés : la garde est répétée ici parce qu'un
+ * service exporté doit se défendre seul, sans supposer de qui il est appelé.
+ */
 export async function enregistrerDocument(input: EnregistrerDocumentInput): Promise<Document> {
-  const ctx = await getTenantContext();
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('document')
@@ -58,7 +62,7 @@ export async function enregistrerDocument(input: EnregistrerDocumentInput): Prom
  * (genererBulletin / regenererBulletin).
  */
 export async function marquerObsolete(id: string): Promise<void> {
-  const ctx = await getTenantContext();
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
   const { error } = await supabase
     .from('document')

@@ -33,7 +33,14 @@ const MODE_LABEL: Record<string, string> = {
 export default async function AbonnementPage() {
   const ctx = await getTenantContext();
   const abonnement = ctx.etablissementId ? await getAbonnementCourant(ctx.etablissementId) : null;
-  const paiements = abonnement ? await listPaiementsAbonnement(abonnement.id) : [];
+
+  // La page reste ouverte à tous les rôles — c'est elle qui explique un accès
+  // bloqué, l'enfermer priverait justement l'utilisateur de l'explication. En
+  // revanche l'historique des règlements est une information de direction :
+  // seul le Directeur le voit, les autres gardent le statut et l'échéance.
+  const voitLesReglements = ctx.role === 'DIRECTEUR' || ctx.role === 'SUPER_ADMIN';
+  const paiements =
+    abonnement && voitLesReglements ? await listPaiementsAbonnement(abonnement.id) : [];
 
   const statut = statutEffectif(
     abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
@@ -119,6 +126,7 @@ export default async function AbonnementPage() {
           </CardContent>
         </Card>
 
+        {voitLesReglements && (
         <Card>
           <CardHeader>
             <CardTitle>Règlements enregistrés</CardTitle>
@@ -157,6 +165,7 @@ export default async function AbonnementPage() {
             </Table>
           )}
         </Card>
+        )}
       </div>
     </AppLayout>
   );

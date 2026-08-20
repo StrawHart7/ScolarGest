@@ -40,7 +40,12 @@ export interface ValiderPaiementInput {
   reference?: string;
 }
 
+/**
+ * Catalogue des plans. Aucune donnée de tenant, mais une session reste exigée :
+ * un catalogue tarifaire n'a pas à être lisible sans être connecté.
+ */
 export async function listPlans(): Promise<PlanAbonnement[]> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('plan_abonnement')
@@ -254,9 +259,19 @@ export async function reactiverAbonnement(abonnementId: string): Promise<void> {
   });
 }
 
+/**
+ * Versements d'un abonnement.
+ *
+ * La policy `paiement_abonnement_read` isole déjà par jointure sur
+ * l'établissement, mais s'en remettre à elle seule contrevient à la règle de
+ * défense en profondeur du projet : si la policy est un jour assouplie, plus
+ * rien ne rattrape. La garde de rôle est donc explicite, et le SUPER_ADMIN
+ * passe par le court-circuit de `requireRole`.
+ */
 export async function listPaiementsAbonnement(
   abonnementId: string,
 ): Promise<PaiementAbonnement[]> {
+  await requireRole('DIRECTEUR');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('paiement_abonnement')
@@ -269,14 +284,21 @@ export async function listPaiementsAbonnement(
 
 /**
  * Abonnement courant d'un établissement : le plus récent par date de fin.
- * Lisible par les rôles école (leur propre abonnement, via RLS) et par le
- * SUPER_ADMIN — d'où l'absence de `requireRole` restrictif ici : la policy
- * `abonnement_etablissement_read` fait déjà l'isolation, et cette lecture
- * alimente le bandeau affiché sur toutes les pages.
+ *
+ * Lisible par les rôles école pour **leur** établissement, et par le
+ * SUPER_ADMIN pour n'importe lequel. La policy RLS le garantit déjà, mais
+ * `etablissementId` arrive ici depuis l'appelant : on compare donc
+ * explicitement au contexte, comme l'impose la règle de défense en profondeur
+ * du projet. Sans cette comparaison, la sécurité de la lecture reposerait
+ * entièrement sur une policy, sans filet applicatif.
  */
 export async function getAbonnementCourant(
   etablissementId: string,
 ): Promise<Abonnement | null> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  if (ctx.role !== 'SUPER_ADMIN' && etablissementId !== ctx.etablissementId) {
+    throw new Error("Accès refusé : abonnement d'un autre établissement.");
+  }
   const supabase = createClient();
   const { data, error } = await supabase
     .from('abonnement_etablissement')
