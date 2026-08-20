@@ -6,6 +6,8 @@ build/
 dist/
 .env
 .env.local
+.env.e2e
+e2e/.auth/
 .env.*.local
 !.env.example
 *.log

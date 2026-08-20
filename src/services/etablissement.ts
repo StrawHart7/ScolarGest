@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
+import { auditLog } from './audit';
 
 export interface Etablissement {
   id: string;
@@ -70,5 +71,16 @@ export async function createEtablissement(input: CreateEtablissementInput): Prom
     .select('id, nom, sigle, adresse, ville, telephone, email, statut, "createdAt"')
     .single();
   if (error) throw error;
+
+  // Créer un établissement, c'est ouvrir un tenant : l'action la plus lourde de
+  // conséquence de toute la plateforme. Elle n'était pas tracée.
+  await auditLog({
+    action: 'CREATE_ETABLISSEMENT',
+    module: 'etablissement',
+    objetType: 'Etablissement',
+    objetId: data.id,
+    nouvelleValeur: { nom: data.nom, ville: data.ville },
+  });
+
   return data;
 }

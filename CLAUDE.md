@@ -76,6 +76,41 @@ src/
 
 **`requireRole()` with no arguments means SUPER_ADMIN only** — it is not "any authenticated user". Writing it on a service that école roles legitimately call silently locks them out, and unit tests won't catch it when the service is mocked by its callers (this is exactly how Phase 5 shipped a `getEtablissement` that made every bulletin/reçu generation fail for Directeur, Secrétaire and Comptable). When a service must be readable tenant-wide, list the roles explicitly and compare the requested `etablissementId` against `ctx.etablissementId` yourself.
 
+### Permissions : la matrice fait foi, et elle est testée
+
+`Docs/11-Matrice-permissions.md` est **généré** depuis les `requireRole(...)` de
+`src/services/` par `npx tsx scripts/matrice-permissions.ts`. Ne jamais l'éditer
+à la main.
+
+Un instantané versionné (`src/lib/permissions/__tests__/matrice.instantane.txt`)
+est comparé par les tests : **toute modification d'une garde de rôle fait échouer
+la suite**. C'est voulu. Après un changement délibéré, régénérer avec
+`--instantane` et relire le diff — c'est le geste qui manquait quand la Phase 5 a
+livré un `getEtablissement` réservé au SUPER_ADMIN sans que personne le voie.
+
+Deux règles qui en découlent :
+
+- Une fonction de service qui ouvre un client Supabase **doit** avoir une garde.
+  Les seules exceptions sont nominatives et justifiées dans `matrice.test.ts`.
+- S'appuyer sur la seule RLS ne suffit pas. Quand un identifiant d'établissement
+  arrive d'un appelant, le comparer explicitement à `ctx.etablissementId`.
+
+Avant de resserrer une garde, chercher qui appelle la fonction. `/abonnement` est
+ouverte à tous les rôles par conception, et la Secrétaire a un accès finance en
+lecture seule (doc 08 § 17) : resserrer sans vérifier casse une page entière pour
+un rôle légitime.
+
+### Vérifier l'isolation entre écoles
+
+`npx tsx scripts/verifier-isolation.ts` monte deux écoles jetables et tente des
+accès croisés par le chemin réel de l'application — client anon plus session,
+**jamais** la clé service-role, qui contournerait précisément ce qu'on teste.
+Nettoyer ensuite avec `--purge`.
+
+Le script confirme que chaque cible existe avant de tenter d'y accéder : une
+lecture qui ne ramène rien parce que la table est vide ne prouve rien, et un test
+de sécurité qui rassure à tort est pire que pas de test.
+
 Server Actions live in an `actions.ts` file next to the `page.tsx` that uses them (Zod-validated `FormData` in, `redirect()` or a message string out) — see `src/app/(auth)/login/actions.ts` for the reference pattern.
 
 ### Data Flow

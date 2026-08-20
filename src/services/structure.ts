@@ -29,7 +29,14 @@ export interface Serie {
   nom: string;
 }
 
+/**
+ * Catalogues système (cycles, niveaux, séries) : aucune donnée de tenant, mais
+ * une session reste exigée. Une lecture ouverte sans authentification n'a pas
+ * de justification, et l'absence de garde faisait de ces trois fonctions les
+ * seules lectures anonymes du domaine scolaire.
+ */
 export async function listCycles(): Promise<Cycle[]> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase.from('cycle').select('id, nom, ordre').order('ordre');
   if (error) throw error;
@@ -73,6 +80,7 @@ export async function activerCycle(cycleId: string, pin: string): Promise<void> 
 }
 
 export async function listNiveauxParCycle(cycleId: string): Promise<Niveau[]> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('niveau')
@@ -84,6 +92,7 @@ export async function listNiveauxParCycle(cycleId: string): Promise<Niveau[]> {
 }
 
 export async function listSeriesParCycle(cycleId: string): Promise<Serie[]> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('serie')
