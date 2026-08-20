@@ -6,7 +6,7 @@ import { listClasses } from '@/services/classe';
 import { listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import {
   PaginationListe,
   RechercheListe,

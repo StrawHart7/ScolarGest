@@ -7,7 +7,13 @@ import { listSuiviPaiements, totauxSuivi, type StatutFacture } from '@/services/
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
+import {
+  PaginationListe,
+  RechercheListe,
+  TriColonne,
+} from '@/components/ui/liste-toolbar';
+import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { SuiviFiltres } from './SuiviFiltres';
 
@@ -32,23 +38,44 @@ const STATUTS: StatutFacture[] = ['PAYE', 'PARTIEL', 'IMPAYE', 'ANNULE'];
 export default async function SuiviPaiementsPage({
   searchParams,
 }: {
-  searchParams: { anneeScolaireId?: string; classeId?: string; statut?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const ctx = await getTenantContext();
+  const lireUnique = (cle: string): string | undefined => {
+    const brut = searchParams[cle];
+    const valeur = Array.isArray(brut) ? brut[0] : brut;
+    return valeur && valeur.length > 0 ? valeur : undefined;
+  };
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
-  const anneeScolaireId = searchParams.anneeScolaireId || anneeActive?.id || annees[0]?.id;
+  const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
   const classes = anneeScolaireId ? await listClasses(anneeScolaireId) : [];
 
-  const statut = STATUTS.includes(searchParams.statut as StatutFacture)
-    ? (searchParams.statut as StatutFacture)
+  const statutDemande = lireUnique('statut');
+  const statut = STATUTS.includes(statutDemande as StatutFacture)
+    ? (statutDemande as StatutFacture)
     : undefined;
 
   const lignes = anneeScolaireId
-    ? await listSuiviPaiements(anneeScolaireId, { classeId: searchParams.classeId, statut })
+    ? await listSuiviPaiements(anneeScolaireId, { classeId: lireUnique('classeId'), statut })
     : [];
+  // Les totaux portent sur l'intégralité de la sélection, pas sur la page
+  // affichée : un total qui changerait en tournant les pages serait trompeur.
   const totaux = totauxSuivi(lignes);
+
+  const parametres = lireParametresListe(searchParams, { tri: 'solde', sens: 'desc' });
+  const page = preparerListe(lignes, parametres, {
+    champsRecherche: (l) => [l.nom, l.prenoms, l.matricule, l.classeNom],
+    valeursTri: {
+      eleve: (l) => `${l.nom} ${l.prenoms}`,
+      classe: (l) => l.classeNom,
+      total: (l) => l.montantTotal,
+      paye: (l) => l.totalPaye,
+      solde: (l) => l.solde,
+      statut: (l) => l.statut,
+    },
+  });
 
   return (
     <AppLayout
@@ -67,17 +94,18 @@ export default async function SuiviPaiementsPage({
         </div>
 
         <Card>
-          <div className="border-b border-surface-border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
             <SuiviFiltres
               annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
               classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
               defaultAnneeScolaireId={anneeScolaireId ?? ''}
-              defaultClasseId={searchParams.classeId ?? ''}
+              defaultClasseId={lireUnique('classeId') ?? ''}
               defaultStatut={statut ?? ''}
             />
+            <RechercheListe placeholder="Élève, matricule ou classe…" />
           </div>
 
-          {lignes.length === 0 ? (
+          {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <Receipt className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-md text-text-primary">Aucune facture pour cette sélection.</p>
@@ -89,23 +117,27 @@ export default async function SuiviPaiementsPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Matricule</TableHead>
-                  <TableHead>Nom de l&apos;élève</TableHead>
-                  <TableHead>Classe</TableHead>
-                  <TableHead className="text-right">Total dû</TableHead>
-                  <TableHead className="text-right">Total payé</TableHead>
-                  <TableHead className="text-right">Reste à recouvrer</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TriColonne cle="eleve">Nom de l&apos;élève</TriColonne>
+                  <TriColonne cle="classe">Classe</TriColonne>
+                  <TriColonne cle="total" numerique>
+                    Total dû
+                  </TriColonne>
+                  <TriColonne cle="paye" numerique>
+                    Total payé
+                  </TriColonne>
+                  <TriColonne cle="solde" numerique>
+                    Reste à recouvrer
+                  </TriColonne>
+                  <TriColonne cle="statut">Statut</TriColonne>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lignes.map((ligne) => (
+                {page.lignes.map((ligne) => (
                   <TableRow key={ligne.factureId}>
-                    <TableCell data-mono>{ligne.matricule}</TableCell>
                     <TableCell className="font-medium">
                       <Link
                         href={`/etablissement/finances/factures/${ligne.factureId}`}
-                        className="text-primary hover:underline"
+                        className="text-text-primary transition-colors hover:text-primary-container hover:underline"
                       >
                         {ligne.nom} {ligne.prenoms}
                       </Link>
@@ -131,8 +163,9 @@ export default async function SuiviPaiementsPage({
                   </TableRow>
                 ))}
                 <TableRow>
-                  <TableCell className="font-semibold" colSpan={3}>
-                    Totaux ({lignes.length} facture{lignes.length > 1 ? 's' : ''}, FCFA)
+                  <TableCell className="font-semibold" colSpan={2}>
+                    Totaux de la sélection ({lignes.length} facture
+                    {lignes.length > 1 ? 's' : ''}, FCFA)
                   </TableCell>
                   <TableCell className="text-right font-semibold" data-mono>
                     {fcfa(totaux.montantTotal)}
@@ -148,6 +181,15 @@ export default async function SuiviPaiementsPage({
               </TableBody>
             </Table>
           )}
+
+          <PaginationListe
+            page={page.page}
+            nombrePages={page.nombrePages}
+            debut={page.debut}
+            fin={page.fin}
+            total={page.total}
+            libelle="facture(s)"
+          />
         </Card>
       </div>
     </AppLayout>

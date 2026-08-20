@@ -7,6 +7,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  PaginationListe,
+  RechercheListe,
+  TriColonne,
+} from '@/components/ui/liste-toolbar';
+import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { PaiementsFiltres } from './PaiementsFiltres';
 
@@ -23,23 +29,42 @@ const MODE_LABEL: Record<string, string> = {
 export default async function HistoriqueVersementsPage({
   searchParams,
 }: {
-  searchParams: { anneeScolaireId?: string; statut?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const ctx = await getTenantContext();
+  const lireUnique = (cle: string): string | undefined => {
+    const brut = searchParams[cle];
+    const valeur = Array.isArray(brut) ? brut[0] : brut;
+    return valeur && valeur.length > 0 ? valeur : undefined;
+  };
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
-  const anneeScolaireId = searchParams.anneeScolaireId || anneeActive?.id || annees[0]?.id;
+  const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
 
+  const statutDemande = lireUnique('statut');
   const statut =
-    searchParams.statut === 'PAYE' || searchParams.statut === 'ANNULE'
-      ? (searchParams.statut as StatutPaiement)
+    statutDemande === 'PAYE' || statutDemande === 'ANNULE'
+      ? (statutDemande as StatutPaiement)
       : undefined;
 
   const paiements = anneeScolaireId ? await listPaiements(anneeScolaireId, { statut }) : [];
+  // Total sur la sélection entière, pas sur la page affichée.
   const totalEncaisse = paiements
     .filter((p) => p.statut !== 'ANNULE')
     .reduce((somme, p) => somme + p.montant, 0);
+
+  const parametres = lireParametresListe(searchParams, { tri: 'date', sens: 'desc' });
+  const page = preparerListe(paiements, parametres, {
+    champsRecherche: (p) => [p.eleveNom, p.elevePrenoms, p.eleveMatricule, p.reference, p.recuReference],
+    valeursTri: {
+      date: (p) => p.datePaiement,
+      eleve: (p) => `${p.eleveNom} ${p.elevePrenoms}`,
+      montant: (p) => p.montant,
+      mode: (p) => p.modePaiement,
+      statut: (p) => p.statut,
+    },
+  });
 
   return (
     <AppLayout
@@ -58,15 +83,16 @@ export default async function HistoriqueVersementsPage({
         </div>
 
         <Card>
-          <div className="border-b border-surface-border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
             <PaiementsFiltres
               annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
               defaultAnneeScolaireId={anneeScolaireId ?? ''}
               defaultStatut={statut ?? ''}
             />
+            <RechercheListe placeholder="Élève, matricule ou référence…" />
           </div>
 
-          {paiements.length === 0 ? (
+          {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <Wallet className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-md text-text-primary">Aucun versement enregistré.</p>
@@ -75,17 +101,19 @@ export default async function HistoriqueVersementsPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Élève</TableHead>
-                  <TableHead className="text-right">Montant</TableHead>
-                  <TableHead>Mode</TableHead>
+                  <TriColonne cle="date">Date</TriColonne>
+                  <TriColonne cle="eleve">Élève</TriColonne>
+                  <TriColonne cle="montant" numerique>
+                    Montant
+                  </TriColonne>
+                  <TriColonne cle="mode">Mode</TriColonne>
                   <TableHead>Référence</TableHead>
                   <TableHead>Reçu</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TriColonne cle="statut">Statut</TriColonne>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paiements.map((paiement) => (
+                {page.lignes.map((paiement) => (
                   <TableRow key={paiement.id}>
                     <TableCell>
                       {new Date(paiement.datePaiement).toLocaleDateString('fr-FR')}
@@ -93,7 +121,7 @@ export default async function HistoriqueVersementsPage({
                     <TableCell className="font-medium">
                       <Link
                         href={`/etablissement/finances/factures/${paiement.factureId}`}
-                        className="text-primary hover:underline"
+                        className="text-text-primary transition-colors hover:text-primary-container hover:underline"
                       >
                         {paiement.eleveNom} {paiement.elevePrenoms}
                       </Link>
@@ -122,7 +150,7 @@ export default async function HistoriqueVersementsPage({
                 ))}
                 <TableRow>
                   <TableCell className="font-semibold" colSpan={2}>
-                    Total encaissé (hors annulés, FCFA)
+                    Total encaissé sur la sélection (hors annulés, FCFA)
                   </TableCell>
                   <TableCell className="text-right font-semibold" data-mono>
                     {fcfa(totalEncaisse)}
@@ -132,6 +160,15 @@ export default async function HistoriqueVersementsPage({
               </TableBody>
             </Table>
           )}
+
+          <PaginationListe
+            page={page.page}
+            nombrePages={page.nombrePages}
+            debut={page.debut}
+            fin={page.fin}
+            total={page.total}
+            libelle="versement(s)"
+          />
         </Card>
       </div>
     </AppLayout>
