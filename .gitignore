@@ -27,3 +27,4 @@ design-maquette/
 # Local build/tooling artifacts
 tsconfig.tsbuildinfo
 .claude/scheduled_tasks.lock
+remarques_avant_phase9.txt

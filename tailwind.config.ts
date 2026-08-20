@@ -103,6 +103,32 @@ const config: Config = {
         'row-dense': '32px',
         'row-standard': '44px',
       },
+      keyframes: {
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-out': { from: { opacity: '1' }, to: { opacity: '0' } },
+        'dialog-in': {
+          from: { opacity: '0', transform: 'translate(-50%, -48%) scale(0.97)' },
+          to: { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+        },
+        'toast-in': {
+          from: { opacity: '0', transform: 'translateX(16px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        'slide-up': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 150ms ease-out',
+        'fade-out': 'fade-out 120ms ease-in forwards',
+        'dialog-in': 'dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'toast-in': 'toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-up': 'slide-up 200ms ease-out',
+      },
       boxShadow: {
         floating: '0px 4px 12px rgba(9, 30, 66, 0.08)',
         premium: '0 20px 40px -10px rgba(0, 41, 109, 0.1), 0 10px 20px -5px rgba(0, 41, 109, 0.05)',

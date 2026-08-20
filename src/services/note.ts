@@ -5,6 +5,7 @@ import { getEnseignantParUtilisateur } from './enseignant';
 import { verifyPin } from './pin';
 import { listProgramme } from './programme';
 import { getCoefficient } from './coefficient';
+import { getResultatsClasse } from './resultats-classe';
 import type { Periode } from './evaluation';
 import {
   moyenneInterros,
@@ -12,8 +13,6 @@ import {
   moyenneMatiere,
   moyenneTrimestrielle,
   appreciation,
-  classement,
-  type RankingEntry,
 } from '@/modules/academics/services/calcul-moyennes';
 
 export type StatutNote = 'BROUILLON' | 'SOUMISE' | 'EN_ATTENTE' | 'VALIDE' | 'REJETE';
@@ -572,38 +571,23 @@ export interface ClassementEntry {
   rang: number | null;
 }
 
-/** Moyennes + classement dense de tous les élèves ACTIFS d'une classe. */
+/**
+ * Moyennes + classement dense de tous les élèves ACTIFS d'une classe.
+ *
+ * Délègue à `getResultatsClasse()` : l'implémentation précédente appelait
+ * `getMoyennesEleve()` en série, une fois par élève, ce qui produisait des
+ * centaines d'aller-retours vers la base. Le contrôle de périmètre enseignant
+ * est également porté par ce service.
+ */
 export async function getClassementClasse(
   classeId: string,
   periode: Periode,
   anneeScolaireId: string,
 ): Promise<ClassementEntry[]> {
-  await requireRole('DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT');
-  const supabase = createClient();
-
-  const { data: inscriptions, error } = await supabase
-    .from('inscription')
-    .select('"eleveId"')
-    .eq('classeId', classeId)
-    .eq('anneeScolaireId', anneeScolaireId)
-    .eq('statut', 'ACTIVE');
-  if (error) throw error;
-
-  const results: MoyennesEleveResult[] = [];
-  for (const inscr of inscriptions ?? []) {
-    results.push(await getMoyennesEleve(inscr.eleveId, classeId, periode, anneeScolaireId));
-  }
-
-  const ranking: RankingEntry[] = results.map((r) => ({
-    id: r.eleveId,
-    moyenne: r.moyenneTrimestrielle,
-  }));
-  const ranked = classement(ranking);
-  const rangById = new Map(ranked.map((r) => [r.id, r.rang]));
-
-  return results.map((r) => ({
-    eleveId: r.eleveId,
-    moyenneTrimestrielle: r.moyenneTrimestrielle,
-    rang: rangById.get(r.eleveId) ?? null,
+  const resultats = await getResultatsClasse(classeId, periode, anneeScolaireId);
+  return resultats.eleves.map((e) => ({
+    eleveId: e.eleveId,
+    moyenneTrimestrielle: e.moyenneTrimestrielle,
+    rang: e.rang,
   }));
 }

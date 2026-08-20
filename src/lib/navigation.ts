@@ -1,69 +1,247 @@
-import type { SidebarItem } from '@/components/layout/Sidebar';
 import type { Role } from '@/services/tenant';
+
+/**
+ * Navigation regroupée par domaine.
+ *
+ * La sidebar comptait jusqu'à 18 entrées à plat pour un Directeur, ce qui rend
+ * l'orientation impossible. Chaque rôle voit désormais 4 à 6 entrées, et une
+ * entrée qui couvre plusieurs écrans ouvre une page d'accueil de section
+ * présentant ses fonctionnalités en blocs.
+ *
+ * Les icônes sont désignées par un nom, pas par un composant : `navigation.ts`
+ * est importé depuis des Server Components, et un nom reste sérialisable.
+ */
+export type NomIcone =
+  | 'tableau-de-bord'
+  | 'eleves'
+  | 'enseignants'
+  | 'notes'
+  | 'finances'
+  | 'etablissement'
+  | 'rapports'
+  | 'mes-classes'
+  | 'abonnements'
+  | 'utilisateurs'
+  | 'parametres'
+  | 'aide';
+
+export interface SidebarItem {
+  label: string;
+  href: string;
+  icone: NomIcone;
+}
+
+/** Une fonctionnalité présentée en bloc sur la page d'accueil d'une section. */
+export interface BlocSection {
+  titre: string;
+  description: string;
+  href: string;
+  icone: NomIcone;
+  /** Rôles autorisés à voir le bloc. */
+  roles: Role[];
+}
+
+export interface Section {
+  titre: string;
+  description: string;
+  blocs: BlocSection[];
+}
+
+const TOUS_ADMIN: Role[] = ['DIRECTEUR', 'SECRETAIRE'];
+
+export const SECTIONS: Record<string, Section> = {
+  '/etablissement': {
+    titre: 'Établissement',
+    description:
+      "Structure scolaire, personnel enseignant, comptes utilisateurs et abonnement de l'établissement.",
+    blocs: [
+      {
+        titre: 'Années scolaires',
+        description: "Ouvrir, activer et clôturer les années scolaires de l'établissement.",
+        href: '/etablissement/annees-scolaires',
+        icone: 'etablissement',
+        roles: ['DIRECTEUR'],
+      },
+      {
+        titre: 'Cycles et niveaux',
+        description: 'Cycles enseignés, niveaux et séries proposés.',
+        href: '/etablissement/cycles',
+        icone: 'etablissement',
+        roles: ['DIRECTEUR'],
+      },
+      {
+        titre: 'Classes',
+        description: 'Créer les classes de l’année et suivre leurs effectifs.',
+        href: '/etablissement/classes',
+        icone: 'etablissement',
+        roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
+      },
+      {
+        titre: 'Matières',
+        description: 'Catalogue des matières enseignées.',
+        href: '/etablissement/matieres',
+        icone: 'notes',
+        roles: TOUS_ADMIN,
+      },
+      {
+        titre: 'Programme et coefficients',
+        description: 'Matières par niveau et coefficients par série, pour l’année en cours.',
+        href: '/etablissement/programme',
+        icone: 'notes',
+        roles: TOUS_ADMIN,
+      },
+      {
+        titre: 'Enseignants',
+        description: 'Fiches des enseignants et affectations aux classes et aux matières.',
+        href: '/etablissement/enseignants',
+        icone: 'enseignants',
+        roles: TOUS_ADMIN,
+      },
+      {
+        titre: 'Utilisateurs',
+        description: 'Comptes d’accès à la plateforme et rôles associés.',
+        href: '/utilisateurs',
+        icone: 'utilisateurs',
+        roles: ['DIRECTEUR'],
+      },
+      {
+        titre: 'Abonnement',
+        description: 'Formule en cours, échéance et renouvellement.',
+        href: '/abonnement',
+        icone: 'abonnements',
+        roles: ['DIRECTEUR'],
+      },
+    ],
+  },
+  '/etablissement/notes': {
+    titre: 'Notes et résultats',
+    description:
+      'Saisie, approbation, moyennes, classements et édition des bulletins pour la période en cours.',
+    blocs: [
+      {
+        titre: 'Saisie des notes',
+        description: 'Saisir et soumettre les notes de vos évaluations.',
+        href: '/etablissement/notes/saisie',
+        icone: 'notes',
+        roles: ['ENSEIGNANT'],
+      },
+      {
+        titre: 'Approbation des notes',
+        description: 'Traiter les demandes de correction soumises par les enseignants.',
+        href: '/etablissement/notes/approbation',
+        icone: 'notes',
+        roles: ['SECRETAIRE'],
+      },
+      {
+        titre: 'Moyennes et classement',
+        description: 'Moyennes par matière, moyennes trimestrielles, appréciations et rangs.',
+        href: '/etablissement/notes/resultats',
+        icone: 'notes',
+        roles: ['DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT'],
+      },
+      {
+        titre: 'Bulletins',
+        description: 'Générer et télécharger les bulletins de la période.',
+        href: '/etablissement/notes/bulletins',
+        icone: 'notes',
+        roles: TOUS_ADMIN,
+      },
+    ],
+  },
+  '/etablissement/finances': {
+    titre: 'Finances',
+    description:
+      'Frais de scolarité, tarifs de l’année, facturation des élèves et encaissement des versements.',
+    blocs: [
+      {
+        titre: 'Suivi des paiements',
+        description: 'État des factures, soldes restants et relances.',
+        href: '/etablissement/finances/factures',
+        icone: 'finances',
+        roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
+      },
+      {
+        titre: 'Versements',
+        description: 'Encaisser un versement et éditer le reçu correspondant.',
+        href: '/etablissement/finances/paiements',
+        icone: 'finances',
+        roles: ['DIRECTEUR', 'COMPTABLE'],
+      },
+      {
+        titre: 'Tarifs',
+        description: 'Montants par type de frais, par niveau et par année scolaire.',
+        href: '/etablissement/finances/tarifs',
+        icone: 'finances',
+        roles: ['DIRECTEUR', 'COMPTABLE'],
+      },
+      {
+        titre: 'Types de frais',
+        description: 'Nature des frais facturables (scolarité, inscription, cantine…).',
+        href: '/etablissement/finances/types-frais',
+        icone: 'finances',
+        roles: ['DIRECTEUR', 'COMPTABLE'],
+      },
+      {
+        titre: 'Import financier',
+        description: 'Importer un lot de versements depuis un fichier.',
+        href: '/etablissement/finances/import',
+        icone: 'finances',
+        roles: ['COMPTABLE'],
+      },
+    ],
+  },
+};
+
+/** Blocs d'une section visibles par un rôle donné. */
+export function blocsSection(chemin: string, role: Role): BlocSection[] {
+  return (SECTIONS[chemin]?.blocs ?? []).filter((bloc) => bloc.roles.includes(role));
+}
 
 export function getSidebarItems(role: Role): SidebarItem[] {
   switch (role) {
     case 'SUPER_ADMIN':
       return [
-        { label: 'Établissements', href: '/super-admin' },
-        { label: 'Abonnements', href: '/super-admin/abonnements' },
+        { label: 'Établissements', href: '/super-admin', icone: 'etablissement' },
+        { label: 'Abonnements', href: '/super-admin/abonnements', icone: 'abonnements' },
       ];
     case 'DIRECTEUR':
       return [
-        { label: 'Tableau de bord', href: '/dashboard' },
-        { label: 'Cycles', href: '/etablissement/cycles' },
-        { label: 'Années scolaires', href: '/etablissement/annees-scolaires' },
-        { label: 'Classes', href: '/etablissement/classes' },
-        { label: 'Élèves', href: '/etablissement/eleves' },
-        { label: 'Enseignants', href: '/etablissement/enseignants' },
-        { label: 'Matières', href: '/etablissement/matieres' },
-        { label: 'Programme & coefficients', href: '/etablissement/programme' },
-        { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
-        { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
-        { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
-        { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
-        { label: 'Versements', href: '/etablissement/finances/paiements' },
-        { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
-        { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
-        { label: 'Utilisateurs', href: '/utilisateurs' },
-        { label: 'Rapports & exports', href: '/rapports' },
-        { label: 'Mon abonnement', href: '/abonnement' },
+        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
+        { label: 'Notes et résultats', href: '/etablissement/notes', icone: 'notes' },
+        { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
+        { label: 'Établissement', href: '/etablissement', icone: 'etablissement' },
+        { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'SECRETAIRE':
       return [
-        { label: 'Tableau de bord', href: '/dashboard' },
-        { label: 'Classes', href: '/etablissement/classes' },
-        { label: 'Élèves', href: '/etablissement/eleves' },
-        { label: 'Enseignants', href: '/etablissement/enseignants' },
-        { label: 'Matières', href: '/etablissement/matieres' },
-        { label: 'Programme & coefficients', href: '/etablissement/programme' },
-        { label: 'Approbation des notes', href: '/etablissement/notes/approbation' },
-        { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
-        { label: 'Bulletins', href: '/etablissement/notes/bulletins' },
-        { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
-        { label: 'Rapports & exports', href: '/rapports' },
+        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
+        { label: 'Notes et résultats', href: '/etablissement/notes', icone: 'notes' },
+        { label: 'Établissement', href: '/etablissement', icone: 'etablissement' },
+        { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'COMPTABLE':
       return [
-        { label: 'Tableau de bord', href: '/dashboard' },
-        { label: 'Suivi des paiements', href: '/etablissement/finances/factures' },
-        { label: 'Versements', href: '/etablissement/finances/paiements' },
-        { label: 'Tarifs', href: '/etablissement/finances/tarifs' },
-        { label: 'Types de frais', href: '/etablissement/finances/types-frais' },
-        { label: 'Import financier', href: '/etablissement/finances/import' },
-        { label: 'Rapports & exports', href: '/rapports' },
-        { label: 'Classes', href: '/etablissement/classes' },
-        { label: 'Élèves', href: '/etablissement/eleves' },
+        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
+        { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
+        { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'ENSEIGNANT':
       return [
-        { label: 'Tableau de bord', href: '/dashboard' },
-        { label: 'Mes classes', href: '/etablissement/mes-classes' },
-        { label: 'Saisie des notes', href: '/etablissement/notes/saisie' },
-        { label: 'Moyennes & classement', href: '/etablissement/notes/resultats' },
-        { label: 'Rapports & exports', href: '/rapports' },
+        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Mes classes', href: '/etablissement/mes-classes', icone: 'mes-classes' },
+        { label: 'Notes et résultats', href: '/etablissement/notes', icone: 'notes' },
+        { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     default:
       return [];
   }
 }
+
+/** Entrées épinglées en bas de la sidebar, communes à tous les rôles. */
+export const ITEMS_BAS_SIDEBAR: SidebarItem[] = [
+  { label: 'Paramètres', href: '/profil/parametres', icone: 'parametres' },
+  { label: 'Aide', href: '/profil/aide', icone: 'aide' },
+];

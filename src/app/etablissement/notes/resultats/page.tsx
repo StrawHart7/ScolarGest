@@ -3,13 +3,18 @@ import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listMesAffectations } from '@/services/affectation';
-import { listElevesInscritsClasse } from '@/services/eleve';
-import { getMoyennesEleve, getClassementClasse, type MoyennesEleveResult } from '@/services/note';
+import { getResultatsClasse, type ResultatEleve } from '@/services/resultats-classe';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  PaginationListe,
+  RechercheListe,
+  TriColonne,
+} from '@/components/ui/liste-toolbar';
+import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { ResultatsFiltres } from './ResultatsFiltres';
 
@@ -32,14 +37,20 @@ function formatMoyenne(v: number | null): string {
 export default async function ResultatsPage({
   searchParams,
 }: {
-  searchParams: { classeId?: string; periode?: Periode; anneeScolaireId?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const ctx = await getTenantContext();
 
+  const lireUnique = (cle: string): string | undefined => {
+    const brut = searchParams[cle];
+    const valeur = Array.isArray(brut) ? brut[0] : brut;
+    return valeur && valeur.length > 0 ? valeur : undefined;
+  };
+
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
-  const anneeScolaireId = searchParams.anneeScolaireId || anneeActive?.id || annees[0]?.id;
-  const periode: Periode = searchParams.periode ?? 'TRIMESTRE_1';
+  const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
+  const periode = (lireUnique('periode') as Periode | undefined) ?? 'TRIMESTRE_1';
 
   const classeOptions =
     ctx.role === 'ENSEIGNANT'
@@ -54,7 +65,7 @@ export default async function ResultatsPage({
         ? (await listClasses(anneeScolaireId)).map((c) => ({ id: c.id, nom: c.nom }))
         : [];
 
-  const classeId = searchParams.classeId || classeOptions[0]?.id;
+  const classeId = lireUnique('classeId') || classeOptions[0]?.id;
 
   return (
     <AppLayout
@@ -73,7 +84,7 @@ export default async function ResultatsPage({
         </div>
 
         <Card>
-          <div className="border-b border-surface-border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
             <ResultatsFiltres
               annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
               classes={classeOptions}
@@ -81,6 +92,7 @@ export default async function ResultatsPage({
               defaultClasseId={classeId ?? ''}
               defaultPeriode={periode}
             />
+            <RechercheListe placeholder="Rechercher un élève…" />
           </div>
 
           {!anneeScolaireId || !classeId ? (
@@ -88,12 +100,17 @@ export default async function ResultatsPage({
               <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-sm text-text-secondary">
                 {classeOptions.length === 0
-                  ? "Aucune classe accessible pour cette année scolaire."
+                  ? 'Aucune classe accessible pour cette année scolaire.'
                   : 'Sélectionnez une classe pour afficher les résultats.'}
               </p>
             </CardContent>
           ) : (
-            <ResultatsTable classeId={classeId} periode={periode} anneeScolaireId={anneeScolaireId} />
+            <ResultatsTable
+              classeId={classeId}
+              periode={periode}
+              anneeScolaireId={anneeScolaireId}
+              searchParams={searchParams}
+            />
           )}
         </Card>
       </div>
@@ -105,17 +122,28 @@ async function ResultatsTable({
   classeId,
   periode,
   anneeScolaireId,
+  searchParams,
 }: {
   classeId: string;
   periode: Periode;
   anneeScolaireId: string;
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const [eleves, classement] = await Promise.all([
-    listElevesInscritsClasse(classeId, anneeScolaireId),
-    getClassementClasse(classeId, periode, anneeScolaireId),
-  ]);
+  let resultats;
+  try {
+    // Une seule lecture groupée pour toute la classe (voir `resultats-classe.ts`).
+    resultats = await getResultatsClasse(classeId, periode, anneeScolaireId);
+  } catch (erreur) {
+    return (
+      <CardContent className="py-12 text-center">
+        <p className="text-body-sm text-error">
+          {erreur instanceof Error ? erreur.message : 'Erreur lors du calcul des résultats.'}
+        </p>
+      </CardContent>
+    );
+  }
 
-  if (eleves.length === 0) {
+  if (resultats.eleves.length === 0) {
     return (
       <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
         <ClipboardList className="h-10 w-10 text-text-secondary/50" aria-hidden />
@@ -126,71 +154,110 @@ async function ResultatsTable({
     );
   }
 
-  const rangById = new Map(classement.map((c) => [c.eleveId, c.rang]));
-
-  const resultats: MoyennesEleveResult[] = await Promise.all(
-    eleves.map((e) => getMoyennesEleve(e.id, classeId, periode, anneeScolaireId)),
-  );
-  const resultatById = new Map(resultats.map((r) => [r.eleveId, r]));
-
-  // Le programme (donc la liste des matières-colonnes) est celui du niveau
-  // de la classe : identique pour tous les élèves de la classe, on prend
-  // la première liste non vide comme en-têtes.
-  const matieres = resultats.find((r) => r.matieres.length > 0)?.matieres ?? [];
+  const parametres = lireParametresListe(searchParams, { tri: 'rang' });
+  const page = preparerListe<ResultatEleve>(resultats.eleves, parametres, {
+    champsRecherche: (e) => [e.nom, e.prenoms],
+    valeursTri: {
+      rang: (e) => e.rang,
+      eleve: (e) => `${e.nom} ${e.prenoms}`,
+      moyenne: (e) => e.moyenneTrimestrielle,
+    },
+  });
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Matricule</TableHead>
-          <TableHead>Nom &amp; Prénoms</TableHead>
-          {matieres.map((m) => (
-            <TableHead key={m.matiereId} className="text-right">
-              {m.matiereNom}
-            </TableHead>
-          ))}
-          <TableHead className="text-right">Moyenne</TableHead>
-          <TableHead>Appréciation</TableHead>
-          <TableHead className="text-right">Rang</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {eleves.map((eleve) => {
-          const resultat = resultatById.get(eleve.id);
-          const rang = rangById.get(eleve.id) ?? null;
-          const appr = resultat?.appreciation ?? null;
-          const badge = appr ? APPRECIATION_BADGE[appr] : undefined;
+    <>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-surface-border bg-surface-container-low px-4 py-2 text-body-sm text-text-secondary">
+        <span>
+          Moyenne générale de la classe :{' '}
+          <strong className="text-text-primary">{formatMoyenne(resultats.moyenneGenerale)}</strong>
+        </span>
+        <span>
+          Moyenne la plus forte :{' '}
+          <strong className="text-text-primary">
+            {formatMoyenne(resultats.moyenneLaPlusForte)}
+          </strong>
+        </span>
+        <span>
+          Moyenne la plus faible :{' '}
+          <strong className="text-text-primary">
+            {formatMoyenne(resultats.moyenneLaPlusFaible)}
+          </strong>
+        </span>
+      </div>
 
-          return (
-            <TableRow key={eleve.id}>
-              <TableCell data-mono>{eleve.matricule}</TableCell>
-              <TableCell className="font-medium">
-                {eleve.nom} {eleve.prenoms}
-              </TableCell>
-              {(resultat?.matieres ?? matieres).map((m) => (
-                <TableCell key={m.matiereId} data-mono className="text-right">
-                  {formatMoyenne(m.moyenne)}
-                </TableCell>
-              ))}
-              <TableCell data-mono className="text-right font-semibold">
-                {formatMoyenne(resultat?.moyenneTrimestrielle ?? null)}
-              </TableCell>
-              <TableCell>
-                {appr ? (
-                  <Badge variant={badge?.variant ?? 'neutral'} shape="pill">
-                    {appr}
-                  </Badge>
-                ) : (
-                  <span className="text-text-secondary">—</span>
-                )}
-              </TableCell>
-              <TableCell data-mono className="text-right">
-                {rang ?? '—'}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TriColonne cle="eleve">Nom &amp; Prénoms</TriColonne>
+            {resultats.matieres.map((m) => (
+              <TableHead key={m.matiereId} className="text-right">
+                {m.matiereNom}
+              </TableHead>
+            ))}
+            <TriColonne cle="moyenne" numerique>
+              Moyenne
+            </TriColonne>
+            <TableHead>Appréciation</TableHead>
+            <TriColonne cle="rang" numerique>
+              Rang
+            </TriColonne>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {page.lignes.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={resultats.matieres.length + 4} className="py-10 text-center">
+                <span className="text-body-sm text-text-secondary">
+                  Aucun élève ne correspond à la recherche.
+                </span>
               </TableCell>
             </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          ) : (
+            page.lignes.map((eleve) => {
+              const appr = eleve.appreciation;
+              const badge = appr ? APPRECIATION_BADGE[appr] : undefined;
+              const moyenneParMatiere = new Map(eleve.matieres.map((m) => [m.matiereId, m.moyenne]));
+
+              return (
+                <TableRow key={eleve.eleveId}>
+                  <TableCell className="font-medium">
+                    {eleve.nom} {eleve.prenoms}
+                  </TableCell>
+                  {resultats.matieres.map((m) => (
+                    <TableCell key={m.matiereId} data-mono className="text-right">
+                      {formatMoyenne(moyenneParMatiere.get(m.matiereId) ?? null)}
+                    </TableCell>
+                  ))}
+                  <TableCell data-mono className="text-right font-semibold">
+                    {formatMoyenne(eleve.moyenneTrimestrielle)}
+                  </TableCell>
+                  <TableCell>
+                    {appr ? (
+                      <Badge variant={badge?.variant ?? 'neutral'} shape="pill">
+                        {appr}
+                      </Badge>
+                    ) : (
+                      <span className="text-text-secondary">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell data-mono className="text-right">
+                    {eleve.rang ?? '—'}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+
+      <PaginationListe
+        page={page.page}
+        nombrePages={page.nombrePages}
+        debut={page.debut}
+        fin={page.fin}
+        total={page.total}
+        libelle="élève(s)"
+      />
+    </>
   );
 }

@@ -284,6 +284,116 @@ Ce parcours a révélé trois défauts, tous corrigés :
 
 ---
 
+### Phase 8.5 — Refonte UX/UI, performance et corrections métier — 🚧 EN COURS (2026-08-20)
+
+**Origine** : retours d'usage manuels consignés dans `remarques_avant_phase9.txt` (2026-08-20),
+après passage complet sur les rôles Directeur, Secrétaire, Enseignant et Comptable.
+La Phase 9 (durcissement & mise en production) est **décalée après cette phase** : elle gèle
+un état (revue de sécurité, matrice de permissions, E2E des parcours critiques, go/no-go), et
+geler avant la refonte reviendrait à la repayer intégralement.
+
+**Périmètre** : correctifs et mise en conformité. Les *améliorations* (nouveaux graphiques,
+animations décoratives, refonte d'ergonomie non signalée) restent hors périmètre et passent
+après la mise en production.
+
+#### Lot 1 — Fondations design system
+
+Tout le reste en dépend ; à faire en premier.
+
+- **Toasts** : composant `Toaster` global + hook `useToast` (succès / erreur / info). Aucune
+  confirmation n'est aujourd'hui remontée à l'utilisateur autrement que par un rechargement muet.
+- **Modal flottant réutilisable** (`Dialog` Radix) — base des formulaires « nouveau X »,
+  du PIN et des confirmations.
+- **Boutons** : corriger la couleur de texte sur fonds bleu et rouge (contraste illisible),
+  renforcer les états `hover`/`active`, ajouter un état `pending` (spinner) piloté par
+  `useFormStatus` pour tout bouton de soumission.
+- **Hover** : remonter le contraste des survols (lignes de tableau, items de sidebar, cartes) —
+  actuellement le changement de couleur est à peine perceptible.
+- **Scrollbar** personnalisée alignée sur les tokens `Luminous Institutional`.
+- **États de chargement** : `loading.tsx` par segment de route + squelettes de tableau, pour
+  ne plus laisser un écran figé pendant les 3–6 s d'un aller-retour Supabase.
+- **DatePicker** : navigation par mois/année (sélecteurs) pour atteindre une date éloignée
+  (dates de naissance) sans cliquer mois par mois.
+
+#### Lot 2 — Performance
+
+Une action prend aujourd'hui 3 à 6 s, ce qui n'est pas exploitable.
+
+- Profiler les écrans les plus lents et supprimer les requêtes en cascade restantes
+  (même traitement que le correctif Phase 8 sur « Résultats par classe » : 60 s → 7 s).
+- `/etablissement/notes/resultats` **ne s'affiche jamais** (compile puis reste bloqué) —
+  N+1 de `getClassementClasse` encore présent sur cet écran. Bloquant.
+- Mutualiser les lectures répétées (`getTenantContext`, année active, établissement) via
+  `React.cache` sur la durée d'une requête.
+- Revue des index Postgres sur les colonnes de filtre les plus sollicitées.
+- Perception : `useOptimistic` / `router.refresh()` ciblé plutôt que rechargement complet.
+
+#### Lot 3 — Navigation et information architecture
+
+- **Sidebar** : ramener à 5–6 entrées par rôle (aujourd'hui jusqu'à 18 pour le Directeur),
+  avec icône sur chaque entrée, et `Paramètres` + `Aide` en sticky en bas.
+- Chaque entrée regroupante ouvre une **page d'accueil de section** listant ses
+  fonctionnalités en blocs (ex. `Élèves` → inscriptions, facturation, responsables).
+- `Mon abonnement` sort de la sidebar (profil ou section Établissement).
+- **Header** : supprimer le second « ScolarGest » (doublon du sidebar), le remplacer par une
+  **barre de recherche globale dynamique** ; ajouter `Paramètres`, `Aide`, `Notifications`
+  en icônes à côté du profil, avec les pages correspondantes rattachées au profil.
+
+#### Lot 4 — Listes : pagination, recherche, tri, filtres
+
+Transversal à toutes les listes de la plateforme.
+
+- **Pagination** ~10 lignes par page, navigation horizontale par boutons directionnels, de
+  sorte qu'aucune liste n'oblige à scroller pour atteindre la dernière ligne ni les actions
+  situées en dessous (cas bloquant constaté sur `Tarifs` : « Nouveau tarif » inatteignable).
+- **Recherche dynamique** + **tri** + **filtres** sur chaque liste.
+- **Masquer le matricule** dans les listes ; il reste sur la fiche de l'élève.
+
+#### Lot 5 — Step-up PIN et modales de formulaire
+
+- Généraliser la **demande de PIN** sur les actions irréversibles ou sensibles : activation
+  d'un cycle (verrouillage définitif), activation d'une année scolaire, et l'ensemble des
+  actions d'approbation listées au doc 03. Aujourd'hui le PIN n'est demandé quasiment nulle part.
+- **Profil** : la section « PIN de confirmation » devient discrète et ouvre un modal flottant.
+- Les pages `/nouvelle` deviennent des **modales flottantes** (année scolaire, classe,
+  inscription d'un élève, etc.).
+
+#### Lot 6 — Corrections métier
+
+- **Années scolaires** : une année ne doit plus passer automatiquement à `TERMINEE`.
+  Concevoir un **flux de clôture d'année** explicite (à spécifier avant implémentation).
+- **Classes** : le nom devient une **composition guidée** `Niveau + Série + Indice (A, B, …)`
+  au lieu d'une saisie libre ; compléter la liste des séries (une série manque).
+- **Élèves** : sortir le passage de cohorte de la section Élèves et le refondre **par classe**
+  (avec une option « faire passer tous les admis ») ; rendre la section « Responsables légaux »
+  modifiable ; dans « Facturation », remplacer l'ouverture implicite de la facture par un bouton.
+- **Programme & coefficients** : supprimer la colonne « ordre d'affichage » (inutile) ; rendre
+  la gestion des coefficients visible ; remplacer l'enregistrement matière par matière.
+  **Bug** : au changement de série, les coefficients affichés conservent les valeurs de la
+  série précédente au lieu de charger les leurs.
+- **Approbation des notes** : les notes soumises par un enseignant ne génèrent **aucune**
+  demande d'approbation visible. À corriger, et à recentrer sur la **Secrétaire** seule —
+  le Directeur n'intervient pas sur les notes (doc 03).
+- **Dashboard Directeur** : donner du corps à « Activité récente » ; « Recouvrement » occupe
+  beaucoup d'espace pour peu d'information — graphique ou format compact.
+- **Dashboard Secrétaire** : raccourcis en blocs ; « Inscrire un élève » en modal.
+
+#### Lot 7 — Bulletin Collège/Lycée
+
+Reproduire **à l'identique** le modèle officiel fourni (`Bulletin_LOKI_KILO.pdf`, format
+Ministère des Enseignements Primaire et Secondaire / République Togolaise) : en-tête à trois
+colonnes, encart Sexe/Statut, tableau des matières (Moy. Classe, Compo, Moy. Géné, Coef, Note
+Définitive, Rang, Appréciation, Nom du professeur, Signature), bloc absences/retards/punitions/
+exclusions, tableau d'honneur / félicitations / encouragements / avertissement / blâme,
+rappel des moyennes, moyenne la plus forte et la plus faible, décision du conseil, observation
+du chef d'établissement et signatures.
+Le modèle **Collège/Lycée uniquement** : les autres cycles conservent le gabarit actuel.
+
+**DoD** : build / lint / typecheck / unit / E2E verts ; parcours manuel repassé sur les quatre
+rôles ; aucun point de `remarques_avant_phase9.txt` non traité ou non explicitement reporté.
+
+---
+
 ### Phase 9 — Durcissement & mise en production
 
 **Objectif** : passer d'un produit fonctionnel à un produit livrable.
@@ -316,7 +426,7 @@ Phase 1 ──► Phase 2 ──► Phase 3 ─┐
     │
     └──────────────► Phase 7
 
-Phases 2–7 ──► Phase 8 ──► Phase 9
+Phases 2–7 ──► Phase 8 ──► Phase 8.5 ──► Phase 9
 ```
 
 **Parallélisation possible** une fois Phase 1 stable :

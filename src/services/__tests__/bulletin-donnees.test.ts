@@ -51,7 +51,13 @@ const PROGRAMME_ROWS = [
   },
 ];
 
-const INSCRIPTIONS = [{ eleveId: 'eleve1' }, { eleveId: 'eleve2' }, { eleveId: 'eleve3' }];
+// Le classement passe désormais par `getResultatsClasse`, qui lit l'élève
+// joint à l'inscription (une seule requête au lieu d'une par élève).
+const INSCRIPTIONS = [
+  { eleveId: 'eleve1', eleve: { id: 'eleve1', matricule: 'M-001', nom: 'Un', prenoms: 'Eleve' } },
+  { eleveId: 'eleve2', eleve: { id: 'eleve2', matricule: 'M-002', nom: 'Deux', prenoms: 'Eleve' } },
+  { eleveId: 'eleve3', eleve: { id: 'eleve3', matricule: 'M-003', nom: 'Trois', prenoms: 'Eleve' } },
+];
 
 const AFFECTATIONS = [
   {

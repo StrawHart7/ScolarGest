@@ -45,3 +45,57 @@ body {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Scrollbar aux couleurs de la plateforme.
+   Firefox via scrollbar-color, Chromium/WebKit via ::-webkit-scrollbar.
+   --------------------------------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c3c6d6 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #c3c6d6;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #737685;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Barre de progression de navigation : rend visible un changement de page
+   qui prend plusieurs secondes côté serveur. */
+@keyframes barre-navigation {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
