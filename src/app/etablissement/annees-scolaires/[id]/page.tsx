@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, CalendarRange } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { getAnneeScolaire } from '@/services/annee-scolaire';
+import { getAnneeScolaire, listAnneesScolaires } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,9 @@ const STATUT_BADGE = {
 export default async function AnneeScolaireDetailPage({ params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   const annee = await getAnneeScolaire(params.id);
+  // Une activation est refusée tant qu'une autre année est active : on charge
+  // l'année en cours pour l'expliquer avant le clic, pas après.
+  const anneeActive = (await listAnneesScolaires()).find((a) => a.statut === 'ACTIVE');
 
   return (
     <AppLayout
@@ -59,8 +62,12 @@ export default async function AnneeScolaireDetailPage({ params }: { params: { id
               >
                 Voir les classes de cette année
               </Link>
-              {annee.statut !== 'ACTIVE' && ctx.role === 'DIRECTEUR' && (
-                <ActiverAnneeButton anneeScolaireId={annee.id} />
+              {annee.statut === 'PREPARATION' && ctx.role === 'DIRECTEUR' && (
+                <ActiverAnneeButton
+                  anneeScolaireId={annee.id}
+                  libelle={annee.libelle}
+                  anneeActiveLibelle={anneeActive?.libelle}
+                />
               )}
             </div>
           </CardContent>

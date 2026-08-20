@@ -11,7 +11,7 @@ import { ApprobationQueue } from './ApprobationQueue';
 export default async function ApprobationNotesPage() {
   // Garde explicite au niveau page, en plus de la garde déjà appliquée dans
   // le service listNotesEnAttente (défense en profondeur).
-  await requireRole('DIRECTEUR', 'SECRETAIRE');
+  await requireRole('SECRETAIRE');
 
   const ctx = await getTenantContext();
   const notes = await listNotesEnAttente();

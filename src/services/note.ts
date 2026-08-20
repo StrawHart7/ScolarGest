@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { getEnseignantParUtilisateur } from './enseignant';
-import { verifyPin } from './pin';
+import { exigerPin } from './pin';
 import { listProgramme } from './programme';
 import { getCoefficient } from './coefficient';
 import { getResultatsClasse } from './resultats-classe';
@@ -260,23 +260,9 @@ export async function demanderModification(
   return data as unknown as Note;
 }
 
-async function verifierPin(pin: string): Promise<void> {
-  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('utilisateur')
-    .select('"pinApprobationHash"')
-    .eq('id', ctx.userId)
-    .single();
-  if (error) throw error;
-  if (!data.pinApprobationHash) {
-    throw new Error('Aucun PIN d\'approbation configuré pour votre compte.');
-  }
-  const valid = await verifyPin(pin, data.pinApprobationHash as string);
-  if (!valid) {
-    throw new Error('PIN invalide.');
-  }
-}
+// Le step-up PIN vit dans `pin.ts` : il est partagé par toutes les actions
+// sensibles, pas seulement par l'approbation des notes.
+const verifierPin = (pin: string) => exigerPin(pin, 'SECRETAIRE');
 
 /** Approuve une demande de modification : applique valeurProposee → valeur, statut → VALIDE. */
 export async function approuverModification(noteId: string, pin: string): Promise<Note> {
@@ -400,10 +386,14 @@ interface NoteEnAttenteRow {
 /**
  * File d'attente d'approbation: toutes les notes EN_ATTENTE de l'établissement
  * courant, avec le contexte nécessaire à la décision (élève, classe, matière,
- * évaluation, ancienne/nouvelle valeur, demandeur). Réservé Directeur/Secrétaire.
+ * évaluation, ancienne/nouvelle valeur, demandeur).
+ *
+ * Réservé à la **Secrétaire** : l'approbation des notes ne relève pas du
+ * Directeur (doc 03). L'ouvrir aux deux rôles diluait la responsabilité sans
+ * que personne ne traite la file.
  */
 export async function listNotesEnAttente(): Promise<NoteEnAttente[]> {
-  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const ctx = await requireRole('SECRETAIRE');
   const supabase = createClient();
 
   const { data, error } = await supabase
