@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { Layers } from 'lucide-react';
+import { Calculator, Layers } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listCyclesActifs, listNiveauxParCycle } from '@/services/structure';
 import { listMatieres } from '@/services/matiere';
 import { listProgramme } from '@/services/programme';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { getSidebarItems } from '@/lib/navigation';
@@ -58,12 +59,14 @@ export default async function ProgrammePage({
               Matières enseignées à chaque niveau, obligatoires ou facultatives.
             </p>
           </div>
-          <Link
-            href="/etablissement/programme/coefficients"
-            className="text-body-sm font-medium text-primary hover:underline"
-          >
-            Gérer les coefficients →
-          </Link>
+          {/* La gestion des coefficients était un lien texte discret alors
+              qu'elle conditionne tout le calcul des moyennes. */}
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/etablissement/programme/coefficients">
+              <Calculator className="h-4 w-4" aria-hidden />
+              Gérer les coefficients
+            </Link>
+          </Button>
         </div>
 
         {niveaux.length === 0 ? (
@@ -76,28 +79,25 @@ export default async function ProgrammePage({
             </CardContent>
           </Card>
         ) : (
-          <>
-            <NiveauSelector niveaux={niveaux} value={niveauId ?? ''} basePath="/etablissement/programme" />
-
-            {canWrite && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Ajouter une matière au programme</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <AjoutMatiereForm
-                    niveauId={niveauId!}
-                    matieresDisponibles={matieresDisponibles}
-                    prochainOrdre={prochainOrdre}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
             <Card>
-              <CardHeader>
-                <CardTitle>Matières du programme</CardTitle>
-              </CardHeader>
+              <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+                <NiveauSelector
+                  niveaux={niveaux}
+                  value={niveauId ?? ''}
+                  basePath="/etablissement/programme"
+                />
+                {canWrite && niveauId && (
+                  <div className="ml-auto">
+                    <AjoutMatiereForm
+                      niveauId={niveauId}
+                      niveauNom={niveaux.find((n) => n.id === niveauId)?.nom ?? ''}
+                      matieresDisponibles={matieresDisponibles}
+                      prochainOrdre={prochainOrdre}
+                    />
+                  </div>
+                )}
+              </div>
+
               {programme.length === 0 ? (
                 <CardContent className="py-10 text-center text-body-md text-text-secondary">
                   Aucune matière rattachée à ce niveau pour le moment.
@@ -106,7 +106,6 @@ export default async function ProgrammePage({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ordre</TableHead>
                       <TableHead>Matière</TableHead>
                       <TableHead>Statut</TableHead>
                       {canWrite && <TableHead>Actions</TableHead>}
@@ -115,7 +114,6 @@ export default async function ProgrammePage({
                   <TableBody>
                     {programme.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell data-mono>{p.ordreAffichage}</TableCell>
                         <TableCell className="font-medium">
                           {p.matiere.nom}
                           {p.matiere.code ? ` (${p.matiere.code})` : ''}
@@ -136,7 +134,6 @@ export default async function ProgrammePage({
                 </Table>
               )}
             </Card>
-          </>
         )}
       </div>
     </AppLayout>

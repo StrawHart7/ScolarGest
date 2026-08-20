@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import {
-  Activity,
   BookOpen,
   ClipboardList,
   Coins,
@@ -18,42 +17,15 @@ import {
   getDashboardEnseignant,
   getDashboardSecretaire,
   getFluxActivite,
-  type StatsFinance,
 } from '@/services/dashboard';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { getSidebarItems } from '@/lib/navigation';
+import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
-
-function TauxRecouvrement({ finance }: { finance: StatsFinance }) {
-  const taux = finance.attendu > 0 ? Math.round((finance.encaisse / finance.attendu) * 100) : 0;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recouvrement</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div
-          className="h-2 w-full overflow-hidden rounded-full bg-surface-container"
-          role="progressbar"
-          aria-valuenow={taux}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Taux de recouvrement"
-        >
-          <div className="h-full rounded-full bg-tertiary" style={{ width: `${taux}%` }} />
-        </div>
-        <p className="text-body-sm text-text-secondary">
-          {taux} % des montants facturés sont encaissés — {nombre(finance.facturesSoldees)} facture(s)
-          soldée(s) sur {nombre(finance.facturesTotal)}.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default async function DashboardPage() {
   let ctx;
@@ -187,39 +159,18 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <TauxRecouvrement finance={stats.finance} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Activité récente</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {flux.length === 0 ? (
-                <p className="text-body-sm text-text-secondary">
-                  Aucune activité enregistrée pour le moment.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {flux.map((evenement) => (
-                    <li key={evenement.id} className="flex items-start gap-3">
-                      <Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary/60" aria-hidden />
-                      <div>
-                        <p className="text-body-sm text-text-primary">{evenement.libelle}</p>
-                        <p className="text-body-sm text-text-secondary">
-                          {new Date(evenement.date).toLocaleString('fr-FR')} — {evenement.module}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-4 text-body-sm text-text-secondary">
-                Ce flux est informatif : aucune validation ne s&apos;y fait.
-              </p>
-            </CardContent>
-          </Card>
+          <FluxActivite evenements={flux} />
         </div>
+
+        <Raccourcis
+          raccourcis={[
+            RACCOURCIS.suiviPaiements!,
+            RACCOURCIS.bulletins!,
+            RACCOURCIS.rapports!,
+          ]}
+        />
       </>,
       `${annee.libelle} — vue globale de l’établissement`,
     );
@@ -255,31 +206,15 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <TauxRecouvrement finance={finance} />
-          <Card>
-            <CardHeader>
-              <CardTitle>Raccourcis</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Link
-                href="/etablissement/finances/factures"
-                className="text-body-sm text-primary hover:underline"
-              >
-                Suivi des paiements
-              </Link>
-              <Link
-                href="/etablissement/finances/paiements"
-                className="text-body-sm text-primary hover:underline"
-              >
-                Historique des versements
-              </Link>
-              <Link href="/rapports" className="text-body-sm text-primary hover:underline">
-                Rapports et exports
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+        <TauxRecouvrement finance={finance} />
+
+        <Raccourcis
+          raccourcis={[
+            RACCOURCIS.suiviPaiements!,
+            RACCOURCIS.versements!,
+            RACCOURCIS.rapports!,
+          ]}
+        />
       </>,
       `${annee.libelle} — état financier`,
     );
@@ -317,31 +252,14 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Raccourcis</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <Link
-              href="/etablissement/eleves/nouvelle"
-              className="text-body-sm text-primary hover:underline"
-            >
-              Inscrire un élève
-            </Link>
-            <Link
-              href="/etablissement/notes/approbation"
-              className="text-body-sm text-primary hover:underline"
-            >
-              Approbation des notes
-            </Link>
-            <Link
-              href="/etablissement/notes/bulletins"
-              className="text-body-sm text-primary hover:underline"
-            >
-              Génération de bulletins
-            </Link>
-          </CardContent>
-        </Card>
+        <Raccourcis
+          raccourcis={[
+            RACCOURCIS.inscrireEleve!,
+            RACCOURCIS.approbation!,
+            RACCOURCIS.bulletins!,
+            RACCOURCIS.eleves!,
+          ]}
+        />
       </>,
       `${annee.libelle} — inscriptions et documents`,
     );
@@ -373,25 +291,9 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Raccourcis</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <Link
-            href="/etablissement/mes-classes"
-            className="text-body-sm text-primary hover:underline"
-          >
-            Mes classes
-          </Link>
-          <Link
-            href="/etablissement/notes/saisie"
-            className="text-body-sm text-primary hover:underline"
-          >
-            Saisie des notes
-          </Link>
-        </CardContent>
-      </Card>
+      <Raccourcis
+        raccourcis={[RACCOURCIS.mesClasses!, RACCOURCIS.saisieNotes!, RACCOURCIS.rapports!]}
+      />
     </>,
     `${annee.libelle} — mon espace`,
   );

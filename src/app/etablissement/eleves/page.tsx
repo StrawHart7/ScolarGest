@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRightLeft, FileSpreadsheet, UserPlus, Users2 } from 'lucide-react';
+import { FileSpreadsheet, UserPlus, Users2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listEleves, type StatutEleve } from '@/services/eleve';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -68,14 +68,6 @@ export default async function ElevesPage({
           <h1 className="text-display-sm text-text-primary">Liste des élèves</h1>
           {canWrite && (
             <div className="flex items-center gap-2">
-              {/* Le passage de cohorte se pilote par classe depuis la fiche de
-                  la classe ; l'entrée globale reste le point d'accès. */}
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/etablissement/eleves/passage">
-                  <ArrowRightLeft className="h-4 w-4" aria-hidden />
-                  Passage de cohorte
-                </Link>
-              </Button>
               <Button asChild variant="secondary" size="sm">
                 <Link href="/etablissement/eleves/import">
                   <FileSpreadsheet className="h-4 w-4" aria-hidden />

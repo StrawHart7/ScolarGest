@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, UserCircle2, FileText } from 'lucide-react';
+import { ArrowLeft, UserCircle2, FileText, Receipt } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
 import { getFacturesEleve } from '@/services/facture';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
 import { ArchiverEleveButton, AnnulerInscriptionButton } from './EleveActions';
+import { AjouterResponsableForm, ModifierResponsableForm } from './ResponsableForms';
 
 export default async function FicheElevePage({ params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
@@ -97,8 +98,9 @@ export default async function FicheElevePage({ params }: { params: { id: string 
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-3">
             <CardTitle>Responsables légaux</CardTitle>
+            {canWrite && <AjouterResponsableForm eleveId={eleve.id} />}
           </CardHeader>
           <CardContent className="space-y-3">
             {eleve.responsables.length === 0 ? (
@@ -107,9 +109,9 @@ export default async function FicheElevePage({ params }: { params: { id: string 
               eleve.responsables.map((r) => (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between rounded-lg border border-surface-border p-3"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-border p-3"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-body-md text-text-primary">
                       {r.responsable.nom} {r.responsable.prenoms}
                       {r.principal && (
@@ -120,8 +122,24 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                     </p>
                     <p className="text-body-sm text-text-secondary">
                       {r.lienParente} — {r.responsable.telephone ?? 'Tél. non renseigné'}
+                      {r.responsable.email ? ` — ${r.responsable.email}` : ''}
                     </p>
                   </div>
+                  {canWrite && (
+                    <ModifierResponsableForm
+                      eleveId={eleve.id}
+                      responsable={{
+                        responsableId: r.responsable.id,
+                        nom: r.responsable.nom,
+                        prenoms: r.responsable.prenoms,
+                        telephone: r.responsable.telephone,
+                        email: r.responsable.email,
+                        adresse: r.responsable.adresse,
+                        profession: r.responsable.profession,
+                        type: r.responsable.type,
+                      }}
+                    />
+                  )}
                 </div>
               ))
             )}
@@ -183,12 +201,6 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                   <p className="mt-1 text-body-sm text-text-secondary" data-mono>
                     Total : {f.montantTotal.toLocaleString('fr-FR')} FCFA
                   </p>
-                  <Link
-                    href={`/etablissement/finances/factures/${f.id}`}
-                    className="text-body-sm text-primary hover:underline"
-                  >
-                    Ouvrir la facture (versements et solde)
-                  </Link>
                   {f.lignes.length > 0 && (
                     <ul className="mt-2 space-y-1 text-body-sm text-text-secondary">
                       {f.lignes.map((l) => (
@@ -199,6 +211,14 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                       ))}
                     </ul>
                   )}
+                  <div className="mt-3 flex justify-end">
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/etablissement/finances/factures/${f.id}`}>
+                        <Receipt className="h-4 w-4" aria-hidden />
+                        Ouvrir la facture
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

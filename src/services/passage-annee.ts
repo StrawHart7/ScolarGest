@@ -17,12 +17,20 @@ export interface InscriptionACloturer {
 /**
  * Liste les inscriptions ACTIVE de l'année source, avec assez de contexte
  * (niveau + niveau suivant) pour proposer une décision de passage.
+ *
+ * `classeId` restreint à une seule classe : traiter tout l'établissement d'un
+ * bloc — plusieurs centaines d'élèves de niveaux différents sur un même écran
+ * — rend la relecture impossible, alors qu'un conseil de classe se tient
+ * précisément classe par classe.
  */
-export async function listInscriptionsACloturer(anneeSourceId: string): Promise<InscriptionACloturer[]> {
+export async function listInscriptionsACloturer(
+  anneeSourceId: string,
+  classeId?: string,
+): Promise<InscriptionACloturer[]> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  let requete = supabase
     .from('inscription')
     .select(
       'id, "eleveId", "classeId", eleve:eleve(nom, prenoms), classe:classe(nom, "niveauId", niveau:niveau(id, "niveauSuivantId"))',
@@ -30,6 +38,9 @@ export async function listInscriptionsACloturer(anneeSourceId: string): Promise<
     .eq('etablissementId', ctx.etablissementId)
     .eq('anneeScolaireId', anneeSourceId)
     .eq('statut', 'ACTIVE');
+  if (classeId) requete = requete.eq('classeId', classeId);
+
+  const { data, error } = await requete;
   if (error) throw error;
 
   return (data ?? []).map((row) => {

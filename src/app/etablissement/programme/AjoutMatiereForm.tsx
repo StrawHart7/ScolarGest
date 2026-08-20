@@ -1,33 +1,27 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { FormulaireModal } from '@/components/ui/form-modal';
 import { ajouterAuProgrammeAction } from './actions';
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? 'Ajout...' : 'Ajouter au programme'}
-    </Button>
-  );
-}
 
 export function AjoutMatiereForm({
   niveauId,
+  niveauNom,
   matieresDisponibles,
   prochainOrdre,
 }: {
   niveauId: string;
+  niveauNom: string;
   matieresDisponibles: { id: string; nom: string; code: string | null }[];
+  /**
+   * L'ordre n'est plus saisi : il ne servait qu'à ordonner l'affichage, ce que
+   * l'ordre alphabétique fait sans demander une décision à l'utilisateur. On
+   * conserve la valeur pour l'action, qui alimente encore la colonne en base.
+   */
   prochainOrdre: number;
 }) {
-  const [error, formAction] = useFormState(ajouterAuProgrammeAction, null);
-
   if (matieresDisponibles.length === 0) {
     return (
       <p className="text-body-sm text-text-secondary">
@@ -37,12 +31,22 @@ export function AjoutMatiereForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3">
+    <FormulaireModal
+      action={ajouterAuProgrammeAction}
+      titre={`Ajouter une matière — ${niveauNom}`}
+      description="La matière entrera dans le calcul des moyennes de ce niveau dès qu'un coefficient lui sera donné."
+      declencheur="Ajouter une matière"
+      libelleValidation="Ajouter au programme"
+      messageSucces="Matière ajoutée au programme"
+      detailSucces="Pensez à définir son coefficient."
+    >
       <input type="hidden" name="niveauId" value={niveauId} />
+      <input type="hidden" name="ordreAffichage" value={prochainOrdre} />
+
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="matiereId">Matière</Label>
-        <Select name="matiereId" required key={niveauId}>
-          <SelectTrigger id="matiereId" className="w-56">
+        <Select name="matiereId" required>
+          <SelectTrigger id="matiereId">
             <SelectValue placeholder="Choisir une matière" />
           </SelectTrigger>
           <SelectContent>
@@ -55,25 +59,16 @@ export function AjoutMatiereForm({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="ordreAffichage">Ordre d&apos;affichage</Label>
-        <Input
-          id="ordreAffichage"
-          name="ordreAffichage"
-          type="number"
-          min={0}
-          defaultValue={prochainOrdre}
-          className="w-24"
-        />
-      </div>
-      <div className="flex items-center gap-2 pb-2">
+
+      <div className="flex items-center gap-2">
         <Checkbox id="obligatoire" name="obligatoire" defaultChecked />
         <Label htmlFor="obligatoire" className="cursor-pointer">
-          Obligatoire
+          Matière obligatoire
         </Label>
       </div>
-      <SubmitButton />
-      {error && <p className="w-full text-body-sm text-error">{error}</p>}
-    </form>
+      <p className="text-body-sm text-text-secondary">
+        Une matière facultative n&apos;entre dans la moyenne que si l&apos;élève y a une note.
+      </p>
+    </FormulaireModal>
   );
 }

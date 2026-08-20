@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { School } from 'lucide-react';
+import { ArrowRightLeft, School } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import {
   PaginationListe,
@@ -69,11 +70,21 @@ export default async function ClassesPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Classes</h1>
-          <p className="text-body-md text-text-secondary">
-            {anneeActive ? `Année active : ${anneeActive.libelle}` : 'Aucune année active'}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-display-sm text-text-primary">Classes</h1>
+            <p className="text-body-md text-text-secondary">
+              {anneeActive ? `Année active : ${anneeActive.libelle}` : 'Aucune année active'}
+            </p>
+          </div>
+          {peutCreer && (
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/etablissement/classes/passage">
+                <ArrowRightLeft className="h-4 w-4" aria-hidden />
+                Passage de cohorte
+              </Link>
+            </Button>
+          )}
         </div>
 
         {!anneeScolaireId ? (

@@ -16,12 +16,16 @@ export function PassageCohorteForm({
   anneeSourceId,
   autresAnnees,
   anneeCibleId,
+  classesSource,
+  classeId,
   decisions,
   classesCibles,
 }: {
   anneeSourceId: string;
   autresAnnees: AnneeScolaire[];
   anneeCibleId?: string;
+  classesSource: { id: string; nom: string }[];
+  classeId: string;
   decisions: DecisionProposee[];
   classesCibles: Classe[];
 }) {
@@ -42,10 +46,54 @@ export function PassageCohorteForm({
     }));
   }
 
-  function changeAnneeCible(id: string) {
-    const params = new URLSearchParams({ anneeSourceId, anneeCibleId: id });
-    router.push(`/etablissement/eleves/passage?${params.toString()}`);
+  function naviguer(modifications: Record<string, string>) {
+    const params = new URLSearchParams({ anneeSourceId, classeId, ...modifications });
+    if (anneeCibleId && !modifications.anneeCibleId) params.set('anneeCibleId', anneeCibleId);
+    router.push(`/etablissement/classes/passage?${params.toString()}`);
   }
+
+  /**
+   * Traitement en masse : sur une classe de trente élèves, l'immense majorité
+   * des décisions est identique. Les régler une par une était le vrai coût de
+   * cet écran.
+   */
+  function appliquerATous(decision: Decision) {
+    setRows((precedent) =>
+      Object.fromEntries(
+        decisions.map((d) => [
+          d.eleveId,
+          { decision, classeCibleId: precedent[d.eleveId]?.classeCibleId },
+        ]),
+      ),
+    );
+  }
+
+  function appliquerClasseCibleAuxAdmis(classeCibleId: string) {
+    setRows((precedent) =>
+      Object.fromEntries(
+        decisions.map((d) => {
+          const courant = precedent[d.eleveId]?.decision ?? d.decisionProposee;
+          return [
+            d.eleveId,
+            {
+              decision: courant,
+              classeCibleId:
+                courant === 'ADMIS' ? classeCibleId : precedent[d.eleveId]?.classeCibleId,
+            },
+          ];
+        }),
+      ),
+    );
+  }
+
+  const compteur = decisions.reduce<Record<Decision, number>>(
+    (acc, d) => {
+      const decision = rows[d.eleveId]?.decision ?? d.decisionProposee;
+      acc[decision] += 1;
+      return acc;
+    },
+    { ADMIS: 0, REDOUBLANT: 0, DEPART: 0 },
+  );
 
   function submit() {
     if (!anneeCibleId) {
@@ -68,25 +116,84 @@ export function PassageCohorteForm({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <span className="text-label-md uppercase text-text-secondary">Année cible</span>
-        <Select value={anneeCibleId ?? ''} onValueChange={changeAnneeCible}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Choisir l'année cible" />
-          </SelectTrigger>
-          <SelectContent>
-            {autresAnnees.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.libelle}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div>
+      <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+        <div className="flex items-center gap-2">
+          <span className="text-label-md uppercase text-text-secondary">Classe</span>
+          <Select value={classeId} onValueChange={(v) => naviguer({ classeId: v })}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Choisir une classe" />
+            </SelectTrigger>
+            <SelectContent>
+              {classesSource.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nom}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-label-md uppercase text-text-secondary">Année cible</span>
+          <Select value={anneeCibleId ?? ''} onValueChange={(v) => naviguer({ anneeCibleId: v })}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Choisir l'année cible" />
+            </SelectTrigger>
+            <SelectContent>
+              {autresAnnees.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.libelle}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
+      {decisions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-surface-border bg-surface-container-low p-4">
+          <span className="text-label-md uppercase text-text-secondary">Appliquer à tous</span>
+          <Button size="sm" variant="secondary" onClick={() => appliquerATous('ADMIS')}>
+            Tous admis
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => appliquerATous('REDOUBLANT')}>
+            Tous redoublants
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => appliquerATous('DEPART')}>
+            Tous en départ
+          </Button>
+
+          {classesCibles.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-label-md uppercase text-text-secondary">
+                Classe des admis
+              </span>
+              <Select onValueChange={appliquerClasseCibleAuxAdmis}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Affecter en masse" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classesCibles.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <span className="ml-auto text-body-sm text-text-secondary">
+            {compteur.ADMIS} admis · {compteur.REDOUBLANT} redoublant(s) · {compteur.DEPART} départ(s)
+          </span>
+        </div>
+      )}
+
       {decisions.length === 0 ? (
-        <p className="text-body-sm text-text-secondary">Aucune inscription active à traiter.</p>
+        <p className="p-6 text-body-sm text-text-secondary">
+          Aucune inscription active à traiter dans cette classe.
+        </p>
       ) : (
         <Table>
           <TableHeader>
@@ -150,7 +257,8 @@ export function PassageCohorteForm({
         </Table>
       )}
 
-      {result?.message && <p className="text-body-sm text-error">{result.message}</p>}
+      <div className="space-y-4 p-4">
+        {result?.message && <p className="text-body-sm text-error">{result.message}</p>}
 
       {result?.resultats && (
         <div className="rounded-lg border border-surface-border p-4">
@@ -164,13 +272,14 @@ export function PassageCohorteForm({
         </div>
       )}
 
-      {decisions.length > 0 && (
-        <div className="flex justify-end">
-          <Button onClick={submit} disabled={pending || !anneeCibleId}>
-            {pending ? 'Validation...' : 'Valider le passage de cohorte'}
-          </Button>
-        </div>
-      )}
+        {decisions.length > 0 && (
+          <div className="flex justify-end">
+            <Button onClick={submit} chargement={pending} disabled={!anneeCibleId}>
+              Valider le passage de cette classe
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

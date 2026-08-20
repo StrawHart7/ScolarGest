@@ -42,7 +42,7 @@ export async function ajouterAuProgrammeAction(
   }
 
   revalidatePath('/etablissement/programme');
-  return null;
+  return 'OK';
 }
 
 const idSchema = z.string().uuid('Identifiant invalide');

@@ -33,6 +33,8 @@ export interface EleveAvecDetails extends Eleve {
       prenoms: string;
       telephone: string | null;
       email: string | null;
+      adresse: string | null;
+      profession: string | null;
       type: TypeResponsable;
     };
   }[];
@@ -165,7 +167,11 @@ export async function getEleve(id: string): Promise<EleveAvecDetails> {
 
   const { data: responsables, error: respError } = await supabase
     .from('eleve_responsable')
-    .select('id, "lienParente", principal, responsable:responsable(id, nom, prenoms, telephone, email, type)')
+    // Adresse et profession sont nécessaires au formulaire de modification
+    // du responsable, désormais accessible depuis la fiche élève.
+    .select(
+      'id, "lienParente", principal, responsable:responsable(id, nom, prenoms, telephone, email, adresse, profession, type)',
+    )
     .eq('eleveId', id);
   if (respError) throw respError;
 
