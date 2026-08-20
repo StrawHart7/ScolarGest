@@ -11,6 +11,13 @@
  *
  * La logique d'extraction vit dans `src/lib/permissions/matrice.ts` : elle est
  * pure, donc testée par Vitest sans passer par ce script.
+ *
+ * Attention : `Docs/` est hors du dépôt Git. `--verifier` n'a donc de sens
+ * qu'en local, sur une copie de travail qui possède déjà le document ; en
+ * intégration continue, sur un clone neuf, il échouerait sur une absence et non
+ * sur une vraie dérive. Le garde-fou qui compte, lui, reste versionné :
+ * `src/lib/permissions/__tests__/matrice.instantane.txt`, comparé par
+ * `matrice.test.ts` à chaque `npm run test`.
  */
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
