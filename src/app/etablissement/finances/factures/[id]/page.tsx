@@ -40,19 +40,19 @@ const MODE_LABEL: Record<string, string> = {
 };
 
 export default async function FactureDetailPage({ params }: { params: { id: string } }) {
-  const ctx = await getTenantContext();
-  const canWrite =
-    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
+  // Les cinq lectures sont indépendantes : en file indienne elles coûtaient
+  // cinq allers-retours pour une page qui n'en demande qu'un.
+  const [ctx, ecritureOuverte, factureOuNull, typesFrais, recus] = await Promise.all([
+    getTenantContext(),
+    peutEcrire(),
+    getFactureDetail(params.id).catch(() => null),
+    listTypesFrais(),
+    listDocumentsParType('RECU'),
+  ]);
 
-  let facture;
-  try {
-    facture = await getFactureDetail(params.id);
-  } catch {
-    notFound();
-  }
-
-  const typesFrais = await listTypesFrais();
-  const recus = await listDocumentsParType('RECU');
+  const canWrite = (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && ecritureOuverte;
+  if (!factureOuNull) notFound();
+  const facture = factureOuNull;
   const recuParPaiement = new Map(
     recus.filter((d) => d.statut === 'GENERE').map((d) => [d.objetId, d.reference]),
   );

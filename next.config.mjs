@@ -6,6 +6,11 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // `lucide-react` expose des milliers d'icônes en modules séparés : sans
+    // cette option, un `import { Users } from 'lucide-react'` fait traverser
+    // tout le paquet au bundler. C'est le poste de compilation le plus lourd
+    // en développement, où chaque route est compilée à la premiere visite.
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   eslint: {
     dirs: ['src'],

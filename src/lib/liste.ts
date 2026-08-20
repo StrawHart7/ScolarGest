@@ -140,3 +140,37 @@ export function preparerListe<T>(
   }
   return paginer(resultat, parametres.page, parametres.taillePage);
 }
+
+/**
+ * Enveloppe un décompte total et une tranche déjà découpée par la base.
+ *
+ * `preparerListe` ci-dessus découpe en mémoire : correct tant que la table
+ * entière tient dans la réponse, ruineux dès qu'elle grossit — afficher les
+ * élèves 11 à 20 retéléchargeait les mille autres. Les services qui savent
+ * paginer côté SQL (`.range()` + `count: 'exact'`) renvoient leur résultat
+ * ici, sans repasser par un tri applicatif qui n'aurait vue que sur la page
+ * courante.
+ */
+export function paginationDepuisBase<T>(
+  lignes: T[],
+  total: number,
+  page: number,
+  taillePage: number,
+): Pagination<T> {
+  const nombrePages = Math.max(1, Math.ceil(total / taillePage));
+  const pageCourante = Math.min(Math.max(1, page), nombrePages);
+  return {
+    lignes,
+    page: pageCourante,
+    nombrePages,
+    total,
+    debut: total === 0 ? 0 : (pageCourante - 1) * taillePage + 1,
+    fin: Math.min(pageCourante * taillePage, total),
+  };
+}
+
+/** Bornes `.range()` (inclusives) correspondant à une page. */
+export function bornesPage(page: number, taillePage: number): { de: number; a: number } {
+  const debut = Math.max(0, (Math.max(1, page) - 1) * taillePage);
+  return { de: debut, a: debut + taillePage - 1 };
+}

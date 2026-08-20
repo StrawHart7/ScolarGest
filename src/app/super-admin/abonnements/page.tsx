@@ -21,9 +21,10 @@ export default async function AbonnementsPage() {
   const ctx = await getTenantContext();
   // Constate les échéances dépassées avant d'afficher : sans planificateur
   // dans le MVP, l'ouverture de la console est le point de passage naturel.
-  await expirerAbonnementsEchus();
+  // `expirerAbonnementsEchus` doit précéder la lecture des abonnements (elle en
+  // change le statut) ; les plans, eux, ne dépendent de rien.
+  const [, plans] = await Promise.all([expirerAbonnementsEchus(), listPlans()]);
   const abonnements = await listAbonnements();
-  const plans = await listPlans();
 
   return (
     <AppLayout

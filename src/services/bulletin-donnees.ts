@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { listProgramme } from './programme';
-import { getCoefficient } from './coefficient';
+import { listCoefficients } from './coefficient';
 import { listAffectationsClasse } from './affectation';
 import { getClassementClasse, getMoyennesEleve } from './note';
 import type { Periode } from './evaluation';
@@ -173,11 +173,18 @@ export async function getDonneesBulletin(
   const matieres: MatiereBulletinDetail[] = [];
   const matiereInputsPourTrimestre: { moyenne: number | null; coefficient: number; obligatoire: boolean }[] = [];
 
+  // Tous les coefficients en une requête : la boucle en faisait une par
+  // matière, soit une douzaine d'allers-retours séquentiels par bulletin.
+  const coefficients = await listCoefficients(
+    programme.map((item) => item.id),
+    anneeScolaireId,
+    classe.serieId ?? null,
+  );
+
   for (const item of programme) {
     const matiereEvaluations = evaluationRows.filter((e) => e.matiereId === item.matiereId);
 
-    const coef = await getCoefficient(item.id, anneeScolaireId, classe.serieId ?? null);
-    const coefficient = coef?.coefficient ?? 0;
+    const coefficient = coefficients.get(item.id) ?? 0;
 
     const eleveDetail = calculerMoyenneMatiere(eleveId, matiereEvaluations, notesByEvaluation);
 

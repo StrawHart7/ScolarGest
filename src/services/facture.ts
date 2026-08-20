@@ -130,16 +130,27 @@ export async function getFacturesEleve(eleveId: string): Promise<FactureEleve[]>
     .order('dateCreation', { ascending: false });
   if (error) throw error;
 
-  const result: FactureEleve[] = [];
-  for (const f of factures ?? []) {
-    const { data: lignes, error: lignesError } = await supabase
-      .from('ligne_facture')
-      .select(LIGNE_FIELDS)
-      .eq('factureId', f.id);
-    if (lignesError) throw lignesError;
-    result.push({ ...(f as unknown as Omit<FactureEleve, 'lignes'>), lignes: lignes ?? [] });
+  // Toutes les lignes en une requête : la boucle en faisait une par facture.
+  const ids = (factures ?? []).map((f) => f.id);
+  if (ids.length === 0) return [];
+
+  const { data: lignes, error: lignesError } = await supabase
+    .from('ligne_facture')
+    .select(LIGNE_FIELDS)
+    .in('factureId', ids);
+  if (lignesError) throw lignesError;
+
+  const lignesParFacture = new Map<string, LigneFacture[]>();
+  for (const ligne of (lignes ?? []) as unknown as (LigneFacture & { factureId: string })[]) {
+    const liste = lignesParFacture.get(ligne.factureId);
+    if (liste) liste.push(ligne);
+    else lignesParFacture.set(ligne.factureId, [ligne]);
   }
-  return result;
+
+  return (factures ?? []).map((f) => ({
+    ...(f as unknown as Omit<FactureEleve, 'lignes'>),
+    lignes: lignesParFacture.get(f.id) ?? [],
+  }));
 }
 
 /** Facture complète : lignes, versements, solde et contexte élève/classe. */

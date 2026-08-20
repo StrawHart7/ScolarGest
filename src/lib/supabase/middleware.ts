@@ -10,6 +10,10 @@ const PUBLIC_PATHS = ['/login', '/forgot-password', '/update-password', '/auth/c
  * Enfermer un directeur hors de sa page d'abonnement le priverait justement
  * du moyen de régulariser.
  */
+/** Cookie de cache du verdict d'abonnement (voir `gardeAbonnement`). */
+const COOKIE_ACCES = 'sg_acces';
+const DUREE_CACHE_ACCES = 60;
+
 const PATHS_TOUJOURS_ACCESSIBLES = ['/abonnement', '/profil', '/auth'];
 
 function isPublicPath(pathname: string): boolean {
@@ -48,9 +52,7 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await lireIdentiteVerifiee(supabase);
 
   const { pathname } = request.nextUrl;
 
@@ -65,13 +67,60 @@ export async function updateSession(request: NextRequest) {
 
   if (user && !isPublicPath(pathname)) {
     const garde = await gardeAbonnement(request, supabase, user, pathname);
-    if (garde) return garde;
+    if (garde.reponse) return garde.reponse;
+    if (garde.acces) memoriserAcces(response, garde.acces);
   }
 
   return response;
 }
 
 type SupabaseMiddlewareClient = ReturnType<typeof createServerClient>;
+
+interface IdentiteMiddleware {
+  id: string;
+  app_metadata?: Record<string, unknown>;
+}
+
+/**
+ * Identité vérifiée du porteur du cookie, sans aller-retour réseau.
+ *
+ * Voir `services/tenant.ts` pour le raisonnement complet : le projet signe en
+ * ES256, donc `getClaims()` vérifie la signature localement contre le JWKS.
+ * Le middleware s'exécute sur *chaque* requête (pages, Server Actions, routes
+ * API) ; y laisser un `getUser()` revenait à taxer toute l'application d'un
+ * aller-retour vers le serveur d'authentification.
+ *
+ * `getClaims()` s'appuie sur `getSession()`, donc le rafraîchissement du jeton
+ * expiré — la raison d'être de ce middleware — continue de fonctionner, et les
+ * cookies rafraîchis sont réécrits par les callbacks ci-dessus.
+ */
+async function lireIdentiteVerifiee(
+  supabase: SupabaseMiddlewareClient,
+): Promise<IdentiteMiddleware | null> {
+  const auth = supabase.auth as unknown as {
+    getClaims?: () => Promise<{
+      data: { claims?: { sub?: string; app_metadata?: Record<string, unknown> } } | null;
+      error: unknown;
+    }>;
+  };
+
+  if (typeof auth.getClaims === 'function') {
+    try {
+      const { data, error } = await auth.getClaims();
+      if (!error && data?.claims?.sub) {
+        return { id: data.claims.sub, app_metadata: data.claims.app_metadata };
+      }
+      if (!error) return null;
+    } catch {
+      // Repli explicite ci-dessous.
+    }
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user ? { id: user.id, app_metadata: user.app_metadata } : null;
+}
 
 /**
  * Applique l'effet de l'abonnement (voir `abonnement-acces.ts`).
@@ -90,15 +139,28 @@ async function gardeAbonnement(
   supabase: SupabaseMiddlewareClient,
   user: { app_metadata?: Record<string, unknown> },
   pathname: string,
-): Promise<NextResponse | null> {
+): Promise<{ reponse: NextResponse | null; acces: string | null }> {
   const meta = (user.app_metadata ?? {}) as { role?: string; etablissement_id?: string };
 
   // Le SUPER_ADMIN gère précisément ces abonnements : jamais restreint.
-  if (meta.role === 'SUPER_ADMIN' || !meta.etablissement_id) return null;
-  if (estToujoursAccessible(pathname)) return null;
+  if (meta.role === 'SUPER_ADMIN' || !meta.etablissement_id) return RIEN;
+  if (estToujoursAccessible(pathname)) return RIEN;
 
   const ecriture = request.method !== 'GET' && request.method !== 'HEAD';
-  if (!ecriture && !estRouteApplicative(pathname)) return null;
+  if (!ecriture && !estRouteApplicative(pathname)) return RIEN;
+  let aMemoriser: string | null = null;
+
+  // Lecture : le verdict est mis en cache une minute dans un cookie httpOnly.
+  // Sans cela, chaque navigation payait une requête base supplémentaire alors
+  // qu'un abonnement ne change pas d'état entre deux clics. Les écritures, qui
+  // sont rares et sont le vrai enjeu du verrou, relisent toujours la base.
+  if (!ecriture) {
+    const cache = request.cookies.get(COOKIE_ACCES)?.value;
+    if (cache === 'OK' || cache === 'LECTURE_SEULE') return RIEN;
+    if (cache === 'BLOQUE') {
+      return { reponse: NextResponse.redirect(new URL('/abonnement', request.url)), acces: null };
+    }
+  }
 
   const { data } = await supabase
     .from('abonnement_etablissement')
@@ -112,26 +174,30 @@ async function gardeAbonnement(
     (data as { statut: 'ACTIF' | 'EXPIRE' | 'SUSPENDU'; dateFin: string } | null) ?? null,
   );
 
+  if (!ecriture) aMemoriser = acces.niveau;
+
   // Suspension : accès applicatif fermé, l'utilisateur est renvoyé vers la
   // page d'information d'où il peut voir quoi faire.
   if (acces.niveau === 'BLOQUE') {
-    return NextResponse.redirect(new URL('/abonnement', request.url));
+    return { reponse: NextResponse.redirect(new URL('/abonnement', request.url)), acces: null };
   }
 
   // Expiration : lecture seule. Les GET passent, les écritures sont refusées.
   if (ecriture && !ecritureAutorisee(acces.niveau)) {
-    return new NextResponse(
+    return { reponse: new NextResponse(
       JSON.stringify({
         error:
           acces.message ??
           "Abonnement expiré : l'application est en lecture seule. Contactez ScolarGest.",
       }),
       { status: 403, headers: { 'content-type': 'application/json' } },
-    );
+    ), acces: null };
   }
 
-  return null;
+  return { reponse: null, acces: aMemoriser };
 }
+
+const RIEN = { reponse: null, acces: null } as const;
 
 /** Une page de l'espace école (par opposition aux routes techniques). */
 function estRouteApplicative(pathname: string): boolean {
@@ -140,4 +206,19 @@ function estRouteApplicative(pathname: string): boolean {
     pathname.startsWith('/etablissement') ||
     pathname.startsWith('/utilisateurs')
   );
+}
+
+/**
+ * Le cookie doit être posé sur la *réponse* pour atteindre le navigateur :
+ * `request.cookies.set` ne ferait que réécrire l'en-tête entrant côté serveur.
+ */
+function memoriserAcces(response: NextResponse, niveau: string): void {
+  response.cookies.set({
+    name: COOKIE_ACCES,
+    value: niveau,
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: DUREE_CACHE_ACCES,
+  });
 }

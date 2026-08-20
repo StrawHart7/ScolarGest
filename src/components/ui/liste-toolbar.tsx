@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -209,8 +210,23 @@ export function PaginationListe({
   total: number;
   libelle?: string;
 }) {
-  const { majParametres, enAttente } = useMajParametres();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Les flèches sont des liens, pas des boutons : Next précharge alors la page
+  // voisine au survol, si bien que le clic n'attend plus le serveur. Un
+  // `onClick` ne lui donne aucune cible à préparer à l'avance.
+  const lienVers = (cible: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (cible <= 1) params.delete('page');
+    else params.set('page', String(cible));
+    const requete = params.toString();
+    return requete ? `${pathname}?${requete}` : pathname;
+  };
+
   if (total === 0) return null;
+
+  const precedentInactif = page <= 1;
+  const suivantInactif = page >= nombrePages;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border px-4 py-3">
@@ -219,27 +235,45 @@ export function PaginationListe({
       </p>
       <div className="flex items-center gap-2">
         <Button
+          asChild={!precedentInactif}
           variant="secondary"
           size="sm"
-          disabled={page <= 1 || enAttente}
-          onClick={() => majParametres({ page: String(page - 1) }, { garderPage: true })}
+          disabled={precedentInactif}
           aria-label="Page précédente"
         >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Précédent
+          {precedentInactif ? (
+            <span>
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+              Précédent
+            </span>
+          ) : (
+            <Link href={lienVers(page - 1)} prefetch scroll={false}>
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+              Précédent
+            </Link>
+          )}
         </Button>
         <span className="px-1 text-body-sm text-text-secondary">
           Page {page} / {nombrePages}
         </span>
         <Button
+          asChild={!suivantInactif}
           variant="secondary"
           size="sm"
-          disabled={page >= nombrePages || enAttente}
-          onClick={() => majParametres({ page: String(page + 1) }, { garderPage: true })}
+          disabled={suivantInactif}
           aria-label="Page suivante"
         >
-          Suivant
-          <ChevronRight className="h-4 w-4" aria-hidden />
+          {suivantInactif ? (
+            <span>
+              Suivant
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </span>
+          ) : (
+            <Link href={lienVers(page + 1)} prefetch scroll={false}>
+              Suivant
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          )}
         </Button>
       </div>
     </div>

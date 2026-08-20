@@ -85,6 +85,66 @@ export interface CreateEleveInput {
 const ELEVE_FIELDS =
   'id, "etablissementId", matricule, "ancienMatricule", nom, prenoms, sexe, "dateNaissance", "lieuNaissance", nationalite, statut, "createdAt"';
 
+/**
+ * Caractères qui ont une signification dans la grammaire de filtres PostgREST
+ * (`or=(...)`). Sans échappement, un élève cherché sous « Doe, John » casse la
+ * requête — et, plus grave, un terme choisi laisse écrire des filtres
+ * arbitraires dans la clause.
+ */
+function echapperMotifIlike(terme: string): string {
+  return terme.replace(/[,()\\]/g, (c) => `\\${c}`);
+}
+
+export interface PageEleves {
+  lignes: Eleve[];
+  total: number;
+}
+
+/**
+ * Page d'élèves découpée **par la base** : `.range()` ne rapatrie que les
+ * lignes affichées et `count: 'exact'` donne le total en une seule requête.
+ *
+ * La variante `listEleves` charge toute la table ; elle reste utilisée par les
+ * écrans qui ont réellement besoin de l'ensemble (exports, sélecteurs). Pour
+ * une liste paginée, elle faisait retélécharger l'établissement entier à
+ * chaque clic sur « suivant ».
+ */
+export async function listElevesPage(
+  filters: ListElevesFilters,
+  pagination: { de: number; a: number; tri?: string; sens: 'asc' | 'desc' },
+): Promise<PageEleves> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const supabase = createClient();
+
+  let query = supabase
+    .from('eleve')
+    .select(ELEVE_FIELDS, { count: 'exact' })
+    .eq('etablissementId', ctx.etablissementId);
+
+  if (filters.statut) query = query.eq('statut', filters.statut);
+  if (filters.search) {
+    const terme = echapperMotifIlike(filters.search);
+    query = query.or(
+      `nom.ilike.%${terme}%,prenoms.ilike.%${terme}%,matricule.ilike.%${terme}%`,
+    );
+  }
+
+  const croissant = pagination.sens !== 'desc';
+  if (pagination.tri === 'statut') {
+    query = query.order('statut', { ascending: croissant });
+  }
+  // Nom puis prénoms dans tous les cas : départage les homonymes et rend la
+  // pagination déterministe, sans quoi une même ligne peut apparaître sur deux
+  // pages successives.
+  query = query
+    .order('nom', { ascending: croissant })
+    .order('prenoms', { ascending: croissant });
+
+  const { data, error, count } = await query.range(pagination.de, pagination.a);
+  if (error) throw error;
+  return { lignes: (data ?? []) as unknown as Eleve[], total: count ?? 0 };
+}
+
 export async function listEleves(filters: ListElevesFilters = {}): Promise<Eleve[]> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
@@ -96,7 +156,8 @@ export async function listEleves(filters: ListElevesFilters = {}): Promise<Eleve
 
   if (filters.statut) query = query.eq('statut', filters.statut);
   if (filters.search) {
-    query = query.or(`nom.ilike.%${filters.search}%,prenoms.ilike.%${filters.search}%,matricule.ilike.%${filters.search}%`);
+    const terme = echapperMotifIlike(filters.search);
+    query = query.or(`nom.ilike.%${terme}%,prenoms.ilike.%${terme}%,matricule.ilike.%${terme}%`);
   }
 
   if (filters.classeId || filters.anneeScolaireId) {

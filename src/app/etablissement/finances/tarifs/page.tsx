@@ -31,18 +31,25 @@ export default async function TarifsPage({
     const valeur = Array.isArray(brut) ? brut[0] : brut;
     return valeur && valeur.length > 0 ? valeur : undefined;
   };
-  const ctx = await getTenantContext();
-  const canWrite =
-    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
+  // Vague 1 : tout ce qui ne dépend d'aucune donnée déjà chargée part ensemble.
+  // En file indienne, ces quatre requêtes coûtaient quatre allers-retours.
+  const [ctx, ecritureOuverte, annees, typesFrais] = await Promise.all([
+    getTenantContext(),
+    peutEcrire(),
+    listAnneesScolaires(),
+    listTypesFrais(),
+  ]);
+  const canWrite = (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && ecritureOuverte;
 
-  const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
-
-  const classes = anneeScolaireId ? await listClasses(anneeScolaireId) : [];
-  const typesFrais = await listTypesFrais();
   const classeId = lireUnique('classeId');
-  const tarifs = anneeScolaireId ? await listTarifs(anneeScolaireId, classeId) : [];
+
+  // Vague 2 : dépend de l'année retenue ci-dessus, mais les deux vont ensemble.
+  const [classes, tarifs] = await Promise.all([
+    anneeScolaireId ? listClasses(anneeScolaireId) : [],
+    anneeScolaireId ? listTarifs(anneeScolaireId, classeId) : [],
+  ]);
 
   const parametres = lireParametresListe(searchParams, { tri: 'classe' });
   const page = preparerListe(tarifs, parametres, {

@@ -8,9 +8,11 @@ import { getSidebarItems } from '@/lib/navigation';
 import { InscriptionForm } from './InscriptionForm';
 
 export default async function InscriptionPage({ params }: { params: { id: string } }) {
-  const ctx = await getTenantContext();
-  const eleve = await getEleve(params.id);
-  const annees = await listAnneesScolaires();
+  const [ctx, eleve, annees] = await Promise.all([
+    getTenantContext(),
+    getEleve(params.id),
+    listAnneesScolaires(),
+  ]);
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const classes = anneeActive ? await listClasses(anneeActive.id) : [];
 

@@ -4,7 +4,7 @@ import { auditLog } from './audit';
 import { getEnseignantParUtilisateur } from './enseignant';
 import { exigerPin } from './pin';
 import { listProgramme } from './programme';
-import { getCoefficient } from './coefficient';
+import { listCoefficients } from './coefficient';
 import { getResultatsClasse } from './resultats-classe';
 import type { Periode } from './evaluation';
 import {
@@ -511,6 +511,13 @@ export async function getMoyennesEleve(
     }
   }
 
+  // Tous les coefficients en une requête plutôt qu'une par matière.
+  const coefficients = await listCoefficients(
+    programme.map((item: { id: string }) => item.id),
+    anneeScolaireId,
+    classe.serieId ?? null,
+  );
+
   const matieres: MoyenneMatiereEleve[] = [];
   for (const item of programme) {
     const matiereEvaluations = (evaluations ?? []).filter(
@@ -532,13 +539,11 @@ export async function getMoyennesEleve(
     const moyClasse = moyenneClasse(moyInterros, devoir);
     const moyMatiere = moyenneMatiere(moyClasse, composition);
 
-    const coef = await getCoefficient(item.id, anneeScolaireId, classe.serieId ?? null);
-
     matieres.push({
       matiereId: item.matiereId,
       matiereNom: item.matiere.nom,
       obligatoire: item.obligatoire,
-      coefficient: coef?.coefficient ?? 0,
+      coefficient: coefficients.get(item.id) ?? 0,
       moyenne: moyMatiere,
     });
   }

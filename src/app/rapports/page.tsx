@@ -31,10 +31,9 @@ export default async function RapportsPage({
     periode?: string;
   };
 }) {
-  const ctx = await getTenantContext();
+  const [ctx, annees] = await Promise.all([getTenantContext(), listAnneesScolaires()]);
   const disponibles = rapportsAutorises(ctx.role);
 
-  const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const anneeScolaireId = searchParams.anneeScolaireId || anneeActive?.id || annees[0]?.id;
 

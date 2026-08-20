@@ -3,6 +3,7 @@ import { requireRole } from './authorization';
 import { getTenantContext } from './tenant';
 import { auditLog } from './audit';
 import { evaluerAcces, ecritureAutorisee, type AccesAbonnement } from './abonnement-acces';
+import { memoiserParRequete } from '@/lib/memo';
 
 export type StatutAbonnement = 'ACTIF' | 'EXPIRE' | 'SUSPENDU';
 
@@ -295,7 +296,7 @@ export async function getAbonnementCourant(
  * Le SUPER_ADMIN n'est jamais restreint : c'est lui qui gère les abonnements,
  * l'enfermer dehors rendrait la situation irréparable.
  */
-export async function getAccesAbonnementCourant(): Promise<AccesAbonnement> {
+export const getAccesAbonnementCourant = memoiserParRequete(async function getAccesAbonnementCourant(): Promise<AccesAbonnement> {
   const ctx = await getTenantContext();
   if (ctx.role === 'SUPER_ADMIN') {
     return { niveau: 'OK', statut: 'ACTIF', joursRestants: null, message: null };
@@ -304,7 +305,7 @@ export async function getAccesAbonnementCourant(): Promise<AccesAbonnement> {
   return evaluerAcces(
     abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
   );
-}
+});
 
 /**
  * L'établissement courant a-t-il le droit d'écrire ?

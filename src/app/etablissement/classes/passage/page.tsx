@@ -13,8 +13,7 @@ export default async function PassageCohortePage({
 }: {
   searchParams: { anneeSourceId?: string; anneeCibleId?: string; classeId?: string };
 }) {
-  const ctx = await getTenantContext();
-  const annees = await listAnneesScolaires();
+  const [ctx, annees] = await Promise.all([getTenantContext(), listAnneesScolaires()]);
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const anneeSourceId = searchParams.anneeSourceId ?? anneeActive?.id;
   const autresAnnees = annees.filter((a) => a.id !== anneeSourceId);

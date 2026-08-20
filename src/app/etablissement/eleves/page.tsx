@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { FileSpreadsheet, UserPlus, Users2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { listEleves, type StatutEleve } from '@/services/eleve';
+import { listElevesPage, type StatutEleve } from '@/services/eleve';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import {
   RechercheListe,
   TriColonne,
 } from '@/components/ui/liste-toolbar';
-import { lireParametresListe, preparerListe } from '@/lib/liste';
+import { bornesPage, lireParametresListe, paginationDepuisBase } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 
 const STATUT_BADGE: Record<StatutEleve, { label: string; variant: 'success' | 'neutral' | 'warning' }> = {
@@ -33,28 +33,36 @@ export default async function ElevesPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const ctx = await getTenantContext();
   const lireUnique = (cle: string): string | undefined => {
     const brut = searchParams[cle];
     const valeur = Array.isArray(brut) ? brut[0] : brut;
     return valeur && valeur.length > 0 ? valeur : undefined;
   };
 
-  // La recherche reste côté base (l'établissement peut compter des milliers
-  // d'élèves) ; tri et pagination s'appliquent ensuite au résultat filtré.
-  const eleves = await listEleves({
-    search: lireUnique('q'),
-    statut: lireUnique('statut') as StatutEleve | undefined,
-  });
-  const canWrite = ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE';
-
+  // Recherche, tri **et** pagination sont délégués à la base : la page ne
+  // rapatrie que les dix lignes affichées, quel que soit l'effectif de
+  // l'établissement.
   const parametres = lireParametresListe(searchParams, { tri: 'nom' });
-  const page = preparerListe(eleves, parametres, {
-    valeursTri: {
-      nom: (e) => `${e.nom} ${e.prenoms}`,
-      statut: (e) => STATUT_BADGE[e.statut].label,
-    },
-  });
+  const bornes = bornesPage(parametres.page, parametres.taillePage);
+
+  const [ctx, resultat] = await Promise.all([
+    getTenantContext(),
+    listElevesPage(
+      {
+        search: lireUnique('q'),
+        statut: lireUnique('statut') as StatutEleve | undefined,
+      },
+      { ...bornes, tri: parametres.tri, sens: parametres.sens },
+    ),
+  ]);
+
+  const canWrite = ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE';
+  const page = paginationDepuisBase(
+    resultat.lignes,
+    resultat.total,
+    parametres.page,
+    parametres.taillePage,
+  );
 
   return (
     <AppLayout

@@ -39,7 +39,7 @@ export default async function ResultatsPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const ctx = await getTenantContext();
+  const [ctx, annees] = await Promise.all([getTenantContext(), listAnneesScolaires()]);
 
   const lireUnique = (cle: string): string | undefined => {
     const brut = searchParams[cle];
@@ -47,7 +47,6 @@ export default async function ResultatsPage({
     return valeur && valeur.length > 0 ? valeur : undefined;
   };
 
-  const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
   const periode = (lireUnique('periode') as Periode | undefined) ?? 'TRIMESTRE_1';
