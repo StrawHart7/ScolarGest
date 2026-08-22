@@ -11,6 +11,18 @@ const nextConfig = {
     // chargés depuis node_modules à l'exécution. Les empaqueter casse le
     // lancement. (Clé `experimental` en Next 14 ; stabilisée en Next 15.)
     serverComponentsExternalPackages: ['playwright', 'playwright-core', '@sparticuz/chromium'],
+    // Externaliser ne suffit pas sur Vercel : le tracing de fichiers omet les
+    // assets brotli de `@sparticuz/chromium` (dossier `bin/*.br`, lus à
+    // l'exécution, jamais `require`d) — d'où « The input directory
+    // .../@sparticuz/chromium/bin does not exist ». On force leur inclusion
+    // dans chaque fonction qui génère un PDF (bulletins, reçus, export
+    // rapports).
+    outputFileTracingIncludes: {
+      '/etablissement/notes/bulletins': ['./node_modules/@sparticuz/chromium/bin/**'],
+      '/etablissement/eleves/**': ['./node_modules/@sparticuz/chromium/bin/**'],
+      '/etablissement/finances/**': ['./node_modules/@sparticuz/chromium/bin/**'],
+      '/api/rapports/export': ['./node_modules/@sparticuz/chromium/bin/**'],
+    },
     // `lucide-react` expose des milliers d'icônes en modules séparés : sans
     // cette option, un `import { Users } from 'lucide-react'` fait traverser
     // tout le paquet au bundler. C'est le poste de compilation le plus lourd
