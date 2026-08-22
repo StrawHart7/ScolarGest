@@ -103,6 +103,7 @@ const config: Config = {
       },
       spacing: {
         sidebar: '260px',
+        'sidebar-rail': '72px',
         header: '56px',
         'container-pad': '24px',
         gutter: '16px',

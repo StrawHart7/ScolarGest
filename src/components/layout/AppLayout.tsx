@@ -2,6 +2,7 @@ import { Sidebar, type SidebarItem } from './Sidebar';
 import { Header } from './Header';
 import { AbonnementBanner } from './AbonnementBanner';
 import { BottomNav } from './BottomNav';
+import { SidebarCollapseProvider, ContenuDecale } from './sidebar-collapse';
 import { ToastProvider } from '@/components/ui/toast';
 
 export interface AppLayoutProps {
@@ -15,23 +16,25 @@ export interface AppLayoutProps {
 export function AppLayout({ items, schoolName, role, userName, children }: AppLayoutProps) {
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-surface">
-        <Sidebar items={items} />
-        <div className="md:pl-sidebar">
-          <Header schoolName={schoolName} role={role} userName={userName} />
-          <AbonnementBanner />
-          {/*
-            Le bas de page doit dégager la barre de navigation flottante :
-            56px de hauteur, 24px de décalage du bord, une gouttière, et
-            l'encoche des téléphones. Sans cela la dernière ligne d'une liste
-            reste inaccessible sous la barre.
-          */}
-          <main className="px-gutter py-gutter pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-container-pad">
-            {children}
-          </main>
+      <SidebarCollapseProvider>
+        <div className="min-h-screen bg-surface">
+          <Sidebar items={items} />
+          <ContenuDecale>
+            <Header schoolName={schoolName} role={role} userName={userName} />
+            <AbonnementBanner />
+            {/*
+              Le bas de page doit dégager la barre de navigation flottante :
+              56px de hauteur, 24px de décalage du bord, une gouttière, et
+              l'encoche des téléphones. Sans cela la dernière ligne d'une liste
+              reste inaccessible sous la barre.
+            */}
+            <main className="px-gutter py-gutter pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-container-pad">
+              {children}
+            </main>
+          </ContenuDecale>
+          <BottomNav items={items} />
         </div>
-        <BottomNav items={items} />
-      </div>
+      </SidebarCollapseProvider>
     </ToastProvider>
   );
 }
