@@ -181,3 +181,37 @@ place à partir de `md`. Les grilles à colonnes dynamiques et les tableaux de
 saisie sont explicitement hors motif (voir la dernière section du document).
 
 **Never use native `<select>` or `<input type="date">` directly** — their dropdown/calendar popups are rendered by the OS/browser and cannot be styled, which breaks the design system. Use `src/components/ui/select.tsx` (Radix Select — still form-submits via a real hidden `<select>`, so it drops into existing `FormData`-based Server Actions unchanged) and `src/components/ui/date-picker.tsx` (Popover + `calendar.tsx`, submits an ISO `yyyy-MM-dd` via a hidden input) instead.
+
+### Titres de page : un seul token responsive
+
+Le titre `<h1>` d'une page utilise `text-display-sm` — token défini en
+`clamp(1.25rem, 5vw, 1.5rem)` dans `tailwind.config.ts` : ~20px sur mobile
+étroit, plafonné à 24px dès ~480px. Un seul token adapte tous les titres au
+mobile, sans surcharge `md:` par page. **`text-headline-lg` n'existe pas** dans
+l'échelle — ne pas l'employer (bug déjà rencontré). Le repli desktop de la
+sidebar (`src/components/layout/sidebar-collapse.tsx`) est piloté par un contexte
+client persisté en `localStorage` ; le clic sur le logo la réduit au rail
+d'icônes de 72px (`sidebar-rail`).
+
+### Profil et paramètres
+
+`/profil` porte désormais les réglages de compte (mot de passe, PIN
+Directeur/Secrétaire) et de session (déconnexion). `/profil/parametres` existe
+encore comme point d'accès alternatif avec le même contenu — ne pas dupliquer la
+logique, `seDeconnecterAction` vit dans `src/app/profil/parametres/actions.ts`.
+
+### PWA : le manifeste est généré par Next
+
+Le manifeste PWA est **généré** par `src/app/manifest.ts`
+(route `/manifest.webmanifest`) — c'est la source de vérité. Le fichier statique
+`public/assets/icons/site.webmanifest` est obsolète (name vides, chemins
+d'icônes cassés), ne pas s'y référer. Les icônes/favicon vivent sous
+`public/assets/icons/` et sont câblés via `metadata.icons` + `viewport.themeColor`
+dans `src/app/layout.tsx`.
+
+**Piège middleware** : `src/middleware.ts` redirige vers `/login` tout ce qui
+n'est pas explicitement exclu de son `matcher`. Le manifeste et les assets
+publics (`.ico`, `.webmanifest`, images) doivent y figurer en négation, sinon ils
+sont servis comme une redirection d'auth à un visiteur non connecté. Toute
+nouvelle ressource publique servie hors `/_next` doit être ajoutée à cette
+exclusion.

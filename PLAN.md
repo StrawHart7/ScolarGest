@@ -599,7 +599,7 @@ Rappel des décisions clés impactant le développement :
 | Facture auto à l'inscription | Phase 2 + 6 : génération à la validation de l'inscription |
 | Coefficients historisés dès v1 | Phase 0 : `annee_scolaire_id` dans `CoefficientMatiere` |
 | Barème /20 universel | Phase 4 : un seul moteur de calcul |
-| Pas de mode hors-ligne | Phase 9 supprimée — pas de PWA ni PowerSync |
+| Mode hors-ligne différé | Pas de PowerSync ni de synchronisation hors-ligne au MVP. La PWA (manifeste, icônes, installation « Ajouter à l'écran d'accueil ») est reprise **après** la Phase 9 comme fonctionnalité indépendante (§ 8) — le service worker et le cache offline restent hors périmètre tant qu'ils ne sont pas explicitement demandés. |
 | Numérotation par établissement/année | Phases 2, 5, 6 : séquences isolées |
 | Passage automatique via `niveau_suivant_id` | Phase 0 (schéma) + Phase 2 (UI) |
 
@@ -689,6 +689,77 @@ cours` → `Terminée`), **Objectif**, **Livrables** en checklist (`- [ ]`),
 **Dépendances / décisions à trancher avant de coder**, **DoD**. Les phases
 0–9 ci-dessus restent l'historique du socle et ne sont pas rétroactivement
 réécrites dans ce format.
+
+---
+
+### Fonctionnalité — Peaufinage responsive (mobile actuel + desktop)
+
+**Statut** : Terminée (2026-08-22)
+
+**Objectif** : durcir l'expérience responsive du site **actuel** (distinct de
+la refonte mobile premium, en pause sur `feat/refonte-mobile`) — homogénéiser
+toutes les listes sous `md`, alléger les en-têtes, et quelques réglages desktop.
+
+**Livrables** :
+- [x] **Motif de liste mobile généralisé** (`Docs/15-Motif-liste-mobile.md`) :
+      barre d'outils (recherche + filtres repliés via `FiltresMobile` + action),
+      `CarteListeMobile`, bouton flottant, barre d'onglets flottante. Appliqué à
+      toutes les listes (élèves, matières, tarifs, rapports, résultats,
+      bulletins…). `PageHeader` masqué en `hidden md:block`, `Card` sans bordure
+      sur mobile (`max-md:border-0 max-md:bg-transparent max-md:shadow-none`).
+- [x] **Action de création flottante** (`src/components/ui/declencheur-creation.tsx`,
+      `DeclencheurCreation`) : bouton desktop + FAB mobile ancré au-dessus de la
+      barre de navigation ; câblé dans `FormulaireModal`, `TarifForm`, `ClasseForm`.
+- [x] **Titres de page responsives** : token `display-sm` passé en
+      `clamp(1.25rem, 5vw, 1.5rem)` — un seul token adapte tous les titres au
+      mobile sans surcharge par page. Remplace les usages de `text-headline-lg`
+      (jamais défini dans l'échelle).
+- [x] **Sidebar desktop repliable** : clic sur le logo ScolarGest (icône
+      `GraduationCap` remplaçant le « S ») replie/déplie la sidebar en un rail
+      d'icônes de 72px (`sidebar-rail`). État persisté en `localStorage`
+      (`sidebar-collapse.tsx`, `ContenuDecale` décale le contenu),
+      hydratation-safe.
+- [x] **Profil enrichi** : `/profil` intègre les sections « Compte » (mot de
+      passe, PIN si Directeur/Secrétaire) et « Session » (déconnexion) qui
+      vivaient dans `/profil/parametres` — la page profil n'était qu'une carte
+      d'identité. `/profil/parametres` reste comme point d'accès alternatif.
+
+**Décisions** :
+- La refonte mobile premium reste en pause (branche `feat/refonte-mobile`, plan
+  local `Docs/16-Refonte-mobile-plan.md`) : ce lot peaufine l'existant, il ne le
+  remplace pas.
+- Génération de bulletins PDF durcie pour Vercel serverless (`@sparticuz/chromium`
+  + `playwright-core`, `render.ts` défensif avec délais durs, `maxDuration=60`,
+  `outputFileTracingIncludes`) — traité et confirmé résolu avec l'utilisateur.
+
+---
+
+### Fonctionnalité — PWA (Progressive Web App)
+
+**Statut** : En cours (base posée 2026-08-22, branche `feat/pwa` mergée sur `main`)
+
+**Objectif** : rendre ScolarGest installable sur mobile/desktop (« Ajouter à
+l'écran d'accueil ») et poser l'identité applicative (favicon, icônes, manifeste).
+
+**Livrables** :
+- [x] **Manifeste** généré par Next (`src/app/manifest.ts` → `/manifest.webmanifest`) :
+      `name`/`short_name` renseignés, `start_url: /dashboard`, `display: standalone`,
+      `theme_color: #0052cc`, `background_color: #f8f9fb`, icônes 192/512 + variante
+      `maskable`. Remplace `public/assets/icons/site.webmanifest` (statique, name
+      vides, chemins d'icônes cassés).
+- [x] **Favicon dans l'onglet + icônes applicatives** (`src/app/layout.tsx`,
+      metadata `icons` + `appleWebApp` + `viewport.themeColor`) pointant vers
+      `/assets/icons/` (favicon ico/16/32, apple-touch-icon 180).
+- [x] **Middleware** : `/manifest.webmanifest` et les `.ico/.webmanifest` exclus de
+      la redirection d'authentification (sinon servis en `/login` pour un visiteur
+      non connecté).
+- [ ] **Service worker** + cache offline (stratégie de mise à jour, « installable »
+      complet) — **non fait, à cadrer** avant implémentation.
+- [ ] Screenshots de manifeste (`images/screenshots/`) pour l'invite d'installation
+      enrichie — quand de vrais écrans produit seront disponibles.
+
+**DoD** : installable avec une icône et un nom corrects ; le service worker (quand
+ajouté) sert l'app hors-ligne sans casser les Server Actions ni l'auth.
 
 ---
 
