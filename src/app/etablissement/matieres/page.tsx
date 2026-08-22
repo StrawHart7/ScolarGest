@@ -51,11 +51,15 @@ export default async function MatieresPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <PageHeader
-          title="Matières"
-          description="Catalogue des matières de l'établissement, utilisé par le programme et les affectations."
-        />
+      <div className="space-y-4 md:space-y-6">
+        {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
+            doublon avec la ligne de densité. */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="Matières"
+            description="Catalogue des matières de l'établissement, utilisé par le programme et les affectations."
+          />
+        </div>
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <BarreOutilsListe>

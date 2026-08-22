@@ -49,11 +49,15 @@ export default async function TypesFraisPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <PageHeader
-          title="Types de frais"
-          description="Catégories de frais de l'établissement (scolarité, inscription, cantine…). Elles servent de base aux tarifs par classe et aux lignes de facture."
-        />
+      <div className="space-y-4 md:space-y-6">
+        {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
+            doublon avec la ligne de densité. */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="Types de frais"
+            description="Catégories de frais de l'établissement (scolarité, inscription, cantine…). Elles servent de base aux tarifs par classe et aux lignes de facture."
+          />
+        </div>
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <BarreOutilsListe>

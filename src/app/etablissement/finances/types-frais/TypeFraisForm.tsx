@@ -12,6 +12,7 @@ export function TypeFraisForm() {
       titre="Nouveau type de frais"
       description="Une catégorie facturable. Son montant se définit ensuite classe par classe, dans les tarifs."
       declencheur="Nouveau type de frais"
+      declencheurFlottant
       libelleValidation="Ajouter le type de frais"
       messageSucces="Type de frais créé"
       detailSucces="Définissez maintenant son tarif par classe."

@@ -12,6 +12,7 @@ export function MatiereForm() {
       titre="Nouvelle matière"
       description="La matière alimente le programme des niveaux et les affectations d’enseignants."
       declencheur="Nouvelle matière"
+      declencheurFlottant
       libelleValidation="Ajouter la matière"
       messageSucces="Matière créée"
     >
