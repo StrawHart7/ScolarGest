@@ -6,6 +6,11 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Chromium (génération PDF) et ses variantes ne doivent pas être empaquetés
+    // par webpack : ils embarquent des binaires natifs et des assets brotli
+    // chargés depuis node_modules à l'exécution. Les empaqueter casse le
+    // lancement. (Clé `experimental` en Next 14 ; stabilisée en Next 15.)
+    serverComponentsExternalPackages: ['playwright', 'playwright-core', '@sparticuz/chromium'],
     // `lucide-react` expose des milliers d'icônes en modules séparés : sans
     // cette option, un `import { Users } from 'lucide-react'` fait traverser
     // tout le paquet au bundler. C'est le poste de compilation le plus lourd
