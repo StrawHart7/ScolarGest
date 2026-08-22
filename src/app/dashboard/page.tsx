@@ -101,63 +101,82 @@ export default async function DashboardPage() {
 
     return layout(
       <>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Élèves inscrits"
-            value={nombre(stats.eleves.actifs)}
-            icon={<Users2 className="h-5 w-5" aria-hidden />}
-            trend={
-              stats.eleves.nouveauxCeMois > 0
-                ? { label: `${stats.eleves.nouveauxCeMois} ce mois-ci`, direction: 'up' }
-                : undefined
-            }
-          />
-          <StatCard
-            label="Classes"
-            value={nombre(stats.classes.nombre)}
-            icon={<School className="h-5 w-5" aria-hidden />}
-            trend={{
-              label: `${nombre(stats.classes.effectifTotal)} / ${nombre(stats.classes.capaciteTotale)} places`,
-              direction: 'flat',
-            }}
-          />
-          <StatCard
-            label="Enseignants actifs"
-            value={nombre(stats.enseignantsActifs)}
-            icon={<GraduationCap className="h-5 w-5" aria-hidden />}
-          />
-          <StatCard
-            label="Reste à recouvrer"
-            value={fcfa(stats.finance.impaye)}
-            mono
-            icon={<Wallet className="h-5 w-5" aria-hidden />}
-            trend={{ label: `${fcfa(stats.finance.encaisse)} encaissés`, direction: 'up' }}
-          />
-        </div>
+        {/*
+          8 StatCards à plat, en une colonne sous `sm`, formaient un mur
+          anonyme avant même d'atteindre le recouvrement ou les raccourcis —
+          long à parcourir sans repère. Les regrouper sous trois intitulés
+          (Effectifs / Finances / Académique) donne des points d'ancrage au
+          scroll, sans rien retirer : même huit cartes, juste nommées.
+        */}
+        <section className="space-y-3">
+          <h2 className="text-headline-sm text-text-primary">Effectifs</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Élèves inscrits"
+              value={nombre(stats.eleves.actifs)}
+              icon={<Users2 className="h-5 w-5" aria-hidden />}
+              trend={
+                stats.eleves.nouveauxCeMois > 0
+                  ? { label: `${stats.eleves.nouveauxCeMois} ce mois-ci`, direction: 'up' }
+                  : undefined
+              }
+            />
+            <StatCard
+              label="Classes"
+              value={nombre(stats.classes.nombre)}
+              icon={<School className="h-5 w-5" aria-hidden />}
+              trend={{
+                label: `${nombre(stats.classes.effectifTotal)} / ${nombre(stats.classes.capaciteTotale)} places`,
+                direction: 'flat',
+              }}
+            />
+            <StatCard
+              label="Enseignants actifs"
+              value={nombre(stats.enseignantsActifs)}
+              icon={<GraduationCap className="h-5 w-5" aria-hidden />}
+            />
+          </div>
+        </section>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Montant facturé"
-            value={fcfa(stats.finance.attendu)}
-            mono
-            icon={<Coins className="h-5 w-5" aria-hidden />}
-          />
-          <StatCard
-            label="Évaluations"
-            value={nombre(stats.academique.evaluations)}
-            icon={<ClipboardList className="h-5 w-5" aria-hidden />}
-          />
-          <StatCard
-            label="Notes à approuver"
-            value={nombre(stats.academique.notesEnAttente)}
-            icon={<BookOpen className="h-5 w-5" aria-hidden />}
-          />
-          <StatCard
-            label="Bulletins générés"
-            value={nombre(stats.academique.bulletinsGeneres)}
-            icon={<FileText className="h-5 w-5" aria-hidden />}
-          />
-        </div>
+        <section className="space-y-3">
+          <h2 className="text-headline-sm text-text-primary">Finances</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard
+              label="Montant facturé"
+              value={fcfa(stats.finance.attendu)}
+              mono
+              icon={<Coins className="h-5 w-5" aria-hidden />}
+            />
+            <StatCard
+              label="Reste à recouvrer"
+              value={fcfa(stats.finance.impaye)}
+              mono
+              icon={<Wallet className="h-5 w-5" aria-hidden />}
+              trend={{ label: `${fcfa(stats.finance.encaisse)} encaissés`, direction: 'up' }}
+            />
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-headline-sm text-text-primary">Académique</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Évaluations"
+              value={nombre(stats.academique.evaluations)}
+              icon={<ClipboardList className="h-5 w-5" aria-hidden />}
+            />
+            <StatCard
+              label="Notes à approuver"
+              value={nombre(stats.academique.notesEnAttente)}
+              icon={<BookOpen className="h-5 w-5" aria-hidden />}
+            />
+            <StatCard
+              label="Bulletins générés"
+              value={nombre(stats.academique.bulletinsGeneres)}
+              icon={<FileText className="h-5 w-5" aria-hidden />}
+            />
+          </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <TauxRecouvrement finance={stats.finance} />

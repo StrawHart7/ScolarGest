@@ -3,10 +3,14 @@ import { UserPlus, Users2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listUtilisateurs } from '@/services/utilisateur';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe, BoutonFlottant } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   FiltreListe,
   PaginationListe,
@@ -21,6 +25,12 @@ const STATUT_BADGE = {
   ACTIF: 'success',
   INACTIF: 'neutral',
   BLOQUE: 'error',
+} as const;
+
+const STATUT_TON = {
+  ACTIF: 'succes',
+  INACTIF: 'neutre',
+  BLOQUE: 'erreur',
 } as const;
 
 const OPTIONS_ROLE = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'].map((role) => ({
@@ -66,42 +76,49 @@ export default async function UtilisateursPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-display-sm text-text-primary">Utilisateurs</h1>
-            <p className="text-body-md text-text-secondary">
-              {utilisateurs.length} utilisateur(s) dans votre établissement
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/utilisateurs/inviter">
-              <UserPlus className="h-4 w-4" aria-hidden />
-              Inviter un utilisateur
-            </Link>
-          </Button>
+      <div className="space-y-4 md:space-y-6">
+        <div className="hidden md:block">
+          <PageHeader
+            title="Utilisateurs"
+            description={`${utilisateurs.length} utilisateur(s) dans votre établissement`}
+            actions={
+              <Button asChild size="sm">
+                <Link href="/utilisateurs/inviter">
+                  <UserPlus className="h-4 w-4" aria-hidden />
+                  Inviter un utilisateur
+                </Link>
+              </Button>
+            }
+          />
         </div>
 
-        <Card>
-          <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe>
             <RechercheListe placeholder="Nom, e-mail ou rôle…" />
-            <FiltreListe
-              parametre="role"
-              libelle="Rôle"
-              options={OPTIONS_ROLE}
-              libelleTout="Tous les rôles"
-            />
-            <FiltreListe
-              parametre="statutUtilisateur"
-              libelle="Statut"
-              options={[
-                { valeur: 'ACTIF', libelle: 'Actif' },
-                { valeur: 'INACTIF', libelle: 'Inactif' },
-                { valeur: 'BLOQUE', libelle: 'Bloqué' },
-              ]}
-              libelleTout="Tous les statuts"
-            />
-          </div>
+            <FiltresMobile nombreActifs={(roleFiltre ? 1 : 0) + (statutFiltre ? 1 : 0)}>
+              <FiltreListe
+                parametre="role"
+                libelle="Rôle"
+                options={OPTIONS_ROLE}
+                libelleTout="Tous les rôles"
+              />
+              <FiltreListe
+                parametre="statutUtilisateur"
+                libelle="Statut"
+                options={[
+                  { valeur: 'ACTIF', libelle: 'Actif' },
+                  { valeur: 'INACTIF', libelle: 'Inactif' },
+                  { valeur: 'BLOQUE', libelle: 'Bloqué' },
+                ]}
+                libelleTout="Tous les statuts"
+              />
+            </FiltresMobile>
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Utilisateurs"
+            compte={`${page.total} utilisateur${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
@@ -110,41 +127,56 @@ export default async function UtilisateursPage({
             </CardContent>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TriColonne cle="nom">Nom</TriColonne>
-                    <TriColonne cle="email">E-mail</TriColonne>
-                    <TriColonne cle="role">Rôle</TriColonne>
-                    <TriColonne cle="statut">Statut</TriColonne>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {page.lignes.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/utilisateurs/${u.id}`}
-                          className="text-text-primary transition-colors hover:text-primary-container hover:underline"
-                        >
-                          {u.prenom} {u.nom}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-text-secondary">{u.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="primary">{u.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={STATUT_BADGE[u.statut]}>{u.statut}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {u.statut === 'ACTIF' && <DesactiverButton utilisateurId={u.id} />}
-                      </TableCell>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="nom">Nom</TriColonne>
+                      <TriColonne cle="email">E-mail</TriColonne>
+                      <TriColonne cle="role">Rôle</TriColonne>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell className="font-medium">
+                          <Link
+                            href={`/utilisateurs/${u.id}`}
+                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                          >
+                            {u.prenom} {u.nom}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-text-secondary">{u.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="primary">{u.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={STATUT_BADGE[u.statut]}>{u.statut}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {u.statut === 'ACTIF' && <DesactiverButton utilisateurId={u.id} />}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
+                {page.lignes.map((u) => (
+                  <LigneCarteMobile
+                    key={u.id}
+                    href={`/utilisateurs/${u.id}`}
+                    titre={`${u.prenom} ${u.nom}`}
+                    reference={u.role}
+                    sousTitre={u.email}
+                    statut={{ libelle: u.statut, ton: STATUT_TON[u.statut] }}
+                  />
+                ))}
+              </CarteListeMobile>
 
               <PaginationListe
                 page={page.page}
@@ -158,6 +190,8 @@ export default async function UtilisateursPage({
           )}
         </Card>
       </div>
+
+      <BoutonFlottant href="/utilisateurs/inviter" libelle="Inviter un utilisateur" icone={UserPlus} />
     </AppLayout>
   );
 }

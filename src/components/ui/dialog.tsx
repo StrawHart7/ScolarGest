@@ -32,16 +32,19 @@ DialogOverlay.displayName = 'DialogOverlay';
 
 export interface DialogContentProps
   extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
-  /** Largeur maximale du modal. `md` par défaut. */
+  /** Largeur maximale du modal à partir de `sm`. `md` par défaut. */
   taille?: 'sm' | 'md' | 'lg';
   /** Masque la croix de fermeture (confirmation bloquante). */
   sansFermeture?: boolean;
 }
 
+// Sous `sm`, une boîte flottante centrée réduit encore plus l'espace déjà
+// contraint d'un téléphone : le modal s'ancre au bord bas en pleine largeur,
+// comme une feuille, et redevient une boîte centrée à partir de `sm`.
 const TAILLES: Record<'sm' | 'md' | 'lg', string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-lg',
-  lg: 'max-w-3xl',
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-lg',
+  lg: 'sm:max-w-3xl',
 };
 
 export const DialogContent = React.forwardRef<
@@ -53,10 +56,12 @@ export const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2',
-        'max-h-[calc(100vh-4rem)] overflow-y-auto rounded-lg border border-surface-border',
-        'bg-surface-container-lowest shadow-premium focus:outline-none',
-        'data-[state=open]:animate-dialog-in data-[state=closed]:animate-fade-out',
+        'fixed inset-x-0 bottom-0 top-auto z-50 max-h-[85vh] w-full overflow-y-auto rounded-t-xl',
+        'border-t border-surface-border bg-surface-container-lowest shadow-premium focus:outline-none',
+        'data-[state=open]:animate-slide-up data-[state=closed]:animate-fade-out',
+        'sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[calc(100vh-4rem)]',
+        'sm:w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border',
+        'sm:data-[state=open]:animate-dialog-in',
         TAILLES[taille],
         className,
       )}

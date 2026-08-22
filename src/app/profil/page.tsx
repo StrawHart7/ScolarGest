@@ -23,15 +23,15 @@ export default async function ProfilPage() {
         <h1 className="text-display-sm text-text-primary">Mon profil</h1>
 
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-secondary-on">
+          <CardContent className="flex flex-wrap items-center gap-4 p-6">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-on">
               <UserRound className="h-7 w-7" aria-hidden />
             </div>
-            <div>
-              <p className="text-headline-sm text-text-primary">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-headline-sm text-text-primary">
                 {profil.prenom} {profil.nom}
               </p>
-              <p className="text-body-sm text-text-secondary">{profil.email}</p>
+              <p className="truncate text-body-sm text-text-secondary">{profil.email}</p>
             </div>
             <Badge variant="primary" className="ml-auto">
               {profil.role}

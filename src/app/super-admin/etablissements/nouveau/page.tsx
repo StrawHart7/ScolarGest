@@ -20,7 +20,7 @@ export default function NouvelEtablissementPage() {
   const [error, formAction] = useFormState(creerEtablissementEtDirecteur, null);
 
   return (
-    <main className="mx-auto max-w-2xl p-container-pad">
+    <main className="mx-auto max-w-2xl px-gutter py-gutter sm:p-container-pad">
       <h1 className="mb-6 text-display-sm text-text-primary">Nouvel établissement</h1>
 
       <form action={formAction} className="flex flex-col gap-6">
@@ -33,7 +33,7 @@ export default function NouvelEtablissementPage() {
               <Label htmlFor="nom">Nom</Label>
               <Input id="nom" name="nom" required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="ville">Ville</Label>
                 <Input id="ville" name="ville" />
@@ -55,7 +55,7 @@ export default function NouvelEtablissementPage() {
             <CardTitle>Compte Directeur</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="directeurPrenom">Prénom</Label>
                 <Input id="directeurPrenom" name="directeurPrenom" required />

@@ -5,9 +5,12 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe } from '@/components/ui/actions-mobile';
 import {
   PaginationListe,
   RechercheListe,
@@ -69,22 +72,24 @@ export default async function ClassesPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-display-sm text-text-primary">Classes</h1>
-            <p className="text-body-md text-text-secondary">
-              {anneeActive ? `Année active : ${anneeActive.libelle}` : 'Aucune année active'}
-            </p>
-          </div>
-          {peutCreer && (
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/etablissement/classes/passage">
-                <ArrowRightLeft className="h-4 w-4" aria-hidden />
-                Passage de cohorte
-              </Link>
-            </Button>
-          )}
+      <div className="space-y-4 md:space-y-6">
+        <div className="hidden md:block">
+          <PageHeader
+            title="Classes"
+            description={
+              anneeActive ? `Année active : ${anneeActive.libelle}` : 'Aucune année active'
+            }
+            actions={
+              peutCreer && (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href="/etablissement/classes/passage">
+                    <ArrowRightLeft className="h-4 w-4" aria-hidden />
+                    Passage de cohorte
+                  </Link>
+                </Button>
+              )
+            }
+          />
         </div>
 
         {!anneeScolaireId ? (
@@ -96,15 +101,20 @@ export default async function ClassesPage({
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+          <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+            <BarreOutilsListe>
               <RechercheListe placeholder="Nom, niveau ou série…" />
               {peutCreer && cycles.length > 0 && (
-                <div className="ml-auto">
+                <div className="md:ml-auto">
                   <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} />
                 </div>
               )}
-            </div>
+            </BarreOutilsListe>
+
+            <EnteteListe
+              titre="Classes"
+              compte={`${page.total} classe${page.total > 1 ? 's' : ''}`}
+            />
 
             {page.total === 0 ? (
               <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
@@ -113,39 +123,56 @@ export default async function ClassesPage({
               </CardContent>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TriColonne cle="nom">Nom</TriColonne>
-                      <TriColonne cle="niveau">Niveau</TriColonne>
-                      <TriColonne cle="serie">Série</TriColonne>
-                      <TriColonne cle="capacite" numerique>
-                        Capacité
-                      </TriColonne>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {page.lignes.map((classe) => (
-                      <TableRow key={classe.id}>
-                        <TableCell className="font-medium">
-                          <Link
-                            href={`/etablissement/classes/${classe.id}`}
-                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
-                          >
-                            {classe.nom}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-text-secondary">{classe.niveau.nom}</TableCell>
-                        <TableCell className="text-text-secondary">
-                          {classe.serie?.nom ?? '—'}
-                        </TableCell>
-                        <TableCell className="text-right text-text-secondary" data-mono>
-                          {classe.capacite ?? '—'}
-                        </TableCell>
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TriColonne cle="nom">Nom</TriColonne>
+                        <TriColonne cle="niveau">Niveau</TriColonne>
+                        <TriColonne cle="serie">Série</TriColonne>
+                        <TriColonne cle="capacite" numerique>
+                          Capacité
+                        </TriColonne>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {page.lignes.map((classe) => (
+                        <TableRow key={classe.id}>
+                          <TableCell className="font-medium">
+                            <Link
+                              href={`/etablissement/classes/${classe.id}`}
+                              className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                            >
+                              {classe.nom}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-text-secondary">{classe.niveau.nom}</TableCell>
+                          <TableCell className="text-text-secondary">
+                            {classe.serie?.nom ?? '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-text-secondary" data-mono>
+                            {classe.capacite ?? '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <CarteListeMobile>
+                  {page.lignes.map((classe) => (
+                    <LigneCarteMobile
+                      key={classe.id}
+                      href={`/etablissement/classes/${classe.id}`}
+                      icone={School}
+                      titre={classe.nom}
+                      sousTitre={
+                        classe.serie?.nom ? `${classe.niveau.nom} · ${classe.serie.nom}` : classe.niveau.nom
+                      }
+                      valeurSecondaire={classe.capacite ? `${classe.capacite} places` : undefined}
+                    />
+                  ))}
+                </CarteListeMobile>
 
                 <PaginationListe
                   page={page.page}

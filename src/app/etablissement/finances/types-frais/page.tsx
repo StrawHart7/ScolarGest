@@ -3,9 +3,13 @@ import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
 import { listTypesFrais } from '@/services/type-frais';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   FiltreListe,
   PaginationListe,
@@ -46,32 +50,36 @@ export default async function TypesFraisPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Types de frais</h1>
-          <p className="text-body-md text-text-secondary">
-            Catégories de frais de l&apos;établissement (scolarité, inscription, cantine…). Elles
-            servent de base aux tarifs par classe et aux lignes de facture.
-          </p>
-        </div>
+        <PageHeader
+          title="Types de frais"
+          description="Catégories de frais de l'établissement (scolarité, inscription, cantine…). Elles servent de base aux tarifs par classe et aux lignes de facture."
+        />
 
-        <Card>
-          <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe>
             <RechercheListe placeholder="Libellé ou description…" />
-            <FiltreListe
-              parametre="statut"
-              libelle="Statut"
-              options={[
-                { valeur: 'ACTIF', libelle: 'Actif' },
-                { valeur: 'INACTIF', libelle: 'Inactif' },
-              ]}
-              libelleTout="Tous les statuts"
-            />
+            <FiltresMobile nombreActifs={typeof statutFiltre === 'string' && statutFiltre ? 1 : 0}>
+              <FiltreListe
+                parametre="statut"
+                libelle="Statut"
+                options={[
+                  { valeur: 'ACTIF', libelle: 'Actif' },
+                  { valeur: 'INACTIF', libelle: 'Inactif' },
+                ]}
+                libelleTout="Tous les statuts"
+              />
+            </FiltresMobile>
             {canWrite && (
-              <div className="ml-auto">
+              <div className="md:ml-auto">
                 <TypeFraisForm />
               </div>
             )}
-          </div>
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Types de frais"
+            compte={`${page.total} type${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
@@ -83,39 +91,59 @@ export default async function TypesFraisPage({
               </p>
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TriColonne cle="nom">Libellé</TriColonne>
-                  <TableHead>Description</TableHead>
-                  <TriColonne cle="statut">Statut</TriColonne>
-                  {canWrite && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="nom">Libellé</TriColonne>
+                      <TableHead>Description</TableHead>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                      {canWrite && <TableHead>Actions</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((typeFrais) => (
+                      <TableRow key={typeFrais.id}>
+                        <TableCell className="font-medium">{typeFrais.nom}</TableCell>
+                        <TableCell className="text-text-secondary">
+                          {typeFrais.description ?? '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={typeFrais.statut === 'ACTIF' ? 'success' : 'neutral'}
+                            shape="pill"
+                          >
+                            {typeFrais.statut === 'ACTIF' ? 'Actif' : 'Inactif'}
+                          </Badge>
+                        </TableCell>
+                        {canWrite && (
+                          <TableCell>
+                            <TypeFraisRowActions typeFrais={typeFrais} />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {page.lignes.map((typeFrais) => (
-                  <TableRow key={typeFrais.id}>
-                    <TableCell className="font-medium">{typeFrais.nom}</TableCell>
-                    <TableCell className="text-text-secondary">
-                      {typeFrais.description ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={typeFrais.statut === 'ACTIF' ? 'success' : 'neutral'}
-                        shape="pill"
-                      >
-                        {typeFrais.statut === 'ACTIF' ? 'Actif' : 'Inactif'}
-                      </Badge>
-                    </TableCell>
-                    {canWrite && (
-                      <TableCell>
-                        <TypeFraisRowActions typeFrais={typeFrais} />
-                      </TableCell>
-                    )}
-                  </TableRow>
+                  <LigneCarteMobile
+                    key={typeFrais.id}
+                    icone={Wallet}
+                    titre={typeFrais.nom}
+                    sousTitre={typeFrais.description ?? undefined}
+                    statut={{
+                      libelle: typeFrais.statut === 'ACTIF' ? 'Actif' : 'Inactif',
+                      ton: typeFrais.statut === 'ACTIF' ? 'succes' : 'neutre',
+                    }}
+                    actions={canWrite && <TypeFraisRowActions typeFrais={typeFrais} />}
+                  />
                 ))}
-              </TableBody>
-            </Table>
+              </CarteListeMobile>
+            </>
           )}
 
           <PaginationListe

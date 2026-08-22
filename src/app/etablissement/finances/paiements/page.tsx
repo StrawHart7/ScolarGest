@@ -4,9 +4,13 @@ import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listPaiements, type StatutPaiement } from '@/services/paiement';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   PaginationListe,
   RechercheListe,
@@ -73,24 +77,30 @@ export default async function HistoriqueVersementsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Historique des versements</h1>
-          <p className="text-body-md text-text-secondary">
-            Tous les encaissements de l&apos;année scolaire, du plus récent au plus ancien. Un
-            versement annulé reste visible : il n&apos;est jamais supprimé.
-          </p>
+      <div className="space-y-4 md:space-y-6">
+        <div className="hidden md:block">
+          <PageHeader
+            title="Historique des versements"
+            description="Tous les encaissements de l'année scolaire, du plus récent au plus ancien. Un versement annulé reste visible : il n'est jamais supprimé."
+          />
         </div>
 
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
-            <PaiementsFiltres
-              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-              defaultAnneeScolaireId={anneeScolaireId ?? ''}
-              defaultStatut={statut ?? ''}
-            />
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe className="md:justify-between">
             <RechercheListe placeholder="Élève, matricule ou référence…" />
-          </div>
+            <FiltresMobile nombreActifs={statut ? 1 : 0}>
+              <PaiementsFiltres
+                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+                defaultAnneeScolaireId={anneeScolaireId ?? ''}
+                defaultStatut={statut ?? ''}
+              />
+            </FiltresMobile>
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Versements"
+            compte={`${page.total} versement${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
@@ -98,67 +108,97 @@ export default async function HistoriqueVersementsPage({
               <p className="text-body-md text-text-primary">Aucun versement enregistré.</p>
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TriColonne cle="date">Date</TriColonne>
-                  <TriColonne cle="eleve">Élève</TriColonne>
-                  <TriColonne cle="montant" numerique>
-                    Montant
-                  </TriColonne>
-                  <TriColonne cle="mode">Mode</TriColonne>
-                  <TableHead>Référence</TableHead>
-                  <TableHead>Reçu</TableHead>
-                  <TriColonne cle="statut">Statut</TriColonne>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="date">Date</TriColonne>
+                      <TriColonne cle="eleve">Élève</TriColonne>
+                      <TriColonne cle="montant" numerique>
+                        Montant
+                      </TriColonne>
+                      <TriColonne cle="mode">Mode</TriColonne>
+                      <TableHead>Référence</TableHead>
+                      <TableHead>Reçu</TableHead>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((paiement) => (
+                      <TableRow key={paiement.id}>
+                        <TableCell>
+                          {new Date(paiement.datePaiement).toLocaleDateString('fr-FR')}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <Link
+                            href={`/etablissement/finances/factures/${paiement.factureId}`}
+                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                          >
+                            {paiement.eleveNom} {paiement.elevePrenoms}
+                          </Link>
+                          <span className="ml-2 text-body-sm text-text-secondary" data-mono>
+                            {paiement.eleveMatricule}
+                          </span>
+                        </TableCell>
+                        <TableCell
+                          className={`text-right ${paiement.statut === 'ANNULE' ? 'text-text-secondary line-through' : ''}`}
+                          data-mono
+                        >
+                          {fcfa(paiement.montant)}
+                        </TableCell>
+                        <TableCell>{MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}</TableCell>
+                        <TableCell data-mono>{paiement.reference ?? '—'}</TableCell>
+                        <TableCell data-mono>{paiement.recuReference ?? '—'}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={paiement.statut === 'ANNULE' ? 'neutral' : 'success'}
+                            shape="pill"
+                          >
+                            {paiement.statut === 'ANNULE' ? 'Annulé' : 'Encaissé'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell className="font-semibold" colSpan={2}>
+                        Total encaissé sur la sélection (hors annulés, FCFA)
+                      </TableCell>
+                      <TableCell className="text-right font-semibold" data-mono>
+                        {fcfa(totalEncaisse)}
+                      </TableCell>
+                      <TableCell colSpan={4} />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {page.lignes.map((paiement) => (
-                  <TableRow key={paiement.id}>
-                    <TableCell>
-                      {new Date(paiement.datePaiement).toLocaleDateString('fr-FR')}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/etablissement/finances/factures/${paiement.factureId}`}
-                        className="text-text-primary transition-colors hover:text-primary-container hover:underline"
-                      >
-                        {paiement.eleveNom} {paiement.elevePrenoms}
-                      </Link>
-                      <span className="ml-2 text-body-sm text-text-secondary" data-mono>
-                        {paiement.eleveMatricule}
+                  <LigneCarteMobile
+                    key={paiement.id}
+                    href={`/etablissement/finances/factures/${paiement.factureId}`}
+                    titre={`${paiement.eleveNom} ${paiement.elevePrenoms}`}
+                    reference={paiement.eleveMatricule}
+                    sousTitre={`${new Date(paiement.datePaiement).toLocaleDateString('fr-FR')} · ${MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}`}
+                    statut={{
+                      libelle: paiement.statut === 'ANNULE' ? 'Annulé' : 'Encaissé',
+                      ton: paiement.statut === 'ANNULE' ? 'neutre' : 'succes',
+                    }}
+                    valeurSecondaire={
+                      <span className={paiement.statut === 'ANNULE' ? 'line-through' : undefined}>
+                        {fcfa(paiement.montant)}
                       </span>
-                    </TableCell>
-                    <TableCell
-                      className={`text-right ${paiement.statut === 'ANNULE' ? 'text-text-secondary line-through' : ''}`}
-                      data-mono
-                    >
-                      {fcfa(paiement.montant)}
-                    </TableCell>
-                    <TableCell>{MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}</TableCell>
-                    <TableCell data-mono>{paiement.reference ?? '—'}</TableCell>
-                    <TableCell data-mono>{paiement.recuReference ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={paiement.statut === 'ANNULE' ? 'neutral' : 'success'}
-                        shape="pill"
-                      >
-                        {paiement.statut === 'ANNULE' ? 'Annulé' : 'Encaissé'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
+                    }
+                  />
                 ))}
-                <TableRow>
-                  <TableCell className="font-semibold" colSpan={2}>
-                    Total encaissé sur la sélection (hors annulés, FCFA)
-                  </TableCell>
-                  <TableCell className="text-right font-semibold" data-mono>
-                    {fcfa(totalEncaisse)}
-                  </TableCell>
-                  <TableCell colSpan={4} />
-                </TableRow>
-              </TableBody>
-            </Table>
+              </CarteListeMobile>
+
+              <div className="border-t border-surface-border p-4 text-body-sm text-text-secondary md:hidden">
+                Total encaissé (hors annulés) —{' '}
+                <span className="font-semibold text-text-primary">{fcfa(totalEncaisse)} F</span>
+              </div>
+            </>
           )}
 
           <PaginationListe

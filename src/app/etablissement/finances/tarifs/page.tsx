@@ -7,8 +7,12 @@ import { listClasses } from '@/services/classe';
 import { listTypesFrais } from '@/services/type-frais';
 import { listTarifs, totalTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   PaginationListe,
   RechercheListe,
@@ -70,34 +74,33 @@ export default async function TarifsPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Configuration des tarifs</h1>
-          <p className="text-body-md text-text-secondary">
-            Montant de chaque type de frais, classe par classe et année par année. Ce sont ces
-            tarifs qui alimentent automatiquement la facture d&apos;un élève à son inscription.
-          </p>
-        </div>
+        <PageHeader
+          title="Configuration des tarifs"
+          description="Montant de chaque type de frais, classe par classe et année par année. Ce sont ces tarifs qui alimentent automatiquement la facture d'un élève à son inscription."
+        />
 
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
-            <TarifsFiltres
-              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-              classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-              defaultAnneeScolaireId={anneeScolaireId ?? ''}
-              defaultClasseId={classeId ?? ''}
-            />
-            <div className="flex items-center gap-3">
-              <RechercheListe placeholder="Rechercher un tarif…" />
-              {canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 && (
-                <TarifForm
-                  anneeScolaireId={anneeScolaireId}
-                  classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-                  typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
-                  defaultClasseId={classeId ?? ''}
-                />
-              )}
-            </div>
-          </div>
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe className="md:justify-between">
+            <RechercheListe placeholder="Rechercher un tarif…" />
+            <FiltresMobile nombreActifs={classeId ? 1 : 0}>
+              <TarifsFiltres
+                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+                defaultAnneeScolaireId={anneeScolaireId ?? ''}
+                defaultClasseId={classeId ?? ''}
+              />
+            </FiltresMobile>
+            {canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 && (
+              <TarifForm
+                anneeScolaireId={anneeScolaireId}
+                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+                typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
+                defaultClasseId={classeId ?? ''}
+              />
+            )}
+          </BarreOutilsListe>
+
+          <EnteteListe titre="Tarifs" compte={`${page.total} tarif${page.total > 1 ? 's' : ''}`} />
 
           {tarifs.length === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
@@ -125,41 +128,61 @@ export default async function TarifsPage({
               )}
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TriColonne cle="classe">Classe</TriColonne>
-                  <TriColonne cle="type">Type de frais</TriColonne>
-                  <TriColonne cle="montant" numerique>
-                    Montant
-                  </TriColonne>
-                  <TriColonne cle="date">Créé le</TriColonne>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="classe">Classe</TriColonne>
+                      <TriColonne cle="type">Type de frais</TriColonne>
+                      <TriColonne cle="montant" numerique>
+                        Montant
+                      </TriColonne>
+                      <TriColonne cle="date">Créé le</TriColonne>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((tarif) => (
+                      <TableRow key={tarif.id}>
+                        <TableCell className="font-medium">{tarif.classe?.nom ?? '—'}</TableCell>
+                        <TableCell>{tarif.typeFrais?.nom ?? '—'}</TableCell>
+                        <TableCell className="text-right" data-mono>
+                          {fcfa(tarif.montant)}
+                        </TableCell>
+                        <TableCell className="text-text-secondary">
+                          {new Date(tarif.createdAt).toLocaleDateString('fr-FR')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell className="font-semibold" colSpan={2}>
+                        {classeId ? 'Total de la classe' : 'Total affiché'}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold" data-mono>
+                        {fcfa(totalTarifs(tarifs))}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {page.lignes.map((tarif) => (
-                  <TableRow key={tarif.id}>
-                    <TableCell className="font-medium">{tarif.classe?.nom ?? '—'}</TableCell>
-                    <TableCell>{tarif.typeFrais?.nom ?? '—'}</TableCell>
-                    <TableCell className="text-right" data-mono>
-                      {fcfa(tarif.montant)}
-                    </TableCell>
-                    <TableCell className="text-text-secondary">
-                      {new Date(tarif.createdAt).toLocaleDateString('fr-FR')}
-                    </TableCell>
-                  </TableRow>
+                  <LigneCarteMobile
+                    key={tarif.id}
+                    titre={tarif.classe?.nom ?? '—'}
+                    sousTitre={tarif.typeFrais?.nom ?? undefined}
+                    valeurSecondaire={fcfa(tarif.montant)}
+                  />
                 ))}
-                <TableRow>
-                  <TableCell className="font-semibold" colSpan={2}>
-                    {classeId ? 'Total de la classe' : 'Total affiché'}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold" data-mono>
-                    {fcfa(totalTarifs(tarifs))}
-                  </TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableBody>
-            </Table>
+              </CarteListeMobile>
+
+              <div className="border-t border-surface-border p-4 text-body-sm text-text-secondary md:hidden">
+                {classeId ? 'Total de la classe' : 'Total affiché'} —{' '}
+                <span className="font-semibold text-text-primary">{fcfa(totalTarifs(tarifs))}</span>
+              </div>
+            </>
           )}
 
           <PaginationListe

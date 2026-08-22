@@ -21,7 +21,7 @@ export default function InviterUtilisateurPage() {
   const [error, formAction] = useFormState(inviterUtilisateur, null);
 
   return (
-    <main className="mx-auto max-w-xl p-container-pad">
+    <main className="mx-auto max-w-xl px-gutter py-gutter sm:p-container-pad">
       <h1 className="mb-6 text-display-sm text-text-primary">Inviter un utilisateur</h1>
 
       <form action={formAction} className="flex flex-col gap-6">
@@ -30,7 +30,7 @@ export default function InviterUtilisateurPage() {
             <CardTitle>Détails</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="prenom">Prénom</Label>
                 <Input id="prenom" name="prenom" required />

@@ -29,6 +29,12 @@ export interface SidebarItem {
   label: string;
   href: string;
   icone: NomIcone;
+  /**
+   * Libellé de la barre d'onglets basse (mobile). Un onglet fait un cinquième
+   * de la largeur d'écran : « Notes et résultats » y est illisible, tronqué à
+   * « Notes et r… ». Quand il est absent, `label` est utilisé tel quel.
+   */
+  labelCourt?: string;
 }
 
 /** Une fonctionnalité présentée en bloc sur la page d'accueil d'une section. */
@@ -206,33 +212,33 @@ export function getSidebarItems(role: Role): SidebarItem[] {
       ];
     case 'DIRECTEUR':
       return [
-        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Tableau de bord', labelCourt: 'Accueil', href: '/dashboard', icone: 'tableau-de-bord' },
         { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
-        { label: 'Notes et résultats', href: '/etablissement/notes', icone: 'notes' },
+        { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
-        { label: 'Établissement', href: '/etablissement', icone: 'etablissement' },
+        { label: 'Établissement', labelCourt: 'École', href: '/etablissement', icone: 'etablissement' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'SECRETAIRE':
       return [
-        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Tableau de bord', labelCourt: 'Accueil', href: '/dashboard', icone: 'tableau-de-bord' },
         { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
-        { label: 'Notes et résultats', href: '/etablissement/notes', icone: 'notes' },
-        { label: 'Établissement', href: '/etablissement', icone: 'etablissement' },
+        { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
+        { label: 'Établissement', labelCourt: 'École', href: '/etablissement', icone: 'etablissement' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'COMPTABLE':
       return [
-        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Tableau de bord', labelCourt: 'Accueil', href: '/dashboard', icone: 'tableau-de-bord' },
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
         { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'ENSEIGNANT':
       return [
-        { label: 'Tableau de bord', href: '/dashboard', icone: 'tableau-de-bord' },
-        { label: 'Mes classes', href: '/etablissement/mes-classes', icone: 'mes-classes' },
-        { label: 'Notes et résultats', href: '/etablissement/notes', icone: 'notes' },
+        { label: 'Tableau de bord', labelCourt: 'Accueil', href: '/dashboard', icone: 'tableau-de-bord' },
+        { label: 'Mes classes', labelCourt: 'Classes', href: '/etablissement/mes-classes', icone: 'mes-classes' },
+        { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     default:

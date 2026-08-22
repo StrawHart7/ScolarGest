@@ -4,10 +4,12 @@ import { getTenantContext } from '@/services/tenant';
 import { listEtablissements } from '@/services/etablissement';
 import { listAbonnements } from '@/services/abonnement';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 
 const STATUT_BADGE = {
@@ -31,20 +33,18 @@ export default async function SuperAdminPage() {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-display-sm text-text-primary">Vue d&apos;ensemble</h1>
-            <p className="text-body-md text-text-secondary">
-              Gérez les écoles clientes et surveillez les abonnements de la plateforme.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/super-admin/etablissements/nouveau" className="gap-2">
-              <Plus className="h-4 w-4" aria-hidden />
-              Nouvel établissement
-            </Link>
-          </Button>
-        </div>
+        <PageHeader
+          title="Vue d'ensemble"
+          description="Gérez les écoles clientes et surveillez les abonnements de la plateforme."
+          actions={
+            <Button asChild>
+              <Link href="/super-admin/etablissements/nouveau" className="gap-2">
+                <Plus className="h-4 w-4" aria-hidden />
+                Nouvel établissement
+              </Link>
+            </Button>
+          }
+        />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <StatCard
@@ -64,8 +64,13 @@ export default async function SuperAdminPage() {
           />
         </div>
 
-        <Card className="overflow-hidden rounded-xl">
-          <CardHeader className="flex-row items-center justify-between border-b border-surface-border bg-surface-container-low/50 p-5">
+        <EnteteListe
+          titre="Établissements"
+          compte={`${etablissements.length} école${etablissements.length > 1 ? 's' : ''}`}
+        />
+
+        <Card className="overflow-hidden rounded-xl max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <CardHeader className="hidden flex-row items-center justify-between border-b border-surface-border bg-surface-container-low/50 p-5 md:flex">
             <CardTitle>Liste des établissements</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -74,49 +79,72 @@ export default async function SuperAdminPage() {
                 Aucun établissement pour le moment.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
-                      <th className="py-2 pl-5 pr-3 font-semibold">Établissement</th>
-                      <th className="px-3 py-2 font-semibold">Ville</th>
-                      <th className="px-3 py-2 font-semibold">Email</th>
-                      <th className="px-3 py-2 font-semibold">Statut</th>
-                      <th className="py-2 pl-3 pr-5 text-right font-semibold">Créé le</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-sm text-text-primary">
-                    {etablissements.map((etab) => (
-                      <tr
-                        key={etab.id}
-                        className="h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
-                      >
-                        <td className="py-2 pl-5 pr-3 font-medium">
-                          <Link
-                            href={`/super-admin/etablissements/${etab.id}`}
-                            className="text-text-primary hover:text-primary-container"
-                          >
-                            {etab.nom}
-                          </Link>
-                        </td>
-                        <td className="px-3 py-2 text-text-secondary">{etab.ville ?? '—'}</td>
-                        <td className="px-3 py-2 text-text-secondary">{etab.email ?? '—'}</td>
-                        <td className="px-3 py-2">
-                          <Badge shape="pill" variant={STATUT_BADGE[etab.statut]}>
-                            {etab.statut}
-                          </Badge>
-                        </td>
-                        <td
-                          className="py-2 pl-3 pr-5 text-right text-text-secondary"
-                          data-mono
-                        >
-                          {new Date(etab.createdAt).toLocaleDateString('fr-FR')}
-                        </td>
+              <>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
+                        <th className="py-2 pl-5 pr-3 font-semibold">Établissement</th>
+                        <th className="px-3 py-2 font-semibold">Ville</th>
+                        <th className="px-3 py-2 font-semibold">Email</th>
+                        <th className="px-3 py-2 font-semibold">Statut</th>
+                        <th className="py-2 pl-3 pr-5 text-right font-semibold">Créé le</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="text-body-sm text-text-primary">
+                      {etablissements.map((etab) => (
+                        <tr
+                          key={etab.id}
+                          className="h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
+                        >
+                          <td className="py-2 pl-5 pr-3 font-medium">
+                            <Link
+                              href={`/super-admin/etablissements/${etab.id}`}
+                              className="text-text-primary hover:text-primary-container"
+                            >
+                              {etab.nom}
+                            </Link>
+                          </td>
+                          <td className="px-3 py-2 text-text-secondary">{etab.ville ?? '—'}</td>
+                          <td className="px-3 py-2 text-text-secondary">{etab.email ?? '—'}</td>
+                          <td className="px-3 py-2">
+                            <Badge shape="pill" variant={STATUT_BADGE[etab.statut]}>
+                              {etab.statut}
+                            </Badge>
+                          </td>
+                          <td
+                            className="py-2 pl-3 pr-5 text-right text-text-secondary"
+                            data-mono
+                          >
+                            {new Date(etab.createdAt).toLocaleDateString('fr-FR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <CarteListeMobile>
+                  {etablissements.map((etab) => (
+                    <LigneCarteMobile
+                      key={etab.id}
+                      href={`/super-admin/etablissements/${etab.id}`}
+                      icone={Building2}
+                      titre={etab.nom}
+                      sousTitre={etab.ville ?? etab.email ?? undefined}
+                      statut={{
+                        libelle: etab.statut,
+                        ton:
+                          etab.statut === 'ACTIF'
+                            ? 'succes'
+                            : etab.statut === 'SUSPENDU'
+                              ? 'erreur'
+                              : 'neutre',
+                      }}
+                    />
+                  ))}
+                </CarteListeMobile>
+              </>
             )}
           </CardContent>
         </Card>

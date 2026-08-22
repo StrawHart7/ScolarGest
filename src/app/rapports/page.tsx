@@ -15,6 +15,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 import { RapportsFiltres } from './RapportsFiltres';
 
@@ -117,17 +118,19 @@ export default async function RapportsPage({
         ) : (
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
-              <RapportsFiltres
-                rapports={disponibles}
-                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-                typeCourant={type!}
-                anneeScolaireId={anneeScolaireId ?? ''}
-                classeId={classeId ?? ''}
-                periode={periode}
-                exigeClasse={Boolean(definition?.exigeClasse)}
-                exigePeriode={Boolean(definition?.exigePeriode)}
-              />
+              <FiltresMobile>
+                <RapportsFiltres
+                  rapports={disponibles}
+                  annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+                  classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+                  typeCourant={type!}
+                  anneeScolaireId={anneeScolaireId ?? ''}
+                  classeId={classeId ?? ''}
+                  periode={periode}
+                  exigeClasse={Boolean(definition?.exigeClasse)}
+                  exigePeriode={Boolean(definition?.exigePeriode)}
+                />
+              </FiltresMobile>
 
               <div className="flex items-center gap-2">
                 <Button asChild size="sm" variant="secondary" disabled={!rapport}>

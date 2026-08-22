@@ -61,7 +61,7 @@ export default async function FicheEnseignantPage({ params }: { params: { id: st
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant={STATUT_BADGE[enseignant.statut]?.variant ?? 'neutral'} shape="pill">
                 {STATUT_BADGE[enseignant.statut]?.label ?? enseignant.statut}
               </Badge>
@@ -84,7 +84,7 @@ export default async function FicheEnseignantPage({ params }: { params: { id: st
             <CardTitle>Identité</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-4 text-body-sm">
+            <dl className="grid grid-cols-1 gap-4 text-body-sm sm:grid-cols-2">
               <div>
                 <dt className="text-text-secondary">Sexe</dt>
                 <dd className="text-text-primary">{enseignant.sexe === 'M' ? 'Masculin' : 'Féminin'}</dd>

@@ -1,12 +1,21 @@
 import Link from 'next/link';
-import { FileSpreadsheet, UserPlus, Users2 } from 'lucide-react';
+import { FileSpreadsheet, GraduationCap, UserPlus, Users2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listElevesPage, type StatutEleve } from '@/services/eleve';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  CarteListeMobile,
+  EnteteListe,
+  LigneCarteMobile,
+  type TonStatut,
+} from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe, BoutonFlottant, BoutonOutilPrincipal } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   FiltreListe,
   PaginationListe,
@@ -16,11 +25,14 @@ import {
 import { bornesPage, lireParametresListe, paginationDepuisBase } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 
-const STATUT_BADGE: Record<StatutEleve, { label: string; variant: 'success' | 'neutral' | 'warning' }> = {
-  ACTIF: { label: 'Actif', variant: 'success' },
-  INACTIF: { label: 'Inactif', variant: 'neutral' },
-  ARCHIVE: { label: 'Archivé', variant: 'neutral' },
-  TRANSFERE: { label: 'Transféré', variant: 'warning' },
+const STATUT_BADGE: Record<
+  StatutEleve,
+  { label: string; variant: 'success' | 'neutral' | 'warning'; ton: TonStatut }
+> = {
+  ACTIF: { label: 'Actif', variant: 'success', ton: 'succes' },
+  INACTIF: { label: 'Inactif', variant: 'neutral', ton: 'neutre' },
+  ARCHIVE: { label: 'Archivé', variant: 'neutral', ton: 'neutre' },
+  TRANSFERE: { label: 'Transféré', variant: 'warning', ton: 'alerte' },
 };
 
 const OPTIONS_STATUT = (Object.keys(STATUT_BADGE) as StatutEleve[]).map((statut) => ({
@@ -71,37 +83,57 @@ export default async function ElevesPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-display-sm text-text-primary">Liste des élèves</h1>
-          {canWrite && (
-            <div className="flex items-center gap-2">
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/etablissement/eleves/import">
-                  <FileSpreadsheet className="h-4 w-4" aria-hidden />
-                  Import Excel
-                </Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/etablissement/eleves/nouvelle">
-                  <UserPlus className="h-4 w-4" aria-hidden />
-                  Nouvel élève
-                </Link>
-              </Button>
-            </div>
-          )}
+      <div className="space-y-4 md:space-y-6">
+        {/* Sur mobile, le titre descend dans la ligne de densité au-dessus de
+            la liste, et les actions deviennent bouton flottant + icône. */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="Liste des élèves"
+            actions={
+              canWrite && (
+                <>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href="/etablissement/eleves/import">
+                      <FileSpreadsheet className="h-4 w-4" aria-hidden />
+                      Import Excel
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm">
+                    <Link href="/etablissement/eleves/nouvelle">
+                      <UserPlus className="h-4 w-4" aria-hidden />
+                      Nouvel élève
+                    </Link>
+                  </Button>
+                </>
+              )
+            }
+          />
         </div>
 
-        <Card>
-          <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe>
             <RechercheListe placeholder="Nom, prénoms ou matricule…" />
-            <FiltreListe
-              parametre="statut"
-              libelle="Statut"
-              options={OPTIONS_STATUT}
-              libelleTout="Tous les statuts"
-            />
-          </div>
+            <FiltresMobile nombreActifs={lireUnique('statut') ? 1 : 0}>
+              <FiltreListe
+                parametre="statut"
+                libelle="Statut"
+                options={OPTIONS_STATUT}
+                libelleTout="Tous les statuts"
+              />
+            </FiltresMobile>
+            {canWrite && (
+              <BoutonOutilPrincipal
+                href="/etablissement/eleves/import"
+                libelle="Import Excel"
+                icone={FileSpreadsheet}
+              />
+            )}
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Liste des élèves"
+            compte={`${page.total} élève${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
@@ -120,39 +152,58 @@ export default async function ElevesPage({
             </CardContent>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {/* Le matricule n'est plus en liste : il identifie un élève
-                        sur sa fiche, pas dans un tableau de parcours. */}
-                    <TriColonne cle="nom">Nom &amp; Prénoms</TriColonne>
-                    <TriColonne cle="statut">Statut</TriColonne>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {page.lignes.map((eleve) => (
-                    <TableRow key={eleve.id}>
-                      <TableCell className="font-medium">
-                        {eleve.nom} {eleve.prenoms}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={STATUT_BADGE[eleve.statut].variant} shape="pill">
-                          {STATUT_BADGE[eleve.statut].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/etablissement/eleves/${eleve.id}`}
-                          className="text-text-secondary transition-colors hover:text-primary-container hover:underline"
-                        >
-                          Voir la fiche
-                        </Link>
-                      </TableCell>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {/* Le matricule n'est plus en liste : il identifie un élève
+                          sur sa fiche, pas dans un tableau de parcours. */}
+                      <TriColonne cle="nom">Nom &amp; Prénoms</TriColonne>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((eleve) => (
+                      <TableRow key={eleve.id}>
+                        <TableCell className="font-medium">
+                          {eleve.nom} {eleve.prenoms}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={STATUT_BADGE[eleve.statut].variant} shape="pill">
+                            {STATUT_BADGE[eleve.statut].label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            href={`/etablissement/eleves/${eleve.id}`}
+                            className="text-text-secondary transition-colors hover:text-primary-container hover:underline"
+                          >
+                            Voir la fiche
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
+                {page.lignes.map((eleve) => (
+                  <LigneCarteMobile
+                    key={eleve.id}
+                    href={`/etablissement/eleves/${eleve.id}`}
+                    icone={GraduationCap}
+                    titre={`${eleve.nom} ${eleve.prenoms}`}
+                    reference={eleve.matricule}
+                    sousTitre={eleve.classeNom ?? undefined}
+                    statut={{
+                      libelle: STATUT_BADGE[eleve.statut].label,
+                      ton: STATUT_BADGE[eleve.statut].ton,
+                    }}
+                  />
+                ))}
+              </CarteListeMobile>
 
               <PaginationListe
                 page={page.page}
@@ -166,6 +217,14 @@ export default async function ElevesPage({
           )}
         </Card>
       </div>
+
+      {canWrite && (
+        <BoutonFlottant
+          href="/etablissement/eleves/nouvelle"
+          libelle="Nouvel élève"
+          icone={UserPlus}
+        />
+      )}
     </AppLayout>
   );
 }

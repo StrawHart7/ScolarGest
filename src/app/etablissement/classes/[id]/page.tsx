@@ -29,25 +29,25 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
 
         <Card>
           <CardContent className="flex flex-col gap-6 p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-container/10 text-primary-container">
-                <School className="h-7 w-7" aria-hidden />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-container/10 text-primary-container">
+                  <School className="h-7 w-7" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-headline-sm text-text-primary">{classe.nom}</p>
+                  <p className="text-body-sm text-text-secondary">
+                    {classe.niveau.nom}
+                    {classe.serie ? ` — Série ${classe.serie.nom}` : ''}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-headline-sm text-text-primary">{classe.nom}</p>
-                <p className="text-body-sm text-text-secondary">
-                  {classe.niveau.nom}
-                  {classe.serie ? ` — Série ${classe.serie.nom}` : ''}
-                </p>
-              </div>
-              <div className="ml-auto">
-                <Button asChild variant="secondary" size="sm">
-                  <Link href={`/etablissement/classes/${classe.id}/affectations`}>Affectations</Link>
-                </Button>
-              </div>
+              <Button asChild variant="secondary" size="sm">
+                <Link href={`/etablissement/classes/${classe.id}/affectations`}>Affectations</Link>
+              </Button>
             </div>
 
-            <dl className="grid grid-cols-2 gap-4 border-t border-surface-border pt-4 text-body-sm">
+            <dl className="grid grid-cols-1 gap-4 border-t border-surface-border pt-4 text-body-sm sm:grid-cols-2">
               <div>
                 <dt className="text-text-secondary">Capacité</dt>
                 <dd className="text-text-primary" data-mono>

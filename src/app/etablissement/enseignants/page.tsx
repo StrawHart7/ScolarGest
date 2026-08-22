@@ -1,12 +1,21 @@
 import Link from 'next/link';
-import { FileSpreadsheet, UserPlus, Users2 } from 'lucide-react';
+import { FileSpreadsheet, UserPlus, Users2, UsersRound } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listEnseignants, type StatutEnseignant } from '@/services/enseignant';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  CarteListeMobile,
+  EnteteListe,
+  LigneCarteMobile,
+  type TonStatut,
+} from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe, BoutonFlottant, BoutonOutilPrincipal } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   FiltreListe,
   PaginationListe,
@@ -16,11 +25,14 @@ import {
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 
-const STATUT_BADGE: Record<StatutEnseignant, { label: string; variant: 'success' | 'neutral' | 'warning' }> = {
-  ACTIF: { label: 'Actif', variant: 'success' },
-  INACTIF: { label: 'Inactif', variant: 'neutral' },
-  CONGE: { label: 'Congé', variant: 'warning' },
-  DEPART: { label: 'Départ', variant: 'neutral' },
+const STATUT_BADGE: Record<
+  StatutEnseignant,
+  { label: string; variant: 'success' | 'neutral' | 'warning'; ton: TonStatut }
+> = {
+  ACTIF: { label: 'Actif', variant: 'success', ton: 'succes' },
+  INACTIF: { label: 'Inactif', variant: 'neutral', ton: 'neutre' },
+  CONGE: { label: 'Congé', variant: 'warning', ton: 'alerte' },
+  DEPART: { label: 'Départ', variant: 'neutral', ton: 'neutre' },
 };
 
 const OPTIONS_STATUT = (Object.keys(STATUT_BADGE) as StatutEnseignant[]).map((statut) => ({
@@ -61,37 +73,55 @@ export default async function EnseignantsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-display-sm text-text-primary">Liste des enseignants</h1>
-          {canWrite && (
-            <div className="flex items-center gap-2">
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/etablissement/enseignants/import">
-                  <FileSpreadsheet className="h-4 w-4" aria-hidden />
-                  Import Excel
-                </Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/etablissement/enseignants/nouveau">
-                  <UserPlus className="h-4 w-4" aria-hidden />
-                  Nouvel enseignant
-                </Link>
-              </Button>
-            </div>
-          )}
+      <div className="space-y-4 md:space-y-6">
+        <div className="hidden md:block">
+          <PageHeader
+            title="Liste des enseignants"
+            actions={
+              canWrite && (
+                <>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href="/etablissement/enseignants/import">
+                      <FileSpreadsheet className="h-4 w-4" aria-hidden />
+                      Import Excel
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm">
+                    <Link href="/etablissement/enseignants/nouveau">
+                      <UserPlus className="h-4 w-4" aria-hidden />
+                      Nouvel enseignant
+                    </Link>
+                  </Button>
+                </>
+              )
+            }
+          />
         </div>
 
-        <Card>
-          <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe>
             <RechercheListe placeholder="Nom, prénoms ou matricule…" />
-            <FiltreListe
-              parametre="statut"
-              libelle="Statut"
-              options={OPTIONS_STATUT}
-              libelleTout="Tous les statuts"
-            />
-          </div>
+            <FiltresMobile nombreActifs={lireUnique('statut') ? 1 : 0}>
+              <FiltreListe
+                parametre="statut"
+                libelle="Statut"
+                options={OPTIONS_STATUT}
+                libelleTout="Tous les statuts"
+              />
+            </FiltresMobile>
+            {canWrite && (
+              <BoutonOutilPrincipal
+                href="/etablissement/enseignants/import"
+                libelle="Import Excel"
+                icone={FileSpreadsheet}
+              />
+            )}
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Liste des enseignants"
+            compte={`${page.total} enseignant${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
@@ -110,37 +140,55 @@ export default async function EnseignantsPage({
             </CardContent>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TriColonne cle="nom">Nom &amp; Prénoms</TriColonne>
-                    <TriColonne cle="statut">Statut</TriColonne>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="nom">Nom &amp; Prénoms</TriColonne>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                  {page.lignes.map((enseignant) => (
+                    <TableRow key={enseignant.id}>
+                      <TableCell className="font-medium">
+                        {enseignant.nom} {enseignant.prenoms}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={STATUT_BADGE[enseignant.statut].variant} shape="pill">
+                          {STATUT_BADGE[enseignant.statut].label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/etablissement/enseignants/${enseignant.id}`}
+                          className="text-text-secondary transition-colors hover:text-primary-container hover:underline"
+                        >
+                          Voir la fiche
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {page.lignes.map((enseignant) => (
-                  <TableRow key={enseignant.id}>
-                    <TableCell className="font-medium">
-                      {enseignant.nom} {enseignant.prenoms}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={STATUT_BADGE[enseignant.statut].variant} shape="pill">
-                        {STATUT_BADGE[enseignant.statut].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/etablissement/enseignants/${enseignant.id}`}
-                        className="text-text-secondary transition-colors hover:text-primary-container hover:underline"
-                      >
-                        Voir la fiche
-                      </Link>
-                    </TableCell>
-                  </TableRow>
+                  <LigneCarteMobile
+                    key={enseignant.id}
+                    href={`/etablissement/enseignants/${enseignant.id}`}
+                    icone={UsersRound}
+                    titre={`${enseignant.nom} ${enseignant.prenoms}`}
+                    reference={enseignant.matricule}
+                    statut={{
+                      libelle: STATUT_BADGE[enseignant.statut].label,
+                      ton: STATUT_BADGE[enseignant.statut].ton,
+                    }}
+                  />
                 ))}
-                </TableBody>
-              </Table>
+              </CarteListeMobile>
 
               <PaginationListe
                 page={page.page}
@@ -154,6 +202,14 @@ export default async function EnseignantsPage({
           )}
         </Card>
       </div>
+
+      {canWrite && (
+        <BoutonFlottant
+          href="/etablissement/enseignants/nouveau"
+          libelle="Nouvel enseignant"
+          icone={UserPlus}
+        />
+      )}
     </AppLayout>
   );
 }

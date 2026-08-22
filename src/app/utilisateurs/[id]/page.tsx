@@ -36,17 +36,17 @@ export default async function UtilisateurDetailPage({ params }: { params: { id: 
 
         <Card>
           <CardContent className="flex flex-col gap-6 p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-secondary-on">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-on">
                 <UserRound className="h-7 w-7" aria-hidden />
               </div>
-              <div>
-                <p className="text-headline-sm text-text-primary">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-headline-sm text-text-primary">
                   {utilisateur.prenom} {utilisateur.nom}
                 </p>
-                <p className="text-body-sm text-text-secondary">{utilisateur.email}</p>
+                <p className="truncate text-body-sm text-text-secondary">{utilisateur.email}</p>
               </div>
-              <div className="ml-auto flex gap-2">
+              <div className="ml-auto flex flex-wrap gap-2">
                 <Badge variant="primary">{utilisateur.role}</Badge>
                 <Badge shape="pill" variant={STATUT_BADGE[utilisateur.statut]}>
                   {utilisateur.statut}
@@ -54,7 +54,7 @@ export default async function UtilisateurDetailPage({ params }: { params: { id: 
               </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-4 border-t border-surface-border pt-4 text-body-sm">
+            <dl className="grid grid-cols-1 gap-4 border-t border-surface-border pt-4 text-body-sm sm:grid-cols-2">
               <div>
                 <dt className="text-text-secondary">Téléphone</dt>
                 <dd className="text-text-primary">{utilisateur.telephone ?? '—'}</dd>

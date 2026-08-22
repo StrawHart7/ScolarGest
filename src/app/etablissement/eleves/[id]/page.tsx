@@ -49,7 +49,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant={eleve.statut === 'ACTIF' ? 'success' : 'neutral'} shape="pill">
                 {eleve.statut}
               </Badge>
@@ -74,7 +74,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
             <CardTitle>Identité</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-4 text-body-sm">
+            <dl className="grid grid-cols-1 gap-4 text-body-sm sm:grid-cols-2">
               <div>
                 <dt className="text-text-secondary">Sexe</dt>
                 <dd className="text-text-primary">{eleve.sexe === 'M' ? 'Masculin' : 'Féminin'}</dd>
@@ -157,7 +157,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
               eleve.inscriptions.map((i) => (
                 <div
                   key={i.id}
-                  className="flex items-center justify-between rounded-lg border border-surface-border p-3"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-surface-border p-3"
                 >
                   <div>
                     <p className="text-body-md text-text-primary">
@@ -190,7 +190,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
             ) : (
               factures.map((f) => (
                 <div key={f.id} className="rounded-lg border border-surface-border p-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-body-md text-text-primary">
                       Facture — {new Date(f.dateCreation).toLocaleDateString('fr-FR')}
                     </p>

@@ -72,9 +72,12 @@ export function RechercheListe({
   }, [valeur, termeUrl, majParametres]);
 
   return (
-    <div className={cn('relative w-full sm:w-72', className)}>
+    // Sous `md` la recherche occupe toute la largeur restante de la barre
+    // d'outils, à côté du filtre et de l'action ; au-delà elle reprend sa
+    // largeur fixe pour ne pas écarter les filtres alignés à sa droite.
+    <div className={cn('relative min-w-0 flex-1 md:w-72 md:flex-none', className)}>
       <Search
-        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary"
+        className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-outline md:h-4 md:w-4 md:text-text-secondary"
         aria-hidden
       />
       <input
@@ -83,7 +86,7 @@ export function RechercheListe({
         onChange={(e) => setValeur(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-10 w-full rounded border border-surface-border bg-surface-container-lowest pl-9 pr-9 text-body-md text-text-primary transition-colors placeholder:text-text-secondary/60 hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 [&::-webkit-search-cancel-button]:hidden"
+        className="h-10 w-full rounded-lg border border-surface-border bg-surface-container-lowest pl-10 pr-9 text-body-md text-text-primary shadow-sm transition-colors placeholder:text-outline-variant hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 md:pl-9 md:shadow-none [&::-webkit-search-cancel-button]:hidden"
       />
       <span className="absolute right-3 top-1/2 -translate-y-1/2">
         {enAttente ? (
@@ -234,7 +237,10 @@ export function PaginationListe({
   const suivantInactif = page >= nombrePages;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border px-4 py-3">
+    // Sous `md`, la liste est une carte autonome : un filet supérieur pleine
+    // largeur flotterait sous elle sans rien séparer. La pagination y devient
+    // une simple rangée détachée.
+    <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1 md:border-t md:border-surface-border md:px-4 md:py-3">
       <p className="text-body-sm text-text-secondary">
         {debut}–{fin} sur {total} {libelle}
       </p>

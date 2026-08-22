@@ -1,6 +1,7 @@
 import { Sidebar, type SidebarItem } from './Sidebar';
 import { Header } from './Header';
 import { AbonnementBanner } from './AbonnementBanner';
+import { BottomNav } from './BottomNav';
 import { ToastProvider } from '@/components/ui/toast';
 
 export interface AppLayoutProps {
@@ -19,8 +20,17 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
         <div className="md:pl-sidebar">
           <Header schoolName={schoolName} role={role} userName={userName} />
           <AbonnementBanner />
-          <main className="p-container-pad">{children}</main>
+          {/*
+            Le bas de page doit dégager la barre de navigation flottante :
+            56px de hauteur, 24px de décalage du bord, une gouttière, et
+            l'encoche des téléphones. Sans cela la dernière ligne d'une liste
+            reste inaccessible sous la barre.
+          */}
+          <main className="px-gutter py-gutter pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-container-pad">
+            {children}
+          </main>
         </div>
+        <BottomNav items={items} />
       </div>
     </ToastProvider>
   );

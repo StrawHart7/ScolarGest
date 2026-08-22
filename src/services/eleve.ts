@@ -95,8 +95,14 @@ function echapperMotifIlike(terme: string): string {
   return terme.replace(/[,()\\]/g, (c) => `\\${c}`);
 }
 
+/** Élève de liste, enrichi de sa classe courante pour l'affichage. */
+export interface EleveListe extends Eleve {
+  /** Classe de l'inscription ACTIVE, `null` si l'élève n'est pas inscrit. */
+  classeNom: string | null;
+}
+
 export interface PageEleves {
-  lignes: Eleve[];
+  lignes: EleveListe[];
   total: number;
 }
 
@@ -142,7 +148,42 @@ export async function listElevesPage(
 
   const { data, error, count } = await query.range(pagination.de, pagination.a);
   if (error) throw error;
-  return { lignes: (data ?? []) as unknown as Eleve[], total: count ?? 0 };
+
+  const eleves = (data ?? []) as unknown as Eleve[];
+  if (eleves.length === 0) return { lignes: [], total: count ?? 0 };
+
+  // Classe courante en une seule requête pour la page affichée (dix lignes),
+  // pas une par élève : la liste identifie un élève par son nom et sa classe,
+  // et repartir chercher la classe ligne par ligne rendrait la page linéaire
+  // en nombre d'élèves affichés.
+  const { data: inscriptions, error: erreurInscriptions } = await supabase
+    .from('inscription')
+    .select('"eleveId", classe:classe("nom")')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('statut', 'ACTIVE')
+    .in(
+      'eleveId',
+      eleves.map((eleve) => eleve.id),
+    );
+  if (erreurInscriptions) throw erreurInscriptions;
+
+  const classeParEleve = new Map(
+    (inscriptions ?? []).map((inscription) => [
+      inscription.eleveId as string,
+      // La jointure to-one `classe:classe("nom")` renvoie un objet (ou null) à
+      // l'exécution, mais le typegen Supabase l'infère comme tableau : cast via
+      // `unknown` pour lever l'incompatibilité sans changer le comportement.
+      (inscription.classe as unknown as { nom: string } | null)?.nom ?? null,
+    ]),
+  );
+
+  return {
+    lignes: eleves.map((eleve) => ({
+      ...eleve,
+      classeNom: classeParEleve.get(eleve.id) ?? null,
+    })),
+    total: count ?? 0,
+  };
 }
 
 export async function listEleves(filters: ListElevesFilters = {}): Promise<Eleve[]> {

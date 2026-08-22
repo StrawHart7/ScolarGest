@@ -6,9 +6,11 @@ import { listMesAffectations } from '@/services/affectation';
 import { getResultatsClasse, type ResultatEleve } from '@/services/resultats-classe';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   PaginationListe,
   RechercheListe,
@@ -74,23 +76,22 @@ export default async function ResultatsPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Moyennes &amp; classement</h1>
-          <p className="text-body-sm text-text-secondary">
-            Consultation des moyennes par matière, moyennes trimestrielles, appréciations et rangs
-            calculés par le moteur académique.
-          </p>
-        </div>
+        <PageHeader
+          title="Moyennes & classement"
+          description="Consultation des moyennes par matière, moyennes trimestrielles, appréciations et rangs calculés par le moteur académique."
+        />
 
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
-            <ResultatsFiltres
-              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-              classes={classeOptions}
-              defaultAnneeScolaireId={anneeScolaireId ?? ''}
-              defaultClasseId={classeId ?? ''}
-              defaultPeriode={periode}
-            />
+            <FiltresMobile>
+              <ResultatsFiltres
+                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+                classes={classeOptions}
+                defaultAnneeScolaireId={anneeScolaireId ?? ''}
+                defaultClasseId={classeId ?? ''}
+                defaultPeriode={periode}
+              />
+            </FiltresMobile>
             <RechercheListe placeholder="Rechercher un élève…" />
           </div>
 

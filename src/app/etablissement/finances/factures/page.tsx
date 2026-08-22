@@ -5,9 +5,18 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listSuiviPaiements, totauxSuivi, type StatutFacture } from '@/services/facture';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
+import {
+  CarteListeMobile,
+  EnteteListe,
+  LigneCarteMobile,
+  type TonStatut,
+} from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   PaginationListe,
   RechercheListe,
@@ -31,6 +40,13 @@ const STATUT_BADGE: Record<StatutFacture, 'success' | 'warning' | 'error' | 'neu
   PARTIEL: 'warning',
   IMPAYE: 'error',
   ANNULE: 'neutral',
+};
+
+const STATUT_TON: Record<StatutFacture, TonStatut> = {
+  PAYE: 'succes',
+  PARTIEL: 'alerte',
+  IMPAYE: 'erreur',
+  ANNULE: 'neutre',
 };
 
 const STATUTS: StatutFacture[] = ['PAYE', 'PARTIEL', 'IMPAYE', 'ANNULE'];
@@ -84,26 +100,32 @@ export default async function SuiviPaiementsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Suivi des paiements</h1>
-          <p className="text-body-md text-text-secondary">
-            Une ligne par facture élève : total dû, total encaissé et reste à recouvrer. Les statuts
-            sont informatifs et ne bloquent rien dans le système.
-          </p>
+      <div className="space-y-4 md:space-y-6">
+        <div className="hidden md:block">
+          <PageHeader
+            title="Suivi des paiements"
+            description="Une ligne par facture élève : total dû, total encaissé et reste à recouvrer. Les statuts sont informatifs et ne bloquent rien dans le système."
+          />
         </div>
 
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
-            <SuiviFiltres
-              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-              classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-              defaultAnneeScolaireId={anneeScolaireId ?? ''}
-              defaultClasseId={lireUnique('classeId') ?? ''}
-              defaultStatut={statut ?? ''}
-            />
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe className="md:justify-between">
             <RechercheListe placeholder="Élève, matricule ou classe…" />
-          </div>
+            <FiltresMobile nombreActifs={(lireUnique('classeId') ? 1 : 0) + (statut ? 1 : 0)}>
+              <SuiviFiltres
+                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+                defaultAnneeScolaireId={anneeScolaireId ?? ''}
+                defaultClasseId={lireUnique('classeId') ?? ''}
+                defaultStatut={statut ?? ''}
+              />
+            </FiltresMobile>
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Suivi des paiements"
+            compte={`${page.total} facture${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
@@ -114,72 +136,105 @@ export default async function SuiviPaiementsPage({
               </p>
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TriColonne cle="eleve">Nom de l&apos;élève</TriColonne>
-                  <TriColonne cle="classe">Classe</TriColonne>
-                  <TriColonne cle="total" numerique>
-                    Total dû
-                  </TriColonne>
-                  <TriColonne cle="paye" numerique>
-                    Total payé
-                  </TriColonne>
-                  <TriColonne cle="solde" numerique>
-                    Reste à recouvrer
-                  </TriColonne>
-                  <TriColonne cle="statut">Statut</TriColonne>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="eleve">Nom de l&apos;élève</TriColonne>
+                      <TriColonne cle="classe">Classe</TriColonne>
+                      <TriColonne cle="total" numerique>
+                        Total dû
+                      </TriColonne>
+                      <TriColonne cle="paye" numerique>
+                        Total payé
+                      </TriColonne>
+                      <TriColonne cle="solde" numerique>
+                        Reste à recouvrer
+                      </TriColonne>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((ligne) => (
+                      <TableRow key={ligne.factureId}>
+                        <TableCell className="font-medium">
+                          <Link
+                            href={`/etablissement/finances/factures/${ligne.factureId}`}
+                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                          >
+                            {ligne.nom} {ligne.prenoms}
+                          </Link>
+                        </TableCell>
+                        <TableCell>{ligne.classeNom ?? '—'}</TableCell>
+                        <TableCell className="text-right" data-mono>
+                          {fcfa(ligne.montantTotal)}
+                        </TableCell>
+                        <TableCell className="text-right" data-mono>
+                          {fcfa(ligne.totalPaye)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right ${ligne.solde > 0 ? 'font-semibold text-error' : ''}`}
+                          data-mono
+                        >
+                          {fcfa(ligne.solde)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={STATUT_BADGE[ligne.statut]} shape="pill">
+                            {STATUT_LABEL[ligne.statut]}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell className="font-semibold" colSpan={2}>
+                        Totaux de la sélection ({lignes.length} facture
+                        {lignes.length > 1 ? 's' : ''}, FCFA)
+                      </TableCell>
+                      <TableCell className="text-right font-semibold" data-mono>
+                        {fcfa(totaux.montantTotal)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold" data-mono>
+                        {fcfa(totaux.totalPaye)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold" data-mono>
+                        {fcfa(totaux.solde)}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {page.lignes.map((ligne) => (
-                  <TableRow key={ligne.factureId}>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/etablissement/finances/factures/${ligne.factureId}`}
-                        className="text-text-primary transition-colors hover:text-primary-container hover:underline"
-                      >
-                        {ligne.nom} {ligne.prenoms}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{ligne.classeNom ?? '—'}</TableCell>
-                    <TableCell className="text-right" data-mono>
-                      {fcfa(ligne.montantTotal)}
-                    </TableCell>
-                    <TableCell className="text-right" data-mono>
-                      {fcfa(ligne.totalPaye)}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right ${ligne.solde > 0 ? 'font-semibold text-error' : ''}`}
-                      data-mono
-                    >
-                      {fcfa(ligne.solde)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={STATUT_BADGE[ligne.statut]} shape="pill">
-                        {STATUT_LABEL[ligne.statut]}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
+                  <LigneCarteMobile
+                    key={ligne.factureId}
+                    href={`/etablissement/finances/factures/${ligne.factureId}`}
+                    titre={`${ligne.nom} ${ligne.prenoms}`}
+                    reference={ligne.matricule}
+                    sousTitre={ligne.classeNom ?? undefined}
+                    statut={{
+                      libelle: STATUT_LABEL[ligne.statut],
+                      ton: STATUT_TON[ligne.statut],
+                    }}
+                    valeurSecondaire={
+                      <span className={ligne.solde > 0 ? 'text-error' : undefined}>
+                        {fcfa(ligne.solde)}
+                      </span>
+                    }
+                  />
                 ))}
-                <TableRow>
-                  <TableCell className="font-semibold" colSpan={2}>
-                    Totaux de la sélection ({lignes.length} facture
-                    {lignes.length > 1 ? 's' : ''}, FCFA)
-                  </TableCell>
-                  <TableCell className="text-right font-semibold" data-mono>
-                    {fcfa(totaux.montantTotal)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold" data-mono>
-                    {fcfa(totaux.totalPaye)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold" data-mono>
-                    {fcfa(totaux.solde)}
-                  </TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableBody>
-            </Table>
+              </CarteListeMobile>
+
+              <div className="border-t border-surface-border p-4 text-body-sm text-text-secondary md:hidden">
+                Totaux de la sélection ({lignes.length} facture{lignes.length > 1 ? 's' : ''}, FCFA) —{' '}
+                <span className="font-semibold text-text-primary">
+                  {fcfa(totaux.montantTotal)} dû, {fcfa(totaux.totalPaye)} payé, {fcfa(totaux.solde)}{' '}
+                  restant
+                </span>
+              </div>
+            </>
           )}
 
           <PaginationListe

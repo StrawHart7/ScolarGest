@@ -26,6 +26,36 @@ body {
   border-color: var(--color-surface-border);
 }
 
+/* ---------------------------------------------------------------------------
+   Typographie mobile.
+   L'échelle Luminous Institutional est calibrée pour le poste de travail
+   (body 14/13px, labels 12px) : lisible à 60 cm d'un écran, à l'étroit à bout
+   de bras sur un téléphone. Sous `md`, on remonte d'un cran les styles de texte
+   courants sans toucher aux tokens desktop.
+   --------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .text-body-md {
+    font-size: 15px;
+    line-height: 22px;
+  }
+  .text-body-sm {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .text-label-md {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .text-headline-sm {
+    font-size: 17px;
+    line-height: 24px;
+  }
+  .text-headline-md {
+    font-size: 19px;
+    line-height: 26px;
+  }
+}
+
 @keyframes float-y {
   0%,
   100% {

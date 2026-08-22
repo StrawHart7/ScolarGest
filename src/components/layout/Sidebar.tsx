@@ -21,7 +21,7 @@ import { ITEMS_BAS_SIDEBAR, type NomIcone, type SidebarItem } from '@/lib/naviga
 
 export type { SidebarItem };
 
-const ICONES: Record<NomIcone, LucideIcon> = {
+export const ICONES: Record<NomIcone, LucideIcon> = {
   'tableau-de-bord': LayoutDashboard,
   eleves: GraduationCap,
   enseignants: UsersRound,

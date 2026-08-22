@@ -669,3 +669,122 @@ Conventions à respecter systématiquement (voir `CLAUDE.md` pour le détail) :
 - `git add` ciblé (jamais `-A` aveugle), commit avec message décrivant la phase livrée, `push`.
 - Merge sur `main` (demander confirmation avant tout `push --force` ou réécriture d'historique — jamais nécessaire dans ce flux).
 - Créer la branche de la phase suivante (`phase-N-slug-descriptif`) et repartir à l'Étape 0 pour cette phase.
+
+---
+
+## 8. Fonctionnalités (après la Phase 9)
+
+> ⚠️ **Une fonctionnalité listée ici, même détaillée en checklist, n'est pas
+> une autorisation d'implémenter.** Le développement d'une fonctionnalité ne
+> démarre que sur demande explicite de l'utilisateur pour cette
+> fonctionnalité précise — jamais parce qu'elle figure dans ce fichier.
+
+Le socle MVP (Phases 0–9) est essentiellement bâti. Le travail à venir n'est
+plus découpé en phases numérotées séquentielles mais suivi **fonctionnalité
+par fonctionnalité**, indépendamment les unes des autres, documenté au fil de
+l'eau ici et dans `CLAUDE.md`.
+
+Gabarit de suivi par fonctionnalité : **Statut** (`Idée` → `Cadrée` → `En
+cours` → `Terminée`), **Objectif**, **Livrables** en checklist (`- [ ]`),
+**Dépendances / décisions à trancher avant de coder**, **DoD**. Les phases
+0–9 ci-dessus restent l'historique du socle et ne sont pas rétroactivement
+réécrites dans ce format.
+
+---
+
+### Fonctionnalité — Chatbot de configuration à la demande de démo
+
+**Statut** : Idée (non cadrée)
+
+**Objectif** : remplacer/compléter le formulaire statique de demande de
+démo (`src/app/demande-demo-actions.ts`, table `demande_demo`) par un
+dialogue qui récolte des informations de configuration structurées, au-delà
+des champs actuels (nomEtablissement, nomContact, email, telephone, ville,
+message).
+
+**Livrables** :
+- [ ] Cadrage produit : liste précise des champs à récolter en plus de
+      l'existant — ex. cycles enseignés, effectif élève approximatif,
+      nombre de classes envisagé.
+- [ ] Décision tranchée : la conversation remplace le formulaire actuel, ou
+      vient en complément (bouton « discuter avec l'assistant »).
+- [ ] Décision technique tranchée : moteur conversationnel — LLM avec
+      extraction structurée (function calling) vs. arbre de questions
+      scripté (plus simple, sans dépendance API tierce, plus prévisible).
+- [ ] Migration numérotée (`supabase/migrations/00XX_...sql`) : extension de
+      `demande_demo` avec les champs structurés (ex. `cyclesEnseignes
+      text[]`, `effectifEstime int`, `nombreClassesEstime int`) ou table
+      séparée `demande_demo_config` liée par `demandeId` si le volume de
+      champs le justifie.
+- [ ] Route publique (ex. `/demo/assistant`) : composant client de chat.
+- [ ] Server Action de persistance : écrit l'échange et l'état structuré
+      final dans `demande_demo` (même table que le formulaire actuel, un
+      seul point de traitement SUPER_ADMIN, conformément à `analysis.md`
+      Q5 — pas de self-service, traitement toujours manuel).
+- [ ] Écran SUPER_ADMIN (liste des demandes) : affichage des nouveaux champs
+      structurés en plus du message libre actuel.
+- [ ] Si arbre de questions scripté retenu : modélisé comme une machine à
+      états pure, testée unitairement avant toute UI (même discipline que
+      `calcul-moyennes.ts`, principe #7).
+
+**Dépendances / décisions à trancher avant cadrage définitif** :
+- [ ] Si LLM tiers retenu : coût par conversation, latence, confidentialité
+      des données envoyées à un tiers — décision produit.
+- [ ] Vérifié que le chatbot réutilise la politique RLS existante de
+      `demande_demo` (insertion déjà ouverte à `anon, authenticated`,
+      `0002_demande_demo.sql`) sans en créer une plus permissive.
+
+**DoD** (à date de cadrage, pas de code encore écrit) : cadrage produit
+validé par l'utilisateur, décision moteur conversationnel actée, schéma de
+données revu — *avant* toute ligne de code.
+
+---
+
+### Fonctionnalité — Réseau social interne (fondation du portail parent)
+
+**Statut** : Idée (non cadrée, bloquée par une décision d'authentification
+non encore posée)
+
+**Objectif** : poser une brique de communication interne (fil de
+publications, commentaires) consultable par les responsables légaux, comme
+fondation du futur portail parent — inexistant dans toute phase livrée à ce
+jour.
+
+**Constat bloquant** : la table `responsable` (`0001_init.sql`) n'a aucun
+lien vers `auth.users`, contrairement à `Utilisateur` qui EST
+`auth.users.id`. Un responsable légal ne peut pas se connecter à la
+plateforme aujourd'hui. Cette décision n'est couverte par aucune des Q0–Q17
+déjà tranchées dans `analysis.md` : une nouvelle question devra y être
+ajoutée avant tout cadrage définitif.
+
+**Livrables** :
+- [ ] Cadrage produit : qui publie (établissement ? enseignant ? classe ?),
+      qui lit (responsables de quels élèves), commentaires/réactions,
+      modération, notifications.
+- [ ] Nouvelle question ajoutée à `analysis.md` et tranchée : mode
+      d'authentification du responsable (compte Supabase Auth propre, lien
+      magique par email, OTP téléphone — l'email n'est pas systématique
+      dans le contexte togolais).
+- [ ] Décision tranchée et documentée dans `CLAUDE.md` : statut applicatif
+      du responsable connecté — sixième rôle (extension explicite du
+      principe « 5 rôles fixes »), ou espace entièrement séparé avec sa
+      propre authentification et son propre layout.
+- [ ] Migration numérotée : entités `publication` (auteur,
+      `etablissementId`, `classeId` optionnelle, contenu, date) et
+      `publication_commentaire`, visibilité dérivée de la table de liaison
+      `eleve_responsable` déjà existante (`lienParente`, `principal`).
+- [ ] Vérifié : `etablissementId` sur chaque nouvelle table (isolation
+      tenant), RLS + garde applicative explicite, `AuditLog` sur les
+      publications si jugées sensibles (principes #3 et #5).
+- [ ] UI : flux de lecture minimal pour les responsables, dans l'espace
+      tranché ci-dessus.
+
+**Dépendances / décisions à trancher avant cadrage définitif** :
+- [ ] Authentification responsable (bloquant, voir constat ci-dessus).
+- [ ] Extension du principe « 5 rôles fixes » documentée dans `CLAUDE.md` le
+      jour où elle est actée, pas avant.
+
+**DoD** (à date de cadrage, pas de code encore écrit) : question
+d'authentification tranchée et ajoutée à `analysis.md`, statut du rôle
+responsable acté, périmètre du fil de publications validé par
+l'utilisateur — *avant* toute ligne de code.

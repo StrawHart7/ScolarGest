@@ -53,14 +53,14 @@ export function RapportsFiltres({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Rapport</span>
         <Select
           value={typeCourant}
           onValueChange={(v) => navigate({ type: v, classeId: '', periode: '' })}
         >
-          <SelectTrigger className="h-8 w-56">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -73,10 +73,10 @@ export function RapportsFiltres({
         </Select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Année</span>
         <Select value={anneeScolaireId} onValueChange={(v) => navigate({ anneeScolaireId: v })}>
-          <SelectTrigger className="h-8 w-44">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -89,14 +89,14 @@ export function RapportsFiltres({
         </Select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Classe</span>
         <Select
           value={classeId || TOUTES}
           onValueChange={(v) => navigate({ classeId: v === TOUTES ? '' : v })}
           disabled={classes.length === 0}
         >
-          <SelectTrigger className="h-8 w-44">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-44">
             <SelectValue placeholder={exigeClasse ? 'Sélectionner' : 'Toutes'} />
           </SelectTrigger>
           <SelectContent>
@@ -111,10 +111,10 @@ export function RapportsFiltres({
       </div>
 
       {exigePeriode && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <span className="text-label-md uppercase text-text-secondary">Trimestre</span>
           <Select value={periode || 'TRIMESTRE_1'} onValueChange={(v) => navigate({ periode: v })}>
-            <SelectTrigger className="h-8 w-40">
+            <SelectTrigger className="h-10 w-full md:h-8 md:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -3,8 +3,14 @@ import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listMesAffectations } from '@/services/affectation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  CarteListeMobile,
+  EnteteListe,
+  LigneCarteMobile,
+} from '@/components/ui/carte-liste-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 
 export default async function MesClassesPage() {
@@ -17,12 +23,14 @@ export default async function MesClassesPage() {
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Mes classes</h1>
-          <p className="text-body-sm text-text-secondary">
-            Aperçu de vos classes et matières affectées pour l&apos;année scolaire active.
-          </p>
+      <div className="space-y-4 md:space-y-6">
+        {/* Sur mobile, le titre descend dans la ligne de densité au-dessus de
+            la liste : le PageHeader est réservé au desktop. */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="Mes classes"
+            description="Aperçu de vos classes et matières affectées pour l'année scolaire active."
+          />
         </div>
 
         {ctx.role !== 'ENSEIGNANT' ? (
@@ -83,22 +91,45 @@ async function MesClassesContent() {
     }
   }
 
+  const classes = Array.from(parClasse.entries());
+
   return (
-    <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from(parClasse.entries()).map(([classeId, info]) => (
-        <Card key={classeId}>
-          <CardContent className="flex flex-col gap-3 p-5">
-            <p className="text-headline-sm text-text-primary">{info.nom}</p>
-            <div className="flex flex-wrap gap-2">
-              {info.matieres.map((m) => (
-                <Badge key={m} variant="primary" shape="pill">
-                  {m}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <>
+      <EnteteListe
+        titre="Mes classes"
+        compte={`${classes.length} classe${classes.length > 1 ? 's' : ''}`}
+      />
+
+      {/* Desktop : la grille de cartes, chaque matière en pastille. */}
+      <div className="hidden grid-cols-1 gap-gutter sm:grid-cols-2 md:grid lg:grid-cols-3">
+        {classes.map(([classeId, info]) => (
+          <Card key={classeId}>
+            <CardContent className="flex flex-col gap-3 p-5">
+              <p className="text-headline-sm text-text-primary">{info.nom}</p>
+              <div className="flex flex-wrap gap-2">
+                {info.matieres.map((m) => (
+                  <Badge key={m} variant="primary" shape="pill">
+                    {m}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Mobile : le motif de liste de référence, matières en sous-titre. */}
+      <CarteListeMobile>
+        {classes.map(([classeId, info]) => (
+          <LigneCarteMobile
+            key={classeId}
+            icone={GraduationCap}
+            titre={info.nom}
+            sousTitre={info.matieres.join(' · ')}
+            valeurSecondaire={`${info.matieres.length} mat.`}
+          />
+        ))}
+      </CarteListeMobile>
+    </>
   );
 }

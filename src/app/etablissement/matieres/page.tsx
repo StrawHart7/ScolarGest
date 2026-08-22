@@ -2,9 +2,13 @@ import { BookOpen } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listMatieres } from '@/services/matiere';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BarreOutilsListe } from '@/components/ui/actions-mobile';
+import { FiltresMobile } from '@/components/ui/filtres-mobile';
 import {
   FiltreListe,
   PaginationListe,
@@ -48,31 +52,36 @@ export default async function MatieresPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Matières</h1>
-          <p className="text-body-md text-text-secondary">
-            Catalogue des matières de l&apos;établissement, utilisé par le programme et les affectations.
-          </p>
-        </div>
+        <PageHeader
+          title="Matières"
+          description="Catalogue des matières de l'établissement, utilisé par le programme et les affectations."
+        />
 
-        <Card>
-          <div className="flex flex-wrap items-center gap-4 border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <BarreOutilsListe>
             <RechercheListe placeholder="Nom, code ou description…" />
-            <FiltreListe
-              parametre="statut"
-              libelle="Statut"
-              options={[
-                { valeur: 'ACTIF', libelle: 'Actif' },
-                { valeur: 'INACTIF', libelle: 'Inactif' },
-              ]}
-              libelleTout="Tous les statuts"
-            />
+            <FiltresMobile nombreActifs={typeof statutFiltre === 'string' && statutFiltre ? 1 : 0}>
+              <FiltreListe
+                parametre="statut"
+                libelle="Statut"
+                options={[
+                  { valeur: 'ACTIF', libelle: 'Actif' },
+                  { valeur: 'INACTIF', libelle: 'Inactif' },
+                ]}
+                libelleTout="Tous les statuts"
+              />
+            </FiltresMobile>
             {canWrite && (
-              <div className="ml-auto">
+              <div className="md:ml-auto">
                 <MatiereForm />
               </div>
             )}
-          </div>
+          </BarreOutilsListe>
+
+          <EnteteListe
+            titre="Matières"
+            compte={`${page.total} matière${page.total > 1 ? 's' : ''}`}
+          />
 
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
@@ -80,36 +89,57 @@ export default async function MatieresPage({
               <p className="text-body-md text-text-primary">Aucune matière créée.</p>
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TriColonne cle="nom">Nom</TriColonne>
-                  <TriColonne cle="code">Code</TriColonne>
-                  <TableHead>Description</TableHead>
-                  <TriColonne cle="statut">Statut</TriColonne>
-                  {canWrite && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TriColonne cle="nom">Nom</TriColonne>
+                      <TriColonne cle="code">Code</TriColonne>
+                      <TableHead>Description</TableHead>
+                      <TriColonne cle="statut">Statut</TriColonne>
+                      {canWrite && <TableHead>Actions</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {page.lignes.map((matiere) => (
+                      <TableRow key={matiere.id}>
+                        <TableCell className="font-medium">{matiere.nom}</TableCell>
+                        <TableCell data-mono>{matiere.code ?? '—'}</TableCell>
+                        <TableCell className="text-text-secondary">{matiere.description ?? '—'}</TableCell>
+                        <TableCell>
+                          <Badge variant={matiere.statut === 'ACTIF' ? 'success' : 'neutral'} shape="pill">
+                            {matiere.statut === 'ACTIF' ? 'Actif' : 'Inactif'}
+                          </Badge>
+                        </TableCell>
+                        {canWrite && (
+                          <TableCell>
+                            <MatiereRowActions matiere={matiere} />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {page.lignes.map((matiere) => (
-                  <TableRow key={matiere.id}>
-                    <TableCell className="font-medium">{matiere.nom}</TableCell>
-                    <TableCell data-mono>{matiere.code ?? '—'}</TableCell>
-                    <TableCell className="text-text-secondary">{matiere.description ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={matiere.statut === 'ACTIF' ? 'success' : 'neutral'} shape="pill">
-                        {matiere.statut === 'ACTIF' ? 'Actif' : 'Inactif'}
-                      </Badge>
-                    </TableCell>
-                    {canWrite && (
-                      <TableCell>
-                        <MatiereRowActions matiere={matiere} />
-                      </TableCell>
-                    )}
-                  </TableRow>
+                  <LigneCarteMobile
+                    key={matiere.id}
+                    icone={BookOpen}
+                    titre={matiere.nom}
+                    reference={matiere.code ?? undefined}
+                    sousTitre={matiere.description ?? undefined}
+                    statut={{
+                      libelle: matiere.statut === 'ACTIF' ? 'Actif' : 'Inactif',
+                      ton: matiere.statut === 'ACTIF' ? 'succes' : 'neutre',
+                    }}
+                    actions={canWrite && <MatiereRowActions matiere={matiere} />}
+                  />
                 ))}
-              </TableBody>
-            </Table>
+              </CarteListeMobile>
+            </>
           )}
 
           <PaginationListe

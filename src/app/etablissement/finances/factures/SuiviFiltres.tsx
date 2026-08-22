@@ -40,8 +40,8 @@ export function SuiviFiltres({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Année scolaire</span>
         <Select
           value={defaultAnneeScolaireId}
@@ -49,7 +49,7 @@ export function SuiviFiltres({
             navigate({ anneeScolaireId: v, classeId: '', statut: defaultStatut })
           }
         >
-          <SelectTrigger className="h-8 w-48">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -62,7 +62,7 @@ export function SuiviFiltres({
         </Select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Classe</span>
         <Select
           value={defaultClasseId || TOUS}
@@ -75,7 +75,7 @@ export function SuiviFiltres({
           }
           disabled={classes.length === 0}
         >
-          <SelectTrigger className="h-8 w-48">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-48">
             <SelectValue placeholder="Toutes les classes" />
           </SelectTrigger>
           <SelectContent>
@@ -89,7 +89,7 @@ export function SuiviFiltres({
         </Select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Statut</span>
         <Select
           value={defaultStatut || TOUS}
@@ -101,7 +101,7 @@ export function SuiviFiltres({
             })
           }
         >
-          <SelectTrigger className="h-8 w-40">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-40">
             <SelectValue placeholder="Tous les statuts" />
           </SelectTrigger>
           <SelectContent>

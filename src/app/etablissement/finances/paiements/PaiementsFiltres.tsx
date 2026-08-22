@@ -33,14 +33,14 @@ export function PaiementsFiltres({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Année scolaire</span>
         <Select
           value={defaultAnneeScolaireId}
           onValueChange={(v) => navigate({ anneeScolaireId: v, statut: defaultStatut })}
         >
-          <SelectTrigger className="h-8 w-48">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -53,13 +53,13 @@ export function PaiementsFiltres({
         </Select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <span className="text-label-md uppercase text-text-secondary">Statut</span>
         <Select
           value={defaultStatut || TOUS}
           onValueChange={(v) => navigate({ anneeScolaireId: defaultAnneeScolaireId, statut: v })}
         >
-          <SelectTrigger className="h-8 w-40">
+          <SelectTrigger className="h-10 w-full md:h-8 md:w-40">
             <SelectValue placeholder="Tous" />
           </SelectTrigger>
           <SelectContent>

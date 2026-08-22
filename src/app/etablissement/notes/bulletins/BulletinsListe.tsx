@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, GraduationCap, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { genererBulletinAction, genererBulletinsClasseAction } from './actions';
 
 export function BulletinsListe({
@@ -66,43 +67,74 @@ export function BulletinsListe({
       </div>
       {bulkMessage && <p className="px-4 pt-2 text-body-sm text-text-secondary">{bulkMessage}</p>}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Matricule</TableHead>
-            <TableHead>Nom &amp; Prénoms</TableHead>
-            <TableHead className="text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {eleves.map((eleve) => (
-            <TableRow key={eleve.id}>
-              <TableCell data-mono>{eleve.matricule}</TableCell>
-              <TableCell className="font-medium">
-                {eleve.nom} {eleve.prenoms}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex flex-col items-end gap-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={pendingId === eleve.id}
-                    onClick={() => genererUn(eleve.id)}
-                  >
-                    {pendingId === eleve.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <FileText className="h-4 w-4" aria-hidden />
-                    )}
-                    Générer le bulletin
-                  </Button>
-                  {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
-                </div>
-              </TableCell>
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Matricule</TableHead>
+              <TableHead>Nom &amp; Prénoms</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {eleves.map((eleve) => (
+              <TableRow key={eleve.id}>
+                <TableCell data-mono>{eleve.matricule}</TableCell>
+                <TableCell className="font-medium">
+                  {eleve.nom} {eleve.prenoms}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end gap-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={pendingId === eleve.id}
+                      onClick={() => genererUn(eleve.id)}
+                    >
+                      {pendingId === eleve.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <FileText className="h-4 w-4" aria-hidden />
+                      )}
+                      Générer le bulletin
+                    </Button>
+                    {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <CarteListeMobile>
+        {eleves.map((eleve) => (
+          <LigneCarteMobile
+            key={eleve.id}
+            icone={GraduationCap}
+            titre={`${eleve.nom} ${eleve.prenoms}`}
+            reference={eleve.matricule}
+            actions={
+              <div className="flex flex-col items-start gap-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={pendingId === eleve.id}
+                  onClick={() => genererUn(eleve.id)}
+                >
+                  {pendingId === eleve.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <FileText className="h-4 w-4" aria-hidden />
+                  )}
+                  Générer le bulletin
+                </Button>
+                {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
+              </div>
+            }
+          />
+        ))}
+      </CarteListeMobile>
     </div>
   );
 }

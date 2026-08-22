@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} FCFA`;
@@ -139,30 +140,46 @@ export default async function AbonnementPage() {
               </p>
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Montant</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Référence</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead>Mode</TableHead>
+                      <TableHead>Référence</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paiements.map((paiement) => (
+                      <TableRow key={paiement.id}>
+                        <TableCell>{new Date(paiement.date).toLocaleDateString('fr-FR')}</TableCell>
+                        <TableCell className="text-right" data-mono>
+                          {fcfa(paiement.montant)}
+                        </TableCell>
+                        <TableCell>
+                          {MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}
+                        </TableCell>
+                        <TableCell data-mono>{paiement.reference ?? '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CarteListeMobile>
                 {paiements.map((paiement) => (
-                  <TableRow key={paiement.id}>
-                    <TableCell>{new Date(paiement.date).toLocaleDateString('fr-FR')}</TableCell>
-                    <TableCell className="text-right" data-mono>
-                      {fcfa(paiement.montant)}
-                    </TableCell>
-                    <TableCell>
-                      {MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}
-                    </TableCell>
-                    <TableCell data-mono>{paiement.reference ?? '—'}</TableCell>
-                  </TableRow>
+                  <LigneCarteMobile
+                    key={paiement.id}
+                    icone={CreditCard}
+                    titre={fcfa(paiement.montant)}
+                    sousTitre={`${new Date(paiement.date).toLocaleDateString('fr-FR')} · ${MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}`}
+                    valeurSecondaire={paiement.reference ?? undefined}
+                  />
                 ))}
-              </TableBody>
-            </Table>
+              </CarteListeMobile>
+            </>
           )}
         </Card>
         )}

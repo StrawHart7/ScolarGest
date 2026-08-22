@@ -160,10 +160,24 @@ See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/
 
 **Starting a new phase**: follow `PLAN.md` § 7 "Workflow d'exécution d'une phase" step by step (scoping → plan → implementation → continuous build/lint verification → debug → tests → deliverables/doc updates → branch-per-phase closeout). It captures concrete pitfalls hit during Phase 1 (stale `.next`/webpack dev caches, `db push` not running `seed.sql`, Playwright port collisions with a running `next dev`) — do not rediscover them.
 
+**Post-Phase 9 work is tracked by feature, not by numbered phase.** Once Phase 9 closes, new work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD) instead of the sequential phase model above. **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature, regardless of what `PLAN.md` says.
+
 ## Design System
 
 The design system is called **Luminous Institutional**. All color tokens, typography scale, spacing, and component variants are defined in `DESIGN.md`. Tailwind config must be derived from those tokens, not from Tailwind defaults.
 
 Before creating any new page, check the `/design-maquette` directory for a subfolder matching the page (e.g. `dashboard_directeur_edusync_erp`), and inspect it to match the intended style before implementing.
+
+### Mobile : le motif de liste fait foi
+
+`Docs/15-Motif-liste-mobile.md` décrit la structure **de référence** de toute
+page de liste sous `md` : barre d'outils (recherche + filtres repliés +
+action), ligne de densité, carte de liste, bouton flottant, barre d'onglets
+flottante. Une nouvelle liste la reprend telle quelle — mesures comprises —
+plutôt que d'improviser un rendu mobile page par page.
+
+Le desktop n'est pas concerné : le tableau et le `PageHeader` restent en
+place à partir de `md`. Les grilles à colonnes dynamiques et les tableaux de
+saisie sont explicitement hors motif (voir la dernière section du document).
 
 **Never use native `<select>` or `<input type="date">` directly** — their dropdown/calendar popups are rendered by the OS/browser and cannot be styled, which breaks the design system. Use `src/components/ui/select.tsx` (Radix Select — still form-submits via a real hidden `<select>`, so it drops into existing `FormData`-based Server Actions unchanged) and `src/components/ui/date-picker.tsx` (Popover + `calendar.tsx`, submits an ISO `yyyy-MM-dd` via a hidden input) instead.

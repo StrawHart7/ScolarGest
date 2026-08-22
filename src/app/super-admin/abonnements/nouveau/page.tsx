@@ -7,7 +7,7 @@ export default async function NouvelAbonnementPage() {
   const [etablissements, plans] = await Promise.all([listEtablissements(), listPlans()]);
 
   return (
-    <main className="mx-auto max-w-xl p-container-pad">
+    <main className="mx-auto max-w-xl px-gutter py-gutter sm:p-container-pad">
       <h1 className="mb-6 text-display-sm text-text-primary">Nouvel abonnement</h1>
 
       <Card>
