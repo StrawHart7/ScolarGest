@@ -10,6 +10,11 @@ import { getSidebarItems } from '@/lib/navigation';
 import { BulletinsFiltres } from './BulletinsFiltres';
 import { BulletinsListe } from './BulletinsListe';
 
+// La génération d'une classe entière enchaîne un rendu Chromium par élève :
+// la fenêtre serverless par défaut (10s) est largement dépassée. On demande le
+// maximum courant. Plan Hobby : plafonné à 60s ; Pro/Enterprise : jusqu'à 300s.
+export const maxDuration = 60;
+
 export default async function BulletinsPage({
   searchParams,
 }: {

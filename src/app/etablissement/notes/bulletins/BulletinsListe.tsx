@@ -26,16 +26,30 @@ export function BulletinsListe({
   function genererUn(eleveId: string) {
     setPendingId(eleveId);
     setErrors((prev) => ({ ...prev, [eleveId]: '' }));
-    genererBulletinAction(eleveId, classeId, periode, anneeScolaireId).then((result) => {
-      setPendingId(null);
-      if (result.error) {
-        setErrors((prev) => ({ ...prev, [eleveId]: result.error! }));
-        return;
-      }
-      if (result.url) {
-        window.open(result.url, '_blank', 'noopener,noreferrer');
-      }
-    });
+    genererBulletinAction(eleveId, classeId, periode, anneeScolaireId)
+      .then((result) => {
+        setPendingId(null);
+        // Une action expirée (504) peut renvoyer un résultat vide : on ne lit
+        // jamais `.error`/`.url` sans garde, sinon le clic plante côté client.
+        if (!result) {
+          setErrors((prev) => ({ ...prev, [eleveId]: 'La génération a expiré. Réessayez.' }));
+          return;
+        }
+        if (result.error) {
+          setErrors((prev) => ({ ...prev, [eleveId]: result.error! }));
+          return;
+        }
+        if (result.url) {
+          window.open(result.url, '_blank', 'noopener,noreferrer');
+        }
+      })
+      .catch(() => {
+        setPendingId(null);
+        setErrors((prev) => ({
+          ...prev,
+          [eleveId]: 'La génération a échoué (délai dépassé ou réseau). Réessayez.',
+        }));
+      });
   }
 
   function genererTout() {
@@ -47,12 +61,24 @@ export function BulletinsListe({
       return;
     setBulkMessage(null);
     startBulkTransition(async () => {
-      const result = await genererBulletinsClasseAction(classeId, periode, anneeScolaireId);
-      if (result.error) {
-        setBulkMessage(result.error);
-        return;
+      try {
+        const result = await genererBulletinsClasseAction(classeId, periode, anneeScolaireId);
+        if (!result) {
+          setBulkMessage(
+            'La génération groupée a expiré. Sur un gros effectif, générez par plus petits lots ou bulletin par bulletin.',
+          );
+          return;
+        }
+        if (result.error) {
+          setBulkMessage(result.error);
+          return;
+        }
+        setBulkMessage(`${result.succes} bulletin(s) généré(s), ${result.echecs} échec(s).`);
+      } catch {
+        setBulkMessage(
+          'La génération groupée a échoué (délai dépassé). Sur un gros effectif, générez par plus petits lots ou bulletin par bulletin.',
+        );
       }
-      setBulkMessage(`${result.succes} bulletin(s) généré(s), ${result.echecs} échec(s).`);
     });
   }
 
