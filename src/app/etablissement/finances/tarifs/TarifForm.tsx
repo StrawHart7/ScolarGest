@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { useFormState } from 'react-dom';
-import { Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button, SubmitButton } from '@/components/ui/button';
+import { DeclencheurCreation } from '@/components/ui/declencheur-creation';
 import {
   Dialog,
   DialogBody,
@@ -54,10 +54,7 @@ export function TarifForm({
 
   return (
     <Dialog open={ouvert} onOpenChange={setOuvert}>
-      <Button size="sm" onClick={() => setOuvert(true)}>
-        <Plus className="h-4 w-4" aria-hidden />
-        Nouveau tarif
-      </Button>
+      <DeclencheurCreation libelle="Nouveau tarif" onClick={() => setOuvert(true)} />
 
       <DialogContent>
         <form action={formAction}>

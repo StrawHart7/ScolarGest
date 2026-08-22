@@ -3,8 +3,8 @@
 import * as React from 'react';
 import { useFormState } from 'react-dom';
 import { Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button, SubmitButton, type ButtonProps } from './button';
+import { DeclencheurCreation } from './declencheur-creation';
 import {
   Dialog,
   DialogBody,
@@ -96,35 +96,23 @@ export function FormulaireModal({
         if (etat) dernier.current = null;
       }}
     >
-      <Button
-        variant={varianteDeclencheur}
-        size={tailleDeclencheur}
-        onClick={() => setOuvert(true)}
-        className={declencheurFlottant ? 'max-md:hidden' : undefined}
-      >
-        {iconeDeclencheur ?? <Plus className="h-4 w-4" aria-hidden />}
-        {declencheur}
-      </Button>
-
-      {/* Sous `md`, l'action de création devient un bouton flottant, aligné sur
-          celui des listes qui mènent à une page (voir `BoutonFlottant`), plutôt
-          que de s'étaler dans la barre d'outils. */}
-      {declencheurFlottant && (
-        <button
-          type="button"
+      {declencheurFlottant ? (
+        <DeclencheurCreation
+          libelle={declencheur}
           onClick={() => setOuvert(true)}
-          aria-label={declencheur}
-          title={declencheur}
-          className={cn(
-            'fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-30 md:hidden',
-            'grid h-14 w-14 place-items-center rounded-2xl',
-            'bg-primary-container text-white shadow-lg transition-all duration-200',
-            'hover:bg-primary active:scale-95',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/50 focus-visible:ring-offset-2',
-          )}
+          variant={varianteDeclencheur}
+          size={tailleDeclencheur}
+          icone={iconeDeclencheur}
+        />
+      ) : (
+        <Button
+          variant={varianteDeclencheur}
+          size={tailleDeclencheur}
+          onClick={() => setOuvert(true)}
         >
-          {iconeDeclencheur ?? <Plus className="h-6 w-6" aria-hidden />}
-        </button>
+          {iconeDeclencheur ?? <Plus className="h-4 w-4" aria-hidden />}
+          {declencheur}
+        </Button>
       )}
 
       <DialogContent taille={taille}>

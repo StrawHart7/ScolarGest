@@ -15,6 +15,7 @@ export function AnneeScolaireForm() {
       titre="Nouvelle année scolaire"
       description="L'année est créée en statut PRÉPARATION ; elle devra être activée séparément, avec votre PIN."
       declencheur="Nouvelle année scolaire"
+      declencheurFlottant
       libelleValidation="Créer l'année scolaire"
       messageSucces="Année scolaire créée"
       detailSucces="Activez-la lorsque vous serez prêt."

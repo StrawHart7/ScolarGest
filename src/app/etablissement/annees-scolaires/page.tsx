@@ -53,8 +53,9 @@ export default async function AnneesScolairesPage() {
           />
         </div>
 
-        {/* Le bouton de création ouvre un modal, pas une page : il reste dans
-            le flux plutôt que de devenir un bouton flottant. */}
+        {/* Sur mobile, la création (qui ouvre un modal) prend la forme d'un
+            bouton flottant, comme les listes menant à une page. Le bouton
+            desktop reste dans le PageHeader ci-dessus. */}
         {estDirecteur && (
           <div className="md:hidden">
             <AnneeScolaireForm />

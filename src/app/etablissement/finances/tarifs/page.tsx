@@ -73,11 +73,15 @@ export default async function TarifsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <PageHeader
-          title="Configuration des tarifs"
-          description="Montant de chaque type de frais, classe par classe et année par année. Ce sont ces tarifs qui alimentent automatiquement la facture d'un élève à son inscription."
-        />
+      <div className="space-y-4 md:space-y-6">
+        {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
+            doublon avec la ligne de densité. */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="Configuration des tarifs"
+            description="Montant de chaque type de frais, classe par classe et année par année. Ce sont ces tarifs qui alimentent automatiquement la facture d'un élève à son inscription."
+          />
+        </div>
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <BarreOutilsListe className="md:justify-between">

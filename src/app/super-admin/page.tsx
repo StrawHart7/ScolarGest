@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BoutonFlottant } from '@/components/ui/actions-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 
 const STATUT_BADGE = {
@@ -37,12 +38,15 @@ export default async function SuperAdminPage() {
           title="Vue d'ensemble"
           description="Gérez les écoles clientes et surveillez les abonnements de la plateforme."
           actions={
-            <Button asChild>
-              <Link href="/super-admin/etablissements/nouveau" className="gap-2">
-                <Plus className="h-4 w-4" aria-hidden />
-                Nouvel établissement
-              </Link>
-            </Button>
+            // Sur mobile, la création passe en bouton flottant (voir plus bas).
+            <div className="hidden md:block">
+              <Button asChild>
+                <Link href="/super-admin/etablissements/nouveau" className="gap-2">
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Nouvel établissement
+                </Link>
+              </Button>
+            </div>
           }
         />
 
@@ -149,6 +153,12 @@ export default async function SuperAdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BoutonFlottant
+        href="/super-admin/etablissements/nouveau"
+        libelle="Nouvel établissement"
+        icone={Plus}
+      />
     </AppLayout>
   );
 }

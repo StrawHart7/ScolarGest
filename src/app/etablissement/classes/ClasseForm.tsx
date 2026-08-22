@@ -2,11 +2,11 @@
 
 import * as React from 'react';
 import { useFormState } from 'react-dom';
-import { Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button, SubmitButton } from '@/components/ui/button';
+import { DeclencheurCreation } from '@/components/ui/declencheur-creation';
 import {
   Dialog,
   DialogBody,
@@ -84,10 +84,7 @@ export function ClasseForm({
 
   return (
     <Dialog open={ouvert} onOpenChange={setOuvert}>
-      <Button size="sm" onClick={() => setOuvert(true)}>
-        <Plus className="h-4 w-4" aria-hidden />
-        Nouvelle classe
-      </Button>
+      <DeclencheurCreation libelle="Nouvelle classe" onClick={() => setOuvert(true)} />
 
       <DialogContent>
         <form action={formAction}>

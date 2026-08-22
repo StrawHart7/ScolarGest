@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { BoutonFlottant } from '@/components/ui/actions-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 import { AbonnementRowActions } from './AbonnementRowActions';
 
@@ -35,19 +36,23 @@ export default async function AbonnementsPage() {
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="mx-auto max-w-7xl space-y-6">
-        <PageHeader
-          title="Abonnements"
-          description="Suivi des abonnements par école et validation manuelle des paiements."
-          actions={
-            <Button asChild>
-              <Link href="/super-admin/abonnements/nouveau" className="gap-2">
-                <Plus className="h-4 w-4" aria-hidden />
-                Nouvel abonnement
-              </Link>
-            </Button>
-          }
-        />
+      <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
+        {/* Sur mobile, le titre descend dans EnteteListe (doublon sinon) et la
+            création passe en bouton flottant. */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="Abonnements"
+            description="Suivi des abonnements par école et validation manuelle des paiements."
+            actions={
+              <Button asChild>
+                <Link href="/super-admin/abonnements/nouveau" className="gap-2">
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Nouvel abonnement
+                </Link>
+              </Button>
+            }
+          />
+        </div>
 
         <EnteteListe
           titre="Abonnements"
@@ -166,6 +171,12 @@ export default async function AbonnementsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BoutonFlottant
+        href="/super-admin/abonnements/nouveau"
+        libelle="Nouvel abonnement"
+        icone={Plus}
+      />
     </AppLayout>
   );
 }
