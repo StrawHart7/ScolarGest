@@ -210,8 +210,18 @@ d'icônes cassés), ne pas s'y référer. Les icônes/favicon vivent sous
 dans `src/app/layout.tsx`.
 
 **Piège middleware** : `src/middleware.ts` redirige vers `/login` tout ce qui
-n'est pas explicitement exclu de son `matcher`. Le manifeste et les assets
-publics (`.ico`, `.webmanifest`, images) doivent y figurer en négation, sinon ils
-sont servis comme une redirection d'auth à un visiteur non connecté. Toute
-nouvelle ressource publique servie hors `/_next` doit être ajoutée à cette
+n'est pas explicitement exclu de son `matcher`. Le manifeste, `sw.js` et les
+assets publics (`.ico`, `.webmanifest`, images) doivent y figurer en négation,
+sinon ils sont servis comme une redirection d'auth à un visiteur non connecté.
+Toute nouvelle ressource publique servie hors `/_next` doit être ajoutée à cette
 exclusion.
+
+**Service worker et installation** : `public/sw.js` (enregistré par
+`src/components/pwa/pwa-installer.tsx`, monté dans le layout racine) porte le
+handler `fetch` qui rend l'app *installable* — sans lui, ce n'est qu'un raccourci
+« écran d'accueil ». Il précache la seule coquille statique et ne met **jamais**
+en cache de page authentifiée ni de donnée Supabase (RLS). Bumper `CACHE_VERSION`
+à tout changement de stratégie (l'ancien cache est purgé à l'activation). Les
+navigateurs n'ouvrant plus d'invite automatique, `PwaInstaller` capte
+`beforeinstallprompt` et affiche une bannière maison (refus mémorisé en
+`localStorage`, masquée en mode standalone) ; iOS n'émet pas l'événement.

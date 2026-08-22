@@ -736,7 +736,7 @@ toutes les listes sous `md`, alléger les en-têtes, et quelques réglages deskt
 
 ### Fonctionnalité — PWA (Progressive Web App)
 
-**Statut** : En cours (base posée 2026-08-22, branche `feat/pwa` mergée sur `main`)
+**Statut** : Terminée 2026-08-22 (base + service worker + invite d'installation)
 
 **Objectif** : rendre ScolarGest installable sur mobile/desktop (« Ajouter à
 l'écran d'accueil ») et poser l'identité applicative (favicon, icônes, manifeste).
@@ -753,13 +753,23 @@ l'écran d'accueil ») et poser l'identité applicative (favicon, icônes, manif
 - [x] **Middleware** : `/manifest.webmanifest` et les `.ico/.webmanifest` exclus de
       la redirection d'authentification (sinon servis en `/login` pour un visiteur
       non connecté).
-- [ ] **Service worker** + cache offline (stratégie de mise à jour, « installable »
-      complet) — **non fait, à cadrer** avant implémentation.
+- [x] **Service worker** (`public/sw.js`, enregistré par `PwaInstaller`) avec
+      handler `fetch` — condition d'installabilité de Chrome. Précache la coquille
+      statique (manifeste + icônes), cache-first sur `/_next/static` et `/assets/`,
+      réseau-d'abord sur les navigations. **Volontairement pas** de cache des pages
+      authentifiées ni des données (Supabase/RLS) : `CACHE_VERSION` purgé à
+      l'activation. `/sw.js` ajouté à l'exclusion du `matcher` middleware.
+- [x] **Invite d'installation maison** (`src/components/pwa/pwa-installer.tsx`) :
+      capte `beforeinstallprompt` (les navigateurs n'ouvrent plus d'invite
+      automatique), affiche une bannière « Installer ScolarGest », mémorise le refus
+      en `localStorage`, se masque sur `appinstalled` / mode standalone. iOS n'émet
+      pas l'événement (installation manuelle) : rien affiché là-bas.
 - [ ] Screenshots de manifeste (`images/screenshots/`) pour l'invite d'installation
       enrichie — quand de vrais écrans produit seront disponibles.
 
-**DoD** : installable avec une icône et un nom corrects ; le service worker (quand
-ajouté) sert l'app hors-ligne sans casser les Server Actions ni l'auth.
+**DoD** : installable avec une icône et un nom corrects ; le service worker sert la
+coquille statique hors-ligne sans casser les Server Actions ni l'auth. Vérifié :
+`navigator.serviceWorker.controller` actif, scope racine, aucune erreur console.
 
 ---
 
