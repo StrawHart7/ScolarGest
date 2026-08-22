@@ -84,11 +84,19 @@ export function BulletinsListe({
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-surface-border p-4">
-        <p className="text-body-sm text-text-secondary">{eleves.length} élève(s) inscrit(s) (statut ACTIF)</p>
-        <Button size="sm" onClick={genererTout} disabled={bulkPending || eleves.length === 0}>
+      <div className="flex flex-col gap-3 border-b border-surface-border px-1 py-3 md:flex-row md:items-center md:justify-between md:p-4">
+        <p className="text-body-sm text-text-secondary">
+          {eleves.length} élève(s) inscrit(s) (statut ACTIF)
+        </p>
+        <Button
+          size="sm"
+          onClick={genererTout}
+          disabled={bulkPending || eleves.length === 0}
+          className="w-full md:w-auto"
+        >
           {bulkPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          Générer tous les bulletins de la classe
+          <span className="md:hidden">Générer tous les bulletins</span>
+          <span className="hidden md:inline">Générer tous les bulletins de la classe</span>
         </Button>
       </div>
       {bulkMessage && <p className="px-4 pt-2 text-body-sm text-text-secondary">{bulkMessage}</p>}

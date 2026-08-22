@@ -82,7 +82,7 @@ export default async function ResultatsPage({
             description="Consultation des moyennes par matière, moyennes trimestrielles, appréciations et rangs calculés par le moteur académique."
           />
         </div>
-        <h1 className="text-headline-lg text-text-primary md:hidden">Moyennes &amp; classement</h1>
+        <h1 className="text-display-sm text-text-primary md:hidden">Moyennes &amp; classement</h1>
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-3 md:gap-4 md:p-4">

@@ -37,18 +37,20 @@ export default async function BulletinsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
           <h1 className="text-display-sm text-text-primary">Génération de bulletins</h1>
-          <p className="text-body-sm text-text-secondary">
+          {/* Description réservée au desktop : sur mobile elle poussait la liste
+              hors du premier écran. */}
+          <p className="hidden text-body-sm text-text-secondary md:block">
             Sélectionnez une classe et une période pour générer les bulletins trimestriels des élèves
             inscrits. Assurez-vous que les notes du trimestre concerné ont été saisies et approuvées
             avant de générer.
           </p>
         </div>
 
-        <Card>
-          <div className="border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <div className="border-b border-surface-border px-1 py-3 md:p-4">
             <BulletinsFiltres
               annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
               classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}

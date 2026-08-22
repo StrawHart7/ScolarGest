@@ -78,7 +78,13 @@ const config: Config = {
         mono: ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
       },
       fontSize: {
-        'display-sm': ['24px', { lineHeight: '32px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        // Titre de page : responsive par nature. ~20px sur mobile étroit,
+        // plafonné à 24px dès ~480px. Un seul token qui adapte tous les titres
+        // de page au mobile sans surcharge par page.
+        'display-sm': [
+          'clamp(1.25rem, 5vw, 1.5rem)',
+          { lineHeight: '1.3', letterSpacing: '-0.02em', fontWeight: '600' },
+        ],
         'headline-md': ['18px', { lineHeight: '24px', letterSpacing: '-0.01em', fontWeight: '600' }],
         'headline-sm': ['16px', { lineHeight: '24px', fontWeight: '600' }],
         'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],

@@ -101,7 +101,7 @@ export default async function RapportsPage({
     >
       <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-headline-lg text-text-primary md:text-display-sm">Rapports et exports</h1>
+          <h1 className="text-display-sm text-text-primary">Rapports et exports</h1>
           <p className="text-body-sm text-text-secondary md:text-body-md">
             {definition?.description ??
               'Sélectionnez un rapport pour l’afficher et l’exporter en Excel, CSV ou PDF.'}
