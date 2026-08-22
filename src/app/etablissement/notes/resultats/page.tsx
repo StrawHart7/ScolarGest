@@ -75,14 +75,17 @@ export default async function ResultatsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
-        <PageHeader
-          title="Moyennes & classement"
-          description="Consultation des moyennes par matière, moyennes trimestrielles, appréciations et rangs calculés par le moteur académique."
-        />
+      <div className="space-y-4 md:space-y-6">
+        <div className="hidden md:block">
+          <PageHeader
+            title="Moyennes & classement"
+            description="Consultation des moyennes par matière, moyennes trimestrielles, appréciations et rangs calculés par le moteur académique."
+          />
+        </div>
+        <h1 className="text-headline-lg text-text-primary md:hidden">Moyennes &amp; classement</h1>
 
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-3 md:gap-4 md:p-4">
             <FiltresMobile>
               <ResultatsFiltres
                 annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
@@ -185,70 +188,126 @@ async function ResultatsTable({
         </span>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TriColonne cle="eleve">Nom &amp; Prénoms</TriColonne>
-            {resultats.matieres.map((m) => (
-              <TableHead key={m.matiereId} className="text-right">
-                {m.matiereNom}
-              </TableHead>
-            ))}
-            <TriColonne cle="moyenne" numerique>
-              Moyenne
-            </TriColonne>
-            <TableHead>Appréciation</TableHead>
-            <TriColonne cle="rang" numerique>
-              Rang
-            </TriColonne>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {page.lignes.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={resultats.matieres.length + 4} className="py-10 text-center">
-                <span className="text-body-sm text-text-secondary">
-                  Aucun élève ne correspond à la recherche.
-                </span>
-              </TableCell>
-            </TableRow>
-          ) : (
-            page.lignes.map((eleve) => {
+      {page.lignes.length === 0 ? (
+        <CardContent className="py-10 text-center">
+          <span className="text-body-sm text-text-secondary">
+            Aucun élève ne correspond à la recherche.
+          </span>
+        </CardContent>
+      ) : (
+        <>
+          {/* Desktop : la grille dense élèves × matières, dans un conteneur qui
+              défile horizontalement plutôt que de rogner les colonnes. */}
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TriColonne cle="eleve">Nom &amp; Prénoms</TriColonne>
+                  {resultats.matieres.map((m) => (
+                    <TableHead key={m.matiereId} className="text-right">
+                      {m.matiereNom}
+                    </TableHead>
+                  ))}
+                  <TriColonne cle="moyenne" numerique>
+                    Moyenne
+                  </TriColonne>
+                  <TableHead>Appréciation</TableHead>
+                  <TriColonne cle="rang" numerique>
+                    Rang
+                  </TriColonne>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {page.lignes.map((eleve) => {
+                  const appr = eleve.appreciation;
+                  const badge = appr ? APPRECIATION_BADGE[appr] : undefined;
+                  const moyenneParMatiere = new Map(
+                    eleve.matieres.map((m) => [m.matiereId, m.moyenne]),
+                  );
+
+                  return (
+                    <TableRow key={eleve.eleveId}>
+                      <TableCell className="font-medium">
+                        {eleve.nom} {eleve.prenoms}
+                      </TableCell>
+                      {resultats.matieres.map((m) => (
+                        <TableCell key={m.matiereId} data-mono className="text-right">
+                          {formatMoyenne(moyenneParMatiere.get(m.matiereId) ?? null)}
+                        </TableCell>
+                      ))}
+                      <TableCell data-mono className="text-right font-semibold">
+                        {formatMoyenne(eleve.moyenneTrimestrielle)}
+                      </TableCell>
+                      <TableCell>
+                        {appr ? (
+                          <Badge variant={badge?.variant ?? 'neutral'} shape="pill">
+                            {appr}
+                          </Badge>
+                        ) : (
+                          <span className="text-text-secondary">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell data-mono className="text-right">
+                        {eleve.rang ?? '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile : une carte par élève — identité, moyenne, rang et
+              appréciation en tête, puis les moyennes par matière en clé/valeur
+              (nombre de matières variable selon la classe). */}
+          <ul className="flex flex-col divide-y divide-surface-border md:hidden">
+            {page.lignes.map((eleve) => {
               const appr = eleve.appreciation;
               const badge = appr ? APPRECIATION_BADGE[appr] : undefined;
-              const moyenneParMatiere = new Map(eleve.matieres.map((m) => [m.matiereId, m.moyenne]));
+              const moyenneParMatiere = new Map(
+                eleve.matieres.map((m) => [m.matiereId, m.moyenne]),
+              );
 
               return (
-                <TableRow key={eleve.eleveId}>
-                  <TableCell className="font-medium">
-                    {eleve.nom} {eleve.prenoms}
-                  </TableCell>
-                  {resultats.matieres.map((m) => (
-                    <TableCell key={m.matiereId} data-mono className="text-right">
-                      {formatMoyenne(moyenneParMatiere.get(m.matiereId) ?? null)}
-                    </TableCell>
-                  ))}
-                  <TableCell data-mono className="text-right font-semibold">
-                    {formatMoyenne(eleve.moyenneTrimestrielle)}
-                  </TableCell>
-                  <TableCell>
-                    {appr ? (
-                      <Badge variant={badge?.variant ?? 'neutral'} shape="pill">
-                        {appr}
-                      </Badge>
-                    ) : (
-                      <span className="text-text-secondary">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell data-mono className="text-right">
-                    {eleve.rang ?? '—'}
-                  </TableCell>
-                </TableRow>
+                <li key={eleve.eleveId} className="px-1 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-body-md font-bold text-text-primary">
+                        {eleve.nom} {eleve.prenoms}
+                      </p>
+                      {appr && (
+                        <Badge variant={badge?.variant ?? 'neutral'} shape="pill" className="mt-1">
+                          {appr}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-mono text-headline-sm font-bold text-text-primary">
+                        {formatMoyenne(eleve.moyenneTrimestrielle)}
+                      </p>
+                      <p className="text-[11px] text-on-surface-variant">Rang {eleve.rang ?? '—'}</p>
+                    </div>
+                  </div>
+                  {resultats.matieres.length > 0 && (
+                    <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+                      {resultats.matieres.map((m) => (
+                        <div key={m.matiereId} className="flex items-baseline justify-between gap-2">
+                          <dt className="truncate text-[11px] text-on-surface-variant">
+                            {m.matiereNom}
+                          </dt>
+                          <dd className="shrink-0 font-mono text-[11px] text-text-primary">
+                            {formatMoyenne(moyenneParMatiere.get(m.matiereId) ?? null)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </li>
               );
-            })
-          )}
-        </TableBody>
-      </Table>
+            })}
+          </ul>
+        </>
+      )}
 
       <PaginationListe
         page={page.page}

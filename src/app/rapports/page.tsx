@@ -230,6 +230,7 @@ export default async function RapportsPage({
                 <ul className="flex flex-col divide-y divide-surface-border md:hidden">
                   {rapport.lignes.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => {
                     const [premiere, ...reste] = rapport!.colonnes;
+                    if (!premiere) return null;
                     return (
                       // eslint-disable-next-line react/no-array-index-key -- lignes de rapport sans identifiant propre
                       <li key={index} className="px-1 py-3">
