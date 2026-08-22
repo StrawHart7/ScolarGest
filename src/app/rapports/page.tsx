@@ -11,6 +11,7 @@ import {
 } from '@/services/rapport';
 import type { Periode } from '@/services/evaluation';
 import { formaterCellule, type Rapport } from '@/lib/export/rapport';
+import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -98,10 +99,10 @@ export default async function RapportsPage({
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-display-sm text-text-primary">Rapports et exports</h1>
-          <p className="text-body-md text-text-secondary">
+          <h1 className="text-headline-lg text-text-primary md:text-display-sm">Rapports et exports</h1>
+          <p className="text-body-sm text-text-secondary md:text-body-md">
             {definition?.description ??
               'Sélectionnez un rapport pour l’afficher et l’exporter en Excel, CSV ou PDF.'}
           </p>
@@ -116,8 +117,8 @@ export default async function RapportsPage({
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border p-4">
+          <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-3 md:gap-4 md:p-4">
               <FiltresMobile>
                 <RapportsFiltres
                   rapports={disponibles}
@@ -173,49 +174,130 @@ export default async function RapportsPage({
               </CardContent>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {rapport.colonnes.map((colonne) => (
-                        <TableHead
-                          key={colonne.cle}
-                          className={colonne.numerique ? 'text-right' : undefined}
-                        >
-                          {colonne.libelle}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rapport.lignes.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => (
-                      // eslint-disable-next-line react/no-array-index-key -- lignes de rapport sans identifiant propre
-                      <TableRow key={index}>
-                        {rapport!.colonnes.map((colonne) => (
-                          <TableCell
-                            key={colonne.cle}
-                            className={colonne.numerique ? 'text-right' : undefined}
-                            data-mono={colonne.numerique || undefined}
-                          >
-                            {formaterCellule(ligne[colonne.cle] ?? null, colonne.numerique)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                    {rapport.totaux && (
+                {/* Desktop : le tableau dense, dans un conteneur qui défile
+                    horizontalement plutôt que de rogner les colonnes. */}
+                <div className="hidden overflow-x-auto md:block">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
                         {rapport.colonnes.map((colonne) => (
-                          <TableCell
+                          <TableHead
                             key={colonne.cle}
-                            className={`font-semibold ${colonne.numerique ? 'text-right' : ''}`}
-                            data-mono={colonne.numerique || undefined}
+                            className={colonne.numerique ? 'text-right' : undefined}
                           >
-                            {formaterCellule(rapport!.totaux![colonne.cle] ?? null, colonne.numerique)}
-                          </TableCell>
+                            {colonne.libelle}
+                          </TableHead>
                         ))}
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {rapport.lignes.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => (
+                        // eslint-disable-next-line react/no-array-index-key -- lignes de rapport sans identifiant propre
+                        <TableRow key={index}>
+                          {rapport!.colonnes.map((colonne) => (
+                            <TableCell
+                              key={colonne.cle}
+                              className={colonne.numerique ? 'text-right' : undefined}
+                              data-mono={colonne.numerique || undefined}
+                            >
+                              {formaterCellule(ligne[colonne.cle] ?? null, colonne.numerique)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                      {rapport.totaux && (
+                        <TableRow>
+                          {rapport.colonnes.map((colonne) => (
+                            <TableCell
+                              key={colonne.cle}
+                              className={`font-semibold ${colonne.numerique ? 'text-right' : ''}`}
+                              data-mono={colonne.numerique || undefined}
+                            >
+                              {formaterCellule(rapport!.totaux![colonne.cle] ?? null, colonne.numerique)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile : un rapport a un nombre de colonnes variable (2 à une
+                    douzaine). Plutôt qu'un tableau qui déborde, chaque ligne
+                    devient une carte clé/valeur — titre = première colonne, le
+                    reste en paires libellé/valeur. Générique, quel que soit le
+                    rapport. */}
+                <ul className="flex flex-col divide-y divide-surface-border md:hidden">
+                  {rapport.lignes.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => {
+                    const [premiere, ...reste] = rapport!.colonnes;
+                    return (
+                      // eslint-disable-next-line react/no-array-index-key -- lignes de rapport sans identifiant propre
+                      <li key={index} className="px-1 py-3">
+                        <p
+                          className={cn(
+                            'text-body-md font-bold text-text-primary',
+                            premiere.numerique && 'font-mono',
+                          )}
+                        >
+                          {formaterCellule(ligne[premiere.cle] ?? null, premiere.numerique)}
+                        </p>
+                        {reste.length > 0 && (
+                          <dl className="mt-1.5 flex flex-col gap-1">
+                            {reste.map((colonne) => (
+                              <div
+                                key={colonne.cle}
+                                className="flex items-baseline justify-between gap-3"
+                              >
+                                <dt className="shrink-0 text-[11px] uppercase tracking-wide text-on-surface-variant">
+                                  {colonne.libelle}
+                                </dt>
+                                <dd
+                                  className={cn(
+                                    'min-w-0 truncate text-right text-body-sm text-text-primary',
+                                    colonne.numerique && 'font-mono',
+                                  )}
+                                >
+                                  {formaterCellule(ligne[colonne.cle] ?? null, colonne.numerique)}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        )}
+                      </li>
+                    );
+                  })}
+                  {rapport.totaux && (
+                    <li className="bg-surface-container-low px-1 py-3">
+                      <dl className="flex flex-col gap-1">
+                        {rapport.colonnes.map((colonne) => {
+                          const valeur = formaterCellule(
+                            rapport!.totaux![colonne.cle] ?? null,
+                            colonne.numerique,
+                          );
+                          if (!valeur) return null;
+                          return (
+                            <div
+                              key={colonne.cle}
+                              className="flex items-baseline justify-between gap-3"
+                            >
+                              <dt className="shrink-0 text-[11px] uppercase tracking-wide text-on-surface-variant">
+                                {colonne.libelle}
+                              </dt>
+                              <dd
+                                className={cn(
+                                  'min-w-0 truncate text-right text-body-sm font-semibold text-text-primary',
+                                  colonne.numerique && 'font-mono',
+                                )}
+                              >
+                                {valeur}
+                              </dd>
+                            </div>
+                          );
+                        })}
+                      </dl>
+                    </li>
+                  )}
+                </ul>
 
                 <div className="border-t border-surface-border p-3 text-body-sm text-text-secondary">
                   {rapport.lignes.length} ligne(s)
