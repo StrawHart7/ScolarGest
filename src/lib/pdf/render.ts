@@ -16,15 +16,19 @@ import type { Browser } from 'playwright-core';
  * - **Local / serveur persistant** : le Chromium installé par
  *   `npx playwright install chromium` (paquet `playwright` complet).
  *
- * Les imports sont dynamiques et branchés sur l'environnement pour que le
- * bundle serverless n'embarque jamais le paquet `playwright` complet, et que le
- * dev local n'ait pas besoin de `@sparticuz/chromium`.
+ * **Un seul navigateur, réutilisé.** Relancer un Chromium à chaque bulletin
+ * fait échouer toutes les générations après la première dans une fonction
+ * serverless (le second lancement dans un conteneur déjà chaud sature la
+ * mémoire et le `/tmp` de la fonction). On garde donc une instance chaude,
+ * partagée entre les rendus et entre invocations tant que le conteneur vit ;
+ * chaque rendu ouvre un contexte isolé et ne ferme que ce contexte. Si le
+ * navigateur a été tué entre deux invocations, il est relancé à la volée.
  */
 function estServerless(): boolean {
   return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 }
 
-async function lancerNavigateur(): Promise<Browser> {
+async function creerNavigateur(): Promise<Browser> {
   if (estServerless()) {
     const chromiumPack = (await import('@sparticuz/chromium')).default;
     const { chromium } = await import('playwright-core');
@@ -37,14 +41,35 @@ async function lancerNavigateur(): Promise<Browser> {
 
   // Dev / serveur avec le paquet `playwright` complet et son Chromium installé.
   const { chromium } = await import('playwright');
-  return chromium.launch({ headless: true }) as Promise<Browser>;
+  return chromium.launch({ headless: true }) as unknown as Promise<Browser>;
+}
+
+// Instance partagée. La promesse mémorise un lancement en cours pour éviter que
+// deux rendus concurrents ne lancent chacun leur navigateur.
+let navigateurPromis: Promise<Browser> | null = null;
+
+async function getNavigateur(): Promise<Browser> {
+  if (navigateurPromis) {
+    try {
+      const navigateur = await navigateurPromis;
+      if (navigateur.isConnected()) return navigateur;
+    } catch {
+      // Lancement précédent échoué : on repart d'un lancement neuf ci-dessous.
+    }
+    navigateurPromis = null;
+  }
+
+  navigateurPromis = creerNavigateur();
+  return navigateurPromis;
 }
 
 /** Format A4, marges nulles (les templates gèrent leur propre padding). */
 export async function renderHtmlToPdf(html: string): Promise<Buffer> {
-  const browser = await lancerNavigateur();
+  const navigateur = await getNavigateur();
+  // Un contexte par rendu : isole les pages sans fermer le navigateur partagé.
+  const contexte = await navigateur.newContext();
   try {
-    const page = await browser.newPage();
+    const page = await contexte.newPage();
     await page.setContent(html, { waitUntil: 'networkidle' });
     const pdf = await page.pdf({
       format: 'A4',
@@ -53,6 +78,6 @@ export async function renderHtmlToPdf(html: string): Promise<Buffer> {
     });
     return Buffer.from(pdf);
   } finally {
-    await browser.close();
+    await contexte.close();
   }
 }
