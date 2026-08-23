@@ -54,50 +54,96 @@ export function CoefficientsForm({
       <input type="hidden" name="anneeScolaireId" value={anneeScolaireId} />
       {serieId && <input type="hidden" name="serieId" value={serieId} />}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Matière</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="w-40 text-right">Coefficient</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      {/* Mobile : liste compacte — une ligne par matière avec champ à droite */}
+      <div className="md:hidden">
+        <div className="divide-y divide-surface-border">
           {lignes.map((ligne) => (
-            <TableRow key={ligne.programmeEtablissementId}>
-              <TableCell className="font-medium">{ligne.matiereNom}</TableCell>
-              <TableCell className="text-text-secondary">
-                {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
+            <div key={ligne.programmeEtablissementId} className="flex items-center gap-3 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-body-md font-medium text-text-primary">
+                  {ligne.matiereNom}
+                </p>
+                <p className="text-[11px] text-text-secondary">
+                  {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
+                </p>
+              </div>
+              {modifiable ? (
+                <Input
+                  key={`${ligne.programmeEtablissementId}-${cleSerie}`}
+                  name={`coefficient:${ligne.programmeEtablissementId}`}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={1}
+                  defaultValue={ligne.coefficient ?? ''}
+                  placeholder="—"
+                  aria-label={`Coefficient de ${ligne.matiereNom}`}
+                  className="w-16 shrink-0 text-center font-bold"
+                />
+              ) : (
+                <span className="text-body-lg font-bold text-primary" data-mono>
+                  {ligne.coefficient ?? '—'}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between border-t border-surface-border px-4 py-3">
+          <span className="text-body-md font-semibold text-text-primary">Total</span>
+          <span className="text-body-lg font-bold text-primary" data-mono>
+            {total}
+          </span>
+        </div>
+      </div>
+
+      {/* Desktop : tableau — inchangé */}
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Matière</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="w-40 text-right">Coefficient</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lignes.map((ligne) => (
+              <TableRow key={ligne.programmeEtablissementId}>
+                <TableCell className="font-medium">{ligne.matiereNom}</TableCell>
+                <TableCell className="text-text-secondary">
+                  {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
+                </TableCell>
+                <TableCell className="text-right">
+                  {modifiable ? (
+                    <Input
+                      key={`${ligne.programmeEtablissementId}-${cleSerie}`}
+                      name={`coefficient:${ligne.programmeEtablissementId}`}
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      step={1}
+                      defaultValue={ligne.coefficient ?? ''}
+                      placeholder="—"
+                      aria-label={`Coefficient de ${ligne.matiereNom}`}
+                      className="ml-auto w-24 text-right"
+                    />
+                  ) : (
+                    <span data-mono>{ligne.coefficient ?? '—'}</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            <TableRow>
+              <TableCell className="font-semibold" colSpan={2}>
+                Total des coefficients
               </TableCell>
-              <TableCell className="text-right">
-                {modifiable ? (
-                  <Input
-                    key={`${ligne.programmeEtablissementId}-${cleSerie}`}
-                    name={`coefficient:${ligne.programmeEtablissementId}`}
-                    type="number"
-                    min={0}
-                    step={1}
-                    defaultValue={ligne.coefficient ?? ''}
-                    placeholder="—"
-                    aria-label={`Coefficient de ${ligne.matiereNom}`}
-                    className="ml-auto w-24 text-right"
-                  />
-                ) : (
-                  <span data-mono>{ligne.coefficient ?? '—'}</span>
-                )}
+              <TableCell className="text-right font-semibold" data-mono>
+                {total}
               </TableCell>
             </TableRow>
-          ))}
-          <TableRow>
-            <TableCell className="font-semibold" colSpan={2}>
-              Total des coefficients
-            </TableCell>
-            <TableCell className="text-right font-semibold" data-mono>
-              {total}
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
 
       {modifiable && (
         <div className="flex items-center justify-end border-t border-surface-border p-4">

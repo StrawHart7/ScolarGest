@@ -6,6 +6,30 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
+ * Lorsque le clavier virtuel s'ouvre sur mobile, la hauteur du visual viewport
+ * diminue mais `window.innerHeight` reste fixe. Ce hook retourne la hauteur du
+ * clavier (0 si absent ou sur desktop) pour pouvoir décaler la bottom sheet.
+ */
+function useKeyboardOffset() {
+  const [offset, setOffset] = React.useState(0);
+  React.useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setOffset(kb);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return offset;
+}
+
+/**
  * Modal flottant réutilisable. Sert de base aux formulaires « nouveau X »
  * (qui étaient des pages dédiées), à la saisie du PIN et aux confirmations
  * d'action irréversible.
@@ -50,35 +74,44 @@ const TAILLES: Record<'sm' | 'md' | 'lg', string> = {
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, taille = 'md', sansFermeture, ...props }, ref) => (
-  <DialogPrimitive.Portal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed inset-x-0 bottom-0 top-auto z-50 max-h-[85vh] w-full overflow-y-auto rounded-t-xl',
-        'border-t border-surface-border bg-surface-container-lowest shadow-premium focus:outline-none',
-        'data-[state=open]:animate-slide-up data-[state=closed]:animate-fade-out',
-        'sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[calc(100vh-4rem)]',
-        'sm:w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border',
-        'sm:data-[state=open]:animate-dialog-in',
-        TAILLES[taille],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      {!sansFermeture && (
-        <DialogPrimitive.Close
-          className="absolute right-4 top-4 rounded p-1 text-text-secondary transition-colors hover:bg-surface-container hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/40"
-          aria-label="Fermer"
-        >
-          <X className="h-4 w-4" aria-hidden />
-        </DialogPrimitive.Close>
-      )}
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-));
+>(({ className, children, taille = 'md', sansFermeture, ...props }, ref) => {
+  const keyboardOffset = useKeyboardOffset();
+  return (
+    <DialogPrimitive.Portal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          // Mobile : feuille ancrée en bas, remonte quand le clavier s'ouvre
+          'fixed inset-x-0 bottom-0 top-auto z-50 max-h-[85dvh] w-full overflow-y-auto rounded-t-xl',
+          'border-t border-surface-border bg-surface-container-lowest shadow-premium focus:outline-none',
+          'data-[state=open]:animate-slide-up data-[state=closed]:animate-fade-out',
+          // Desktop : boîte centrée, inchangée
+          'sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[calc(100vh-4rem)]',
+          'sm:w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border',
+          'sm:data-[state=open]:animate-dialog-in',
+          TAILLES[taille],
+          className,
+        )}
+        // Décale le modal vers le haut quand le clavier virtuel apparaît.
+        // L'inline style ne s'applique qu'en mobile (sur desktop keyboardOffset
+        // reste 0 car le visual viewport ne rétrécit pas).
+        style={keyboardOffset > 0 ? { bottom: keyboardOffset } : undefined}
+        {...props}
+      >
+        {children}
+        {!sansFermeture && (
+          <DialogPrimitive.Close
+            className="absolute right-4 top-4 rounded p-1 text-text-secondary transition-colors hover:bg-surface-container hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/40"
+            aria-label="Fermer"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  );
+});
 DialogContent.displayName = 'DialogContent';
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
