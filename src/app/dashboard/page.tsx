@@ -110,7 +110,7 @@ export default async function DashboardPage() {
         */}
         <section className="space-y-3">
           <h2 className="text-headline-sm text-text-primary">Effectifs</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             <StatCard
               label="Élèves inscrits"
               value={nombre(stats.eleves.actifs)}
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
 
         <section className="space-y-3">
           <h2 className="text-headline-sm text-text-primary">Finances</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <StatCard
               label="Montant facturé"
               value={fcfa(stats.finance.attendu)}
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
 
         <section className="space-y-3">
           <h2 className="text-headline-sm text-text-primary">Académique</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             <StatCard
               label="Évaluations"
               value={nombre(stats.academique.evaluations)}
@@ -199,7 +199,7 @@ export default async function DashboardPage() {
     const finance = await getDashboardComptable(annee.id);
     return layout(
       <>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard
             label="Revenus attendus"
             value={fcfa(finance.attendu)}
@@ -243,7 +243,7 @@ export default async function DashboardPage() {
     const stats = await getDashboardSecretaire(annee.id);
     return layout(
       <>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard
             label="Élèves inscrits"
             value={nombre(stats.eleves.actifs)}

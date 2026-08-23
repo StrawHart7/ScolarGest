@@ -138,7 +138,7 @@ export function RechercheGlobale() {
         {chargement ? (
           <Spinner className="h-4 w-4 text-text-secondary" />
         ) : (
-          <kbd className="rounded border border-surface-border px-1.5 py-0.5 text-label-md text-text-secondary">
+          <kbd className="hidden rounded border border-surface-border px-1.5 py-0.5 text-label-md text-text-secondary md:inline-flex">
             Ctrl K
           </kbd>
         )}

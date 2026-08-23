@@ -12,12 +12,11 @@ const TYPE_LABEL: Record<Evaluation['type'], string> = {
   COMPOSITION: 'Composition',
 };
 
-function formatDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(`${iso}T00:00:00`);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export function EvaluationsList({
