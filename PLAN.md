@@ -450,7 +450,7 @@ Le modèle **Collège/Lycée uniquement** : les autres cycles conservent le gaba
 
 ---
 
-### Phase 9 — Durcissement & mise en production — EN COURS
+### Phase 9 — Durcissement & mise en production — ✅ TERMINÉE (2026-08-20)
 
 **Objectif** : passer d'un produit fonctionnel à un produit livrable.
 
@@ -869,3 +869,53 @@ ajoutée avant tout cadrage définitif.
 d'authentification tranchée et ajoutée à `analysis.md`, statut du rôle
 responsable acté, périmètre du fil de publications validé par
 l'utilisateur — *avant* toute ligne de code.
+
+---
+
+### Fonctionnalité — Peaufinage UI mobile (corrections visuelles)
+
+**Statut** : En cours (branche `feat/mobile-ui-redesign`, 2026-08-23)
+
+**Objectif** : corriger les défauts visuels et d'ergonomie identifiés lors
+d'une analyse de la version mobile déployée — sans refonte majeure (la refonte
+premium reste en pause sur `feat/refonte-mobile`).
+
+**Livrables** :
+- [x] Badge « Ctrl K » masqué sous `md` (`hidden md:inline-flex` dans
+      `RechercheGlobale.tsx`) — sans objet sur mobile sans clavier physique.
+- [x] `formatDate` défensive dans `EvaluationsList.tsx` : date null/invalide
+      affiche « — » au lieu de « Invalid Date ».
+- [x] `StatCard` : layout dual — ligne horizontale compacte (icône + label +
+      valeur) sur mobile, carte verticale `h-32` inchangée sur desktop.
+- [x] Dashboard : grilles `stat-cards` en `grid-cols-2` sur mobile pour tous
+      les rôles (Directeur, Comptable, Secrétaire, Enseignant).
+- [x] `Dialog` : hook `useKeyboardOffset` (Visual Viewport API) qui décale la
+      bottom sheet vers le haut quand le clavier virtuel s'ouvre ; `max-h`
+      passe de `85vh` à `85dvh` (viewport dynamique).
+- [x] `CoefficientsForm` : layout dual — liste compacte sur mobile (nom +
+      type + champ `w-16`, `inputMode="numeric"`) ; tableau desktop inchangé.
+- [ ] Vérification des pages de liste qui n'utilisent pas encore `FiltresMobile`
+      / `BarreOutilsListe` (enseignants, classes, tarifs…).
+- [ ] Pages d'indirection (Notes → 2 blocs, Finances → 5 blocs) à raccourcir
+      sur mobile.
+
+**DoD** : retours visuels de l'utilisateur réglés ; desktop inchangé ;
+typecheck et lint verts à chaque commit ; mergé sur `main`.
+
+---
+
+### Fonctionnalité — Corrections fonctionnelles rôles & permissions
+
+**Statut** : Cadrée — démarrage prévu 2026-08-25 (branche `feat/corrections-fonctionnelles`)
+
+**Objectif** : traiter les défauts fonctionnels liés aux rôles, aux permissions
+et aux flux métier qui ont été identifiés lors des tests et de l'usage réel,
+maintenant que le socle visuel mobile est stabilisé.
+
+**Livrables** :
+- [ ] Inventaire complet des défauts à traiter (à construire au démarrage de
+      la session).
+
+**Dépendances** : Phase 9 terminée, matrice de permissions à jour.
+
+**DoD** : à préciser lors du cadrage de la session.

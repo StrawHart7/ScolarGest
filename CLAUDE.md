@@ -156,11 +156,14 @@ Where a section is labelled **"Modifications"**, treat it as the authoritative o
 
 ## Development Phases
 
-See `PLAN.md` for the full 10-phase roadmap. Phase 0 (scaffold, Supabase schema/RLS, Supabase Auth wiring, design tokens) and Phase 1 (établissement, structure scolaire & utilisateurs) are done. `analysis.md` documents open design questions (Q0–Q17) that block specific phases — resolve the relevant question before starting the phase.
+See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 terminées). The app is deployed in production at [scolargest.vercel.app](https://scolargest.vercel.app). `analysis.md` documents design decisions (Q0–Q17), all resolved.
 
-**Starting a new phase**: follow `PLAN.md` § 7 "Workflow d'exécution d'une phase" step by step (scoping → plan → implementation → continuous build/lint verification → debug → tests → deliverables/doc updates → branch-per-phase closeout). It captures concrete pitfalls hit during Phase 1 (stale `.next`/webpack dev caches, `db push` not running `seed.sql`, Playwright port collisions with a running `next dev`) — do not rediscover them.
+**Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Post-Phase 9 work is tracked by feature, not by numbered phase.** Once Phase 9 closes, new work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD) instead of the sequential phase model above. **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature, regardless of what `PLAN.md` says.
+**Active branches** (2026-08-24) :
+- `feat/mobile-ui-redesign` — corrections UI mobile (StatCard compact, Dialog clavier adaptatif, CoefficientsForm liste mobile). En cours, mergée sur `main` à chaque milestone.
+- `feat/corrections-fonctionnelles` — corrections fonctionnelles rôles & permissions, à démarrer le 2026-08-25.
+- `feat/refonte-mobile` — refonte mobile premium (plan complet dans `Docs/16-Refonte-mobile-plan.md`). **En pause** — reprendra quand les assets seront réunis.
 
 ## Design System
 
@@ -225,3 +228,19 @@ en cache de page authentifiée ni de donnée Supabase (RLS). Bumper `CACHE_VERSI
 navigateurs n'ouvrant plus d'invite automatique, `PwaInstaller` capte
 `beforeinstallprompt` et affiche une bannière maison (refus mémorisé en
 `localStorage`, masquée en mode standalone) ; iOS n'émet pas l'événement.
+
+### Composants UI mobile — règles d'usage
+
+**`StatCard`** (`src/components/ui/stat-card.tsx`) a un layout dual : ligne
+horizontale compacte sur mobile (icône arrondie + label/valeur), carte verticale
+`h-32` sur desktop. Aucune variante à passer — le responsive est interne.
+Les grilles de stat cards utilisent `grid-cols-2` comme base mobile.
+
+**`Dialog`** (`src/components/ui/dialog.tsx`) intègre un hook `useKeyboardOffset`
+(Visual Viewport API) qui décale la bottom sheet vers le haut quand le clavier
+virtuel s'ouvre sur mobile. La hauteur max est en `85dvh` (viewport dynamique).
+Sur desktop le hook est inactif (keyboardOffset reste 0).
+
+**Clavier numérique** : sur tout `<Input type="number">` affiché sur mobile,
+ajouter `inputMode="numeric"` pour ouvrir le clavier numérique au lieu du
+clavier alphanumérique.
