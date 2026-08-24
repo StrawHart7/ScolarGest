@@ -160,9 +160,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-08-24) :
-- `feat/mobile-ui-redesign` — corrections UI mobile (StatCard compact, Dialog clavier adaptatif, CoefficientsForm liste mobile). En cours, mergée sur `main` à chaque milestone.
-- `feat/corrections-fonctionnelles` — corrections fonctionnelles rôles & permissions, à démarrer le 2026-08-25.
+**Active branches** (2026-08-25) :
+- `feat/mobile-ui-redesign` — corrections UI mobile (StatCard compact, Dialog clavier adaptatif, CoefficientsForm liste mobile, tableaux de saisie en cartes sous `md`, écran de chargement stylisé `BrandedLoader`). En cours, mergée sur `main` à chaque milestone. Reste : pages de liste sans `FiltresMobile`/`BarreOutilsListe`, pages d'indirection à raccourcir.
+- `feat/corrections-fonctionnelles` — ✅ terminée et mergée sur `main` (2026-08-25) : versements, droits finance Secrétaire, invitation de plusieurs Directeurs, refonte du workflow de validation des notes (voir `PLAN.md` § 8).
 - `feat/refonte-mobile` — refonte mobile premium (plan complet dans `Docs/16-Refonte-mobile-plan.md`). **En pause** — reprendra quand les assets seront réunis.
 
 ## Design System

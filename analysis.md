@@ -294,6 +294,15 @@ verrouille-t-elle définitivement les notes/paiements de cette année ?**
 manuelle) ? Et que se passe-t-il concrètement à l'expiration : accès bloqué, lecture
 seule, ou simple relance ?**
 
+> **RÉPONSE** (2026-08-25) : virement ou Mobile Money, pointé manuellement par le
+> SUPER_ADMIN (pas de paiement en ligne intégré). À l'expiration : lecture seule
+> (consultation et documents restent accessibles, écritures refusées) — ne jamais
+> prendre les données d'une école en otage pour un simple oubli d'échéance. À la
+> suspension explicite par le SUPER_ADMIN (impayé persistant, litige) : accès
+> applicatif entièrement fermé, redirection vers une page d'information — délibérément
+> plus strict que l'expiration, confirmé après test manuel. Détail dans `Docs/08 §20`
+> et `src/services/abonnement-acces.ts`.
+
 ---
 
 ## 16. Contexte local (Togo) : hébergement, connectivité, devise

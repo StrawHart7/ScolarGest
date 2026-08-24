@@ -894,6 +894,17 @@ premium reste en pause sur `feat/refonte-mobile`).
       passe de `85vh` à `85dvh` (viewport dynamique).
 - [x] `CoefficientsForm` : layout dual — liste compacte sur mobile (nom +
       type + champ `w-16`, `inputMode="numeric"`) ; tableau desktop inchangé.
+- [x] Facture détail (`/etablissement/finances/factures/[id]`) : le tableau
+      « Versements » n'avait jamais reçu la bascule `CarteListeMobile` déjà
+      appliquée à `/etablissement/finances/paiements` — corrigé, même motif.
+- [x] `LignesFactureEditor` et la grille de saisie de notes (éditable et
+      verrouillée) : cartes empilées sous `md` au lieu d'un tableau à
+      colonnes fixes qui débordait largement un écran de téléphone.
+- [x] Écran de chargement stylisé (`BrandedLoader`) sur les 50 frontières
+      `loading.tsx` de l'app (racine, dashboard, chaque page de l'espace
+      établissement, profil, rapports, super-admin, utilisateurs) — le
+      squelette de tableau générique (`PageSkeleton`) restait le premier
+      retour visuel sur quasiment chaque navigation.
 - [ ] Vérification des pages de liste qui n'utilisent pas encore `FiltresMobile`
       / `BarreOutilsListe` (enseignants, classes, tarifs…).
 - [ ] Pages d'indirection (Notes → 2 blocs, Finances → 5 blocs) à raccourcir
@@ -906,16 +917,50 @@ typecheck et lint verts à chaque commit ; mergé sur `main`.
 
 ### Fonctionnalité — Corrections fonctionnelles rôles & permissions
 
-**Statut** : Cadrée — démarrage prévu 2026-08-25 (branche `feat/corrections-fonctionnelles`)
+**Statut** : ✅ Terminée et mergée sur `main` (2026-08-25, branche
+`feat/corrections-fonctionnelles`)
 
 **Objectif** : traiter les défauts fonctionnels liés aux rôles, aux permissions
 et aux flux métier qui ont été identifiés lors des tests et de l'usage réel,
 maintenant que le socle visuel mobile est stabilisé.
 
 **Livrables** :
-- [ ] Inventaire complet des défauts à traiter (à construire au démarrage de
-      la session).
+- [x] **Versements** : aucun bouton n'existait pour que la Secrétaire ou le
+      Comptable enregistrent un versement. Corrigé — `SECRETAIRE` avait en
+      réalité perdu l'accès à l'onglet Finances dans la navigation.
+- [x] **Droits finance de la Secrétaire** alignés sur ceux du Comptable
+      (frais, tarifs, factures, versements, import paiements) : contexte
+      togolais où de nombreux établissements n'ont pas de Comptable dédié
+      (`Docs/03 §SECRETAIRE`).
+- [x] **Plusieurs Directeurs par établissement** : formulaire d'invitation
+      ajouté sur `/super-admin/etablissements/[id]` — le service et la règle
+      métier existaient déjà (`Docs/03 §Directeur initial`), seule l'UI
+      manquait.
+- [x] **Refonte du workflow de validation des notes** (le vrai correctif
+      derrière « la Secrétaire ne reçoit rien ») : `SOUMISE` comptait
+      directement dans les moyennes sans jamais passer par une validation, et
+      aucune UI ne permettait à un enseignant de demander une correction —
+      la file d'approbation restait vide en permanence. Deux files
+      distinctes maintenant : soumission d'évaluation (bloc entier, PIN) et
+      demande de correction sur note `VALIDE` (par note, PIN). Migration
+      `0011_validation_soumission_notes.sql` ; détail complet dans
+      `Docs/03 §11` et `Docs/07`.
+- [x] Cloche de notifications (point rouge) signalant les soumissions et
+      corrections en attente à la Secrétaire.
+- [x] Bug de compilation corrigé (déclaration dupliquée) qui bloquait
+      silencieusement toute la saisie de notes.
+- [x] Service worker désactivé en développement (et désinscrit les sessions
+      antérieures) : en dev les chunks Next ne sont pas hashés par contenu,
+      un cache-first le figeait sur d'anciens correctifs indéfiniment — c'est
+      ce qui a fait perdurer le bug « Soumettre » bien après son correctif
+      côté serveur.
+- [x] `window.confirm()` remplacé par une modale in-app pour la soumission
+      des notes (peu fiable en contexte PWA installée).
+- [x] Comportement de suspension d'abonnement clarifié et documenté
+      (`Docs/08 §20`, `analysis.md` Q15) — confirmé volontairement plus
+      strict que l'expiration, pas un bug.
 
 **Dépendances** : Phase 9 terminée, matrice de permissions à jour.
 
-**DoD** : à préciser lors du cadrage de la session.
+**DoD** : typecheck, lint et suite de tests (183) verts à chaque commit ;
+migration appliquée en production via `db push` ; mergé sur `main`.
