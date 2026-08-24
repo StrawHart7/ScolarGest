@@ -74,10 +74,14 @@ interface NoteRow {
   statut: string;
 }
 
-/** Valeur "effective" d'une note: BROUILLON n'est pas encore officielle. */
+/**
+ * Valeur "effective" d'une note : seule VALIDE (ou dérivée : EN_ATTENTE/REJETE)
+ * est officielle. BROUILLON et SOUMISE (en attente de validation par la
+ * Secrétaire) ne comptent pas.
+ */
 function valeurEffective(n: { statut: string; valeur: number | null }): number | null {
-  if (n.statut === 'BROUILLON') return null;
-  return n.valeur;
+  if (n.statut === 'VALIDE' || n.statut === 'EN_ATTENTE' || n.statut === 'REJETE') return n.valeur;
+  return null;
 }
 
 function calculerMoyenneMatiere(

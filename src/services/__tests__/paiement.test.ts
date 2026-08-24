@@ -103,12 +103,23 @@ describe('enregistrerPaiement', () => {
     expect(mockAuditLog).not.toHaveBeenCalled();
   });
 
-  it('refuse un rôle non autorisé (Secrétaire = lecture seule sur la finance)', async () => {
-    mockGetTenantContext.mockResolvedValue({ ...CTX_COMPTABLE, role: 'SECRETAIRE' });
+  it('refuse un rôle non autorisé (Directeur = lecture seule sur la finance)', async () => {
+    mockGetTenantContext.mockResolvedValue({ ...CTX_COMPTABLE, role: 'DIRECTEUR' });
     await expect(
       enregistrerPaiement({ factureId: 'f1', montant: 50000, modePaiement: 'ESPECES' }),
     ).rejects.toThrow(/Accès refusé/);
     expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it('autorise la Secrétaire (écriture finance complète, contexte togolais)', async () => {
+    mockGetTenantContext.mockResolvedValue({ ...CTX_COMPTABLE, role: 'SECRETAIRE' });
+    mockRpc.mockResolvedValue({
+      data: { paiementId: 'p1', montantTotal: 100000, totalPaye: 50000, solde: 50000, statut: 'PARTIEL' },
+      error: null,
+    });
+    await expect(
+      enregistrerPaiement({ factureId: 'f1', montant: 50000, modePaiement: 'ESPECES' }),
+    ).resolves.toMatchObject({ paiementId: 'p1' });
   });
 });
 

@@ -9,7 +9,8 @@ import { ImportPaiementsForm } from './ImportForm';
 export default async function ImportPaiementsPage() {
   const ctx = await getTenantContext();
   const canWrite =
-    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SECRETAIRE' || ctx.role === 'SUPER_ADMIN') &&
+    (await peutEcrire());
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
 

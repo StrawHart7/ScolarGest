@@ -87,7 +87,7 @@ export async function importerLignesValides(
   lignesValides: { ligne: number; data: PaiementImportLigne }[],
   anneeScolaireId: string,
 ): Promise<ImportRapport> {
-  const ctx = await requireRole('COMPTABLE');
+  const ctx = await requireRole('COMPTABLE', 'SECRETAIRE');
   const supabase = createClient();
 
   const matricules = [...new Set(lignesValides.map((l) => l.data.matricule.trim()))];

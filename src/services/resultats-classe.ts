@@ -190,7 +190,12 @@ export async function getResultatsClasse(
         parEleve = new Map();
         notesParEvaluation.set(note.evaluationId, parEleve);
       }
-      parEleve.set(note.eleveId, note.statut === 'BROUILLON' ? null : note.valeur);
+      // Seule une note VALIDE (ou dérivée d'une VALIDE : EN_ATTENTE/REJETE)
+      // est officielle. BROUILLON et SOUMISE (en attente de validation par
+      // la Secrétaire) ne comptent pas — même règle que `valeurEffective()`
+      // dans note.ts.
+      const compte = note.statut === 'VALIDE' || note.statut === 'EN_ATTENTE' || note.statut === 'REJETE';
+      parEleve.set(note.eleveId, compte ? note.valeur : null);
     }
   }
 

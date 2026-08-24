@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 import { LignesFactureEditor } from './LignesFactureEditor';
 import { NouveauVersementForm } from './NouveauVersementForm';
@@ -50,7 +51,9 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
     listDocumentsParType('RECU'),
   ]);
 
-  const canWrite = (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && ecritureOuverte;
+  const canWrite =
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SECRETAIRE' || ctx.role === 'SUPER_ADMIN') &&
+    ecritureOuverte;
   if (!factureOuNull) notFound();
   const facture = factureOuNull;
   const recuParPaiement = new Map(
@@ -94,7 +97,12 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-          <div className="space-y-6">
+          {/* min-w-0 : sans lui, une grid track ne rétrécit jamais sous la
+              largeur intrinsèque de son contenu (ici le tableau des lignes) —
+              c'est toute la page qui s'élargissait et se dézoomait sur
+              mobile au lieu de laisser le tableau défiler localement dans
+              son propre `overflow-x-auto`. */}
+          <div className="min-w-0 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Détail de la facture</CardTitle>
@@ -166,53 +174,82 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
                   </p>
                 </CardContent>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead>Mode</TableHead>
-                      <TableHead>Référence</TableHead>
-                      <TableHead>Reçu</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead className="text-right">Montant</TableHead>
+                          <TableHead>Mode</TableHead>
+                          <TableHead>Référence</TableHead>
+                          <TableHead>Reçu</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {facture.paiements.map((paiement) => (
+                          <TableRow key={paiement.id}>
+                            <TableCell>
+                              {new Date(paiement.datePaiement).toLocaleDateString('fr-FR')}
+                            </TableCell>
+                            <TableCell
+                              className={`text-right ${paiement.statut === 'ANNULE' ? 'text-text-secondary line-through' : ''}`}
+                              data-mono
+                            >
+                              {fcfa(paiement.montant)}
+                            </TableCell>
+                            <TableCell>{MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}</TableCell>
+                            <TableCell data-mono>{paiement.reference ?? '—'}</TableCell>
+                            <TableCell data-mono>{recuParPaiement.get(paiement.id) ?? '—'}</TableCell>
+                            <TableCell className="text-right">
+                              {canWrite ? (
+                                <PaiementActions
+                                  paiementId={paiement.id}
+                                  factureId={facture.id}
+                                  annule={paiement.statut === 'ANNULE'}
+                                  recuReference={recuParPaiement.get(paiement.id) ?? null}
+                                />
+                              ) : (
+                                <Badge
+                                  variant={paiement.statut === 'ANNULE' ? 'neutral' : 'success'}
+                                  shape="pill"
+                                >
+                                  {paiement.statut === 'ANNULE' ? 'Annulé' : 'Encaissé'}
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <CarteListeMobile>
                     {facture.paiements.map((paiement) => (
-                      <TableRow key={paiement.id}>
-                        <TableCell>
-                          {new Date(paiement.datePaiement).toLocaleDateString('fr-FR')}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right ${paiement.statut === 'ANNULE' ? 'text-text-secondary line-through' : ''}`}
-                          data-mono
-                        >
-                          {fcfa(paiement.montant)}
-                        </TableCell>
-                        <TableCell>{MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}</TableCell>
-                        <TableCell data-mono>{paiement.reference ?? '—'}</TableCell>
-                        <TableCell data-mono>{recuParPaiement.get(paiement.id) ?? '—'}</TableCell>
-                        <TableCell className="text-right">
-                          {canWrite ? (
+                      <LigneCarteMobile
+                        key={paiement.id}
+                        titre={fcfa(paiement.montant)}
+                        sousTitre={`${new Date(paiement.datePaiement).toLocaleDateString('fr-FR')} · ${MODE_LABEL[paiement.modePaiement] ?? paiement.modePaiement}`}
+                        reference={paiement.reference ?? recuParPaiement.get(paiement.id) ?? undefined}
+                        statut={{
+                          libelle: paiement.statut === 'ANNULE' ? 'Annulé' : 'Encaissé',
+                          ton: paiement.statut === 'ANNULE' ? 'neutre' : 'succes',
+                        }}
+                        actions={
+                          canWrite ? (
                             <PaiementActions
                               paiementId={paiement.id}
                               factureId={facture.id}
                               annule={paiement.statut === 'ANNULE'}
                               recuReference={recuParPaiement.get(paiement.id) ?? null}
                             />
-                          ) : (
-                            <Badge
-                              variant={paiement.statut === 'ANNULE' ? 'neutral' : 'success'}
-                              shape="pill"
-                            >
-                              {paiement.statut === 'ANNULE' ? 'Annulé' : 'Encaissé'}
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                          ) : undefined
+                        }
+                      />
                     ))}
-                  </TableBody>
-                </Table>
+                  </CarteListeMobile>
+                </>
               )}
             </Card>
 

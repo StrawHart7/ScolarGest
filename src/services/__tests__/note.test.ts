@@ -113,9 +113,9 @@ describe('demanderModification', () => {
     mockFrom.mockReset();
   });
 
-  it('modification d\'une note SOUMISE bascule en EN_ATTENTE sans changer `valeur`', async () => {
+  it('modification d\'une note VALIDE bascule en EN_ATTENTE sans changer `valeur`', async () => {
     const existingChain = makeChain({
-      data: { id: 'note1', statut: 'SOUMISE', valeur: 12, observation: null },
+      data: { id: 'note1', statut: 'VALIDE', valeur: 12, observation: null },
       error: null,
     });
     const updateChain = makeChain({

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { BellOff, ClipboardCheck, CreditCard } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { listNotesEnAttente } from '@/services/note';
+import { listNotesEnAttente, listEvaluationsSoumises } from '@/services/note';
 import { getAccesAbonnementCourant } from '@/services/abonnement';
 import { JOURS_AVERTISSEMENT } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -25,11 +25,24 @@ export default async function NotificationsPage() {
   const notifications: Notification[] = [];
 
   if (ctx.role === 'SECRETAIRE') {
-    const enAttente = await listNotesEnAttente();
-    if (enAttente.length > 0) {
+    const [soumissions, corrections] = await Promise.all([
+      listEvaluationsSoumises(),
+      listNotesEnAttente(),
+    ]);
+    if (soumissions.length > 0) {
+      const nombreNotes = soumissions.reduce((total, s) => total + s.nombreNotes, 0);
       notifications.push({
-        titre: `${enAttente.length} demande(s) d'approbation de notes`,
-        detail: 'Des enseignants attendent votre décision sur des corrections de notes.',
+        titre: `${soumissions.length} évaluation(s) à valider (${nombreNotes} note(s))`,
+        detail: 'Des enseignants ont soumis des notes qui attendent votre validation.',
+        href: '/etablissement/notes/approbation',
+        icone: 'approbation',
+        urgence: 'avertissement',
+      });
+    }
+    if (corrections.length > 0) {
+      notifications.push({
+        titre: `${corrections.length} demande(s) de correction de notes`,
+        detail: 'Des enseignants attendent votre décision sur des corrections de notes déjà validées.',
         href: '/etablissement/notes/approbation',
         icone: 'approbation',
         urgence: 'avertissement',
