@@ -1,12 +1,26 @@
 import { cn } from '@/lib/utils';
 
+/**
+ * Un balayage lumineux traverse le bloc en continu, plutôt qu'un simple
+ * `animate-pulse` plat — le signal « ça charge » reste identique, juste plus
+ * vivant. `overflow-hidden` + `relative` sont nécessaires au sweep interne :
+ * un `className` qui les retire casserait l'effet, pas le composant.
+ */
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       aria-hidden
-      className={cn('animate-pulse rounded bg-surface-container', className)}
+      className={cn(
+        'relative isolate overflow-hidden rounded bg-surface-container',
+        className,
+      )}
       {...props}
-    />
+    >
+      <span
+        className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent"
+        style={{ animationDuration: '1.6s' }}
+      />
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
-import { PageSkeleton } from '@/components/ui/skeleton';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 
 export default function Loading() {
-  return <PageSkeleton />;
+  return <BrandedLoader />;
 }
