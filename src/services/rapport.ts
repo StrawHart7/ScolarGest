@@ -535,10 +535,11 @@ async function rapportResultats(
       if (!notesParEvaluation.has(n.evaluationId)) {
         notesParEvaluation.set(n.evaluationId, new Map());
       }
-      // Une note BROUILLON n'est pas encore officielle (même règle que le bulletin).
-      notesParEvaluation
-        .get(n.evaluationId)!
-        .set(n.eleveId, n.statut === 'BROUILLON' ? null : n.valeur);
+      // Seule une note VALIDE (ou dérivée : EN_ATTENTE/REJETE) est
+      // officielle — BROUILLON et SOUMISE (en attente de validation par la
+      // Secrétaire) ne comptent pas (même règle que le bulletin).
+      const compte = n.statut === 'VALIDE' || n.statut === 'EN_ATTENTE' || n.statut === 'REJETE';
+      notesParEvaluation.get(n.evaluationId)!.set(n.eleveId, compte ? n.valeur : null);
     }
   }
 

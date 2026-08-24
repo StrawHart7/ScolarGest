@@ -30,7 +30,33 @@ export function PwaInstaller() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    if ('serviceWorker' in navigator) {
+    // Jamais en développement : `sw.js` met les chunks `/_next/static/` en
+    // cache-first et les sert indéfiniment. En dev, ces fichiers ne sont pas
+    // hashés par contenu (même URL réutilisée à chaque recompilation) — une
+    // fois qu'un chunk est en cache, le service worker le sert pour toujours,
+    // même après un correctif serveur ou un redémarrage. C'est ce qui a rendu
+    // « Soumettre » silencieusement inopérant malgré des correctifs déjà
+    // appliqués : le SW servait un bundle JS d'avant le correctif. En
+    // production les chunks sont hashés par build, donc cache-first y est
+    // sûr et voulu.
+    if (process.env.NODE_ENV === 'development') {
+      // Nettoyage : une session de dev antérieure à ce correctif a pu
+      // enregistrer le service worker et remplir son cache de chunks
+      // aujourd'hui obsolètes. Ne plus l'enregistrer ne suffit pas à
+      // désactiver celui déjà actif — il faut l'désinscrire explicitement et
+      // vider son cache pour que le navigateur revienne à un fetch réseau
+      // normal.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          for (const reg of regs) reg.unregister().catch(() => {});
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then((keys) => {
+          for (const key of keys) caches.delete(key).catch(() => {});
+        });
+      }
+    } else if ('serviceWorker' in navigator) {
       // Après le load pour ne pas concurrencer le rendu initial.
       const enregistrer = () =>
         navigator.serviceWorker.register('/sw.js').catch(() => {

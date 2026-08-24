@@ -197,11 +197,14 @@ async function statsAcademique(
 
     const evaluationIds = ((evals ?? []) as { id: string }[]).map((e) => e.id);
     if (evaluationIds.length > 0) {
+      // « Notes à approuver » couvre les deux files que traite la Secrétaire :
+      // les soumissions initiales (SOUMISE) et les demandes de correction
+      // (EN_ATTENTE) sur des notes déjà validées.
       const { count: enAttente } = await supabase
         .from('note')
         .select('*', { count: 'exact', head: true })
         .in('evaluationId', evaluationIds)
-        .eq('statut', 'EN_ATTENTE');
+        .in('statut', ['SOUMISE', 'EN_ATTENTE']);
       notesEnAttente = enAttente ?? 0;
     }
   }

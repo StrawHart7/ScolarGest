@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Bell, CircleHelp, GraduationCap, Settings } from 'lucide-react';
+import { CircleHelp, GraduationCap, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { RechercheGlobale } from './RechercheGlobale';
+import { NotificationsBell } from './NotificationsBell';
 
 export interface HeaderProps {
   schoolName?: string;
@@ -14,7 +15,6 @@ export interface HeaderProps {
 // badge de rôle et identité. Aide passe dans l'onglet « Plus » de la barre
 // basse ; Notifications et Paramètres restent en icônes.
 const ACTIONS = [
-  { href: '/profil/notifications', libelle: 'Notifications', Icone: Bell, masquerMobile: false },
   { href: '/profil/parametres', libelle: 'Paramètres', Icone: Settings, masquerMobile: false },
   { href: '/profil/aide', libelle: 'Aide', Icone: CircleHelp, masquerMobile: true },
 ];
@@ -49,6 +49,7 @@ export function Header({ role, userName }: HeaderProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          <NotificationsBell />
           {ACTIONS.map(({ href, libelle, Icone, masquerMobile }) => (
             <Link
               key={href}

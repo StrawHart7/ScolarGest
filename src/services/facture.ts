@@ -346,7 +346,7 @@ export async function modifierLignesFacture(
   factureId: string,
   lignes: LigneFactureInput[],
 ): Promise<void> {
-  await requireRole('COMPTABLE');
+  await requireRole('COMPTABLE', 'SECRETAIRE');
   const supabase = createClient();
 
   const avant = await getFactureDetail(factureId);
@@ -373,7 +373,7 @@ export async function modifierLignesFacture(
 
 /** Annule une facture (statut ANNULE, jamais de suppression — doc 08 §14). */
 export async function annulerFacture(factureId: string): Promise<void> {
-  await requireRole('COMPTABLE');
+  await requireRole('COMPTABLE', 'SECRETAIRE');
   const supabase = createClient();
 
   const avant = await getFactureDetail(factureId);

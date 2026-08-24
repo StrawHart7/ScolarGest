@@ -29,7 +29,8 @@ export default async function TypesFraisPage({
   const ctx = await getTenantContext();
   const typesFrais = await listTypesFrais(true);
   const canWrite =
-    (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && (await peutEcrire());
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SECRETAIRE' || ctx.role === 'SUPER_ADMIN') &&
+    (await peutEcrire());
 
   const parametres = lireParametresListe(searchParams, { tri: 'nom' });
   const statutFiltre = searchParams.statut;

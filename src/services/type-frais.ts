@@ -49,7 +49,7 @@ export async function listTypesFrais(inclureInactifs = false): Promise<TypeFrais
 }
 
 export async function createTypeFrais(input: CreateTypeFraisInput): Promise<TypeFrais> {
-  const ctx = await requireRole('COMPTABLE');
+  const ctx = await requireRole('COMPTABLE', 'SECRETAIRE');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('type_frais')
@@ -82,7 +82,7 @@ export async function updateTypeFrais(
   id: string,
   input: UpdateTypeFraisInput,
 ): Promise<TypeFrais> {
-  const ctx = await requireRole('COMPTABLE');
+  const ctx = await requireRole('COMPTABLE', 'SECRETAIRE');
   const supabase = createClient();
 
   const { data: avant } = await supabase

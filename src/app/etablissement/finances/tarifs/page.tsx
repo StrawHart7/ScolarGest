@@ -43,7 +43,9 @@ export default async function TarifsPage({
     listAnneesScolaires(),
     listTypesFrais(),
   ]);
-  const canWrite = (ctx.role === 'COMPTABLE' || ctx.role === 'SUPER_ADMIN') && ecritureOuverte;
+  const canWrite =
+    (ctx.role === 'COMPTABLE' || ctx.role === 'SECRETAIRE' || ctx.role === 'SUPER_ADMIN') &&
+    ecritureOuverte;
 
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
   const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;

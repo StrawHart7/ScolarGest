@@ -119,7 +119,7 @@ describe('Cycle complet: saisie -> soumission -> demande de modification -> appr
     mockGetTenantContext.mockResolvedValue(SECRETAIRE_CTX);
 
     const existingChain = makeChain({
-      data: { id: 'note1', statut: 'SOUMISE', valeur: 14, observation: null },
+      data: { id: 'note1', statut: 'VALIDE', valeur: 14, observation: null },
       error: null,
     });
     const updateChain = makeChain({

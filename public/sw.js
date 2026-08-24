@@ -10,7 +10,7 @@
  * Bump CACHE_VERSION à chaque changement de cette liste ou de la stratégie :
  * l'ancien cache est purgé à l'activation.
  */
-const CACHE_VERSION = 'scolargest-v1';
+const CACHE_VERSION = 'scolargest-v2';
 
 // Ressources statiques sûres à précacher (pas de page authentifiée ici).
 const PRECACHE_URLS = [

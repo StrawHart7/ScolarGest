@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { enregistrerLignesAction } from './actions';
@@ -66,25 +67,96 @@ export function LignesFactureEditor({
 
   return (
     <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Type de frais</TableHead>
-            <TableHead>Désignation</TableHead>
-            <TableHead className="text-right">Montant (FCFA)</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {lignes.map((ligne, index) => (
-            // eslint-disable-next-line react/no-array-index-key -- lignes sans id stable tant qu'elles ne sont pas enregistrées
-            <TableRow key={index}>
-              <TableCell>
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Type de frais</TableHead>
+              <TableHead>Désignation</TableHead>
+              <TableHead className="text-right">Montant (FCFA)</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lignes.map((ligne, index) => (
+              // eslint-disable-next-line react/no-array-index-key -- lignes sans id stable tant qu'elles ne sont pas enregistrées
+              <TableRow key={index}>
+                <TableCell>
+                  <Select
+                    value={ligne.typeFraisId}
+                    onValueChange={(v) => majLigne(index, 'typeFraisId', v)}
+                  >
+                    <SelectTrigger className="h-8 w-56">
+                      <SelectValue placeholder="Type de frais" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typesFrais.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.nom}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Input
+                    value={ligne.designation}
+                    onChange={(e) => majLigne(index, 'designation', e.target.value)}
+                    className="h-8 w-64"
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    value={ligne.montant}
+                    onChange={(e) => majLigne(index, 'montant', e.target.value)}
+                    className="h-8 w-32 text-right"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLignes((prev) => prev.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                    Retirer
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            <TableRow>
+              <TableCell className="font-semibold" colSpan={2}>
+                Total facturé
+              </TableCell>
+              <TableCell className="text-right font-semibold" data-mono>
+                {total.toLocaleString('fr-FR')} FCFA
+              </TableCell>
+              <TableCell />
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile : chaque ligne devient une carte empilée — la grille desktop
+          (colonnes Select 224px + Input 256px + Input 128px) déborde très
+          largement un écran de téléphone, même dans un conteneur qui scrolle
+          horizontalement. */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {lignes.map((ligne, index) => (
+          // eslint-disable-next-line react/no-array-index-key -- lignes sans id stable tant qu'elles ne sont pas enregistrées
+          <div key={index} className="rounded-lg border border-surface-border bg-surface p-3">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label>Type de frais</Label>
                 <Select
                   value={ligne.typeFraisId}
                   onValueChange={(v) => majLigne(index, 'typeFraisId', v)}
                 >
-                  <SelectTrigger className="h-8 w-56">
+                  <SelectTrigger>
                     <SelectValue placeholder="Type de frais" />
                   </SelectTrigger>
                   <SelectContent>
@@ -95,47 +167,44 @@ export function LignesFactureEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </TableCell>
-              <TableCell>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Désignation</Label>
                 <Input
                   value={ligne.designation}
                   onChange={(e) => majLigne(index, 'designation', e.target.value)}
-                  className="h-8 w-64"
                 />
-              </TableCell>
-              <TableCell className="text-right">
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Montant (FCFA)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   step={1}
                   value={ligne.montant}
                   onChange={(e) => majLigne(index, 'montant', e.target.value)}
-                  className="h-8 w-32 text-right"
                 />
-              </TableCell>
-              <TableCell>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setLignes((prev) => prev.filter((_, i) => i !== index))}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                  Retirer
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          <TableRow>
-            <TableCell className="font-semibold" colSpan={2}>
-              Total facturé
-            </TableCell>
-            <TableCell className="text-right font-semibold" data-mono>
-              {total.toLocaleString('fr-FR')} FCFA
-            </TableCell>
-            <TableCell />
-          </TableRow>
-        </TableBody>
-      </Table>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="self-end"
+                onClick={() => setLignes((prev) => prev.filter((_, i) => i !== index))}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                Retirer
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex items-baseline justify-between border-t border-surface-border pt-3">
+          <span className="text-body-sm font-semibold text-text-primary">Total facturé</span>
+          <span className="text-body-md font-semibold text-text-primary" data-mono>
+            {total.toLocaleString('fr-FR')} FCFA
+          </span>
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

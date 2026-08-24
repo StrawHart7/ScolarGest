@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
+import { InviterDirecteurForm } from './InviterDirecteurForm';
 
 const ETAB_STATUT_BADGE = {
   ACTIF: 'success',
@@ -122,8 +123,11 @@ export default async function EtablissementDetailPage({ params }: { params: { id
         </Card>
 
         <Card className="overflow-hidden rounded-xl">
-          <CardHeader className="border-b border-surface-border bg-surface-container-low/50 p-5">
-            <CardTitle>Utilisateurs</CardTitle>
+          <CardHeader className="flex-row flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-container-low/50 p-5">
+            <CardTitle className="pt-1.5">Utilisateurs</CardTitle>
+            <div className="w-full sm:w-auto">
+              <InviterDirecteurForm etablissementId={etablissement.id} />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {utilisateurs.length === 0 ? (

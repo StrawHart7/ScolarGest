@@ -26,12 +26,13 @@ export interface Note {
   observation: string | null;
   demandePar: string | null;
   statut: StatutNote;
+  motifRejetSoumission: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 const NOTE_FIELDS =
-  'id, "evaluationId", "eleveId", valeur, "valeurProposee", observation, "demandePar", statut, "createdAt", "updatedAt"';
+  'id, "evaluationId", "eleveId", valeur, "valeurProposee", observation, "demandePar", statut, "motifRejetSoumission", "createdAt", "updatedAt"';
 
 interface EvaluationRow {
   id: string;
@@ -178,6 +179,13 @@ export async function saisirNote(
 /**
  * Bascule en masse toutes les notes BROUILLON d'une évaluation vers SOUMISE
  * via la RPC transactionnelle fn_soumettre_notes (voir migration 0006).
+ *
+ * SOUMISE ne rend plus la note officielle : elle attend la validation de la
+ * Secrétaire (`validerSoumissionEvaluation`/`rejeterSoumissionEvaluation`,
+ * migration 0011). Avant ce correctif, une note soumise comptait
+ * immédiatement dans les moyennes sans qu'aucune validation n'ait jamais eu
+ * lieu — `valeurEffective()` ci-dessous ne compte plus que VALIDE (+
+ * EN_ATTENTE/REJETE, qui dérivent d'une note déjà validée).
  */
 export async function soumettreNotes(evaluationId: string): Promise<number> {
   const ctx = await requireRole('ENSEIGNANT', 'DIRECTEUR', 'SECRETAIRE');
@@ -208,8 +216,133 @@ export async function soumettreNotes(evaluationId: string): Promise<number> {
   return data as number;
 }
 
+// Le step-up PIN vit dans `pin.ts` : il est partagé par toutes les actions
+// sensibles, pas seulement par l'approbation des notes.
+const verifierPin = (pin: string) => exigerPin(pin, 'SECRETAIRE');
+
+export interface EvaluationSoumise {
+  evaluationId: string;
+  classeNom: string;
+  matiereNom: string;
+  evaluationType: 'INTERROGATION' | 'DEVOIR' | 'COMPOSITION';
+  periode: Periode;
+  numero: number;
+  nombreNotes: number;
+}
+
+interface NoteSoumiseRow {
+  evaluationId: string;
+  evaluation: {
+    type: 'INTERROGATION' | 'DEVOIR' | 'COMPOSITION';
+    periode: Periode;
+    numero: number;
+    classe: { nom: string; etablissementId: string } | null;
+    matiere: { nom: string } | null;
+  } | null;
+}
+
 /**
- * Demande de modification sur une note déjà SOUMISE. Stocke la valeur
+ * Évaluations dont des notes SOUMISE attendent une décision (valider →
+ * VALIDE ou rejeter → BROUILLON). Réservé à la Secrétaire, même périmètre que
+ * `listNotesEnAttente`.
+ */
+export async function listEvaluationsSoumises(): Promise<EvaluationSoumise[]> {
+  const ctx = await requireRole('SECRETAIRE');
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('note')
+    .select(
+      `"evaluationId",
+       evaluation:evaluation!inner(type, periode, numero,
+         classe:classe!inner(nom, "etablissementId"),
+         matiere:matiere!inner(nom))`,
+    )
+    .eq('statut', 'SOUMISE')
+    .eq('evaluation.classe.etablissementId', ctx.etablissementId);
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as NoteSoumiseRow[];
+  const parEvaluation = new Map<string, EvaluationSoumise>();
+  for (const r of rows) {
+    const existing = parEvaluation.get(r.evaluationId);
+    if (existing) {
+      existing.nombreNotes += 1;
+      continue;
+    }
+    parEvaluation.set(r.evaluationId, {
+      evaluationId: r.evaluationId,
+      classeNom: r.evaluation?.classe?.nom ?? '',
+      matiereNom: r.evaluation?.matiere?.nom ?? '',
+      evaluationType: r.evaluation?.type ?? 'DEVOIR',
+      periode: r.evaluation?.periode ?? 'TRIMESTRE_1',
+      numero: r.evaluation?.numero ?? 1,
+      nombreNotes: 1,
+    });
+  }
+
+  return [...parEvaluation.values()];
+}
+
+/**
+ * Valide en bloc toutes les notes SOUMISE d'une évaluation : elles
+ * deviennent VALIDE et comptent désormais dans les moyennes.
+ */
+export async function validerSoumissionEvaluation(
+  evaluationId: string,
+  pin: string,
+): Promise<number> {
+  await verifierPin(pin);
+  const supabase = createClient();
+
+  const { data, error } = await supabase.rpc('fn_valider_soumission', {
+    p_evaluation_id: evaluationId,
+  });
+  if (error) throw new Error(error.message);
+
+  await auditLog({
+    action: 'VALIDER_SOUMISSION_NOTES',
+    module: 'academique',
+    objetType: 'Evaluation',
+    objetId: evaluationId,
+    nouvelleValeur: { nombreNotes: data },
+  });
+
+  return data as number;
+}
+
+/**
+ * Rejette en bloc les notes SOUMISE d'une évaluation : retour en BROUILLON
+ * chez l'enseignant, avec le motif conservé (`motifRejetSoumission`) jusqu'à
+ * la prochaine soumission.
+ */
+export async function rejeterSoumissionEvaluation(
+  evaluationId: string,
+  pin: string,
+  motif: string,
+): Promise<number> {
+  await verifierPin(pin);
+  const supabase = createClient();
+
+  const { data, error } = await supabase.rpc('fn_rejeter_soumission', {
+    p_evaluation_id: evaluationId,
+    p_motif: motif,
+  });
+  if (error) throw new Error(error.message);
+
+  await auditLog({
+    action: 'REJETER_SOUMISSION_NOTES',
+    module: 'academique',
+    objetType: 'Evaluation',
+    objetId: evaluationId,
+    nouvelleValeur: { motif, nombreNotes: data },
+  });
+
+  return data as number;
+}
+
+/**
+ * Demande de modification sur une note déjà VALIDE. Stocke la valeur
  * proposée sans toucher `valeur` (l'original reste la valeur affichée tant
  * que non approuvé). Statut → EN_ATTENTE.
  */
@@ -231,8 +364,8 @@ export async function demanderModification(
     .single();
   if (existingError) throw existingError;
 
-  if (existing.statut !== 'SOUMISE') {
-    throw new Error('Seule une note SOUMISE peut faire l\'objet d\'une demande de modification.');
+  if (existing.statut !== 'VALIDE') {
+    throw new Error('Seule une note VALIDE peut faire l\'objet d\'une demande de modification.');
   }
 
   const { data, error } = await supabase
@@ -259,10 +392,6 @@ export async function demanderModification(
 
   return data as unknown as Note;
 }
-
-// Le step-up PIN vit dans `pin.ts` : il est partagé par toutes les actions
-// sensibles, pas seulement par l'approbation des notes.
-const verifierPin = (pin: string) => exigerPin(pin, 'SECRETAIRE');
 
 /** Approuve une demande de modification : applique valeurProposee → valeur, statut → VALIDE. */
 export async function approuverModification(noteId: string, pin: string): Promise<Note> {
@@ -459,12 +588,17 @@ export interface MoyennesEleveResult {
   appreciation: string | null;
 }
 
-/** Valeur "effective" d'une note pour le calcul: EN_ATTENTE/REJETE gardent `valeur`. */
+/**
+ * Valeur "effective" d'une note pour le calcul : seule une note VALIDE (ou
+ * dérivée d'une VALIDE — EN_ATTENTE/REJETE gardent `valeur`) est officielle.
+ * SOUMISE est exclue : elle attend encore la validation de la Secrétaire
+ * (`validerSoumissionEvaluation`) et ne doit pas compter avant.
+ */
 function valeurEffective(n: { statut: StatutNote; valeur: number | null }): number | null {
-  if (n.statut === 'SOUMISE' || n.statut === 'VALIDE' || n.statut === 'EN_ATTENTE' || n.statut === 'REJETE') {
+  if (n.statut === 'VALIDE' || n.statut === 'EN_ATTENTE' || n.statut === 'REJETE') {
     return n.valeur;
   }
-  return null; // BROUILLON: pas encore une note officielle
+  return null; // BROUILLON / SOUMISE: pas encore une note officielle
 }
 
 /**
