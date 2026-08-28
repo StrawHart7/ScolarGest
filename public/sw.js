@@ -10,14 +10,18 @@
  * Bump CACHE_VERSION à chaque changement de cette liste ou de la stratégie :
  * l'ancien cache est purgé à l'activation.
  */
-const CACHE_VERSION = 'scolargest-v2';
+const CACHE_VERSION = 'scolargest-v3';
 
 // Ressources statiques sûres à précacher (pas de page authentifiée ici).
+// /offline est la page de secours affichée quand une navigation échoue et
+// qu'aucune version en cache de la page visée n'existe (voir le handler
+// `fetch` plus bas) — elle ne dépend d'aucune donnée ni de l'auth.
 const PRECACHE_URLS = [
   '/manifest.webmanifest',
   '/assets/icons/android-chrome-192x192.png',
   '/assets/icons/android-chrome-512x512.png',
   '/assets/icons/favicon-32x32.png',
+  '/offline',
 ];
 
 self.addEventListener('install', (event) => {
@@ -49,11 +53,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigations (pages HTML) : réseau d'abord, cache en secours si hors-ligne.
+  // Navigations (pages HTML) : réseau d'abord, page déjà visitée en cache en
+  // second recours, page de secours /offline en dernier recours (jamais le
+  // manifeste JSON brut, illisible pour un humain).
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() =>
-        caches.match(request).then((cached) => cached ?? caches.match('/manifest.webmanifest')),
+        caches.match(request).then((cached) => cached ?? caches.match('/offline')),
       ),
     );
     return;

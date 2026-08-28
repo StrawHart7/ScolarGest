@@ -70,14 +70,20 @@ export default async function SaisieEvaluationPage({
             </CardContent>
           </Card>
         ) : (
-          <EvaluationContent evaluationId={params.evaluationId} />
+          <EvaluationContent evaluationId={params.evaluationId} userId={ctx.userId} />
         )}
       </div>
     </AppLayout>
   );
 }
 
-async function EvaluationContent({ evaluationId }: { evaluationId: string }) {
+async function EvaluationContent({
+  evaluationId,
+  userId,
+}: {
+  evaluationId: string;
+  userId: string;
+}) {
   let evaluation;
   try {
     // getEvaluationDetail applique déjà le contrôle de périmètre (affectation
@@ -133,7 +139,13 @@ async function EvaluationContent({ evaluationId }: { evaluationId: string }) {
           </CardContent>
         </Card>
       ) : (
-        <SaisieNotesForm evaluationId={evaluationId} eleves={eleves} notes={notes} verrouille={verrouille} />
+        <SaisieNotesForm
+          evaluationId={evaluationId}
+          userId={userId}
+          eleves={eleves}
+          notes={notes}
+          verrouille={verrouille}
+        />
       )}
     </div>
   );

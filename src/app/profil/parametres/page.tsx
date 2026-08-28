@@ -3,10 +3,10 @@ import { KeyRound, LogOut, UserRound } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getMonProfil } from '@/services/utilisateur';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Button, SubmitButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
 import { PinForm } from '../PinForm';
-import { seDeconnecterAction } from './actions';
+import { DeconnexionButton } from './DeconnexionButton';
 
 export default async function ParametresPage() {
   const ctx = await getTenantContext();
@@ -77,11 +77,7 @@ export default async function ParametresPage() {
                 Ferme la session sur cet appareil uniquement.
               </p>
             </div>
-            <form action={seDeconnecterAction}>
-              <SubmitButton variant="secondary" size="sm" libelleEnCours="Déconnexion…">
-                Déconnexion
-              </SubmitButton>
-            </form>
+            <DeconnexionButton />
           </div>
         </section>
       </div>
