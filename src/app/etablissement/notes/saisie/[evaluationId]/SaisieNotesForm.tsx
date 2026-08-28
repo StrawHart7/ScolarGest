@@ -1,14 +1,21 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Clock, Info, Lock, Save, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, Clock, Info, Lock, RefreshCw, Save, TriangleAlert } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Eleve } from '@/services/eleve';
 import type { Note, StatutNote } from '@/services/note';
+import { useConnectivity } from '@/components/connectivity/connectivity-context';
+import {
+  lireBrouillon,
+  ecrireBrouillon,
+  effacerBrouillon,
+  type RowStateBrouillon,
+} from '@/lib/offline/notes-brouillon-db';
 import { saisirNoteAction, soumettreNotesAction, demanderModificationAction } from './actions';
 
 const STATUT_BADGE: Partial<
@@ -94,11 +101,7 @@ function DemandeModificationForm({
   );
 }
 
-interface RowState {
-  valeur: string;
-  observation: string;
-  dirty: boolean;
-}
+type RowState = RowStateBrouillon;
 
 function buildInitialRows(eleves: Eleve[], notes: Note[]): Record<string, RowState> {
   const byEleve = new Map(notes.map((n) => [n.eleveId, n]));
@@ -116,24 +119,62 @@ function buildInitialRows(eleves: Eleve[], notes: Note[]): Record<string, RowSta
 
 export function SaisieNotesForm({
   evaluationId,
+  userId,
   eleves,
   notes,
   verrouille,
 }: {
   evaluationId: string;
+  userId: string;
   eleves: Eleve[];
   notes: Note[];
   verrouille: boolean;
 }) {
   const router = useRouter();
+  const { enLigne } = useConnectivity();
   const [rows, setRows] = useState<Record<string, RowState>>(() => buildInitialRows(eleves, notes));
   const [error, setError] = useState<string | null>(null);
+  const [erreurReseau, setErreurReseau] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [brouillonRestaure, setBrouillonRestaure] = useState(false);
   const [pending, startTransition] = useTransition();
   const [modificationOuverte, setModificationOuverte] = useState<string | null>(null);
   const [confirmationOuverte, setConfirmationOuverte] = useState(false);
 
   const hasDirty = useMemo(() => Object.values(rows).some((r) => r.dirty), [rows]);
+
+  // Récupération d'un brouillon local (IndexedDB) laissé par une session
+  // précédente interrompue — un rechargement, un crash, une coupure réseau
+  // avant que la saisie n'ait pu être envoyée au serveur.
+  useEffect(() => {
+    if (verrouille) return;
+    let annule = false;
+    lireBrouillon(userId, evaluationId).then((brouillon) => {
+      if (annule || !brouillon) return;
+      const aDesLignesEnAttente = Object.values(brouillon).some((r) => r.dirty);
+      if (!aDesLignesEnAttente) return;
+      setRows((prev) => ({ ...prev, ...brouillon }));
+      setBrouillonRestaure(true);
+    });
+    return () => {
+      annule = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evaluationId, userId, verrouille]);
+
+  // Sauvegarde locale continue (debounce) : protège la saisie en cours contre
+  // un rechargement ou une coupure, indépendamment de la connectivité.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (verrouille || !hasDirty) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void ecrireBrouillon(userId, evaluationId, rows);
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [rows, hasDirty, userId, evaluationId, verrouille]);
 
   function updateValeur(eleveId: string, valeur: string) {
     setRows((prev) => ({
@@ -151,40 +192,81 @@ export function SaisieNotesForm({
 
   function enregistrerBrouillon() {
     setError(null);
+    setErreurReseau(false);
     const aEnvoyer = eleves.filter((e) => rows[e.id]?.dirty && rows[e.id]?.valeur !== '');
     if (aEnvoyer.length === 0) return;
 
     startTransition(async () => {
+      const reussies: string[] = [];
       for (const eleve of aEnvoyer) {
+        // Ne tente plus la suite si on sait déjà être hors ligne — inutile
+        // d'attendre chaque timeout de fetch un par un, la boucle reprendra
+        // ces mêmes lignes (toujours `dirty`) au retour du réseau.
+        if (!navigator.onLine) {
+          setErreurReseau(true);
+          break;
+        }
         const row = rows[eleve.id] ?? { valeur: '', observation: '', dirty: false };
         const valeurNum = Number(row.valeur.replace(',', '.'));
         if (Number.isNaN(valeurNum)) {
           setError(`Note invalide pour ${eleve.nom} ${eleve.prenoms}`);
           continue;
         }
-        const result = await saisirNoteAction({
-          evaluationId,
-          eleveId: eleve.id,
-          valeur: valeurNum,
-          observation: row.observation || undefined,
-        });
-        if (result) {
-          setError(result);
-          return;
+        try {
+          const result = await saisirNoteAction({
+            evaluationId,
+            eleveId: eleve.id,
+            valeur: valeurNum,
+            observation: row.observation || undefined,
+          });
+          if (result) {
+            // Rejet de validation par le serveur (pas un problème réseau) :
+            // la ligne reste `dirty`, on avertit et on passe aux suivantes.
+            setError(result);
+            continue;
+          }
+          reussies.push(eleve.id);
+        } catch {
+          // Échec réseau (fetch/TypeError) : cette ligne et les suivantes
+          // restent `dirty`, donc toujours dans la file d'attente locale —
+          // rien n'est perdu, la boucle s'arrête ici pour cette tentative.
+          setErreurReseau(true);
+          break;
         }
       }
-      setRows((prev) => {
-        const next = { ...prev };
-        for (const eleve of aEnvoyer) {
-          const current = next[eleve.id];
-          if (current) next[eleve.id] = { ...current, dirty: false };
-        }
-        return next;
-      });
-      setLastSaved(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
-      router.refresh();
+      if (reussies.length > 0) {
+        setRows((prev) => {
+          const next = { ...prev };
+          for (const id of reussies) {
+            const current = next[id];
+            if (current) next[id] = { ...current, dirty: false };
+          }
+          return next;
+        });
+        setLastSaved(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+        router.refresh();
+      }
     });
   }
+
+  // Relance automatique, une fois, au retour du réseau — événementiel, pas
+  // de polling. La relance manuelle ("Réessayer") reste toujours disponible.
+  const enLigneRef = useRef(enLigne);
+  useEffect(() => {
+    const etaitHorsLigne = !enLigneRef.current;
+    enLigneRef.current = enLigne;
+    if (enLigne && etaitHorsLigne && hasDirty && !verrouille) {
+      enregistrerBrouillon();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enLigne]);
+
+  // Efface le brouillon local une fois toutes les lignes synchronisées.
+  useEffect(() => {
+    if (!verrouille && !hasDirty && lastSaved) {
+      void effacerBrouillon(userId, evaluationId);
+    }
+  }, [hasDirty, lastSaved, verrouille, userId, evaluationId]);
 
   function confirmerSoumission() {
     setError(null);
@@ -195,6 +277,7 @@ export function SaisieNotesForm({
         return;
       }
       setConfirmationOuverte(false);
+      void effacerBrouillon(userId, evaluationId);
       router.refresh();
     });
   }
@@ -358,6 +441,19 @@ export function SaisieNotesForm({
         </div>
       )}
 
+      {brouillonRestaure && (
+        <div className="flex items-start gap-3 border-b border-surface-border bg-primary-container/5 p-4">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-container" aria-hidden />
+          <div>
+            <h3 className="text-headline-sm text-text-primary">Brouillon local restauré</h3>
+            <p className="text-body-sm text-text-secondary">
+              Des saisies non enregistrées ont été retrouvées sur cet appareil et rechargées
+              ci-dessous. Enregistrez pour les envoyer au serveur.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-border bg-surface p-4">
         <div className="flex items-center gap-2 text-text-secondary">
           <Info className="h-4 w-4" aria-hidden />
@@ -454,10 +550,33 @@ export function SaisieNotesForm({
       </div>
 
       {error && <p className="px-4 pt-3 text-body-sm text-error">{error}</p>}
+      {erreurReseau && (
+        <p className="px-4 pt-3 text-body-sm text-error">
+          Connexion indisponible — les saisies restent enregistrées sur cet appareil et seront
+          envoyées automatiquement au retour du réseau.
+        </p>
+      )}
 
-      <div className="sticky bottom-0 flex items-center justify-end gap-4 border-t border-surface-border bg-surface-container-lowest p-4">
-        {lastSaved && (
+      <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-4 border-t border-surface-border bg-surface-container-lowest p-4">
+        {lastSaved && !hasDirty && (
           <span className="mr-auto text-label-md text-text-secondary">Dernière sauvegarde : {lastSaved}</span>
+        )}
+        {hasDirty && !enLigne && (
+          <Badge variant="warning" shape="pill" className="mr-auto">
+            En attente de synchronisation
+          </Badge>
+        )}
+        {hasDirty && erreurReseau && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending}
+            onClick={enregistrerBrouillon}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden />
+            Réessayer
+          </Button>
         )}
         <Button
           type="button"

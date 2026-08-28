@@ -35,6 +35,17 @@ export function SidebarCollapseProvider({ children }: { children: React.ReactNod
     });
   }, []);
 
+  React.useEffect(() => {
+    function surTouche(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === '.') {
+        e.preventDefault();
+        basculer();
+      }
+    }
+    window.addEventListener('keydown', surTouche);
+    return () => window.removeEventListener('keydown', surTouche);
+  }, [basculer]);
+
   const valeur = React.useMemo(() => ({ replie, basculer }), [replie, basculer]);
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;
 }
