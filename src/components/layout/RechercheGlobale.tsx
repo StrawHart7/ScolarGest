@@ -120,6 +120,13 @@ export function RechercheGlobale() {
       <input
         ref={champ}
         type="search"
+        name="recherche-globale"
+        // Sans cela, le gestionnaire de mots de passe du navigateur prend ce
+        // champ pour l'identifiant associé aux champs `type="password"` de la
+        // page (le code de confirmation du questionnaire de démarrage, par
+        // exemple) et y injecte l'adresse email, ce qui déclenche une
+        // recherche parasite.
+        autoComplete="off"
         value={terme}
         onChange={(e) => {
           setTerme(e.target.value);
