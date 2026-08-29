@@ -771,11 +771,51 @@ l'écran d'accueil ») et poser l'identité applicative (favicon, icônes, manif
 coquille statique hors-ligne sans casser les Server Actions ni l'auth. Vérifié :
 `navigator.serviceWorker.controller` actif, scope racine, aucune erreur console.
 
+#### Incrément 2 — résilience réseau (✅ mergé sur `main` le 2026-08-28, `feat/pwa`)
+
+L'installabilité ne rendait rien utilisable hors ligne. Cet incrément cible le
+flux le plus exposé sur le terrain : la saisie de notes, tenue entièrement en
+mémoire React — une coupure ou un rechargement faisait perdre le travail non
+enregistré, et un échec réseau sur une ligne stoppait la boucle sans rien
+mettre en attente.
+
+- [x] **Page `/offline` réelle** (branded), précachée et servie par le service
+      worker quand une navigation échoue et qu'aucune version en cache n'existe.
+      Remplace le repli sur `manifest.webmanifest`, qui affichait du JSON brut à
+      l'utilisateur. `CACHE_VERSION` → `scolargest-v3`.
+- [x] **Contexte de connectivité global** (`src/components/connectivity/`) +
+      bannière « Hors ligne » persistante, montés à la racine — donc visibles
+      aussi sur `/login` et la landing, qui ne passent pas par `AppLayout`.
+- [x] **Brouillons de saisie persistés en IndexedDB** (`idb`,
+      `src/lib/offline/notes-brouillon-db.ts`) : la ligne `dirty` **est** la file
+      d'attente, pas de structure parallèle. Restauration au montage, écriture
+      débattue ~500 ms à chaque frappe, retry automatique au retour du réseau
+      (événementiel, pas de polling) et bouton « Réessayer » manuel.
+      `saisirNoteAction` étant un upsert sur `(evaluationId, eleveId)`, un retry
+      est idempotent — aucune déduplication côté client.
+- [x] **Nettoyage à la déconnexion** (`DeconnexionButton`) : IndexedDB n'est pas
+      accessible depuis une Server Action, d'où un wrapper client. Évite qu'un
+      brouillon soit restauré sous un autre compte sur un poste partagé.
+- [x] Raccourci clavier `Ctrl + .` pour replier/déplier la sidebar desktop.
+
+**Hors périmètre assumé** : cache de lecture hors-ligne (dashboard, élèves,
+finances), moteur de synchronisation générique, Background Sync API, mise en
+file de `soumettreNotesAction` et des demandes de correction — ces deux
+dernières sont des transitions d'état à enjeu fort, gardées synchrones.
+
+**DoD** : typecheck, lint, 183 tests et build verts ; `/offline` prérendue en
+statique.
+
 ---
 
 ### Fonctionnalité — Chatbot de configuration à la demande de démo
 
 **Statut** : Idée (non cadrée)
+
+> **À ne pas confondre** avec « Onboarding conversationnel » plus bas. Celle-ci
+> est **avant-vente** : un prospect anonyme remplit `demande_demo`, aucun
+> établissement n'existe encore. L'autre est **post-inscription** : le Directeur
+> d'un établissement déjà créé configure sa structure via `/demarrage`.
 
 **Objectif** : remplacer/compléter le formulaire statique de demande de
 démo (`src/app/demande-demo-actions.ts`, table `demande_demo`) par un
@@ -964,3 +1004,109 @@ maintenant que le socle visuel mobile est stabilisé.
 
 **DoD** : typecheck, lint et suite de tests (183) verts à chaque commit ;
 migration appliquée en production via `db push` ; mergé sur `main`.
+
+---
+
+### Fonctionnalité — Onboarding conversationnel (`/demarrage`)
+
+**Statut** : ✅ Terminée et mergée sur `main` (2026-08-29, branche
+`feat/onboarding`)
+
+**Objectif** : un établissement fraîchement créé par le SUPER_ADMIN est une
+coquille vide. Le Directeur devait découvrir seul huit écrans, dans un ordre
+imposé par des dépendances invisibles (pas de classe sans niveau, pas de
+coefficient sans programme, pas d'enseignant sans année scolaire pour la
+séquence de matricule). Rien ne le lui disait.
+
+**Décisions structurantes** :
+- **Aucun LLM.** Les catalogues système étant finis et fermés (4 cycles,
+  16 niveaux déjà chaînés, 6 séries), l'essentiel de la configuration est une
+  *sélection dans des listes connues*. Un modèle ajouterait latence, dépendance
+  réseau et risque de proposer un niveau hors catalogue, sans rien apporter.
+  Les étapes sont déclarées dans `src/lib/onboarding/etapes.ts`.
+- **Écriture au fil de l'eau**, étape par étape, via les services existants —
+  donc leurs gardes `requireRole`, `exigerPin` et `auditLog`. Les étapes
+  dépendent des identifiants réels des précédentes, et `activerCycle` est
+  irréversible : différer les écritures donnerait une fausse réversibilité.
+  Le PIN est saisi **une fois par étape** et réutilisé pour le lot.
+- **Progression déduite des données** (année ACTIVE ? cycles actifs ?
+  classes ?) plutôt que stockée — la dupliquer la ferait diverger dès qu'une
+  configuration passe par les écrans habituels. La table
+  `onboarding_progression` (`0012`) ne porte que l'indéductible : étapes
+  volontairement sautées, bannière masquée, et **par sa seule existence** le
+  fait d'avoir déjà été redirigé une fois. C'est ce dernier point qui rend la
+  redirection interruptible plutôt que forcée.
+- **Onboarding par rôle.** `createTypeFrais` et `createTarif` exigent COMPTABLE
+  ou SECRETAIRE (`Docs/08 §17` donne le Directeur en lecture seule sur la
+  finance). Plutôt que d'élargir ces gardes, le Directeur configure la
+  structure et invite la Secrétaire, qui reçoit **son propre parcours** finance
+  à sa première connexion.
+
+**Livrables** :
+- [x] Migration `0012_onboarding_progression.sql` (RLS tenant, appliquée en
+      production).
+- [x] Service `src/services/onboarding.ts` — 5 fonctions gardées, ajoutées à
+      l'instantané de la matrice (166 gardes). Les rôles y sont listés
+      littéralement : un `requireRole(...SPREAD)` faisait tomber la matrice sur
+      `DYNAMIQUE`, qui ne dit plus quels rôles sont admis.
+- [x] Parcours Directeur en 9 étapes : code de confirmation → année scolaire →
+      cycles → classes → matières → programme → coefficients → enseignants
+      *(facultative)* → équipe administrative *(facultative)*.
+- [x] Parcours Secrétaire/Comptable en 2 étapes : types de frais → tarifs.
+      Saisie **par niveau**, développée sur les classes (20 classes × 4 types
+      feraient 80 champs).
+- [x] Fil conversationnel (`FilDemarrage.tsx`, `Bulles.tsx`) : questions,
+      choix cliquables, repli en résumé une fois l'étape franchie.
+- [x] Redirection unique depuis `/dashboard` + bannière de rappel ensuite.
+      Le contrôle vit dans la page et non dans `src/middleware.ts`, qui
+      s'exécute à chaque requête et paierait un aller-retour de base par
+      navigation pour un besoin limité à l'arrivée après connexion.
+- [x] `scripts/seed-onboarding-test.ts` — établissement de test vide,
+      Directeur, Secrétaire, 50 élèves, `--reset` / `--purge`.
+
+**Correctifs issus du test de bout en bout** (le parcours a été déroulé
+entièrement dans le navigateur, pour les deux rôles — ces défauts
+n'apparaissaient qu'à l'exécution réelle) :
+- [x] **Robustesse des appels d'action** (`appel-action.ts`, 14 appels) :
+      chaque étape supposait qu'une Server Action aboutit toujours. Une
+      coupure réseau ou un redémarrage serveur résout l'appel sur `undefined`,
+      et l'utilisateur recevait une erreur d'exécution brute. Sur une
+      application visant des connexions instables, c'est un cas normal.
+- [x] **Messages d'erreur muets** : les services propagent les erreurs
+      Supabase telles quelles, or ce sont des objets simples —
+      `e instanceof Error` était toujours faux. Le même défaut cassait la
+      détection des doublons, qui faisait échouer le lot entier au lieu de
+      compter la ligne comme existante.
+- [x] **Étape Année non idempotente** : deux écritures (créer puis activer) ;
+      une interruption entre les deux laissait une année en `PREPARATION` que
+      toute nouvelle tentative heurtait sur l'unicité — parcours bloqué sans
+      issue depuis l'interface.
+- [x] **Champs PIN pris pour des mots de passe** : le gestionnaire du
+      navigateur y injectait le mot de passe du compte, tronqué silencieusement
+      par le filtre chiffres ; il visait aussi la recherche globale comme champ
+      identifiant. Un seul champ visible, `autoComplete="off"` sur la recherche.
+- [x] **Ordre du cursus** : `niveau.ordre` repart à 1 dans chaque cycle, d'où
+      un entrelacement (6ème, 2nde, 5ème, 1ère). Tri sur
+      `(cycle.ordre, niveau.ordre)`, appliqué aussi aux tarifs.
+- [x] **Séries au lycée** : `programme_etablissement` est unique sur
+      `(etablissement, niveau, matiere)` **sans série** — le schéma ne permet
+      pas un programme par série. La différenciation passe par
+      `coefficient_matiere.serieId`, un coefficient absent valant 0 dans le
+      calcul des bulletins. Les coefficients ne proposent donc que les séries
+      ayant une classe ouverte, et 0 est admis pour exclure une matière.
+
+**Points ouverts** :
+- [ ] Un établissement **sans abonnement** passe en lecture seule
+      (`evaluerAcces` → `AUCUN`) et **toutes les écritures renvoient 403** :
+      si un SUPER_ADMIN oublie l'abonnement, le Directeur affronte un
+      questionnaire dont chaque étape échoue sans explication. Comportement
+      intentionnel, message dédié à ajouter.
+- [ ] Programme **distinct par série** (et pas seulement coefficients
+      différenciés) : migration touchant `programme_etablissement`, les
+      bulletins et les résultats — à évaluer si le besoin se confirme.
+- [ ] Onboarding pédagogique des écrans **opérationnels** (saisie de notes,
+      encaissement, bulletins), impossible pendant la configuration puisqu'il
+      n'y a pas encore de données à manipuler.
+
+**DoD** : typecheck, lint, 183 tests et build verts ; migration appliquée ;
+parcours vérifié de bout en bout dans le navigateur pour les deux rôles.

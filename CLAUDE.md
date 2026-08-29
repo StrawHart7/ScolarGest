@@ -38,7 +38,24 @@ npx supabase db reset   # Reset local DB and reapply migrations + seed
 npm run seed:demo -- --list                                 # list établissements
 npm run seed:demo -- --etablissement <uuid>                 # fictitious data for manual testing
 npm run seed:demo -- --purge --seed --etablissement <uuid>  # wipe that demo data and re-seed
+
+npx tsx scripts/seed-onboarding-test.ts            # établissement VIDE + Directeur, pour /demarrage
+npx tsx scripts/seed-onboarding-test.ts --reset    # purge puis recrée
+npx tsx scripts/seed-onboarding-test.ts --eleves   # 50 élèves dans les classes créées
+npx tsx scripts/seed-onboarding-test.ts --secretaire  # compte pour le parcours finance
+npx tsx scripts/seed-onboarding-test.ts --purge    # supprime tout
 ```
+
+`scripts/seed-onboarding-test.ts` est le pendant *vide* de `seed-demo.ts` :
+celui-ci remplit l'établissement, ce qui le ferait apparaître comme déjà
+configuré et sauterait tout l'onboarding. Il crée un abonnement ACTIF —
+indispensable, voir « Onboarding : où vit la vérité » plus bas. Comptes de
+test : `directeur.test.onboarding@scolargest.local` et
+`secretaire.test.onboarding@scolargest.local`, mot de passe
+`TestOnboarding2026!`. Les adresses en `.local` conviennent à
+`auth.admin.createUser` mais **Supabase les refuse pour les invitations**
+(`inviteUserByEmail`) : tester les étapes 8 et 9 exige de vraies adresses
+délivrables, et le SMTP par défaut est fortement limité en débit.
 
 `scripts/seed-demo.ts` (service-role, deterministic) fills one existing établissement with a full cursus — classes, matières, programme, coefficients, élèves, responsables, inscriptions, enseignants, affectations, évaluations, notes — plus the finance side (types de frais, tarifs, factures, paiements), and creates SECRETAIRE / COMPTABLE / ENSEIGNANT test accounts (password `Demo2026!`). It deliberately produces varied states (statuts de facture mixtes, absences, one class left in `BROUILLON`/`SOUMISE` at T3) so every screen has something to show. `--purge` does real hard deletes — test bases only.
 
@@ -160,7 +177,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-08-25) :
+**Active branches** (2026-08-29) :
+- `feat/onboarding` — ✅ terminée et mergée sur `main` (2026-08-29) : questionnaire de configuration guidée `/demarrage`, scripté (pas de LLM), par rôle. Migration `0012`. Voir `PLAN.md` § 8.
+- `feat/pwa` — ✅ terminée et mergée sur `main` (2026-08-28) : premier incrément hors-ligne (page `/offline`, contexte de connectivité, brouillons de notes en IndexedDB). Voir `PLAN.md` § 8.
 - `feat/mobile-ui-redesign` — corrections UI mobile (StatCard compact, Dialog clavier adaptatif, CoefficientsForm liste mobile, tableaux de saisie en cartes sous `md`, écran de chargement stylisé `BrandedLoader`). En cours, mergée sur `main` à chaque milestone. Reste : pages de liste sans `FiltresMobile`/`BarreOutilsListe`, pages d'indirection à raccourcir.
 - `feat/corrections-fonctionnelles` — ✅ terminée et mergée sur `main` (2026-08-25) : versements, droits finance Secrétaire, invitation de plusieurs Directeurs, refonte du workflow de validation des notes (voir `PLAN.md` § 8).
 - `feat/refonte-mobile` — refonte mobile premium (plan complet dans `Docs/16-Refonte-mobile-plan.md`). **En pause** — reprendra quand les assets seront réunis.
@@ -228,6 +247,63 @@ en cache de page authentifiée ni de donnée Supabase (RLS). Bumper `CACHE_VERSI
 navigateurs n'ouvrant plus d'invite automatique, `PwaInstaller` capte
 `beforeinstallprompt` et affiche une bannière maison (refus mémorisé en
 `localStorage`, masquée en mode standalone) ; iOS n'émet pas l'événement.
+
+**Hors-ligne : la donnée persistée EST la file d'attente.** Les brouillons de
+saisie de notes vivent en IndexedDB (`src/lib/offline/notes-brouillon-db.ts`,
+paquet `idb`) et une ligne `dirty` est une ligne restant à envoyer — pas de
+structure de file parallèle à maintenir. Trois règles qui en découlent :
+les fonctions avalent leurs erreurs (IndexedDB indisponible ne doit jamais
+faire planter un formulaire) ; la clé est namespacée par `userId` et la base
+est vidée à la déconnexion (`DeconnexionButton`), sans quoi un brouillon
+serait restaurable sous un autre compte sur un poste partagé ; et le retry
+est idempotent parce que `saisirNoteAction` est un upsert sur
+`(evaluationId, eleveId)`.
+
+### Server Actions : ne jamais supposer qu'un appel aboutit
+
+Une Server Action interrompue — coupure réseau, redémarrage du serveur de
+développement — ne rejette pas toujours : elle peut se **résoudre sur
+`undefined`**. Un `if (!resultat.ok)` direct produit alors une erreur
+d'exécution brute à la place d'un message. Sur une application qui vise des
+connexions instables, c'est un cas courant. `src/app/demarrage/appel-action.ts`
+est l'enveloppe de référence ; reprendre ce motif pour tout nouvel appel
+d'action déclenché depuis du code client.
+
+**Les erreurs Supabase ne sont pas des `Error`.** Les services les propagent
+telles quelles (`if (error) throw error`), or ce sont des objets simples : un
+test `e instanceof Error` est **toujours faux** et masque la cause réelle
+(contrainte violée, refus RLS) derrière un message générique. Extraire
+`message`/`details`/`hint`/`code`, et reconnaître un doublon par le code
+Postgres `23505` autant que par le texte.
+
+### Onboarding : où vit la vérité
+
+`/demarrage` (voir `PLAN.md` § 8) est un **questionnaire scripté, sans LLM** —
+les catalogues système sont finis et fermés, tout est sélection dans des listes
+connues. Les étapes sont déclarées dans `src/lib/onboarding/etapes.ts`, les
+suggestions (matières, types de frais) dans `suggestions.ts`.
+
+L'avancement se **déduit des données** (`src/services/onboarding.ts`) et ne se
+stocke pas : le dupliquer le ferait diverger dès qu'une configuration passe par
+les écrans habituels. `onboarding_progression` ne porte que l'indéductible —
+étapes sautées, bannière masquée, et par sa seule existence le fait d'avoir
+déjà été redirigé une fois.
+
+**Deux pièges de schéma à connaître** :
+- Il n'existe **ni `niveau_etablissement` ni `serie_etablissement`**. Un niveau
+  n'est « enseigné » que parce qu'une classe existe dessus — c'est ainsi que le
+  périmètre se redéduit à la reprise du parcours.
+- `programme_etablissement` est unique sur `(etablissement, niveau, matiere)`,
+  **sans série**. La différenciation par série passe par
+  `coefficient_matiere.serieId` ; un coefficient absent vaut `0` dans le calcul
+  des bulletins, ce qui retire la matière de la moyenne de cette série.
+
+**Un établissement sans abonnement est en lecture seule** (`evaluerAcces` →
+`AUCUN` → toutes les écritures en 403). C'est intentionnel, mais ça bloque
+entièrement l'onboarding : un établissement de test doit avoir un abonnement
+ACTIF, sinon chaque étape échoue sans explication.
+`scripts/seed-onboarding-test.ts` en crée un (`--reset`, `--eleves`,
+`--secretaire`, `--purge`).
 
 ### Composants UI mobile — règles d'usage
 
