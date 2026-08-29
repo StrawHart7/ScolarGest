@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape } from '../Bulles';
 import { libelleAnneeParDefaut, datesAnneeParDefaut } from '@/lib/onboarding/suggestions';
 import { creerEtActiverAnneeAction } from '../actions';
@@ -32,12 +33,12 @@ export function EtapeAnnee({ onTermine }: { onTermine: () => void }) {
     const donnees = new FormData(e.currentTarget);
     setErreur(null);
     setEnCours(true);
-    const resultat = await creerEtActiverAnneeAction({
+    const resultat = await appelerAction(() => creerEtActiverAnneeAction({
       libelle: String(donnees.get('libelle') ?? ''),
       dateDebut: String(donnees.get('dateDebut') ?? ''),
       dateFin: String(donnees.get('dateFin') ?? ''),
       pin,
-    });
+    }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import { TYPES_FRAIS_SUGGERES } from '@/lib/onboarding/suggestions';
 import { creerTypesFraisAction } from '../actions';
@@ -50,12 +51,12 @@ export function EtapeTypesFrais({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await creerTypesFraisAction({
+    const resultat = await appelerAction(() => creerTypesFraisAction({
       types: selection.map((nom) => ({
         nom,
         description: suggestions.find((s) => s.nom === nom)?.description,
       })),
-    });
+    }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);

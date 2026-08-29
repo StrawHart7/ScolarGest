@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import { definirProgrammeAction } from '../actions';
 import type { NiveauAvecCycle } from './EtapeClasses';
@@ -49,9 +50,9 @@ export function EtapeProgramme({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await definirProgrammeAction({
+    const resultat = await appelerAction(() => definirProgrammeAction({
       affectations: niveaux.map((n) => ({ niveauId: n.id, matiereIds: parNiveau[n.id] ?? [] })),
-    });
+    }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);

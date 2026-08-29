@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import { inviterEnseignantsAction } from '../actions';
 
@@ -46,10 +47,10 @@ export function EtapeEnseignants({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await inviterEnseignantsAction({
+    const resultat = await appelerAction(() => inviterEnseignantsAction({
       anneeScolaireId,
       enseignants: completes,
-    });
+    }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);
@@ -129,7 +130,11 @@ export function EtapeEnseignants({
       <ErreurEtape message={erreur} />
       <div className="flex justify-end">
         <Button onClick={valider} disabled={enCours || completes.length === 0}>
-          {enCours ? 'Envoi…' : `Inviter ${completes.length} enseignant${completes.length > 1 ? 's' : ''}`}
+          {enCours
+            ? 'Envoi…'
+            : completes.length === 0
+              ? 'Inviter les enseignants'
+              : `Inviter ${completes.length} enseignant${completes.length > 1 ? 's' : ''}`}
         </Button>
       </div>
     </div>

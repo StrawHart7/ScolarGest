@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Settings2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { masquerOnboardingAction } from '@/app/demarrage/actions';
+import { appelerAction } from '@/app/demarrage/appel-action';
 
 /**
  * Rappel de configuration inachevée sur le tableau de bord.
@@ -28,8 +29,11 @@ export function BanniereDemarrage({
   if (masquee) return null;
 
   async function masquer() {
+    // Fermeture optimiste : le rappel disparaît tout de suite. Si l'appel
+    // échoue, la bannière réapparaîtra au prochain chargement — c'est sans
+    // conséquence, contrairement à une étape de configuration.
     setMasquee(true);
-    await masquerOnboardingAction();
+    await appelerAction(() => masquerOnboardingAction());
     router.refresh();
   }
 

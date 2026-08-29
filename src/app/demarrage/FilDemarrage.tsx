@@ -23,6 +23,7 @@ import {
   type TypeFraisTarifable,
 } from './etapes/EtapeTarifs';
 import { ignorerEtapeAction, terminerOnboardingAction } from './actions';
+import { appelerAction } from './appel-action';
 import type { DefinitionEtape, IdEtape } from '@/lib/onboarding/etapes';
 import type { ProgressionOnboarding } from '@/services/onboarding';
 import type { Cycle } from '@/services/structure';
@@ -65,6 +66,7 @@ export function FilDemarrage({
 }) {
   const router = useRouter();
   const [enCours, setEnCours] = React.useState(false);
+  const [erreurPilotage, setErreurPilotage] = React.useState<string | null>(null);
   const finDuFil = React.useRef<HTMLDivElement>(null);
 
   const etatParEtape = React.useMemo(
@@ -82,15 +84,23 @@ export function FilDemarrage({
 
   async function sauter(etape: IdEtape) {
     setEnCours(true);
-    await ignorerEtapeAction(etape);
+    const resultat = await appelerAction(() => ignorerEtapeAction(etape));
     setEnCours(false);
+    if (!resultat.ok) {
+      setErreurPilotage(resultat.message);
+      return;
+    }
     router.refresh();
   }
 
   async function terminer() {
     setEnCours(true);
-    await terminerOnboardingAction();
+    const resultat = await appelerAction(() => terminerOnboardingAction());
     setEnCours(false);
+    if (!resultat.ok) {
+      setErreurPilotage(resultat.message);
+      return;
+    }
     router.push('/dashboard');
   }
 
@@ -260,6 +270,8 @@ export function FilDemarrage({
           </div>
         </Card>
       )}
+
+      {erreurPilotage && <p className="text-body-sm text-error">{erreurPilotage}</p>}
 
       <div ref={finDuFil} />
     </div>

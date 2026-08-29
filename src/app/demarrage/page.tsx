@@ -17,6 +17,15 @@ import type { LigneProgrammeNiveau } from './etapes/EtapeCoefficients';
 
 export const metadata = { title: 'Démarrage' };
 
+/**
+ * Ordre du cursus : cycle d'abord, puis rang du niveau dans son cycle.
+ * `niveau.ordre` repart à 1 à chaque cycle — trier dessus seul entrelaçait
+ * les cycles (6ème, 2nde, 5ème, 1ère…) au lieu de suivre la scolarité.
+ */
+function parCursus(a: NiveauAvecCycle, b: NiveauAvecCycle): number {
+  return a.cycleOrdre - b.cycleOrdre || a.ordre - b.ordre;
+}
+
 export default async function DemarragePage() {
   const ctx = await getTenantContext();
   const definitions = etapesPourRole(ctx.role);
@@ -57,8 +66,16 @@ export default async function DemarragePage() {
         <div>
           <h1 className="text-display-sm text-text-primary">Configurer mon établissement</h1>
           <p className="text-body-md text-text-secondary">
-            {progression.nombreFaites} étape{progression.nombreFaites > 1 ? 's' : ''} sur{' '}
-            {progression.nombreTotal}. Vous pouvez quitter et reprendre à tout moment.
+            {progression.complete ? (
+              // Des étapes facultatives passées restent « non faites » : afficher
+              // « 7 sur 9 » à côté de « Configuration terminée » se contredisait.
+              <>Toutes les étapes requises sont franchies.</>
+            ) : (
+              <>
+                {progression.nombreFaites} étape{progression.nombreFaites > 1 ? 's' : ''} sur{' '}
+                {progression.nombreTotal}. Vous pouvez quitter et reprendre à tout moment.
+              </>
+            )}
           </p>
           <div
             className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-container"
@@ -99,12 +116,37 @@ async function chargerDonnees(
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE') ?? null;
   const classesBrutes = anneeActive ? await listClasses(anneeActive.id) : [];
-  const classes = classesBrutes.map((c) => ({
-    id: c.id,
-    nom: c.nom,
-    niveauId: c.niveauId,
-    niveauNom: c.niveau.nom,
-  }));
+
+  // Les niveaux sont chargés pour les deux parcours, et pas seulement pour la
+  // structure : le parcours finance en a besoin pour présenter les tarifs dans
+  // l'ordre du cursus. Sans eux, les niveaux tombaient dans l'ordre des classes
+  // (5ème avant 6ème), ce qui n'a aucun sens pour qui saisit des montants.
+  const cyclesActifs = await listCyclesActifs();
+  const niveaux: NiveauAvecCycle[] = [];
+  const series: SerieCycle[] = [];
+  for (const actif of cyclesActifs) {
+    const [niveauxDuCycle, seriesDuCycle] = await Promise.all([
+      listNiveauxParCycle(actif.cycleId),
+      listSeriesParCycle(actif.cycleId),
+    ]);
+    for (const niveau of niveauxDuCycle) {
+      niveaux.push({ ...niveau, cycleNom: actif.cycle.nom, cycleOrdre: actif.cycle.ordre });
+    }
+    for (const serie of seriesDuCycle) {
+      series.push({ id: serie.id, nom: serie.nom, cycleId: serie.cycleId });
+    }
+  }
+  const rangNiveau = new Map(niveaux.map((n) => [n.id, n.cycleOrdre * 100 + n.ordre]));
+
+  const classes = classesBrutes
+    .map((c) => ({
+      id: c.id,
+      nom: c.nom,
+      niveauId: c.niveauId,
+      niveauNom: c.niveau.nom,
+      rang: rangNiveau.get(c.niveauId) ?? Number.MAX_SAFE_INTEGER,
+    }))
+    .sort((a, b) => a.rang - b.rang || a.nom.localeCompare(b.nom, 'fr'));
 
   const base: DonneesDemarrage = {
     cycles: [],
@@ -141,23 +183,7 @@ async function chargerDonnees(
     };
   }
 
-  const [cycles, cyclesActifs] = await Promise.all([listCycles(), listCyclesActifs()]);
-
-  const niveaux: NiveauAvecCycle[] = [];
-  const series: SerieCycle[] = [];
-  for (const actif of cyclesActifs) {
-    const [niveauxDuCycle, seriesDuCycle] = await Promise.all([
-      listNiveauxParCycle(actif.cycleId),
-      listSeriesParCycle(actif.cycleId),
-    ]);
-    for (const niveau of niveauxDuCycle) {
-      niveaux.push({ ...niveau, cycleNom: actif.cycle.nom });
-    }
-    for (const serie of seriesDuCycle) {
-      series.push({ id: serie.id, nom: serie.nom, cycleId: serie.cycleId });
-    }
-  }
-
+  const cycles = await listCycles();
   const matieres = await listMatieres();
 
   // Le périmètre réel de l'école : seuls les niveaux portant au moins une
@@ -168,7 +194,16 @@ async function chargerDonnees(
   const lignesProgramme: LigneProgrammeNiveau[] = [];
   for (const niveau of niveauxUtilises) {
     const programme = await listProgramme(niveau.id);
-    const serieIds = series.filter((s) => s.cycleId === niveau.cycleId).map((s) => s.id);
+    // Seules les séries que l'établissement utilise réellement, déduites de
+    // ses classes — proposer les six séries du catalogue alors que l'école
+    // n'en ouvre que deux noyait la grille sous des colonnes inutiles.
+    const serieIds = [
+      ...new Set(
+        classesBrutes
+          .filter((c) => c.niveauId === niveau.id && c.serieId)
+          .map((c) => c.serieId as string),
+      ),
+    ];
     for (const item of programme) {
       lignesProgramme.push({
         programmeEtablissementId: item.id,
@@ -203,8 +238,8 @@ async function chargerDonnees(
     cycles,
     cyclesActifs: cyclesActifs.map((c) => c.cycleId),
     cyclesActifsNoms: cyclesActifs.map((c) => c.cycle.nom),
-    niveaux: niveaux.sort((a, b) => a.ordre - b.ordre),
-    niveauxUtilises: niveauxUtilises.sort((a, b) => a.ordre - b.ordre),
+    niveaux: [...niveaux].sort(parCursus),
+    niveauxUtilises: [...niveauxUtilises].sort(parCursus),
     series,
     seriesParId: Object.fromEntries(series.map((s) => [s.id, s.nom])),
     matieres: matieres.map((m) => ({ id: m.id, nom: m.nom })),

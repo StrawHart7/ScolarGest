@@ -100,13 +100,13 @@ export const ETAPES_DIRECTEUR: DefinitionEtape[] = [
     id: 'programme',
     titre: 'Programme par niveau',
     question: 'Quelles matières sont enseignées à chaque niveau ?',
-    aide: 'Les matières sont pré-cochées partout ; décochez celles qui ne concernent pas un niveau.',
+    aide: 'Les matières sont pré-cochées partout ; décochez celles qui ne concernent pas un niveau. Au lycée, indiquez ici tout ce qui est proposé au niveau : la distinction par série se fait à l’étape suivante.',
   },
   {
     id: 'coefficients',
     titre: 'Coefficients',
     question: 'Quel coefficient pour chaque matière ?',
-    aide: 'Ils servent au calcul des moyennes. Par défaut 1 partout.',
+    aide: 'Ils servent au calcul des moyennes. Par défaut 1. Au lycée, chaque série a sa propre colonne — mettez 0 pour une matière qui ne compte pas dans cette série.',
   },
   {
     id: 'enseignants',

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape } from '../Bulles';
 import { creerTarifsAction } from '../actions';
 
@@ -11,6 +12,8 @@ export interface ClasseTarifable {
   nom: string;
   niveauId: string;
   niveauNom: string;
+  /** Rang dans le cursus (cycle puis niveau), pour un affichage ordonné. */
+  rang: number;
 }
 
 export interface TypeFraisTarifable {
@@ -44,16 +47,21 @@ export function EtapeTarifs({
   const cle = (niveauId: string, typeFraisId: string) => `${niveauId}|${typeFraisId}`;
 
   const niveaux = React.useMemo(() => {
-    const parNiveau = new Map<string, { id: string; nom: string; nombreClasses: number }>();
+    const parNiveau = new Map<
+      string,
+      { id: string; nom: string; rang: number; nombreClasses: number }
+    >();
     for (const classe of classes) {
       const existant = parNiveau.get(classe.niveauId);
       parNiveau.set(classe.niveauId, {
         id: classe.niveauId,
         nom: classe.niveauNom,
+        rang: classe.rang,
         nombreClasses: (existant?.nombreClasses ?? 0) + 1,
       });
     }
-    return [...parNiveau.values()];
+    // Ordre du cursus (6ème avant 5ème…) et non l'ordre d'arrivée des classes.
+    return [...parNiveau.values()].sort((a, b) => a.rang - b.rang);
   }, [classes]);
 
   async function valider() {
@@ -79,7 +87,7 @@ export function EtapeTarifs({
       return;
     }
 
-    const resultat = await creerTarifsAction({ anneeScolaireId, tarifs });
+    const resultat = await appelerAction(() => creerTarifsAction({ anneeScolaireId, tarifs }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);

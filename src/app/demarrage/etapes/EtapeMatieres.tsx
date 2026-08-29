@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import { MATIERES_SUGGEREES, type NomCycle } from '@/lib/onboarding/suggestions';
 import { creerMatieresAction } from '../actions';
@@ -70,7 +71,7 @@ export function EtapeMatieres({
       nom,
       code: suggestions.find((s) => s.nom === nom)?.code,
     }));
-    const resultat = await creerMatieresAction({ matieres });
+    const resultat = await appelerAction(() => creerMatieresAction({ matieres }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);

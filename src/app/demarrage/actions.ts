@@ -2,7 +2,11 @@
 
 import { z } from 'zod';
 import { definirPin } from '@/services/utilisateur';
-import { createAnneeScolaire, activerAnneeScolaire } from '@/services/annee-scolaire';
+import {
+  createAnneeScolaire,
+  activerAnneeScolaire,
+  listAnneesScolaires,
+} from '@/services/annee-scolaire';
 import { activerCycle } from '@/services/structure';
 import { createClasse } from '@/services/classe';
 import { createMatiere } from '@/services/matiere';
@@ -30,8 +34,43 @@ import type { IdEtape } from '@/lib/onboarding/etapes';
  */
 export type ResultatEtape = { ok: true; message?: string } | { ok: false; message: string };
 
+/**
+ * Message d'une exception, y compris quand ce n'est pas une `Error`.
+ *
+ * Les services propagent les erreurs Supabase telles quelles (`if (error)
+ * throw error`), or ce sont des **objets simples** : un test
+ * `e instanceof Error` est faux, et remplacer le message par un repli
+ * générique masquait la cause réelle (contrainte violée, refus RLS…) au
+ * moment précis où on en a besoin.
+ */
+function messageErreur(e: unknown, repli: string): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null) {
+    const objet = e as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parties = [objet.message, objet.details, objet.hint]
+      .filter((p): p is string => typeof p === 'string' && p.trim() !== '')
+      .join(' — ');
+    if (parties) {
+      return typeof objet.code === 'string' ? `${parties} (${objet.code})` : parties;
+    }
+  }
+  return repli;
+}
+
 function echec(e: unknown, repli: string): ResultatEtape {
-  return { ok: false, message: e instanceof Error ? e.message : repli };
+  return { ok: false, message: messageErreur(e, repli) };
+}
+
+/**
+ * Violation de contrainte d'unicité. Reconnue par le code Postgres `23505`
+ * autant que par le texte : c'est le cas normal quand l'utilisateur relance
+ * une étape déjà passée, et il doit être compté comme « existait déjà »
+ * plutôt que de faire échouer tout le lot.
+ */
+function estDoublon(e: unknown): boolean {
+  const code = typeof e === 'object' && e !== null ? (e as { code?: unknown }).code : undefined;
+  if (code === '23505') return true;
+  return /duplicate key|unique/i.test(messageErreur(e, ''));
 }
 
 /**
@@ -81,9 +120,25 @@ export async function creerEtActiverAnneeAction(
     return { ok: false, message: 'La date de fin doit suivre la date de début.' };
   }
   try {
-    const annee = await createAnneeScolaire({ libelle, dateDebut, dateFin });
+    // L'étape se fait en deux écritures (création puis activation) : une
+    // interruption entre les deux — rechargement, redémarrage du serveur de
+    // développement — laissait une année en PREPARATION que toute nouvelle
+    // tentative heurtait ensuite sur l'unicité (etablissementId, libelle),
+    // bloquant définitivement le parcours sans issue depuis l'interface.
+    // On reprend donc l'année existante au lieu d'en recréer une.
+    const existante = (await listAnneesScolaires()).find((a) => a.libelle === libelle);
+    const annee = existante ?? (await createAnneeScolaire({ libelle, dateDebut, dateFin }));
+
+    if (annee.statut === 'ACTIVE') {
+      return { ok: true, message: `Année ${libelle} déjà active.` };
+    }
     await activerAnneeScolaire(annee.id, pin);
-    return { ok: true, message: `Année ${libelle} créée et activée.` };
+    return {
+      ok: true,
+      message: existante
+        ? `Année ${libelle} reprise et activée.`
+        : `Année ${libelle} créée et activée.`,
+    };
   } catch (e) {
     return echec(e, "Impossible de créer l'année scolaire.");
   }
@@ -165,8 +220,7 @@ export async function creerClassesAction(
         });
         creees += 1;
       } catch (e) {
-        const message = e instanceof Error ? e.message : '';
-        if (/duplicate key|unique/i.test(message)) {
+        if (estDoublon(e)) {
           existantes += 1;
           continue;
         }
@@ -205,7 +259,7 @@ export async function creerMatieresAction(
       } catch (e) {
         // Unique (etablissementId, nom) : une matière déjà saisie ailleurs
         // n'est pas une erreur du point de vue du questionnaire.
-        if (/duplicate key|unique/i.test(e instanceof Error ? e.message : '')) {
+        if (estDoublon(e)) {
           existantes += 1;
           continue;
         }
@@ -245,7 +299,7 @@ export async function definirProgrammeAction(
           await ajouterMatiereAuProgramme(affectation.niveauId, matiereId, true, ordre);
           ajoutees += 1;
         } catch (e) {
-          if (/duplicate key|unique/i.test(e instanceof Error ? e.message : '')) {
+          if (estDoublon(e)) {
             continue;
           }
           throw e;
@@ -272,7 +326,13 @@ const coefficientsSchema = z.object({
           .array(
             z.object({
               programmeEtablissementId: z.string().uuid(),
-              coefficient: z.number().positive('Un coefficient doit être supérieur à zéro.'),
+              // 0 est admis et signifie « matière non évaluée pour cette
+              // série » : le calcul des bulletins lit `coefficients.get(...)
+              // ?? 0`, un coefficient nul retire donc la matière de la
+              // moyenne pondérée. C'est le mécanisme prévu par le schéma pour
+              // différencier les séries, `programme_etablissement` étant
+              // unique sur (etablissement, niveau, matiere) sans série.
+              coefficient: z.number().nonnegative('Un coefficient ne peut pas être négatif.'),
             }),
           )
           .min(1),
@@ -338,7 +398,7 @@ export async function inviterEnseignantsAction(
       await createEnseignant({ ...enseignant, anneeScolaireIdPourMatricule: anneeScolaireId });
       crees += 1;
     } catch (e) {
-      echecs.push(`${enseignant.nom} ${enseignant.prenoms} (${e instanceof Error ? e.message : 'erreur'})`);
+      echecs.push(`${enseignant.nom} ${enseignant.prenoms} (${messageErreur(e, 'erreur')})`);
     }
   }
   if (crees === 0) {
@@ -381,7 +441,7 @@ export async function inviterUtilisateursAction(
       await inviteUtilisateur({ ...utilisateur, etablissementId });
       invites += 1;
     } catch (e) {
-      echecs.push(`${utilisateur.email} (${e instanceof Error ? e.message : 'erreur'})`);
+      echecs.push(`${utilisateur.email} (${messageErreur(e, 'erreur')})`);
     }
   }
   if (invites === 0) {
@@ -456,7 +516,7 @@ export async function creerTarifsAction(
         await createTarif({ anneeScolaireId, ...tarif });
         crees += 1;
       } catch (e) {
-        if (/duplicate key|unique/i.test(e instanceof Error ? e.message : '')) {
+        if (estDoublon(e)) {
           existants += 1;
           continue;
         }

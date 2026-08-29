@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import { inviterUtilisateursAction } from '../actions';
 
@@ -52,10 +53,10 @@ export function EtapeUtilisateurs({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await inviterUtilisateursAction({
+    const resultat = await appelerAction(() => inviterUtilisateursAction({
       etablissementId,
       utilisateurs: completes,
-    });
+    }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);
@@ -131,7 +132,11 @@ export function EtapeUtilisateurs({
       <ErreurEtape message={erreur} />
       <div className="flex justify-end">
         <Button onClick={valider} disabled={enCours || completes.length === 0}>
-          {enCours ? 'Envoi…' : `Envoyer ${completes.length} invitation${completes.length > 1 ? 's' : ''}`}
+          {enCours
+            ? 'Envoi…'
+            : completes.length === 0
+              ? 'Envoyer les invitations'
+              : `Envoyer ${completes.length} invitation${completes.length > 1 ? 's' : ''}`}
         </Button>
       </div>
     </div>

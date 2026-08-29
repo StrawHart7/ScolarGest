@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import type { Cycle } from '@/services/structure';
 import { activerCyclesAction } from '../actions';
@@ -43,7 +44,7 @@ export function EtapeCycles({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await activerCyclesAction({ cycleIds: selection, pin });
+    const resultat = await appelerAction(() => activerCyclesAction({ cycleIds: selection, pin }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);

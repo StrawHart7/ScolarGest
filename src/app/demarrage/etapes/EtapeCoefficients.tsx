@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape } from '../Bulles';
 import { definirCoefficientsAction } from '../actions';
 
@@ -74,10 +75,10 @@ export function EtapeCoefficients({
       }
     }
 
-    const resultat = await definirCoefficientsAction({
+    const resultat = await appelerAction(() => definirCoefficientsAction({
       anneeScolaireId,
       lots: [...parSerie.entries()].map(([serieId, saisies]) => ({ serieId, saisies })),
-    });
+    }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);
@@ -86,8 +87,16 @@ export function EtapeCoefficients({
     onTermine();
   }
 
+  const avecSeries = lignes.some((l) => l.serieIds.length > 0);
+
   return (
     <div className="mt-4 flex flex-col gap-4">
+      {avecSeries && (
+        <p className="rounded border border-surface-border bg-surface-container-low p-2 text-body-sm text-text-secondary">
+          Seules les séries pour lesquelles vous avez ouvert une classe sont proposées. Un
+          coefficient à <strong>0</strong> retire la matière de la moyenne de cette série.
+        </p>
+      )}
       {parNiveau.map((groupe) => (
         <div
           key={groupe.niveauId}
@@ -114,7 +123,7 @@ export function EtapeCoefficients({
                         <Input
                           type="number"
                           inputMode="numeric"
-                          min={0.5}
+                          min={0}
                           step={0.5}
                           aria-label={`Coefficient ${ligne.matiereNom}${serieId ? ` série ${seriesParId[serieId]}` : ''}`}
                           value={valeurs[cle(ligne.programmeEtablissementId, serieId)] ?? 1}

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
 import { LETTRES_DIVISION } from '@/lib/onboarding/suggestions';
 import { creerClassesAction } from '../actions';
@@ -10,9 +11,13 @@ import { creerClassesAction } from '../actions';
 export interface NiveauAvecCycle {
   id: string;
   nom: string;
+  /** Rang du niveau *dans son cycle* — il repart à 1 à chaque cycle. */
   ordre: number;
   cycleId: string;
   cycleNom: string;
+  /** Rang du cycle. Nécessaire pour trier globalement : sans lui, un tri sur
+   *  le seul `ordre` entrelace les cycles (6ème, 2nde, 5ème, 1ère…). */
+  cycleOrdre: number;
 }
 
 export interface SerieCycle {
@@ -123,7 +128,7 @@ export function EtapeClasses({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await creerClassesAction({ anneeScolaireId, classes });
+    const resultat = await appelerAction(() => creerClassesAction({ anneeScolaireId, classes }));
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);
@@ -200,7 +205,11 @@ export function EtapeClasses({
       <ErreurEtape message={erreur} />
       <div className="flex justify-end">
         <Button onClick={valider} disabled={enCours || classes.length === 0}>
-          {enCours ? 'Création…' : `Créer ${classes.length || ''} classe${classes.length > 1 ? 's' : ''}`}
+          {enCours
+            ? 'Création…'
+            : classes.length === 0
+              ? 'Créer les classes'
+              : `Créer ${classes.length} classe${classes.length > 1 ? 's' : ''}`}
         </Button>
       </div>
     </div>
