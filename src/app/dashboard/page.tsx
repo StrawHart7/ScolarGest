@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
   BookOpen,
   ClipboardList,
@@ -22,7 +23,10 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { getSidebarItems } from '@/lib/navigation';
+import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
+import { etapesPourRole } from '@/lib/onboarding/etapes';
 import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
+import { BanniereDemarrage } from './BanniereDemarrage';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
@@ -44,6 +48,26 @@ export default async function DashboardPage() {
     );
   }
 
+  // Configuration initiale : rediriger une seule fois vers le questionnaire,
+  // puis se contenter d'un rappel. `marquerRedirectionOnboarding()` ne renvoie
+  // `true` qu'à la toute première fois — c'est ce qui rend le parcours
+  // interruptible : quitter `/demarrage` ne peut pas ramener en boucle ici.
+  let rappelDemarrage: { nombreFaites: number; nombreTotal: number } | null = null;
+  if (etapesPourRole(ctx.role).length > 0) {
+    const progression = await getProgressionOnboarding();
+    if (!progression.complete) {
+      if (await marquerRedirectionOnboarding()) {
+        redirect('/demarrage');
+      }
+      if (!progression.masquee) {
+        rappelDemarrage = {
+          nombreFaites: progression.nombreFaites,
+          nombreTotal: progression.nombreTotal,
+        };
+      }
+    }
+  }
+
   const layout = (contenu: React.ReactNode, sousTitre: string) => (
     <AppLayout
       items={getSidebarItems(ctx!.role)}
@@ -56,6 +80,12 @@ export default async function DashboardPage() {
           <h1 className="text-display-sm text-text-primary">Tableau de bord</h1>
           <p className="text-body-md text-text-secondary">{sousTitre}</p>
         </div>
+        {rappelDemarrage && (
+          <BanniereDemarrage
+            nombreFaites={rappelDemarrage.nombreFaites}
+            nombreTotal={rappelDemarrage.nombreTotal}
+          />
+        )}
         {contenu}
       </div>
     </AppLayout>
