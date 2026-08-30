@@ -1,77 +1,17 @@
 'use client';
 
 import * as React from 'react';
-import { Check, GraduationCap, TriangleAlert } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Briques visuelles du fil de démarrage.
+ * Briques d'interaction communes aux étapes du questionnaire de démarrage.
  *
- * Le questionnaire se présente comme une conversation : l'assistant pose une
- * question, l'utilisateur répond en cliquant, et l'échange se replie en un
- * résumé compact une fois l'étape franchie. Ce n'est pas un modèle de langage
- * — les réponses possibles sont connues d'avance — mais la forme
- * conversationnelle rend la progression lisible là où un formulaire de douze
- * sections découragerait.
+ * Le fil conversationnel a laissé place à une carte flottante ne montrant
+ * qu'une étape à la fois (voir `FilDemarrage`) : les bulles d'assistant et de
+ * réponse n'ont plus d'objet, la progression étant portée par `RailEtapes`.
+ * Restent les deux briques réellement partagées par les étapes.
  */
-
-/** Message de l'assistant : question et aide contextuelle. */
-export function BulleAssistant({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn('flex items-start gap-3', className)}>
-      <span
-        aria-hidden
-        className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary-container to-primary text-white"
-      >
-        <GraduationCap className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm border border-surface-border bg-surface-container-lowest p-4 shadow-subtle">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-/** Réponse déjà donnée, repliée en résumé. */
-export function BulleReponse({ resume }: { resume: string }) {
-  return (
-    <div className="flex justify-end">
-      <div className="flex max-w-[85%] items-center gap-2 rounded-xl rounded-br-sm bg-primary-container px-4 py-2 text-body-sm text-white">
-        <Check className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="min-w-0">{resume}</span>
-      </div>
-    </div>
-  );
-}
-
-export function QuestionEtape({
-  question,
-  aide,
-  irreversible,
-}: {
-  question: string;
-  aide?: string;
-  irreversible?: string;
-}) {
-  return (
-    <>
-      <p className="text-body-md font-medium text-text-primary">{question}</p>
-      {aide && <p className="mt-1 text-body-sm text-text-secondary">{aide}</p>}
-      {irreversible && (
-        <p className="mt-3 flex items-start gap-2 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-body-sm text-amber-700">
-          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          <span>{irreversible}</span>
-        </p>
-      )}
-    </>
-  );
-}
 
 /** Choix cliquable façon puce, pour les sélections multiples. */
 export function PuceChoix({

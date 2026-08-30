@@ -1,5 +1,5 @@
 import { getTenantContext } from '@/services/tenant';
-import { getProgressionOnboarding } from '@/services/onboarding';
+import { getProgressionOnboarding, getBilanOnboarding } from '@/services/onboarding';
 import { listCycles, listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
@@ -50,6 +50,7 @@ export default async function DemarragePage() {
   }
 
   const progression = await getProgressionOnboarding();
+  const bilan = await getBilanOnboarding();
   const donnees = await chargerDonnees(
     progression.etapes.some((e) => e.id === 'cycles'),
     ctx.etablissementId,
@@ -62,7 +63,7 @@ export default async function DemarragePage() {
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <h1 className="text-display-sm text-text-primary">Configurer mon établissement</h1>
           <p className="text-body-md text-text-secondary">
@@ -93,7 +94,12 @@ export default async function DemarragePage() {
           </div>
         </div>
 
-        <FilDemarrage definitions={definitions} progression={progression} donnees={donnees} />
+        <FilDemarrage
+          definitions={definitions}
+          progression={progression}
+          donnees={donnees}
+          bilan={bilan}
+        />
       </div>
     </AppLayout>
   );

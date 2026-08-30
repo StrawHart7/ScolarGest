@@ -240,6 +240,73 @@ export async function masquerOnboarding(): Promise<void> {
   await majLigne(ctx, { masqueeLe: new Date().toISOString() });
 }
 
+export interface BilanOnboarding {
+  cycles: number;
+  classes: number;
+  matieres: number;
+  coefficients: number;
+  enseignants: number;
+  eleves: number;
+  typesFrais: number;
+  tarifs: number;
+  anneeLibelle: string | null;
+}
+
+/**
+ * Ce que la configuration a réellement produit, pour l'écran de fin.
+ *
+ * Compté à la demande plutôt que cumulé au fil des étapes : le Directeur a pu
+ * créer des classes depuis les écrans habituels, et un compteur maintenu à
+ * part afficherait alors moins que la réalité.
+ */
+export async function getBilanOnboarding(): Promise<BilanOnboarding> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const supabase = createClient();
+
+  const { data: annee } = await supabase
+    .from('annee_scolaire')
+    .select('id, libelle')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('statut', 'ACTIVE')
+    .maybeSingle();
+  const anneeCourante = annee as { id: string; libelle: string } | null;
+
+  // `coefficient_matiere` ne porte pas d'`etablissementId` : on passe par
+  // l'année active, elle-même scopée.
+  let coefficients = 0;
+  if (anneeCourante) {
+    const { count } = await supabase
+      .from('coefficient_matiere')
+      .select('id', { count: 'exact', head: true })
+      .eq('anneeScolaireId', anneeCourante.id);
+    coefficients = count ?? 0;
+  }
+
+  const anneeFiltre = anneeCourante ? { anneeScolaireId: anneeCourante.id } : undefined;
+
+  const [cycles, classes, matieres, enseignants, eleves, typesFrais, tarifs] = await Promise.all([
+    compter('cycle_etablissement', ctx.etablissementId, { actif: true }),
+    anneeFiltre ? compter('classe', ctx.etablissementId, anneeFiltre) : 0,
+    compter('matiere', ctx.etablissementId),
+    compter('enseignant', ctx.etablissementId),
+    compter('eleve', ctx.etablissementId),
+    compter('type_frais', ctx.etablissementId),
+    anneeFiltre ? compter('tarif_scolaire', ctx.etablissementId, anneeFiltre) : 0,
+  ]);
+
+  return {
+    cycles,
+    classes,
+    matieres,
+    coefficients,
+    enseignants,
+    eleves,
+    typesFrais,
+    tarifs,
+    anneeLibelle: anneeCourante?.libelle ?? null,
+  };
+}
+
 export async function terminerOnboarding(): Promise<void> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   await majLigne(ctx, { termineeLe: new Date().toISOString() });
