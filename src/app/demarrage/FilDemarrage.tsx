@@ -2,11 +2,10 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { CheckCircle2, SkipForward } from 'lucide-react';
+import { SkipForward, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { BulleAssistant, BulleReponse, QuestionEtape } from './Bulles';
+import { RailEtapes } from './RailEtapes';
+import { EcranFinal } from './EcranFinal';
 import { EtapePin } from './etapes/EtapePin';
 import { EtapeAnnee } from './etapes/EtapeAnnee';
 import { EtapeCycles } from './etapes/EtapeCycles';
@@ -25,7 +24,7 @@ import {
 import { ignorerEtapeAction, terminerOnboardingAction } from './actions';
 import { appelerAction } from './appel-action';
 import type { DefinitionEtape, IdEtape } from '@/lib/onboarding/etapes';
-import type { ProgressionOnboarding } from '@/services/onboarding';
+import type { ProgressionOnboarding, BilanOnboarding } from '@/services/onboarding';
 import type { Cycle } from '@/services/structure';
 
 export interface DonneesDemarrage {
@@ -47,7 +46,8 @@ export interface DonneesDemarrage {
 }
 
 /**
- * Fil conversationnel du questionnaire de démarrage.
+ * Carte de démarrage : une étape à la fois, dans un panneau flottant à deux
+ * colonnes — rail de progression à gauche, étape en cours à droite.
  *
  * Après chaque étape, `router.refresh()` relance le Server Component parent :
  * la progression et les catalogues sont recalculés côté serveur à partir des
@@ -59,24 +59,21 @@ export function FilDemarrage({
   definitions,
   progression,
   donnees,
+  bilan,
 }: {
   definitions: DefinitionEtape[];
   progression: ProgressionOnboarding;
   donnees: DonneesDemarrage;
+  bilan: BilanOnboarding;
 }) {
   const router = useRouter();
   const [enCours, setEnCours] = React.useState(false);
   const [erreurPilotage, setErreurPilotage] = React.useState<string | null>(null);
-  const finDuFil = React.useRef<HTMLDivElement>(null);
 
   const etatParEtape = React.useMemo(
     () => new Map(progression.etapes.map((e) => [e.id, e])),
     [progression.etapes],
   );
-
-  React.useEffect(() => {
-    finDuFil.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [progression.etapeCourante]);
 
   function avancer() {
     router.refresh();
@@ -103,12 +100,6 @@ export function FilDemarrage({
     }
     router.push('/dashboard');
   }
-
-  /** Étapes à afficher : toutes celles déjà traitées, plus la courante. */
-  const visibles = React.useMemo(() => {
-    const index = definitions.findIndex((d) => d.id === progression.etapeCourante);
-    return index === -1 ? definitions : definitions.slice(0, index + 1);
-  }, [definitions, progression.etapeCourante]);
 
   function rendreEtape(definition: DefinitionEtape) {
     switch (definition.id) {
@@ -204,29 +195,53 @@ export function FilDemarrage({
     }
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      {visibles.map((definition) => {
-        const etat = etatParEtape.get(definition.id);
-        const traitee = etat?.faite || etat?.ignoree;
-        const courante = definition.id === progression.etapeCourante;
+  const definitionCourante = definitions.find((d) => d.id === progression.etapeCourante) ?? null;
 
-        return (
-          <div key={definition.id} className="flex flex-col gap-2">
-            <BulleAssistant>
-              <QuestionEtape
-                question={definition.question}
-                aide={definition.aide}
-                irreversible={courante ? definition.irreversible : undefined}
-              />
-              {courante && rendreEtape(definition)}
-              {courante && definition.facultative && (
-                <div className="mt-3 flex justify-end">
+  return (
+    <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-container-lowest shadow-premium">
+      <div className="grid md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+        {/* Colonne de contexte. Masquée sous `md` : sur un téléphone, elle
+            repousserait l'étape en cours hors du premier écran. */}
+        <aside className="hidden border-r border-surface-border bg-surface-container-low p-6 md:block">
+          <p className="mb-5 text-label-md uppercase text-text-secondary">Votre configuration</p>
+          <RailEtapes
+            definitions={definitions}
+            etats={etatParEtape}
+            etapeCourante={progression.etapeCourante}
+            resumes={donnees.resumes}
+          />
+        </aside>
+
+        <section className="min-w-0 p-5 sm:p-8">
+          {progression.complete || !definitionCourante ? (
+            <EcranFinal bilan={bilan} onTerminer={terminer} enCours={enCours} />
+          ) : (
+            <div key={definitionCourante.id} className="animate-slide-up">
+              <p className="text-label-md uppercase tracking-wide text-primary-container">
+                Étape {definitions.indexOf(definitionCourante) + 1} sur {definitions.length}
+              </p>
+              <h2 className="mt-2 text-display-sm text-text-primary">
+                {definitionCourante.question}
+              </h2>
+              {definitionCourante.aide && (
+                <p className="mt-2 text-body-md text-text-secondary">{definitionCourante.aide}</p>
+              )}
+              {definitionCourante.irreversible && (
+                <p className="mt-4 flex items-start gap-2 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-body-sm text-amber-700">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  <span>{definitionCourante.irreversible}</span>
+                </p>
+              )}
+
+              {rendreEtape(definitionCourante)}
+
+              {definitionCourante.facultative && (
+                <div className="mt-4 flex justify-end border-t border-surface-border pt-4">
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={enCours}
-                    onClick={() => sauter(definition.id)}
+                    onClick={() => sauter(definitionCourante.id)}
                     className="gap-2"
                   >
                     <SkipForward className="h-4 w-4" aria-hidden />
@@ -234,46 +249,12 @@ export function FilDemarrage({
                   </Button>
                 </div>
               )}
-            </BulleAssistant>
+            </div>
+          )}
 
-            {traitee && (
-              <BulleReponse
-                resume={
-                  etat?.ignoree
-                    ? 'Étape passée'
-                    : (donnees.resumes[definition.id] ?? `${definition.titre} — fait`)
-                }
-              />
-            )}
-          </div>
-        );
-      })}
-
-      {progression.complete && (
-        <Card className="flex flex-col items-center gap-3 p-6 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full bg-tertiary/10 text-tertiary">
-            <CheckCircle2 className="h-6 w-6" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-headline-md text-text-primary">Configuration terminée</h2>
-            <p className="mt-1 text-body-sm text-text-secondary">
-              Votre établissement est prêt. Vous pouvez maintenant inscrire vos élèves.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button onClick={terminer} disabled={enCours}>
-              Aller au tableau de bord
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/etablissement/eleves">Inscrire un élève</Link>
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {erreurPilotage && <p className="text-body-sm text-error">{erreurPilotage}</p>}
-
-      <div ref={finDuFil} />
+          {erreurPilotage && <p className="mt-4 text-body-sm text-error">{erreurPilotage}</p>}
+        </section>
+      </div>
     </div>
   );
 }
