@@ -1045,8 +1045,8 @@ séquence de matricule). Rien ne le lui disait.
 **Livrables** :
 - [x] Migration `0012_onboarding_progression.sql` (RLS tenant, appliquée en
       production).
-- [x] Service `src/services/onboarding.ts` — 5 fonctions gardées, ajoutées à
-      l'instantané de la matrice (166 gardes). Les rôles y sont listés
+- [x] Service `src/services/onboarding.ts` — 6 fonctions gardées, ajoutées à
+      l'instantané de la matrice. Les rôles y sont listés
       littéralement : un `requireRole(...SPREAD)` faisait tomber la matrice sur
       `DYNAMIQUE`, qui ne dit plus quels rôles sont admis.
 - [x] Parcours Directeur en 9 étapes : code de confirmation → année scolaire →
@@ -1055,8 +1055,25 @@ séquence de matricule). Rien ne le lui disait.
 - [x] Parcours Secrétaire/Comptable en 2 étapes : types de frais → tarifs.
       Saisie **par niveau**, développée sur les classes (20 classes × 4 types
       feraient 80 champs).
-- [x] Fil conversationnel (`FilDemarrage.tsx`, `Bulles.tsx`) : questions,
-      choix cliquables, repli en résumé une fois l'étape franchie.
+- [x] **Carte flottante à deux colonnes** (`FilDemarrage.tsx`, `RailEtapes.tsx`)
+      — une seule étape à la fois, rail de progression à gauche avec le résumé
+      de chaque étape franchie. Remplace le fil conversationnel initial, qui
+      empilait toutes les étapes et s'allongeait sans fin.
+      Le bouton « Retour » des maquettes de référence n'est **pas** repris :
+      chaque étape écrit en base au moment où elle est validée et l'activation
+      d'un cycle est définitive — il mentirait sur ce qu'il fait. Le rail
+      montre ce qui a été fait ; on consulte, on ne défait pas.
+      Le rail est masqué sous `md` : sur un téléphone il repousserait l'étape
+      en cours hors du premier écran, la barre de progression prenant le relais.
+- [x] **Écran de félicitations** (`EcranFinal.tsx`) avec le bilan chiffré
+      (`getBilanOnboarding`) : cycles, classes, matières, coefficients,
+      enseignants, élèves, frais, tarifs. Compté en base à la demande et non
+      cumulé au fil des étapes — la configuration peut aussi passer par les
+      écrans habituels, un compteur maintenu à part afficherait moins que la
+      réalité. Les compteurs à zéro sont masqués : « 0 enseignant » à qui vient
+      de passer l'étape volontairement ressemble à un reproche.
+- [x] `Bulles.tsx` réduit aux deux briques encore partagées par les étapes
+      (`PuceChoix`, `ErreurEtape`).
 - [x] Redirection unique depuis `/dashboard` + bannière de rappel ensuite.
       Le contrôle vit dans la page et non dans `src/middleware.ts`, qui
       s'exécute à chaque requête et paierait un aller-retour de base par

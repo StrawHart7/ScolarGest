@@ -177,7 +177,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-08-29) :
+**Active branches** (2026-08-30) :
+- `feat/identite-documents` — ✅ terminée et mergée sur `main` (2026-08-30) : logo et filigrane sur bulletins et reçus, plus deux corrections du bulletin secondaire (note définitive = moyenne × coefficient, suppression des lignes de remplissage anonymes). Migration `0013`. Voir `PLAN.md` § 8.
+- `feat/demarrage-carte` — ✅ terminée et mergée sur `main` (2026-08-30) : `/demarrage` passe du fil conversationnel à une carte flottante à deux colonnes, plus un écran de félicitations chiffré.
 - `feat/onboarding` — ✅ terminée et mergée sur `main` (2026-08-29) : questionnaire de configuration guidée `/demarrage`, scripté (pas de LLM), par rôle. Migration `0012`. Voir `PLAN.md` § 8.
 - `feat/pwa` — ✅ terminée et mergée sur `main` (2026-08-28) : premier incrément hors-ligne (page `/offline`, contexte de connectivité, brouillons de notes en IndexedDB). Voir `PLAN.md` § 8.
 - `feat/mobile-ui-redesign` — corrections UI mobile (StatCard compact, Dialog clavier adaptatif, CoefficientsForm liste mobile, tableaux de saisie en cartes sous `md`, écran de chargement stylisé `BrandedLoader`). En cours, mergée sur `main` à chaque milestone. Reste : pages de liste sans `FiltresMobile`/`BarreOutilsListe`, pages d'indirection à raccourcir.
@@ -283,6 +285,13 @@ les catalogues système sont finis et fermés, tout est sélection dans des list
 connues. Les étapes sont déclarées dans `src/lib/onboarding/etapes.ts`, les
 suggestions (matières, types de frais) dans `suggestions.ts`.
 
+L'interface est une **carte flottante à deux colonnes** (`FilDemarrage.tsx`) :
+une seule étape à la fois, rail de progression à gauche (`RailEtapes.tsx`),
+écran de félicitations chiffré à la fin (`EcranFinal.tsx`). **Pas de bouton
+« Retour »** : chaque étape écrit en base au moment où elle est validée et
+`activerCycle` est définitive — un retour arrière mentirait. Le rail montre ce
+qui a été fait, il ne le défait pas.
+
 L'avancement se **déduit des données** (`src/services/onboarding.ts`) et ne se
 stocke pas : le dupliquer le ferait diverger dès qu'une configuration passe par
 les écrans habituels. `onboarding_progression` ne porte que l'indéductible —
@@ -304,6 +313,28 @@ entièrement l'onboarding : un établissement de test doit avoir un abonnement
 ACTIF, sinon chaque étape échoue sans explication.
 `scripts/seed-onboarding-test.ts` en crée un (`--reset`, `--eleves`,
 `--secretaire`, `--purge`).
+
+### Identité des documents : logo et filigrane
+
+`parametres_document` (migration `0013`, une ligne par établissement) porte le
+filigrane (texte libre + activation) et le chemin du logo. Table dédiée plutôt
+que des colonnes sur `etablissement`, qui n'est écrite que par le SUPER_ADMIN :
+le réglage relève du Directeur. `etablissement.logo` existe depuis `0001` mais
+n'est **jamais utilisée** — laissée en l'état délibérément, ne pas s'en servir.
+
+Le bucket `documents` étant privé, le logo est **lu côté serveur et intégré en
+data URI** au moment du rendu (`chargerLogoDataUri`) : Chromium n'aurait aucune
+session pour aller chercher un fichier protégé. Cette fonction reçoit un chemin
+arbitraire et lit avec la clé service-role — elle vérifie donc que le chemin est
+préfixé par l'établissement appelant, en plus de sa garde de rôle.
+
+Le filigrane est en `position: fixed` (`src/lib/pdf/templates/identite.ts`),
+seule façon de le faire **répéter sur chaque page** du PDF ; en `absolute` il
+n'apparaîtrait que sur la première. Module partagé par les trois gabarits.
+
+C'est un élément d'**identité visuelle**, pas une protection : un filigrane se
+copie. Pour l'authentification d'un document, la piste est un QR code adossé à
+`generateNumeroDocument`.
 
 ### Composants UI mobile — règles d'usage
 
