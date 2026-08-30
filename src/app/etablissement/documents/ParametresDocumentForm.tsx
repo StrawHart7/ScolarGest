@@ -170,7 +170,15 @@ export function ParametresDocumentForm({
             <Input
               id="filigrane-texte"
               value={texte}
-              onChange={(e) => setTexte(e.target.value)}
+              onChange={(e) => {
+                const nouveau = e.target.value;
+                // Saisir un texte de filigrane sans l'activer enregistre un
+                // réglage sans effet visible : on active dès la première
+                // saisie, l'utilisateur restant libre de décocher ensuite
+                // pour le masquer sans perdre son texte.
+                if (texte.trim() === '' && nouveau.trim() !== '') setActif(true);
+                setTexte(nouveau);
+              }}
               maxLength={60}
               placeholder="Nom de votre établissement, COPIE, ORIGINAL…"
               className="mt-1 max-w-md"
@@ -191,6 +199,12 @@ export function ParametresDocumentForm({
           {texte.trim() === '' && actif && (
             <p className="text-body-sm text-text-secondary">
               Saisissez un texte pour pouvoir activer le filigrane.
+            </p>
+          )}
+          {texte.trim() !== '' && !actif && (
+            <p className="text-body-sm text-amber-700">
+              Le texte est enregistré mais n&apos;apparaîtra pas sur les documents tant que la case
+              ci-dessus reste décochée.
             </p>
           )}
 
