@@ -7,6 +7,7 @@ import { generateNumeroDocument } from './document-numero';
 import { enregistrerDocument, type Document } from './document';
 import { renderHtmlToPdf } from '@/lib/pdf/render';
 import { renderRecuHtml } from '@/lib/pdf/templates/recu';
+import { getParametresDocument, chargerLogoDataUri } from './parametres-document';
 
 const BUCKET = 'documents';
 
@@ -29,7 +30,14 @@ export async function genererRecuPaiement(paiementId: string): Promise<Document>
   // modifier la forme de PaiementDetail et son usage ailleurs).
   const reference = await generateNumeroDocument('RECU', await resolveAnneeScolaireId(paiement.factureId));
 
+  const parametres = await getParametresDocument();
+  const identite = {
+    logoDataUri: await chargerLogoDataUri(parametres.logoChemin),
+    filigraneTexte: parametres.filigraneActif ? parametres.filigraneTexte : null,
+  };
+
   const html = renderRecuHtml({
+    identite,
     etablissement: {
       nom: etablissement.nom,
       adresse: etablissement.adresse,

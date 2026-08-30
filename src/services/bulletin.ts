@@ -7,6 +7,7 @@ import { getDonneesBulletin } from './bulletin-donnees';
 import { getClasse } from './classe';
 import { getAnneeScolaire } from './annee-scolaire';
 import { getEtablissement } from './etablissement';
+import { getParametresDocument, chargerLogoDataUri } from './parametres-document';
 import { generateNumeroDocument } from './document-numero';
 import { enregistrerDocument, marquerObsolete, getDocument, type Document } from './document';
 import { renderHtmlToPdf } from '@/lib/pdf/render';
@@ -43,7 +44,7 @@ async function buildPdf(
   anneeScolaireId: string,
   reference: string,
 ): Promise<Buffer> {
-  const [donnees, eleve, classe, annee, etablissement] = await Promise.all([
+  const [donnees, eleve, classe, annee, etablissement, parametres] = await Promise.all([
     getDonneesBulletin(eleveId, classeId, periode, anneeScolaireId),
     getEleveRow(eleveId),
     getClasse(classeId),
@@ -52,7 +53,15 @@ async function buildPdf(
       const ctx = await getTenantContext();
       return getEtablissement(ctx.etablissementId!);
     })(),
+    getParametresDocument(),
   ]);
+
+  // Le logo est intégré en data URI : le bucket est privé, Chromium n'aurait
+  // pas de session pour aller le chercher au moment du rendu.
+  const identite = {
+    logoDataUri: await chargerLogoDataUri(parametres.logoChemin),
+    filigraneTexte: parametres.filigraneActif ? parametres.filigraneTexte : null,
+  };
 
   const entree = {
     etablissement: {
@@ -75,6 +84,7 @@ async function buildPdf(
     reference,
     dateGeneration: new Date().toISOString(),
     donnees,
+    identite,
   };
 
   // Le Collège et le Lycée utilisent le modèle officiel du Ministère fourni

@@ -7,6 +7,8 @@ import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
+import { getParametresDocument } from '@/services/parametres-document';
+import { InviteIdentiteDocuments } from '@/components/documents/InviteIdentiteDocuments';
 import { BulletinsFiltres } from './BulletinsFiltres';
 import { BulletinsListe } from './BulletinsListe';
 
@@ -30,6 +32,11 @@ export default async function BulletinsPage({
   const classes = anneeScolaireId ? await listClasses(anneeScolaireId) : [];
   const classeId = searchParams.classeId || classes[0]?.id;
 
+  // Proposé une seule fois, et seulement à la direction : elle seule peut
+  // enregistrer le logo et le filigrane.
+  const parametresDocument = await getParametresDocument();
+  const proposerIdentite = ctx.role === 'DIRECTEUR' && !parametresDocument.dejaConfigure;
+
   return (
     <AppLayout
       items={getSidebarItems(ctx.role)}
@@ -48,6 +55,8 @@ export default async function BulletinsPage({
             avant de générer.
           </p>
         </div>
+
+        {proposerIdentite && <InviteIdentiteDocuments />}
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <div className="border-b border-surface-border px-1 py-3 md:p-4">

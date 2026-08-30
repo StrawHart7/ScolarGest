@@ -104,6 +104,13 @@ export const SECTIONS: Record<string, Section> = {
         roles: TOUS_ADMIN,
       },
       {
+        titre: 'Identité des documents',
+        description: 'Logo et filigrane appliqués aux bulletins et aux reçus.',
+        href: '/etablissement/documents',
+        icone: 'etablissement',
+        roles: ['DIRECTEUR'],
+      },
+      {
         titre: 'Utilisateurs',
         description: 'Comptes d’accès à la plateforme et rôles associés.',
         href: '/utilisateurs',

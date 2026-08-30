@@ -1,4 +1,10 @@
 import type { DonneesBulletin } from '@/services/bulletin-donnees';
+import {
+  STYLE_IDENTITE,
+  htmlFiligrane,
+  htmlLogo,
+  type IdentiteDocument,
+} from './identite';
 
 /**
  * Template HTML+CSS inline (pas de composant React, pas de dépendance
@@ -29,6 +35,11 @@ export interface BulletinTemplateInput {
   reference: string;
   dateGeneration: string;
   donnees: DonneesBulletin;
+  /**
+   * Logo et filigrane de l'établissement. Facultatif : un document reste
+   * générable sans identité configurée, il sort simplement sans ornement.
+   */
+  identite?: IdentiteDocument;
 }
 
 const PERIODE_LABELS: Record<string, string> = {
@@ -59,7 +70,7 @@ function fmtRang(v: number | null): string {
 }
 
 export function renderBulletinHtml(input: BulletinTemplateInput): string {
-  const { etablissement, eleve, donnees } = input;
+  const { etablissement, eleve, donnees, identite } = input;
   const zebra = (i: number) => (i % 2 === 0 ? '#ffffff' : '#f3f3fb');
 
   const lignesMatieres = donnees.matieres
@@ -130,11 +141,14 @@ export function renderBulletinHtml(input: BulletinTemplateInput): string {
   .signature-label { font-size: 11px; color: #44546F; text-transform: uppercase; margin-bottom: 50px; }
   .signature-line { border-top: 1px solid #DFE1E6; padding-top: 6px; font-size: 13px; color: #172B4D; }
   .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #737685; }
+${STYLE_IDENTITE}
 </style>
 </head>
 <body>
+  ${htmlFiligrane(identite)}
   <div class="header">
     <div>
+      ${htmlLogo(identite)}
       <div class="etab-nom">${esc(etablissement.nom)}</div>
       <div class="etab-info">${esc(etablissement.adresse)}${etablissement.adresse && etablissement.ville ? ', ' : ''}${esc(etablissement.ville)}</div>
       <div class="etab-info">${etablissement.telephone ? 'Tél : ' + esc(etablissement.telephone) : ''}${etablissement.telephone && etablissement.email ? ' &bull; ' : ''}${etablissement.email ? 'email : ' + esc(etablissement.email) : ''}</div>
