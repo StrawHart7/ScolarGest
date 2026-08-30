@@ -137,8 +137,66 @@ describe('renderBulletinSecondaireHtml', () => {
     expect(injecte).toContain('&lt;script&gt;');
   });
 
-  it('complète le tableau jusqu’à vingt lignes, comme le modèle', () => {
-    const lignesVides = (html.match(/<tr class="vide">/g) ?? []).length;
-    expect(lignesVides).toBe(19);
+  it('ne complète plus le tableau avec des lignes anonymes', () => {
+    // Le tableau était rempli jusqu'à vingt lignes vides et sans intitulé.
+    // Il liste désormais exactement les matières du programme du niveau : une
+    // matière sans note garde son nom et des cellules vides, comme sur le
+    // modèle papier, mais aucune ligne sans libellé n'est ajoutée.
+    expect(html).not.toContain('<tr class="vide">');
+    const lignesCorps = (html.match(/<tr>\s*<td class="c-matiere">/g) ?? []).length;
+    expect(lignesCorps).toBe(ENTREE.donnees.matieres.length);
+  });
+
+  it('affiche une matière sans note avec son nom et des cellules vides', () => {
+    const avecMatiereVide = renderBulletinSecondaireHtml({
+      ...ENTREE,
+      donnees: {
+        ...ENTREE.donnees,
+        matieres: [
+          ...ENTREE.donnees.matieres,
+          {
+            matiereId: 'm2',
+            matiereNom: 'Allemand',
+            obligatoire: false,
+            coefficient: 1,
+            moyInterros: null,
+            devoir: null,
+            moyClasse: null,
+            composition: null,
+            moyenneFinale: null,
+            rangMatiere: null,
+            professeurs: '',
+          },
+        ],
+      },
+    });
+    expect(avecMatiereVide).toContain('Allemand');
+    const lignesCorps = (avecMatiereVide.match(/<tr>\s*<td class="c-matiere">/g) ?? []).length;
+    expect(lignesCorps).toBe(2);
+  });
+
+  it('calcule la note définitive en multipliant la moyenne par le coefficient', () => {
+    // Moyenne 8, coefficient 2 → 16. La colonne reprenait auparavant la
+    // moyenne telle quelle, donc la même valeur que « Moy. Géné sur 20 ».
+    const cellules = html.match(/<td class="num">[^<]*<\/td>/g) ?? [];
+    const valeurs = cellules.map((c) => c.replace(/<[^>]+>/g, ''));
+    // Ordre des colonnes numériques d'une ligne : moyClasse, compo,
+    // moyGénérale, coef, note définitive, rang.
+    expect(valeurs.slice(0, 6)).toEqual(['0', '16', '8', '2', '16', '2']);
+  });
+
+  it('laisse la note définitive vide quand la matière n’a pas de moyenne', () => {
+    const sansMoyenne = renderBulletinSecondaireHtml({
+      ...ENTREE,
+      donnees: {
+        ...ENTREE.donnees,
+        matieres: [{ ...ENTREE.donnees.matieres[0]!, moyenneFinale: null }],
+      },
+    });
+    const cellules = (sansMoyenne.match(/<td class="num">[^<]*<\/td>/g) ?? []).map((c) =>
+      c.replace(/<[^>]+>/g, ''),
+    );
+    // Coefficient toujours affiché, mais aucune note définitive inventée.
+    expect(cellules.slice(3, 5)).toEqual(['2', '']);
   });
 });

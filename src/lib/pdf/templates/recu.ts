@@ -1,3 +1,9 @@
+import {
+  STYLE_IDENTITE,
+  htmlFiligrane,
+  htmlLogo,
+  type IdentiteDocument,
+} from './identite';
 /**
  * Template HTML+CSS inline pour le reçu de paiement. Reproduit fidèlement la
  * mise en page de design-maquette/re_u_de_paiement_rc_2023_089_edusync_erp,
@@ -6,6 +12,8 @@
  */
 
 export interface RecuTemplateInput {
+  /** Logo et filigrane de l'établissement (facultatifs). */
+  identite?: IdentiteDocument;
   etablissement: {
     nom: string;
     adresse: string | null;
@@ -96,7 +104,7 @@ export function montantEnLettres(n: number): string {
 }
 
 export function renderRecuHtml(input: RecuTemplateInput): string {
-  const { etablissement, eleve, paiement } = input;
+  const { etablissement, eleve, paiement, identite } = input;
   const montantLettres = `${montantEnLettres(paiement.montant)} francs CFA`;
 
   return `<!DOCTYPE html>
@@ -134,11 +142,14 @@ export function renderRecuHtml(input: RecuTemplateInput): string {
   .signature-label { font-size: 11px; color: #44546F; text-transform: uppercase; margin-bottom: 50px; }
   .signature-line { border-top: 1px solid #DFE1E6; padding-top: 6px; }
   .footer { text-align: center; margin-top: 32px; padding-top: 12px; border-top: 1px solid #DFE1E6; font-size: 10px; color: #737685; }
+${STYLE_IDENTITE}
 </style>
 </head>
 <body>
+  ${htmlFiligrane(identite)}
   <div class="header">
     <div>
+      ${htmlLogo(identite)}
       <div class="etab-nom">${esc(etablissement.nom)}</div>
       <div class="etab-info">${esc(etablissement.adresse)}${etablissement.adresse && etablissement.ville ? ', ' : ''}${esc(etablissement.ville)}</div>
       <div class="etab-info">${etablissement.email ? esc(etablissement.email) : ''}${etablissement.email && etablissement.telephone ? ' | ' : ''}${etablissement.telephone ? esc(etablissement.telephone) : ''}</div>

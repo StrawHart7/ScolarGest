@@ -44,6 +44,18 @@ vi.mock('@/lib/supabase/admin', () => ({
   }),
 }));
 
+// L'identité visuelle (logo, filigrane) est testée pour elle-même ailleurs :
+// ici on la neutralise pour que le test reste centré sur la génération du reçu.
+vi.mock('../parametres-document', () => ({
+  getParametresDocument: vi.fn(async () => ({
+    filigraneTexte: null,
+    filigraneActif: false,
+    logoChemin: null,
+    dejaConfigure: false,
+  })),
+  chargerLogoDataUri: vi.fn(async () => null),
+}));
+
 function makeChain(result: { data: unknown; error: unknown }) {
   const chain: Record<string, unknown> = {};
   const methods = ['select', 'eq'];
