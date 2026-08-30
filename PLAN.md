@@ -1110,3 +1110,74 @@ n'apparaissaient qu'à l'exécution réelle) :
 
 **DoD** : typecheck, lint, 183 tests et build verts ; migration appliquée ;
 parcours vérifié de bout en bout dans le navigateur pour les deux rôles.
+
+---
+
+### Fonctionnalité — Identité visuelle des documents & corrections du bulletin
+
+**Statut** : ✅ Terminée et mergée sur `main` (2026-08-30, branche
+`feat/identite-documents`). Migration `0013` appliquée.
+
+**Objectif** : permettre à chaque établissement de marquer ses documents
+(logo, filigrane), et corriger deux défauts du bulletin secondaire relevés
+en confrontant le rendu au modèle papier réel d'un établissement.
+
+**Corrections du gabarit** (aucun service ni moteur de calcul touché) :
+- [x] **Note définitive** : la colonne affichait `moyenneFinale`, donc la
+      même valeur que « Moy. Géné sur 20 » deux colonnes plus tôt — le
+      coefficient n'était jamais appliqué. Elle vaut désormais
+      `moyenne × coefficient`, et reste vide faute de moyenne plutôt que
+      d'afficher un `0` trompeur. Le total des points en pied de tableau
+      utilisait déjà la bonne formule sans que la ligne s'en serve.
+- [x] **Lignes vides** : le tableau était complété jusqu'à vingt lignes
+      anonymes. Il liste maintenant exactement les matières du programme du
+      niveau — une matière enseignée mais non notée garde son nom avec des
+      cellules vides, comme sur le modèle papier (Allemand, Ewe, Musique…).
+      Le nombre de lignes suit donc le programme réel, sans constante à
+      régler.
+
+**Identité visuelle** :
+- [x] Migration `0013_parametres_document.sql` : table par établissement
+      (filigrane en **texte libre**, activation, chemin du logo). Table
+      dédiée plutôt que des colonnes sur `etablissement`, qui n'est écrite
+      que par le SUPER_ADMIN (`createEtablissement` est gardée par
+      `requireRole()` sans argument, et aucun `updateEtablissement`
+      n'existe) : le réglage relève du Directeur, pas de la plateforme.
+- [x] **Logo intégré en data URI** au moment du rendu : le bucket
+      `documents` est privé et Chromium n'aurait aucune session pour aller
+      chercher le fichier. Le bucket reste fermé, aucune URL publique.
+- [x] **Filigrane en `position: fixed`** — c'est ce qui le fait répéter sur
+      chaque page du PDF ; en `absolute` il n'apparaîtrait que sur la
+      première. `print-color-adjust: exact` empêche Chromium d'effacer une
+      teinte très claire à l'impression.
+- [x] Module partagé `src/lib/pdf/templates/identite.ts` pour les trois
+      gabarits (bulletin générique, bulletin secondaire, reçu) — un
+      filigrane qui diffèrerait d'un document à l'autre trahirait l'objectif.
+- [x] Écran **Établissement → Identité des documents** (Directeur seul).
+- [x] **Invite proposée une seule fois** avant la première génération de
+      bulletin. « Ne plus proposer » crée la ligne, dont l'existence vaut
+      « déjà proposé » (même motif que `onboarding_progression`) ; le
+      réglage reste modifiable dans les paramètres — une question posée une
+      fois ne doit pas devenir une décision verrouillée à vie.
+
+**Correctif de sécurité** : `chargerLogoDataUri` recevait un **chemin
+arbitraire** et lisait le bucket avec la clé service-role, qui contourne la
+RLS, sans aucune garde — un chemin forgé aurait permis de lire le logo d'un
+autre établissement. Attrapé par le test « aucune fonction de service ne
+touche la base sans garde ». Garde de rôle ajoutée, plus vérification que le
+chemin est bien préfixé par l'établissement appelant.
+
+**Décisions actées** :
+- Le filigrane sert **l'identité visuelle**, pas l'authentification : il se
+  copie trivialement. Pour lutter contre la falsification, la piste retenue
+  serait un QR code adossé à `generateNumeroDocument`, non implémentée.
+- L'historisation n'est pas gérée : régénérer un bulletin après avoir changé
+  le filigrane produit un PDF différent de l'archive. Assumé — les PDF déjà
+  produits restent figés dans Storage, et le produit n'est pas commercialisé.
+- `etablissement.logo` (colonne présente depuis `0001`, jamais utilisée) est
+  **laissée en l'état**, non reprise, pour ne pas préempter un usage
+  SUPER_ADMIN.
+
+**DoD** : typecheck, lint, 186 tests et build verts ; migration appliquée et
+vérifiée en base (colonnes présentes, RLS active, insertion anonyme refusée
+en `42501`).

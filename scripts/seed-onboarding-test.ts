@@ -113,6 +113,7 @@ async function purger() {
     // `annee_scolaire`, etc.
     for (const table of [
       'onboarding_progression',
+      'parametres_document',
       'abonnement_etablissement',
       'facture_eleve',
       'tarif_scolaire',
