@@ -14,6 +14,7 @@
  *   npx tsx scripts/seed-onboarding-test.ts            # crée
  *   npx tsx scripts/seed-onboarding-test.ts --reset    # purge puis recrée
  *   npx tsx scripts/seed-onboarding-test.ts --eleves     # peuple les classes
+ *   npx tsx scripts/seed-onboarding-test.ts --notes      # regroupe + note
  *   npx tsx scripts/seed-onboarding-test.ts --secretaire # compte finance
  *   npx tsx scripts/seed-onboarding-test.ts --purge      # supprime tout
  *
@@ -437,6 +438,148 @@ async function creerSecretaire() {
   console.log('');
 }
 
+
+/** Nombre de classes sur lesquelles concentrer l'effectif. */
+const CLASSES_RETENUES = 3;
+
+/**
+ * Regroupe tous les élèves sur quelques classes, puis leur crée des notes.
+ *
+ * Réparti uniformément sur les 26 classes d'un lycée complet, l'effectif de
+ * 50 élèves donne deux élèves par classe : le rang s'affiche « 1 sur 2 » et la
+ * moyenne de classe ne veut rien dire. Pour éprouver un bulletin il faut une
+ * classe réellement peuplée.
+ *
+ * Les classes retenues privilégient le lycée à séries : c'est là que se
+ * vérifient les coefficients différenciés.
+ */
+async function concentrerEtNoter() {
+  const etablissementId = await trouverEtablissement();
+  if (!etablissementId) {
+    console.log('Aucun etablissement de test.');
+    return;
+  }
+
+  const { data: annee } = await db
+    .from('annee_scolaire')
+    .select('id')
+    .eq('etablissementId', etablissementId)
+    .eq('statut', 'ACTIVE')
+    .maybeSingle();
+  if (!annee) {
+    console.log('Aucune annee ACTIVE.');
+    return;
+  }
+  const anneeId = (annee as { id: string }).id;
+
+  const { data: classesBrutes } = await db
+    .from('classe')
+    .select('id, nom, "niveauId", "serieId"')
+    .eq('etablissementId', etablissementId);
+  const classes = (classesBrutes ?? []) as {
+    id: string;
+    nom: string;
+    niveauId: string;
+    serieId: string | null;
+  }[];
+  if (classes.length === 0) {
+    console.log('Aucune classe : terminez d’abord l’etape Classes.');
+    return;
+  }
+
+  // Priorité aux classes à série (lycée), puis complément par ordre de nom.
+  const avecSerie = classes.filter((c) => c.serieId);
+  const sansSerie = classes.filter((c) => !c.serieId);
+  const retenues = [...avecSerie, ...sansSerie].slice(0, CLASSES_RETENUES);
+
+  const { data: inscriptions } = await db
+    .from('inscription')
+    .select('id')
+    .eq('etablissementId', etablissementId)
+    .eq('anneeScolaireId', anneeId);
+  const lignes = (inscriptions ?? []) as { id: string }[];
+  if (lignes.length === 0) {
+    console.log('Aucun eleve inscrit : lancez --eleves d’abord.');
+    return;
+  }
+
+  // Répartition en parts égales sur les classes retenues.
+  for (let i = 0; i < lignes.length; i += 1) {
+    const cible = retenues[i % retenues.length]!;
+    const { error } = await db
+      .from('inscription')
+      .update({ classeId: cible.id })
+      .eq('id', lignes[i]!.id);
+    if (error) console.log(`  inscription ${i + 1} ECHEC : ${error.message}`);
+  }
+  console.log(`${lignes.length} eleves regroupes sur : ${retenues.map((c) => c.nom).join(', ')}`);
+
+  // --- Notes -------------------------------------------------------------
+  // Deux interrogations, un devoir, une composition par matière du niveau,
+  // sur le premier trimestre. Statut VALIDE : depuis la refonte du workflow,
+  // une note SOUMISE ne compte pas dans les moyennes et le bulletin sortirait
+  // vide.
+  const rnd = mulberry32(20260830);
+  let evaluationsCreees = 0;
+  let notesCreees = 0;
+
+  for (const classe of retenues) {
+    const { data: programme } = await db
+      .from('programme_etablissement')
+      .select('"matiereId"')
+      .eq('etablissementId', etablissementId)
+      .eq('niveauId', classe.niveauId);
+    const matieres = ((programme ?? []) as { matiereId: string }[]).map((p) => p.matiereId);
+
+    const { data: inscrits } = await db
+      .from('inscription')
+      .select('"eleveId"')
+      .eq('anneeScolaireId', anneeId)
+      .eq('classeId', classe.id);
+    const eleves = ((inscrits ?? []) as { eleveId: string }[]).map((i) => i.eleveId);
+
+    for (const matiereId of matieres) {
+      const plan: [string, number][] = [
+        ['INTERROGATION', 1],
+        ['INTERROGATION', 2],
+        ['DEVOIR', 1],
+        ['COMPOSITION', 1],
+      ];
+      for (const [type, numero] of plan) {
+        const { data: evaluation, error } = await db
+          .from('evaluation')
+          .insert({
+            anneeScolaireId: anneeId,
+            classeId: classe.id,
+            matiereId,
+            type,
+            periode: 'TRIMESTRE_1',
+            numero,
+            date: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (error || !evaluation) continue;
+        evaluationsCreees += 1;
+
+        const evaluationId = (evaluation as { id: string }).id;
+        const notes = eleves.map((eleveId) => ({
+          evaluationId,
+          eleveId,
+          // Notes plausibles : entre 4 et 18, au quart de point.
+          valeur: Math.round((4 + rnd() * 14) * 4) / 4,
+          statut: 'VALIDE',
+        }));
+        const { error: erreurNotes } = await db.from('note').insert(notes);
+        if (!erreurNotes) notesCreees += notes.length;
+      }
+    }
+  }
+
+  console.log(`${evaluationsCreees} evaluations et ${notesCreees} notes creees (T1, statut VALIDE).`);
+  console.log('');
+}
+
 async function main() {
   if (process.argv.includes('--purge')) {
     await purger();
@@ -448,6 +591,10 @@ async function main() {
   }
   if (process.argv.includes('--eleves')) {
     await peuplerEleves();
+    return;
+  }
+  if (process.argv.includes('--notes')) {
+    await concentrerEtNoter();
     return;
   }
   if (process.argv.includes('--reset')) {
