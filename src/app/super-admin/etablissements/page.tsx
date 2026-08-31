@@ -97,7 +97,9 @@ export default async function EtablissementsPage() {
             ) : (
               <>
                 <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full text-left">
+                  {/* `relative` sur les lignes : le recouvrement du lien s'y
+                      ancre pour couvrir toute la largeur. */}
+                  <table className="w-full text-left [&_tbody_tr]:relative">
                     <thead>
                       <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
                         <th className="py-2 pl-5 pr-3 font-semibold">Établissement</th>
@@ -112,12 +114,18 @@ export default async function EtablissementsPage() {
                       {ecoles.map((e) => (
                         <tr
                           key={e.id}
-                          className="h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
+                          className="group h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
                         >
-                          <td className="py-2 pl-5 pr-3">
+                          {/* Toute la ligne mene a la fiche, pas seulement le
+                              nom : viser un mot de trois lettres dans une ligne
+                              de mille pixels est une cible inutilement etroite.
+                              Le lien couvre la premiere cellule et un
+                              recouvrement absolu s'etend sur le reste de la
+                              ligne — un <a> ne peut pas envelopper un <tr>. */}
+                          <td className="relative py-2 pl-5 pr-3">
                             <Link
                               href={`/super-admin/etablissements/${e.id}`}
-                              className="font-medium text-text-primary hover:text-primary-container"
+                              className="font-medium text-text-primary after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container"
                             >
                               {e.nom}
                             </Link>
