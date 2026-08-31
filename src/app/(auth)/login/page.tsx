@@ -1,11 +1,31 @@
 'use client';
 
+import * as React from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { GraduationCap } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { login, loginWithGoogle } from './actions';
+
+/**
+ * Motifs de renvoi vers cette page depuis `/auth/callback`.
+ *
+ * Sans ces messages, un lien d'invitation qui echoue ramene sur un formulaire
+ * de connexion muet : l'utilisateur ne sait ni ce qui s'est passe, ni quoi
+ * faire. C'est exactement la panne signalee le 2026-08-31, ou trois causes
+ * differentes produisaient le meme ecran silencieux.
+ */
+const MESSAGES_CALLBACK: Record<string, string> = {
+  lien_invalide:
+    "Ce lien n'est plus valide. Les liens d'invitation et de reinitialisation expirent, et ne servent qu'une fois. Demandez-en un nouveau.",
+  session_introuvable:
+    "Ce lien doit etre ouvert dans le navigateur qui a demarre la connexion. Reessayez depuis cet appareil, ou demandez un nouveau lien.",
+  lien_incomplet:
+    "Ce lien est incomplet. Copiez-le entierement depuis votre email, ou demandez-en un nouveau.",
+  auth_callback_failed: "La connexion n'a pas abouti. Reessayez.",
+  google_auth_failed: "La connexion Google n'a pas abouti. Reessayez.",
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -18,10 +38,26 @@ function SubmitButton() {
 
 export default function LoginPage() {
   const [error, formAction] = useFormState(login, null);
+  // Lu apres montage plutot qu'avec `useSearchParams` : ce dernier impose une
+  // frontiere `Suspense` sous Next 14 et fait echouer le build d'une page
+  // prerendue. Le motif n'apparait qu'apres une redirection, jamais au premier
+  // affichage, donc rien ne clignote.
+  const [messageCallback, setMessageCallback] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const motif = new URLSearchParams(window.location.search).get('error');
+    if (!motif) return;
+    setMessageCallback(MESSAGES_CALLBACK[motif] ?? "La connexion n'a pas abouti. Reessayez.");
+  }, []);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface p-gutter">
       <div className="flex w-full max-w-[440px] flex-col gap-6 rounded-xl border border-surface-border bg-surface-container-lowest p-container-pad shadow-floating">
+        {messageCallback && (
+          <p className="rounded-lg border border-error/30 bg-error-container/40 p-3 text-body-sm text-text-primary">
+            {messageCallback}
+          </p>
+        )}
+
         <header className="flex flex-col items-center gap-4 text-center">
           <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-lg bg-surface-container-low text-primary">
             <GraduationCap className="h-8 w-8" aria-hidden />

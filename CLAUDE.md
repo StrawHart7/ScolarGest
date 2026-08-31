@@ -427,6 +427,46 @@ pas des serveurs de test des opérateurs ». Numéros acceptés `64000001` et
 **Aucun champ de carte bancaire** : les héberger ferait entrer ScolarGest dans
 le périmètre PCI-DSS. Le Mobile Money ne demande qu'un numéro de téléphone.
 
+### Authentification par lien : deux mécanismes, pas un
+
+`/auth/callback` reçoit **trois** parcours : OAuth Google, invitation
+d'utilisateur, réinitialisation de mot de passe. Ils n'arrivent pas de la même
+façon, et traiter le second comme le premier est la panne du 2026-08-31.
+
+- **`?code=`** — flux PKCE. `exchangeCodeForSession` exige un `code_verifier`
+  déposé en cookie **dans le navigateur qui a démarré le flux**. Cela convient à
+  Google, qui part et revient depuis le même navigateur.
+- **`?token_hash=&type=`** — `verifyOtp`, **sans vérificateur**. Le seul
+  mécanisme viable pour un lien reçu par email : une invitation démarre dans le
+  navigateur du SUPER_ADMIN et se termine dans celui de l'invité, où le
+  vérificateur n'existe pas. L'échange échouait donc systématiquement, et
+  l'invité atterrissait sur `/login` sans explication.
+
+Le second suppose que les **gabarits d'email Supabase** envoient `token_hash` et
+non le `{{ .ConfirmationURL }}` par défaut :
+
+```
+{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite
+{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery
+```
+
+**Une invitation et une réinitialisation mènent à `/update-password`**, déduit
+du `type`. Un invité n'a pas encore de mot de passe : l'envoyer au tableau de
+bord le laisserait sans moyen de se reconnecter le lendemain.
+
+**Les redirections d'auth utilisent `urlApplication()`, jamais l'en-tête
+`origin`.** Celui-ci vaut l'hôte réellement appelé, qui peut être une adresse de
+déploiement Vercel plutôt que le domaine public. Si l'URL construite ne figure
+pas dans les **Redirect URLs** de Supabase, Supabase l'ignore silencieusement et
+renvoie sur son *Site URL* — l'utilisateur revient sur la page d'accueil,
+connecté mais perdu, sans aucun message.
+
+**`/login` affiche le motif** passé en `?error=` (`lien_invalide`,
+`session_introuvable`, `lien_incomplet`). Sans cela, trois causes distinctes
+produisent le même écran muet. Le paramètre est lu dans un `useEffect` et non
+avec `useSearchParams`, qui imposerait une frontière `Suspense` et ferait
+échouer le build d'une page prérendue.
+
 ### Domaine et URL publique
 
 `urlApplication()` (`src/lib/url-app.ts`) résout dans l'ordre

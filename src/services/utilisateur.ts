@@ -49,6 +49,10 @@ export async function inviteUtilisateur(input: InviteUtilisateurInput): Promise<
     input.email,
     {
       data: {},
+      // L'invite n'a pas encore de mot de passe : le callback l'enverra sur
+      // `/update-password`, deduit du `type=invite` du lien. Sans cela il
+      // arriverait sur le tableau de bord avec une session valide mais aucun
+      // moyen de se reconnecter le lendemain.
       redirectTo: `${urlApplication()}/auth/callback`,
     },
   );

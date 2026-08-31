@@ -1,18 +1,17 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { urlApplication } from '@/lib/url-app';
 
 export async function requestPasswordReset(
   _prevState: string | null,
   formData: FormData,
 ): Promise<string> {
   const email = String(formData.get('email') ?? '');
-  const origin = headers().get('origin');
 
   const supabase = createClient();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=/update-password`,
+    redirectTo: `${urlApplication()}/auth/callback`,
   });
 
   // Toujours le même message, que l'email existe ou non (pas d'énumération de comptes).
