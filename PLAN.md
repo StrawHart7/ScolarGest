@@ -1436,3 +1436,99 @@ abonnement offrirait le produit à qui connaît l'adresse.
   les numéros de test FedaPay en font huit. Piège à connaître : `22890123` est
   un numéro togolais valide commençant par l'indicatif `228` — l'indicatif ne
   se retire que si ce qui reste garde une longueur plausible.
+
+---
+
+### Fonctionnalité — Console SUPER_ADMIN
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-08-31) — branche
+`feat/super-admin`. Aucune migration.
+
+**Objectif** : la console plateforme était superficielle — trois pages, deux
+entrées de navigation, et une page racine qui mélangeait un tableau de bord et
+un inventaire sans bien faire ni l'un ni l'autre.
+
+**Le trou principal n'était pas esthétique.** `demande_demo` était alimentée
+par le formulaire public de la page d'accueil et **lue nulle part**. Chaque
+demande de démo — le seul appel à l'action de tout le site — arrivait dans une
+table que personne n'ouvrait. La table, son énumération de statuts et ses
+policies existaient depuis la migration `0002` ; seul l'écran manquait. À
+l'ouverture de la nouvelle page, un prospect réel y attendait depuis 13 jours.
+
+**Livrables** :
+
+- [x] `src/services/plateforme.ts` — métriques agrégées, fiche d'usage d'une
+      école, journal d'audit transverse.
+- [x] `src/services/demande-demo.ts` — file des prospects et changement de
+      statut, journalisé.
+- [x] `/super-admin` — tableau de bord : revenu mensuel, encaissements du mois,
+      répartition des écoles par état, échéances sous 7 jours.
+- [x] `/super-admin/etablissements` — inventaire séparé, enrichi de l'état de
+      facturation, des effectifs, des cycles et de l'échéance. Ligne entière
+      cliquable.
+- [x] `/super-admin/demandes` — prospects classés par ce qu'il y a à en faire,
+      pas par date. Marquage « en retard » au-delà de trois jours sans réponse.
+- [x] `/super-admin/etablissements/[id]` — usage réel : effectifs, classes,
+      enseignants, dernière activité, cycles, essai, transactions FedaPay.
+- [x] `/super-admin/journal` — audit toutes écoles, filtres par module, école
+      et action, paginé à 50.
+- [x] Le SUPER_ADMIN est redirigé de `/dashboard` vers sa console au lieu d'un
+      écran vide. La route reste : elle sert aux quatre autres rôles.
+- [x] Navigation : de deux entrées à cinq.
+
+**Principes retenus** :
+
+- **Le super-admin ne voit aucune donnée d'élève, de note ou de facture.** Il
+  voit des états, des effectifs et des dates. L'isolation entre écoles est la
+  promesse du produit ; la console ne doit pas être le trou par lequel elle
+  fuit. Une prise en main pour le support a été explicitement écartée.
+- **L'état affiché suit l'ordre de `evaluerAcces`** — suspension, puis
+  abonnement payé, puis essai. Une console qui contredirait l'accès réel de
+  l'école serait pire qu'une console vide.
+- **Le revenu vient de `montantTotal`**, figé à la souscription, jamais du
+  catalogue : recalculer depuis `plan_abonnement` réécrirait rétroactivement le
+  revenu constaté à chaque changement de prix.
+- **Les effectifs se comptent sur `inscription` en statut ACTIVE**, pas sur la
+  table `eleve` qui accumule les élèves partis.
+- Les filtres du journal passent par l'URL : une recherche se partage, la page
+  reste rendue côté serveur, et on évite `useSearchParams` qui imposerait une
+  frontière `Suspense`.
+
+**Constats laissés ouverts** :
+
+- Deux modules inattendus, **`debug` et `test`**, écrivent dans le journal
+  d'audit de production. À examiner.
+- Le doublon « Les Victorieux » vide a été **supprimé** le 2026-08-31, après
+  vérification par les deux chemins de rattachement (colonne `etablissementId`
+  et parents `classe`/`facture` pour `evaluation`, `note` et `paiement`).
+
+---
+
+### Fonctionnalité — KPI et visualisation des statistiques
+
+**Statut** : Cadrée, non démarrée. À discuter le 2026-09-01.
+
+**Objectif** : enrichir la plateforme de graphes pour rendre les statistiques
+lisibles d'un coup d'œil, côté console SUPER_ADMIN comme côté école.
+
+**Ce qui existe déjà et sur quoi bâtir** : `getMetriquesPlateforme()` calcule
+déjà le revenu, la répartition par état et les échéances ; `dashboard.ts` porte
+les indicateurs par école. Les données sont là, c'est leur restitution qui est
+pauvre — des nombres dans des cartes, aucune tendance.
+
+**Questions à trancher avant de coder** :
+
+- **Quelle bibliothèque.** Le projet n'a aucune dépendance de graphes. Recharts
+  est le choix naturel avec React, mais il alourdit le bundle. Des graphes en
+  SVG maison suffisent pour une courbe et un histogramme, et évitent une
+  dépendance de plus — à arbitrer selon le nombre de types de graphes voulus.
+- **Quelles séries temporelles.** Aucune table n'historise l'état de la
+  plateforme dans le temps : le revenu d'il y a trois mois n'est pas
+  reconstituable autrement qu'en rejouant les abonnements. Une courbe de
+  croissance exige soit une agrégation à la volée sur
+  `abonnement_etablissement`, soit une table d'instantanés quotidiens.
+- **Pour qui.** Les KPI du SUPER_ADMIN (revenu, conversion, rétention) et ceux
+  d'une école (effectifs, recouvrement, assiduité) n'ont ni la même audience ni
+  la même sensibilité.
+- **Le mobile.** Le motif de liste mobile du projet n'a pas d'équivalent pour
+  les graphes. Un graphe illisible sous `md` vaut moins qu'un tableau.

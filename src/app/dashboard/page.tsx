@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
   BookOpen,
@@ -91,22 +90,13 @@ export default async function DashboardPage() {
     </AppLayout>
   );
 
+  // Le SUPER_ADMIN n'a pas de tableau de bord d'école : son espace est la
+  // console plateforme. On l'y envoie directement plutôt que de lui servir un
+  // écran vide dont le seul contenu est un lien vers l'endroit où il voulait
+  // aller. `/dashboard` reste la destination commune après connexion, y
+  // compris pour lui — c'est ici que la bifurcation doit vivre.
   if (ctx.role === 'SUPER_ADMIN') {
-    return layout(
-      <Card>
-        <CardContent className="space-y-2 p-6">
-          <p className="text-body-md text-text-primary">Console plateforme</p>
-          <p className="text-body-sm text-text-secondary">
-            Le suivi des écoles et des abonnements se fait depuis la{' '}
-            <Link href="/super-admin" className="text-primary hover:underline">
-              console SUPER_ADMIN
-            </Link>
-            .
-          </p>
-        </CardContent>
-      </Card>,
-      'Accès plateforme',
-    );
+    redirect('/super-admin');
   }
 
   const annee = await getAnneeCourante();

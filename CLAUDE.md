@@ -208,6 +208,7 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-08-31) :
+- `feat/super-admin` — ✅ terminée et mergée sur `main` (2026-08-31) : console plateforme — tableau de bord, inventaire des écoles, file des prospects, fiche d'usage, journal d'audit transverse. Aucune migration. Voir `PLAN.md` § 8.
 - `feat/pricing` — ✅ terminée et mergée sur `main` (2026-08-31) : modèle économique complet — essai gratuit de 30 jours, facturation par cycle, section de tarifs publique, paiement Mobile Money via FedaPay, bascule sur le domaine `scolargest.com`. Migrations `0015` à `0017`. Voir `PLAN.md` § 8.
 - `feat/secondaire-uniquement` — ✅ terminée et mergée sur `main` (2026-08-31) : retrait de la maternelle et du primaire du catalogue. Migration `0014`.
 - `feat/identite-documents` — ✅ terminée et mergée sur `main` (2026-08-30) : logo et filigrane sur bulletins et reçus, plus deux corrections du bulletin secondaire (note définitive = moyenne × coefficient, suppression des lignes de remplissage anonymes). Migration `0013`. Voir `PLAN.md` § 8.
@@ -466,6 +467,40 @@ connecté mais perdu, sans aucun message.
 produisent le même écran muet. Le paramètre est lu dans un `useEffect` et non
 avec `useSearchParams`, qui imposerait une frontière `Suspense` et ferait
 échouer le build d'une page prérendue.
+
+### Console SUPER_ADMIN : ce qu'elle voit, et ce qu'elle ne voit pas
+
+`src/services/plateforme.ts` agrège toutes les écoles. Toutes ses fonctions sont
+gardées par `requireRole()` sans argument — SUPER_ADMIN seul, ce qui est bien
+l'intention : aucune école ne doit voir les chiffres des autres.
+
+**La console compte, elle ne consulte pas.** Aucune donnée d'élève, de note ou
+de facture n'y est lue : états d'abonnement, effectifs, dates d'activité. Une
+prise en main du contexte d'une école pour le support a été explicitement
+écartée. L'isolation entre écoles est la promesse du produit ; la console ne
+doit pas être le trou par lequel elle fuit.
+
+**L'état d'une école suit l'ordre de `evaluerAcces`** — suspension, puis
+abonnement payé, puis essai. Reproduire cet ordre est obligatoire : une console
+qui contredirait l'accès réel de l'école serait pire qu'une console vide.
+
+**Le revenu vient de `montantTotal`**, figé à la souscription, jamais de
+`plan_abonnement` : recalculer depuis le catalogue réécrirait rétroactivement le
+revenu constaté à chaque changement de prix. Les plans annuels sont ramenés au
+douzième.
+
+**Les effectifs se comptent sur `inscription` en statut ACTIVE**, jamais sur la
+table `eleve`, qui accumule les élèves partis.
+
+**`demande_demo` était écrite et jamais lue** — la table, son énumération de
+statuts et ses policies existaient depuis `0002`, seul l'écran manquait. Le
+formulaire public de la page d'accueil y déverse les prospects ; `/super-admin/
+demandes` est le seul endroit qui les affiche. Si un jour le formulaire change,
+vérifier que cet écran suit.
+
+**Le SUPER_ADMIN est redirigé de `/dashboard` vers `/super-admin`.** La route
+`/dashboard` reste la destination commune après connexion pour les quatre autres
+rôles — ne pas la supprimer.
 
 ### Domaine et URL publique
 
