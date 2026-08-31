@@ -216,9 +216,14 @@ export function blocsSection(chemin: string, role: Role): BlocSection[] {
 export function getSidebarItems(role: Role): SidebarItem[] {
   switch (role) {
     case 'SUPER_ADMIN':
+      // La vue d'ensemble et l'inventaire des écoles sont deux entrées
+      // distinctes : la racine était auparavant les deux à la fois, ce qui la
+      // rendait mauvaise dans les deux rôles.
       return [
-        { label: 'Établissements', href: '/super-admin', icone: 'etablissement' },
+        { label: 'Vue d’ensemble', labelCourt: 'Accueil', href: '/super-admin', icone: 'tableau-de-bord' },
+        { label: 'Établissements', labelCourt: 'Écoles', href: '/super-admin/etablissements', icone: 'etablissement' },
         { label: 'Abonnements', href: '/super-admin/abonnements', icone: 'abonnements' },
+        { label: 'Demandes de démo', labelCourt: 'Demandes', href: '/super-admin/demandes', icone: 'utilisateurs' },
       ];
     case 'DIRECTEUR':
       return [
