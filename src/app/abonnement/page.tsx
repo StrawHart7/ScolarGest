@@ -1,6 +1,6 @@
 import { CreditCard } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { getAbonnementCourant, listPaiementsAbonnement } from '@/services/abonnement';
+import { getAbonnementCourant, getEssaiFinLe, listPaiementsAbonnement } from '@/services/abonnement';
 import { evaluerAcces, statutEffectif } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,9 +46,11 @@ export default async function AbonnementPage() {
   const statut = statutEffectif(
     abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
   );
-  const acces = evaluerAcces(
-    abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-  );
+  const essaiFinLe = await getEssaiFinLe(ctx.etablissementId);
+  const acces = evaluerAcces({
+    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
+    essaiFinLe,
+  });
 
   return (
     <AppLayout

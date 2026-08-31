@@ -1,7 +1,9 @@
 abonnement.createAbonnement = SUPER_ADMIN
+abonnement.demarrerEssaiSiNecessaire = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 abonnement.expirerAbonnementsEchus = SUPER_ADMIN
 abonnement.getAbonnementCourant = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 abonnement.getAccesAbonnementCourant = AUTHENTIFIE
+abonnement.getEssaiFinLe = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 abonnement.listAbonnements = SUPER_ADMIN
 abonnement.listAbonnementsParEtablissement = SUPER_ADMIN
 abonnement.listPaiementsAbonnement = SUPER_ADMIN+DIRECTEUR
@@ -13,6 +15,7 @@ abonnement.suspendreAbonnement = SUPER_ADMIN
 abonnement.validerPaiement = SUPER_ADMIN
 abonnement-acces.ecritureAutorisee = AUCUNE
 abonnement-acces.evaluerAcces = AUCUNE
+abonnement-acces.finEssai = AUCUNE
 abonnement-acces.joursAvantEcheance = AUCUNE
 abonnement-acces.statutEffectif = AUCUNE
 affectation.creerAffectation = SUPER_ADMIN+DIRECTEUR+SECRETAIRE

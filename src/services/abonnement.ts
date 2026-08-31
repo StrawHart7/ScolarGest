@@ -314,6 +314,66 @@ export async function getAbonnementCourant(
 }
 
 /**
+ * Fenêtre d'essai gratuit de l'établissement courant.
+ *
+ * Portée par `etablissement` et non par `abonnement_etablissement` : un essai
+ * n'est pas une vente, et `planId` y est NOT NULL (voir la migration `0015`).
+ */
+export async function getEssaiFinLe(etablissementId: string): Promise<string | null> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  if (ctx.role !== 'SUPER_ADMIN' && etablissementId !== ctx.etablissementId) {
+    throw new Error("Accès refusé : établissement différent du contexte.");
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('etablissement')
+    .select('"essaiFinLe"')
+    .eq('id', etablissementId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null;
+}
+
+/**
+ * Démarre l'essai gratuit s'il ne l'est pas déjà.
+ *
+ * Appelée à la définition du PIN de démarrage — la première écriture réelle du
+ * Directeur, donc son premier contact utile avec le produit. Décompter depuis
+ * la création de l'établissement par le SUPER_ADMIN punirait une école
+ * provisionnée trois semaines avant la rentrée.
+ *
+ * Idempotente par le `is null` : rappeler cette fonction ne prolonge rien. Les
+ * dates elles-mêmes sont imposées par le trigger `fn_proteger_dates_essai`
+ * (migration `0015`) — la valeur envoyée ici n'est qu'un déclencheur, pas une
+ * donnée de confiance, puisque la RLS laisse le Directeur écrire sur sa propre
+ * ligne d'établissement.
+ *
+ * Ne lève jamais : un essai qui ne démarre pas ne doit pas faire échouer
+ * l'étape de configuration qui l'a déclenché. L'établissement resterait
+ * simplement sans fenêtre d'essai, cas rattrapable par la console plateforme.
+ */
+export async function demarrerEssaiSiNecessaire(): Promise<void> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  if (!ctx.etablissementId) return;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('etablissement')
+    .update({ essaiDebuteLe: new Date().toISOString() })
+    .eq('id', ctx.etablissementId)
+    .is('essaiDebuteLe', null)
+    .select('id');
+  if (error) return;
+  if ((data ?? []).length === 0) return;
+
+  await auditLog({
+    action: 'DEMARRER_ESSAI',
+    module: 'saas',
+    objetType: 'Etablissement',
+    objetId: ctx.etablissementId,
+  });
+}
+
+/**
  * Niveau d'accès de l'établissement courant, pour le bandeau et les gardes.
  * Le SUPER_ADMIN n'est jamais restreint : c'est lui qui gère les abonnements,
  * l'enfermer dehors rendrait la situation irréparable.
@@ -323,10 +383,14 @@ export const getAccesAbonnementCourant = memoiserParRequete(async function getAc
   if (ctx.role === 'SUPER_ADMIN') {
     return { niveau: 'OK', statut: 'ACTIF', joursRestants: null, message: null };
   }
-  const abonnement = await getAbonnementCourant(ctx.etablissementId);
-  return evaluerAcces(
-    abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-  );
+  const [abonnement, essaiFinLe] = await Promise.all([
+    getAbonnementCourant(ctx.etablissementId),
+    getEssaiFinLe(ctx.etablissementId),
+  ]);
+  return evaluerAcces({
+    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
+    essaiFinLe,
+  });
 });
 
 /**
