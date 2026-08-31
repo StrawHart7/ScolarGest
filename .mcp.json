@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=fxvpdyemodwzzzvibztp&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "context7-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

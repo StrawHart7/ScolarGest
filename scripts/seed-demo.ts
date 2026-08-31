@@ -153,15 +153,6 @@ type CodeMatiere = (typeof MATIERES)[number]['code'];
 
 /** Programme + coefficient par cycle. Les coefficients par série surchargent. */
 const PROGRAMME_PAR_CYCLE: Record<string, { code: CodeMatiere; coef: number; obligatoire: boolean }[]> = {
-  PRIMAIRE: [
-    { code: 'FRA', coef: 4, obligatoire: true },
-    { code: 'MAT', coef: 4, obligatoire: true },
-    { code: 'ANG', coef: 1, obligatoire: true },
-    { code: 'HG', coef: 2, obligatoire: true },
-    { code: 'SVT', coef: 2, obligatoire: true },
-    { code: 'ECM', coef: 1, obligatoire: true },
-    { code: 'EPS', coef: 1, obligatoire: false },
-  ],
   COLLEGE: [
     { code: 'FRA', coef: 4, obligatoire: true },
     { code: 'MAT', coef: 4, obligatoire: true },
@@ -196,13 +187,10 @@ const COEF_PAR_SERIE: Record<string, Partial<Record<CodeMatiere, number>>> = {
 
 /** Classes à créer: niveau, série éventuelle, suffixe, effectif. */
 const CLASSES_A_CREER = [
-  { niveau: 'CP1', serie: null, nom: 'CP1 A', effectif: 25 },
-  { niveau: 'CE1', serie: null, nom: 'CE1 A', effectif: 25 },
-  { niveau: 'CM1', serie: null, nom: 'CM1 A', effectif: 24 },
-  { niveau: 'CM2', serie: null, nom: 'CM2 A', effectif: 24 },
   { niveau: '6ème', serie: null, nom: '6ème A', effectif: 26 },
   { niveau: '6ème', serie: null, nom: '6ème B', effectif: 26 },
   { niveau: '5ème', serie: null, nom: '5ème A', effectif: 24 },
+  { niveau: '4ème', serie: null, nom: '4ème A', effectif: 24 },
   { niveau: '3ème', serie: null, nom: '3ème A', effectif: 22 },
   { niveau: '2nde', serie: null, nom: '2nde A', effectif: 22 },
   { niveau: '1ère', serie: 'D', nom: '1ère D', effectif: 20 },
@@ -221,7 +209,6 @@ const TYPES_FRAIS = [
 
 /** Tarifs par cycle: inscription, scolarité/trimestre, cantine, transport, tenue. */
 const TARIFS_PAR_CYCLE: Record<string, number[]> = {
-  PRIMAIRE: [15000, 45000, 45000, 45000, 60000, 50000, 12000],
   COLLEGE: [20000, 65000, 65000, 65000, 60000, 50000, 15000],
   LYCEE: [25000, 85000, 85000, 85000, 60000, 50000, 15000],
 };
@@ -393,7 +380,7 @@ async function seed(etablissementId: string, force: boolean) {
     .select('cycleId')
     .eq('etablissementId', etablissementId);
   const dejaActifs = new Set((cyclesEtab ?? []).map((c: { cycleId: string }) => c.cycleId));
-  const aActiver = ['PRIMAIRE', 'COLLEGE', 'LYCEE']
+  const aActiver = ['COLLEGE', 'LYCEE']
     .map((n) => cycleParNom.get(n)!)
     .filter((id) => !dejaActifs.has(id))
     .map((cycleId) => ({ etablissementId, cycleId, actif: true }));
@@ -619,7 +606,7 @@ async function seed(etablissementId: string, force: boolean) {
   classes.forEach((classe, classeIdx) => {
     const niveau = (niveauxRows ?? []).find((n: { id: string }) => n.id === classe.niveauId)!;
     const cycle = cycleNomParId.get(niveau.cycleId)!;
-    const ageBase = cycle === 'PRIMAIRE' ? 8 : cycle === 'COLLEGE' ? 13 : 17;
+    const ageBase = cycle === 'COLLEGE' ? 13 : 17;
     for (let i = 0; i < classe.effectif; i += 1) {
       seqEleve += 1;
       const sexe = rnd() < 0.5 ? 'M' : 'F';

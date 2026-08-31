@@ -1,6 +1,12 @@
 -- ScoolAdmin — catalogues système Togo (cycles, niveaux, séries) + plans d'abonnement.
 -- Run with: supabase db reset (auto-applies after migrations) or `psql -f supabase/seed.sql`.
 
+-- NOTE (2026-08-31) : la migration `0014_cycles_secondaire_uniquement.sql` retire
+-- ensuite MATERNELLE et PRIMAIRE du catalogue (`cycle.disponible = false`).
+-- Les lignes ci-dessous restent insérées volontairement : les établissements qui
+-- avaient activé ces cycles doivent continuer de fonctionner. Ce fichier n'est
+-- donc plus l'état final du catalogue — lire 0014 avec.
+
 insert into cycle (nom, ordre) values
   ('MATERNELLE', 1), ('PRIMAIRE', 2), ('COLLEGE', 3), ('LYCEE', 4)
 on conflict (nom) do update set ordre = excluded.ordre;

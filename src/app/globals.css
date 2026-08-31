@@ -129,3 +129,16 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Masquage visuel d'un champ de code secret (PIN de confirmation).
+   `-webkit-text-security` masque le contenu **sans** faire du champ un
+   `type="password"` : les gestionnaires de mots de passe ne ciblent que les
+   vrais champs mot de passe, et c'est précisément leur injection du mot de
+   passe du compte qui cassait silencieusement la saisie du PIN.
+   Le repli, sur un navigateur sans support, est un champ lisible — dégradation
+   acceptable pour un code que l'utilisateur vient de choisir lui-même, et de
+   toute façon rattrapée par le refus explicite des caractères non numériques. */
+.champ-code-secret {
+  -webkit-text-security: disc;
+  text-security: disc;
+}

@@ -1198,3 +1198,67 @@ chemin est bien préfixé par l'établissement appelant.
 **DoD** : typecheck, lint, 186 tests et build verts ; migration appliquée et
 vérifiée en base (colonnes présentes, RLS active, insertion anonyme refusée
 en `42501`).
+
+---
+
+### Fonctionnalité — Recentrage produit sur le secondaire
+
+**Statut** : ✅ Terminée (2026-08-31) — branche `feat/secondaire-uniquement`.
+
+**Objectif** : ScolarGest ne s'adresse plus qu'au collège et au lycée. La
+maternelle et le primaire sortent du catalogue produit.
+
+**Décision structurante — retrait du catalogue, pas suppression des données.**
+L'audit de la base a montré que le primaire était habité : 5 classes, ~98
+inscriptions, ~8 000 notes chez « Les Victorieux ». Trois raisons de ne rien
+supprimer, même en l'absence de client réel :
+
+1. Les notes et les inscriptions sont sous l'invariant « pas de suppression
+   dure ».
+2. `cycle` et `niveau` sont référencés par `cycle_etablissement`, `classe` et
+   `programme_etablissement` — un `delete` se heurterait aux clés étrangères,
+   ou pire, cascaderait.
+3. La décision reste réversible : repasser `disponible` à `true` rouvre un
+   cycle sans rien reconstruire.
+
+Cela sépare proprement deux questions de calendriers différents : *plus
+personne ne peut choisir le primaire* (immédiat) et *que deviennent les
+données existantes* (jamais tranché, et sans urgence tant qu'aucun client
+réel n'est concerné).
+
+**Livrables** :
+
+- [x] Migration `0014_cycles_secondaire_uniquement.sql` : colonne
+      `cycle.disponible`, passée à `false` pour MATERNELLE et PRIMAIRE.
+- [x] Coupure de `niveauSuivantId` sur les cycles retirés — **la 6ème devient
+      le niveau d'entrée**. `CM2 → 6ème` ferait remonter un élève depuis un
+      cursus que le produit ne couvre plus.
+- [x] `listCycles()` filtre sur `disponible` ; `/etablissement/cycles` et
+      l'étape 2 de `/demarrage` s'alignent sans modification propre.
+- [x] `activerCycle()` refuse un cycle retiré **à l'écriture**. Le `cycleId`
+      vient de l'appelant : le masquer dans une liste n'empêche pas un appel
+      forgé de l'activer.
+- [x] `listCyclesActifs()` **non filtrée**, délibérément — un établissement
+      déjà en primaire garde ses classes, ses notes et ses bulletins.
+- [x] `NomCycle` réduit à `'COLLEGE' | 'LYCEE'` ; suggestions de matières
+      maternelle et primaire retirées ; libellés de `EtapeCycles` alignés.
+- [x] `seed-demo.ts` recentré : plus d'activation du primaire, programme,
+      tarifs et âges de référence alignés. Une classe de 4ème comble le trou
+      que le cursus collège avait dans le jeu de démonstration.
+- [x] Documentation : sections « Modifications » faisant autorité dans
+      `Docs/01-Vision`, `Docs/04` et `Docs/07`, plus `Docs/13`, `list.md` et
+      `CLAUDE.md`.
+
+**Ce qu'il ne faut pas « nettoyer » ensuite** : le gabarit générique
+`src/lib/pdf/templates/bulletin.ts` a l'air mort, puisque le dispatch de
+`bulletin.ts:94` envoie collège et lycée vers le gabarit secondaire. Il ne
+l'est pas : une classe de primaire existante l'atteint toujours. De même,
+`0003_seed_catalogues.sql` et `supabase/seed.sql` continuent d'insérer les
+quatre cycles — c'est `0014` qui restreint ensuite, aucun des deux n'est
+l'état final.
+
+**Dette laissée ouverte** : le sort des données primaire résiduelles n'est pas
+tranché. Aucune urgence — zéro client réel en base au moment de la décision.
+
+**DoD** : catalogue vérifié en base (deux cycles disponibles, chaînage partant
+de la 6ème, 28 classes toujours lisibles), lint, tests et build verts.

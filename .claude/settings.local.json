@@ -106,5 +106,9 @@
       "\\tmp",
       "D:\\StrawHart\\Business\\ScoolAdmin\\src\\app\\etablissement\\eleves\\[id]"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase",
+    "context7"
+  ]
 }
