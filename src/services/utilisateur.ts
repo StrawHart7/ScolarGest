@@ -5,6 +5,7 @@ import { getTenantContext } from './tenant';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { hashPin } from './pin';
+import { urlApplication } from '@/lib/url-app';
 
 export interface Utilisateur {
   id: string;
@@ -48,7 +49,7 @@ export async function inviteUtilisateur(input: InviteUtilisateurInput): Promise<
     input.email,
     {
       data: {},
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: `${urlApplication()}/auth/callback`,
     },
   );
   if (inviteError || !invited.user) {

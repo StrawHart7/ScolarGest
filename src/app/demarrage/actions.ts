@@ -17,6 +17,7 @@ import { inviteUtilisateur } from '@/services/utilisateur';
 import { createTypeFrais } from '@/services/type-frais';
 import { createTarif } from '@/services/tarif';
 import { ignorerEtape, masquerOnboarding, terminerOnboarding } from '@/services/onboarding';
+import { demarrerEssaiSiNecessaire } from '@/services/abonnement';
 import type { IdEtape } from '@/lib/onboarding/etapes';
 
 /**
@@ -93,6 +94,10 @@ export async function definirPinAction(pin: string): Promise<ResultatEtape> {
   }
   try {
     await definirPin(valide.data);
+    // Premier geste réel du Directeur : c'est ici que l'essai gratuit démarre.
+    // Après `definirPin` et non avant : un essai ne doit pas être entamé par
+    // une saisie qui a échoué. La fonction est idempotente et n'échoue jamais.
+    await demarrerEssaiSiNecessaire();
     return { ok: true, message: 'Code de confirmation enregistré.' };
   } catch (e) {
     return echec(e, "Impossible d'enregistrer le code.");

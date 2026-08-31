@@ -162,17 +162,31 @@ async function gardeAbonnement(
     }
   }
 
-  const { data } = await supabase
-    .from('abonnement_etablissement')
-    .select('statut, "dateFin"')
-    .eq('etablissementId', meta.etablissement_id)
-    .order('dateFin', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // L'abonnement et la fenêtre d'essai sont lus ensemble : l'essai vit sur
+  // `etablissement` (voir la migration `0015`) et conditionne l'écriture au
+  // même titre qu'un abonnement payé. Omettre la seconde requête ici
+  // refuserait toute saisie à une école pourtant en essai — et le middleware
+  // étant le verrou dur, aucun écran ne pourrait rattraper l'erreur.
+  const [{ data }, { data: etab }] = await Promise.all([
+    supabase
+      .from('abonnement_etablissement')
+      .select('statut, "dateFin"')
+      .eq('etablissementId', meta.etablissement_id)
+      .order('dateFin', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('etablissement')
+      .select('"essaiFinLe"')
+      .eq('id', meta.etablissement_id)
+      .maybeSingle(),
+  ]);
 
-  const acces = evaluerAcces(
-    (data as { statut: 'ACTIF' | 'EXPIRE' | 'SUSPENDU'; dateFin: string } | null) ?? null,
-  );
+  const acces = evaluerAcces({
+    abonnement:
+      (data as { statut: 'ACTIF' | 'EXPIRE' | 'SUSPENDU'; dateFin: string } | null) ?? null,
+    essaiFinLe: (etab as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null,
+  });
 
   if (!ecriture) aMemoriser = acces.niveau;
 

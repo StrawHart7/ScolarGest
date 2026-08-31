@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { getAbonnementCourant, listPaiementsAbonnement } from '@/services/abonnement';
+import { getAbonnementCourant, getEssaiFinLe, listPaiementsAbonnement } from '@/services/abonnement';
 import { evaluerAcces, statutEffectif } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
@@ -46,9 +48,11 @@ export default async function AbonnementPage() {
   const statut = statutEffectif(
     abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
   );
-  const acces = evaluerAcces(
-    abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-  );
+  const essaiFinLe = await getEssaiFinLe(ctx.etablissementId);
+  const acces = evaluerAcces({
+    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
+    essaiFinLe,
+  });
 
   return (
     <AppLayout
@@ -58,12 +62,24 @@ export default async function AbonnementPage() {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Mon abonnement</h1>
-          <p className="text-body-md text-text-secondary">
-            État de l&apos;abonnement de votre établissement à ScolarGest et historique des
-            règlements enregistrés par notre équipe.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-display-sm text-text-primary">Mon abonnement</h1>
+            <p className="text-body-md text-text-secondary">
+              État de l&apos;abonnement de votre établissement à ScolarGest et historique des
+              règlements.
+            </p>
+          </div>
+          {/* Souscrire engage une dépense : réservé au Directeur et au
+              Comptable, comme la page elle-même. */}
+          {(ctx.role === 'DIRECTEUR' || ctx.role === 'COMPTABLE') && (
+            <Button asChild>
+              <Link href="/abonnement/souscrire">
+                <CreditCard className="h-4 w-4" aria-hidden />
+                {abonnement ? 'Renouveler' : 'Activer mon abonnement'}
+              </Link>
+            </Button>
+          )}
         </div>
 
         <Card>

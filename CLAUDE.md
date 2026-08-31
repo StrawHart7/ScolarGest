@@ -203,7 +203,7 @@ Where a section is labelled **"Modifications"**, treat it as the authoritative o
 
 ## Development Phases
 
-See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 terminées). The app is deployed in production at [scolargest.vercel.app](https://scolargest.vercel.app). `analysis.md` documents design decisions (Q0–Q17), all resolved.
+See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 terminées). The app is deployed in production at [scolargest.com](https://scolargest.com). `analysis.md` documents design decisions (Q0–Q17), all resolved.
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
