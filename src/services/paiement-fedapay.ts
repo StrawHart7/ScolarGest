@@ -9,6 +9,7 @@ import {
   verifierEvenement,
 } from '@/lib/fedapay/client';
 import { OPERATEURS, type Operateur } from '@/lib/fedapay/operateurs';
+import { urlApplication } from '@/lib/url-app';
 
 /**
  * Paiement en ligne des abonnements (FedaPay, Mobile Money XOF).
@@ -102,7 +103,7 @@ export async function creerIntentionPaiement(
   if (erreurEtab) throw erreurEtab;
   const nomEtablissement = (etab as { nom: string } | null)?.nom ?? 'Établissement';
 
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const base = urlApplication();
   const { transaction, creee } = await creerTransaction({
     description: `ScolarGest — ${(plan as { nom: string }).nom}, ${nombreCycles} cycle${nombreCycles > 1 ? 's' : ''} — ${nomEtablissement}`,
     montant,
