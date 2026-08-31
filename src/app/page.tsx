@@ -104,6 +104,23 @@ const ROLES = [
   { name: 'Enseignant', description: 'Saisie des notes et suivi de ses classes et matières affectées.' },
 ];
 
+const ETAPES_DEMO = [
+  {
+    titre: 'Vous nous laissez vos coordonnées',
+    detail: 'Deux minutes, et rien à installer.',
+  },
+  {
+    titre: 'Nous vous rappelons sous 48 heures',
+    detail:
+      'Pour comprendre votre organisation : cycles enseignés, effectifs, façon de facturer.',
+  },
+  {
+    titre: 'Votre espace est ouvert et configuré',
+    detail:
+      'Vos classes, vos matières et vos frais sont en place. Vous disposez ensuite de 30 jours d’essai gratuit.',
+  },
+];
+
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-on-surface antialiased">
@@ -389,37 +406,87 @@ export default function LandingPage() {
               </Button>
             </div>
             <p className="mt-6 flex items-center gap-2 text-center text-sm text-white/60">
-              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden /> Aucun essai libre-service —
-              chaque école est mise en place avec notre équipe.
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden /> Votre espace est mis en
+              place avec notre équipe, puis 30 jours d’essai gratuit pour décider.
             </p>
           </Reveal>
         </section>
 
         {/* Demo form */}
         <section
-          className="border-t border-surface-border bg-surface px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24"
+          className="relative overflow-hidden border-t border-surface-border bg-surface px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24"
           id="demo"
         >
-          <Reveal className="mx-auto max-w-2xl">
-            <div className="mb-8 text-center sm:mb-10">
-              <h2 className="mb-3 text-2xl font-extrabold tracking-tight text-text-primary sm:text-3xl md:text-4xl">
-                Demander une démo
-              </h2>
-              <p className="text-base text-text-secondary sm:text-lg">
-                Laissez-nous vos coordonnées, notre équipe vous recontacte pour organiser une
-                présentation de ScolarGest adaptée à votre établissement.
+          {/* Halos repris du hero : la demande de démo est la fin du parcours,
+              elle mérite le même traitement que son ouverture. */}
+          <div className="pointer-events-none absolute left-0 top-0 h-[300px] w-[300px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-primary-fixed/40 blur-[90px] sm:h-[520px] sm:w-[520px]" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-[260px] w-[260px] translate-x-1/3 translate-y-1/3 rounded-full bg-tertiary-fixed/25 blur-[80px] sm:h-[420px] sm:w-[420px]" />
+
+          <div className="relative z-10 mx-auto grid max-w-6xl grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
+            <Reveal>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary-container">
+                Démonstration
               </p>
-            </div>
-            <div className="rounded-2xl border border-surface-border bg-surface-container-lowest p-5 shadow-subtle sm:p-8">
-              <DemandeDemoForm />
-            </div>
-            <p className="mt-6 text-center text-sm text-text-secondary">
-              Vous préférez écrire directement ?{' '}
-              <a href="mailto:hartkit.dev@gmail.com" className="font-medium text-primary hover:underline">
-                hartkit.dev@gmail.com
-              </a>
-            </p>
-          </Reveal>
+              <h2 className="mb-4 text-2xl font-extrabold tracking-tight text-text-primary sm:mb-6 sm:text-3xl md:text-4xl">
+                Voyez ScolarGest tourner sur votre propre école
+              </h2>
+              <p className="mb-8 text-base leading-relaxed text-text-secondary sm:mb-10 sm:text-lg">
+                Une présentation d’une trentaine de minutes, avec vos classes, vos niveaux et vos
+                frais. Pas une démo générique.
+              </p>
+
+              <ol className="flex flex-col gap-5">
+                {ETAPES_DEMO.map((etape, i) => (
+                  <li key={etape.titre} className="flex gap-4">
+                    <span
+                      aria-hidden
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white"
+                    >
+                      {i + 1}
+                    </span>
+                    <div>
+                      <p className="font-semibold text-text-primary">{etape.titre}</p>
+                      <p className="mt-0.5 text-sm leading-relaxed text-text-secondary">
+                        {etape.detail}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="mt-8 flex flex-col gap-3 rounded-xl border border-surface-border bg-surface-container-lowest p-5 sm:mt-10">
+                <p className="flex items-center gap-2.5 text-sm text-text-secondary">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-tertiary" aria-hidden />
+                  Aucune carte bancaire demandée.
+                </p>
+                <p className="flex items-center gap-2.5 text-sm text-text-secondary">
+                  <Lock className="h-4 w-4 shrink-0 text-tertiary" aria-hidden />
+                  Vos coordonnées servent uniquement à vous recontacter.
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delayMs={120}>
+              <div className="rounded-2xl border border-surface-border bg-surface-container-lowest p-5 shadow-floating sm:p-8">
+                <h3 className="mb-1 text-lg font-bold text-text-primary sm:text-xl">
+                  Parlez-nous de votre établissement
+                </h3>
+                <p className="mb-6 text-sm text-text-secondary">
+                  Les champs marqués d’une étoile sont nécessaires pour vous répondre.
+                </p>
+                <DemandeDemoForm />
+              </div>
+              <p className="mt-5 text-center text-sm text-text-secondary">
+                Vous préférez écrire directement ?{' '}
+                <a
+                  href="mailto:hartkit.dev@gmail.com"
+                  className="font-medium text-primary hover:underline"
+                >
+                  hartkit.dev@gmail.com
+                </a>
+              </p>
+            </Reveal>
+          </div>
         </section>
       </main>
 

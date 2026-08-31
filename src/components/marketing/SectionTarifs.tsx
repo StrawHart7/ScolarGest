@@ -27,6 +27,16 @@ import { cn } from '@/lib/utils';
  * La troisième colonne est un vrai cas, pas un remplissage : un groupe de
  * plusieurs établissements distincts sort du modèle mono-tenant et relève d'un
  * devis.
+ *
+ * **Chaque offre reprend la précédente par une ligne « Tout ce que comprend… »
+ * puis ajoute la sienne.** Sans cette échelle, l'offre d'entrée détaillait ses
+ * quatre modules pendant que l'offre mise en avant les résumait en une ligne —
+ * la plus chère paraissait donc la plus pauvre. Toute ligne ajoutée à une offre
+ * doit être ajoutée en haut de l'échelle, jamais au milieu.
+ *
+ * Les libellés décrivent un résultat, pas un module : « les bulletins de toute
+ * une classe en un clic » se vérifie dans le produit
+ * (`genererBulletinsClasseAction`), là où « module bulletins » ne promet rien.
  */
 
 interface Offre {
@@ -46,14 +56,13 @@ const OFFRES: Offre[] = [
     cycles: 1,
     mise_en_avant: false,
     inclus: [
-      'Élèves, responsables et inscriptions',
-      'Enseignants et affectations',
-      'Notes, moyennes et bulletins officiels',
-      'Facturation, paiements et reçus',
-      'Comptes Directeur, Secrétaire, Comptable, Enseignant',
-      'Utilisateurs et effectifs illimités',
+      'La gestion complète de votre école : élèves, enseignants, notes et finances',
+      'Les bulletins de toute une classe générés en un clic',
+      'Chaque paiement encaissé, son reçu remis dans la foulée',
+      'Un écran par rôle : personne ne voit ce qui ne le regarde pas',
+      'Élèves, enseignants et comptes sans limite de nombre',
     ],
-    cta: 'Commencer',
+    cta: 'Demander une démo',
   },
   {
     nom: 'Collège et lycée',
@@ -62,12 +71,13 @@ const OFFRES: Offre[] = [
     mise_en_avant: true,
     inclus: [
       'Tout ce que comprend l’offre à un cycle',
-      'Les deux cycles dans un seul espace',
-      'Passage de la 3ème à la 2nde sans ressaisie',
-      'Enseignants partagés entre collège et lycée',
-      'Trésorerie et tableaux de bord consolidés',
+      'Vos deux cycles dans un seul espace, une seule connexion',
+      'Le passage de la 3ème à la 2nde sans ressaisir un dossier',
+      'Un enseignant créé une fois, affecté au collège comme au lycée',
+      'Effectifs et trésorerie consolidés sur un seul tableau de bord',
+      'Un seul abonnement, une seule facture',
     ],
-    cta: 'Commencer',
+    cta: 'Demander une démo',
   },
   {
     nom: 'Groupe scolaire',
@@ -75,10 +85,11 @@ const OFFRES: Offre[] = [
     cycles: null,
     mise_en_avant: false,
     inclus: [
-      'Un espace isolé par établissement',
-      'Accompagnement à la reprise de données',
-      'Formation des équipes',
-      'Facturation groupée',
+      'Tout ce que comprend l’offre collège et lycée',
+      'Un espace étanche par établissement',
+      'Reprise de vos données existantes',
+      'Formation de vos équipes',
+      'Une facture unique pour le groupe',
     ],
     cta: 'Nous contacter',
   },
