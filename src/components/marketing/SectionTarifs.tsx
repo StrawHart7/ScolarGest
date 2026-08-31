@@ -215,7 +215,7 @@ export function SectionTarifs() {
                 <div className="mt-8 flex-grow" />
                 <Button
                   asChild
-                  variant={offre.mise_en_avant ? 'default' : 'outline'}
+                  variant={offre.mise_en_avant ? 'primary' : 'secondary'}
                   className="w-full"
                 >
                   <a href="#demo">{offre.cta}</a>
