@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/Reveal';
 import { DemandeDemoForm } from '@/components/marketing/DemandeDemoForm';
+import { SectionTarifs } from '@/components/marketing/SectionTarifs';
 
 const MODULES = [
   {
@@ -134,6 +135,12 @@ export default function LandingPage() {
               className="text-sm font-medium text-text-secondary transition-colors hover:text-primary"
             >
               Rôles
+            </a>
+            <a
+              href="#tarifs"
+              className="text-sm font-medium text-text-secondary transition-colors hover:text-primary"
+            >
+              Tarifs
             </a>
           </nav>
           <div className="flex items-center gap-3 sm:gap-4">
@@ -349,6 +356,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Tarifs */}
+        <SectionTarifs />
 
         {/* CTA banner */}
         <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-container px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24">

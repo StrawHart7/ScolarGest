@@ -1262,3 +1262,74 @@ tranché. Aucune urgence — zéro client réel en base au moment de la décisio
 
 **DoD** : catalogue vérifié en base (deux cycles disponibles, chaînage partant
 de la 6ème, 28 classes toujours lisibles), lint, tests et build verts.
+
+---
+
+### Fonctionnalité — Modèle économique : essai, tarifs et paiement FedaPay
+
+**Statut** : en cours (2026-08-31) — branche `feat/pricing`.
+
+**Objectif** : un vrai paywall SaaS, avec paiement intégré, pour rendre
+l'acquisition autonome. Prestataire : **FedaPay** (Mobile Money, XOF).
+
+**Décisions de cadrage** :
+
+- **Facturer le cycle, pas le tenant.** Un complexe collège-lycée est bien
+  deux unités facturables, mais **un seul espace de données**. Les séparer en
+  deux tenants casserait le passage de cohorte 3ème → 2nde (`fn_passer_cohorte`
+  est scopée sur un `etablissementId`), scinderait l'historique de l'élève,
+  dupliquerait les enseignants partagés et imposerait deux comptes au
+  Directeur. `cycle_etablissement` modélise déjà la quantité à facturer.
+- **10 000 F/mois et 100 000 F/an par cycle**, soit 20 000 et 200 000 pour un
+  complexe. Le palier « au-delà de 500 élèves » est **abandonné pour le
+  moment** : le seuil demandait des données de consommation qu'on n'a pas, et
+  une falaise tarifaire pousse une école à ne pas saisir ses élèves — dans un
+  logiciel de gestion scolaire, la donnée est le produit.
+- **Essai gratuit de 30 jours, accès complet**, décompté depuis la définition
+  du PIN de démarrage.
+
+**Livrables** :
+
+- [x] Migration `0015` : `essaiDebuteLe`/`essaiFinLe` sur `etablissement`,
+      `nombreCycles`/`montantTotal` sur l'abonnement, catalogue tarifaire.
+- [x] Trigger `fn_proteger_dates_essai` — la policy `etablissement_tenant` est
+      `for all`, un Directeur pouvait donc **prolonger son propre essai**. Le
+      trigger réécrit les dates au démarrage et refuse toute modification
+      ultérieure. Migration `0016` : reconnaître aussi la clé service-role,
+      sans quoi les outils de la plateforme étaient bloqués eux aussi.
+- [x] Niveau d'accès `ESSAI` dans `evaluerAcces`, qui prend désormais un objet
+      `EtatFacturation`. Ordre : SUSPENDU, puis abonnement payé, puis essai.
+- [x] Section de tarifs publique (`SectionTarifs.tsx`) et entrée « Tarifs »
+      dans la navbar d'accueil.
+- [ ] Intégration FedaPay : transaction, webhook signé, réconciliation avec le
+      `validerPaiement` manuel.
+- [ ] Écran d'abonnement interne : souscription, renouvellement, historique.
+
+**Ce que la documentation FedaPay impose** :
+
+- Le **webhook est la source de vérité**, pas la redirection de retour : une
+  école dont le téléphone s'éteint après confirmation doit être activée quand
+  même.
+- La signature `X-FEDAPAY-SIGNATURE` se vérifie sur le **corps brut** —
+  `request.text()` avant tout parsing.
+- **Le webhook doit être exclu du `matcher` de `src/middleware.ts`**, qui
+  redirige vers `/login` tout ce qui n'y est pas nié. FedaPay recevrait un 307,
+  considérerait la livraison réussie, et l'abonnement ne serait jamais activé —
+  sans la moindre erreur.
+- Un **troisième secret** est nécessaire (`FEDAPAY_WEBHOOK_SECRET`), distinct
+  des clés API.
+- **Aucun formulaire de carte chez nous** : cela nous ferait entrer dans le
+  périmètre PCI-DSS. Le parcours retenu est le paiement mobile direct
+  (numéro + confirmation USSD, l'école ne quitte pas l'application), avec la
+  page hébergée FedaPay en repli.
+
+**Limite connue** : la méthode mobile directe ne documente que `mtn`, `moov`,
+`mtn_ci` et `moov_tg`. Au Togo, cela signifie **Flooz, pas T-Money** — à
+vérifier côté tableau de bord FedaPay. Le virement et le Mobile Money manuel
+restent couverts par `validerPaiement`.
+
+**Piège de la grille publique** : `src/lib/tarifs.ts` n'est pas la source de
+vérité de la facturation (`plan_abonnement` et `abonnement_etablissement.
+montantTotal` le sont). Il existe parce que `listPlans()` exige une session,
+alors que la page de tarifs s'adresse à des visiteurs anonymes. Toute
+modification doit être répercutée des deux côtés.
