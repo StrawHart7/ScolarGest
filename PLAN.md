@@ -1313,12 +1313,39 @@ l'acquisition autonome. Prestataire : **FedaPay** (Mobile Money, XOF).
       (`src/lib/url-app.ts`).
 - [ ] Relances avant échéance (courriel).
 - [ ] Console SUPER_ADMIN : suivi des transactions FedaPay.
-- [ ] **Paiement réel non validé** : les appels au bac à sable reviennent
-      `declined` quel que soit le montant et quel que soit le numéro documenté.
-      Cela se joue côté FedaPay — réglage du bac à sable ou compte non encore
-      validé (NIF et CCRM manquants). Le chemin technique, lui, est prouvé :
-      transaction créée, jeton généré, appel accepté, `payment_intent` en
-      `mode: momo_test`.
+- [ ] **Paiement réel bloqué côté FedaPay — compte non autorisé.** Diagnostic
+      affiné le 2026-08-31 après la bascule de domaine :
+
+      | mode | numéro | montant | résultat |
+      |---|---|---|---|
+      | `momo_test` | 64000001 | 100 000 | `declined` |
+      | `momo_test` | 66000001 | 100 000 | `declined` |
+      | `momo_test` | 64000001 | 1 000 | `declined` |
+      | `moov_tg` | 90000001 | 100 000 | **400 « Opération non autorisée »** |
+
+      La dernière ligne est la plus parlante : ce n'est pas un rejet de
+      paiement mais un **refus de permission**. Le compte n'a pas le droit
+      d'utiliser ce moyen de paiement — cohérent avec un compte non validé
+      (NIF et CCRM manquants). Le `declined` de `momo_test` est
+      vraisemblablement le même verrou, exprimé plus poliment : le montant et
+      le numéro n'y changent rien.
+
+      **Ce n'est pas un problème de code, et le domaine n'y était pour rien** :
+      le refus arrive dans la réponse immédiate de `sendNowWithToken`, avant
+      qu'aucun webhook n'entre en jeu.
+
+      Tout le reste du chemin est prouvé : transaction créée, jeton généré,
+      `sendNowWithToken` accepté avec l'enveloppe `phone_number`,
+      `payment_intent` créé en `mode: momo_test`, webhook répondant en
+      production sur l'apex, ouverture d'abonnement et idempotence vérifiées
+      avec une vraie signature.
+
+      À vérifier côté tableau de bord FedaPay : les moyens de paiement activés
+      sur le compte, et les réglages du bac à sable (la documentation mentionne
+      que l'échec se simule « selon les réglages de l'environnement sandbox »).
+      Au passage en live : remplacer les clés dans Vercel, passer
+      `FEDAPAY_ENVIRONMENT` à `live`, déclarer le webhook sur
+      `https://scolargest.com/api/fedapay/webhook`. Aucun code à modifier.
 
 **Ce que la documentation FedaPay impose** :
 
