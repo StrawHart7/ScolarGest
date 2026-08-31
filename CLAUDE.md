@@ -207,7 +207,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-08-30) :
+**Active branches** (2026-08-31) :
+- `feat/pricing` — ✅ terminée et mergée sur `main` (2026-08-31) : modèle économique complet — essai gratuit de 30 jours, facturation par cycle, section de tarifs publique, paiement Mobile Money via FedaPay, bascule sur le domaine `scolargest.com`. Migrations `0015` à `0017`. Voir `PLAN.md` § 8.
+- `feat/secondaire-uniquement` — ✅ terminée et mergée sur `main` (2026-08-31) : retrait de la maternelle et du primaire du catalogue. Migration `0014`.
 - `feat/identite-documents` — ✅ terminée et mergée sur `main` (2026-08-30) : logo et filigrane sur bulletins et reçus, plus deux corrections du bulletin secondaire (note définitive = moyenne × coefficient, suppression des lignes de remplissage anonymes). Migration `0013`. Voir `PLAN.md` § 8.
 - `feat/demarrage-carte` — ✅ terminée et mergée sur `main` (2026-08-30) : `/demarrage` passe du fil conversationnel à une carte flottante à deux colonnes, plus un écran de félicitations chiffré.
 - `feat/onboarding` — ✅ terminée et mergée sur `main` (2026-08-29) : questionnaire de configuration guidée `/demarrage`, scripté (pas de LLM), par rôle. Migration `0012`. Voir `PLAN.md` § 8.
@@ -343,6 +345,112 @@ entièrement l'onboarding : un établissement de test doit avoir un abonnement
 ACTIF, sinon chaque étape échoue sans explication.
 `scripts/seed-onboarding-test.ts` en crée un (`--reset`, `--eleves`,
 `--secretaire`, `--purge`).
+
+### Modèle économique : essai, facturation par cycle, paiement FedaPay
+
+Décidé et livré le 2026-08-31. Migrations `0015` à `0017`.
+
+**L'essai n'est pas un abonnement.** `abonnement_etablissement.planId` est
+`NOT NULL` : y loger un essai imposerait un plan fictif à prix nul, qui
+remonterait ensuite dans l'historique de facturation et les relances. Il vit
+donc sur `etablissement` (`essaiDebuteLe`, `essaiFinLe`) et démarre à la
+définition du PIN de démarrage — première écriture réelle du Directeur.
+
+**Les dates d'essai ne sont pas écrivables par le tenant.** La policy
+`etablissement_tenant` est `for all` : un Directeur peut écrire sur sa propre
+ligne d'établissement, et prolongeait donc son propre essai. Le trigger
+`fn_proteger_dates_essai` **réécrit** les valeurs au démarrage — 30 jours
+imposés par le serveur, quoi qu'envoie l'appelant — et refuse toute
+modification ultérieure. La migration `0016` reconnaît en plus la clé
+service-role, sans quoi le trigger bloquait les outils de la plateforme
+eux-mêmes (`seed-onboarding-test --reset`).
+
+**`evaluerAcces` prend un objet `EtatFacturation`** et porte cinq niveaux, dont
+`ESSAI` qui autorise l'écriture. L'ordre compte : `SUSPENDU` prime toujours,
+puis l'abonnement payé, puis l'essai. Une école qui souscrit pendant son essai
+est traitée comme cliente ; une école suspendue ne retrouve pas l'écriture via
+un essai encore ouvert.
+
+**Facturation par cycle.** Le prix du catalogue est celui d'**un** cycle
+(10 000/mois, 100 000/an) ; un complexe collège-lycée en porte deux.
+`nombreCycles` et `montantTotal` sont figés sur la période, comme les tarifs
+scolaires — changer le catalogue ne doit pas réécrire ce qu'une école a payé.
+
+**`src/lib/tarifs.ts` n'est pas la source de vérité de la facturation.**
+`plan_abonnement` et `abonnement_etablissement.montantTotal` le sont. Ce
+fichier existe parce que `listPlans()` exige une session alors que la page de
+tarifs s'adresse à des visiteurs anonymes. Toute modification doit être
+répercutée des deux côtés.
+
+### Paiement FedaPay : les pièges
+
+**La page de paiement doit rester sous `/abonnement/`.**
+`PATHS_TOUJOURS_ACCESSIBLES` (`src/lib/supabase/middleware.ts`) y laisse passer
+les écritures même en lecture seule. Ailleurs, la Server Action de paiement
+serait refusée par la garde d'abonnement — le paywall bloquerait exactement les
+écoles venues payer.
+
+**`api/fedapay` est exclu du `matcher` de `src/middleware.ts`.** Sans cela,
+FedaPay reçoit un 307 vers `/login`, le compte comme une livraison réussie, et
+aucun abonnement n'est activé — sans la moindre erreur nulle part. C'est la
+panne la plus silencieuse de l'intégration.
+
+**Le webhook fait foi, pas la redirection de retour.** `/abonnement/retour`
+n'active rien : elle est atteinte par une redirection de navigateur que
+n'importe qui peut fabriquer en tapant l'URL.
+
+**La signature se vérifie sur le corps brut** (`request.text()` avant tout
+parsing) et **les erreurs du SDK FedaPay ne sont pas des `Error`** — même piège
+que Supabase. `estErreurSignature()` teste
+`instanceof SignatureVerificationError`, pas le texte du message : une version
+par expression régulière renvoyait 500 au lieu de 400, ce qui aurait fait
+rejouer indéfiniment une charge toujours refusée.
+
+**L'idempotence repose sur l'état**, pas sur un identifiant d'événement :
+`transaction_fedapay.abonnementId` non nul signifie « déjà honorée ». Ça résiste
+aussi à deux événements distincts portant sur la même transaction.
+
+**Le tenant n'écrit jamais dans `transaction_fedapay`** — RLS en lecture seule.
+Les écritures passent par la clé service-role, depuis un service gardé ou un
+webhook signé.
+
+**`sendNowWithToken(mode, token, params)` prend le corps de la requête**, pas
+le numéro : le SDK fait `params.token = token` puis poste `params` tel quel, il
+faut donc `{ phone_number: { number, country } }`. L'exemple de la
+documentation officielle induit en erreur et produit un `400 — Paramètre
+manquant ou la valeur est vide phone_number`.
+
+**En bac à sable, utiliser `momo_test`** et non `moov_tg` : ce mode « ne dépend
+pas des serveurs de test des opérateurs ». Numéros acceptés `64000001` et
+`66000001`, tout autre simule un échec.
+
+**Aucun champ de carte bancaire** : les héberger ferait entrer ScolarGest dans
+le périmètre PCI-DSS. Le Mobile Money ne demande qu'un numéro de téléphone.
+
+### Domaine et URL publique
+
+`urlApplication()` (`src/lib/url-app.ts`) résout dans l'ordre
+`NEXT_PUBLIC_APP_URL`, puis `VERCEL_URL`, puis localhost. Le repli sur
+`VERCEL_URL` fait qu'une **preview renvoie sur elle-même** au lieu de rejeter
+l'utilisateur en production au retour d'un paiement. `NEXT_PUBLIC_APP_URL` ne
+doit donc être déclarée **que pour la production** sur Vercel.
+
+Deux conséquences hors du dépôt à ne pas oublier lors d'un changement de
+domaine : les **Redirect URLs de Supabase Auth** (sinon invitations et
+réinitialisations de mot de passe mènent à une erreur) et l'**URL du webhook
+FedaPay**.
+
+**La protection de déploiement Vercel bloque les webhooks en preview.**
+`vercel_auth_enabled` renvoie un 401 avant d'atteindre le code. Il faut une
+exception de chemin sur `/api/fedapay/webhook`, ou tester en production.
+
+### Vérification : `typecheck` n'est pas optionnel
+
+`.github/workflows/ci.yml` enchaîne `npm ci`, `lint`, **`typecheck`** puis
+`test`. Lancer seulement lint et les tests laisse passer les erreurs de typage —
+c'est ainsi qu'un `variant="outline"` inexistant sur le `Button` du projet a
+fait échouer CI et Vercel. `npm run typecheck` coûte une trentaine de secondes
+et n'est pas un build.
 
 ### Identité des documents : logo et filigrane
 

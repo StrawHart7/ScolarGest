@@ -1267,7 +1267,8 @@ de la 6ème, 28 classes toujours lisibles), lint, tests et build verts.
 
 ### Fonctionnalité — Modèle économique : essai, tarifs et paiement FedaPay
 
-**Statut** : en cours (2026-08-31) — branche `feat/pricing`.
+**Statut** : ✅ terminée et mergée sur `main` (2026-08-31) — branche
+`feat/pricing`. Migrations `0015` à `0017`.
 
 **Objectif** : un vrai paywall SaaS, avec paiement intégré, pour rendre
 l'acquisition autonome. Prestataire : **FedaPay** (Mobile Money, XOF).
@@ -1306,8 +1307,18 @@ l'acquisition autonome. Prestataire : **FedaPay** (Mobile Money, XOF).
       migration `0017` (`transaction_fedapay`).
 - [x] Page de paiement `/abonnement/souscrire` : choix de formule, Mobile Money
       direct ou page hébergée en repli, page de retour `/abonnement/retour`.
+- [x] Saisie du numéro en **pays + numéro** (`src/lib/fedapay/pays.ts`), avec
+      normalisation testée et opérateurs filtrés par pays.
+- [x] Bascule sur le domaine `scolargest.com`, avec repli sur `VERCEL_URL`
+      (`src/lib/url-app.ts`).
 - [ ] Relances avant échéance (courriel).
 - [ ] Console SUPER_ADMIN : suivi des transactions FedaPay.
+- [ ] **Paiement réel non validé** : les appels au bac à sable reviennent
+      `declined` quel que soit le montant et quel que soit le numéro documenté.
+      Cela se joue côté FedaPay — réglage du bac à sable ou compte non encore
+      validé (NIF et CCRM manquants). Le chemin technique, lui, est prouvé :
+      transaction créée, jeton généré, appel accepté, `payment_intent` en
+      `mode: momo_test`.
 
 **Ce que la documentation FedaPay impose** :
 
@@ -1370,3 +1381,31 @@ identiques n'ouvrent qu'un seul abonnement.
 **La page de retour n'active rien.** Elle est atteinte par une redirection de
 navigateur, que n'importe qui peut fabriquer en tapant l'URL. Y ouvrir un
 abonnement offrirait le produit à qui connaît l'adresse.
+
+**Découvertes de l'intégration, à ne pas réapprendre** :
+
+- **`sendNowWithToken` prend le corps de la requête, pas le numéro.** Le SDK
+  fait `params.token = token` puis poste `params` tel quel : il faut lui passer
+  `{ phone_number: { … } }`. L'exemple de la documentation officielle écrit
+  `sendNowWithToken(mode, token, phone_number)`, ce qui aplatit l'objet et
+  produit `400 — Paramètre manquant ou la valeur est vide phone_number`. **Tous
+  les paiements échouaient** ; seul un appel à l'API réelle l'a révélé.
+- **`momo_test` est le mode du bac à sable**, et « ne dépend pas des serveurs de
+  test des opérateurs ». Envoyer `moov_tg` en sandbox sollicite l'infrastructure
+  de Moov, qui n'a aucune raison de répondre. Numéros acceptés : `64000001` et
+  `66000001`.
+- **La protection de déploiement Vercel bloque les webhooks en preview.**
+  `vercel_auth_enabled` renvoie un 401 avant d'atteindre le code. Il faut soit
+  une exception de chemin sur `/api/fedapay/webhook`, soit tester en production.
+- **`tsc --noEmit` attrape ce que lint et vitest ne voient pas.** Le workflow CI
+  (`.github/workflows/ci.yml`) enchaîne `lint`, `typecheck` puis `test` : ne
+  lancer que les deux extrêmes laisse passer des erreurs de typage, comme un
+  `variant="outline"` inexistant sur le `Button` du projet.
+- **Pays limités à ceux des moyens de paiement documentés** (Bénin, Togo, Côte
+  d'Ivoire). Proposer le Sénégal afficherait un choix qui échouerait au moment
+  de payer.
+- **Longueurs de numéro en intervalle, pas en valeur exacte** : les plans de
+  numérotation ont bougé (dix chiffres au Bénin et en Côte d'Ivoire) alors que
+  les numéros de test FedaPay en font huit. Piège à connaître : `22890123` est
+  un numéro togolais valide commençant par l'indicatif `228` — l'indicatif ne
+  se retire que si ce qui reste garde une longueur plausible.
