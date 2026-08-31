@@ -1301,9 +1301,13 @@ l'acquisition autonome. Prestataire : **FedaPay** (Mobile Money, XOF).
       `EtatFacturation`. Ordre : SUSPENDU, puis abonnement payé, puis essai.
 - [x] Section de tarifs publique (`SectionTarifs.tsx`) et entrée « Tarifs »
       dans la navbar d'accueil.
-- [ ] Intégration FedaPay : transaction, webhook signé, réconciliation avec le
-      `validerPaiement` manuel.
-- [ ] Écran d'abonnement interne : souscription, renouvellement, historique.
+- [x] Intégration FedaPay : `src/lib/fedapay/client.ts` (SDK officiel),
+      `src/services/paiement-fedapay.ts`, route `POST /api/fedapay/webhook`,
+      migration `0017` (`transaction_fedapay`).
+- [x] Page de paiement `/abonnement/souscrire` : choix de formule, Mobile Money
+      direct ou page hébergée en repli, page de retour `/abonnement/retour`.
+- [ ] Relances avant échéance (courriel).
+- [ ] Console SUPER_ADMIN : suivi des transactions FedaPay.
 
 **Ce que la documentation FedaPay impose** :
 
@@ -1333,3 +1337,36 @@ vérité de la facturation (`plan_abonnement` et `abonnement_etablissement.
 montantTotal` le sont). Il existe parce que `listPlans()` exige une session,
 alors que la page de tarifs s'adresse à des visiteurs anonymes. Toute
 modification doit être répercutée des deux côtés.
+
+#### Ce que l'intégration FedaPay a appris
+
+**La page de paiement vit sous `/abonnement/` et doit y rester.**
+`PATHS_TOUJOURS_ACCESSIBLES` (`src/lib/supabase/middleware.ts`) y laisse passer
+les écritures même en lecture seule. Ailleurs, la Server Action de paiement
+serait refusée par la garde d'abonnement : le paywall bloquerait exactement les
+écoles venues payer.
+
+**Le tenant n'écrit jamais dans `transaction_fedapay`.** La RLS ne lui accorde
+que la lecture ; les écritures passent par la clé service-role, depuis un
+service gardé ou un webhook signé. Vérifié par une session Directeur réelle :
+l'insertion d'une transaction `APPROUVE` est refusée en `42501`, et un `update`
+du statut ne modifie aucune ligne.
+
+**Les erreurs du SDK FedaPay ne sont pas des `Error`** — même piège que les
+erreurs Supabase. `e instanceof Error` y est faux et `String(e)` donne
+« [object Object] ». D'où `estErreurSignature()`, qui teste
+`instanceof SignatureVerificationError` et non le texte du message : une
+première version testait le message par expression régulière et renvoyait 500
+au lieu de 400, ce qui aurait fait rejouer indéfiniment une charge toujours
+refusée.
+
+**Idempotence par l'état, pas par un identifiant d'événement.**
+`transaction_fedapay.abonnementId` non nul signifie « déjà honorée ». C'est plus
+robuste qu'une table d'événements traités, parce que ça résiste aussi à deux
+événements distincts portant sur la même transaction. Vérifié de bout en bout
+avec une signature réelle (`Webhook.generateTestHeaderString`) : deux envois
+identiques n'ouvrent qu'un seul abonnement.
+
+**La page de retour n'active rien.** Elle est atteinte par une redirection de
+navigateur, que n'importe qui peut fabriquer en tapant l'URL. Y ouvrir un
+abonnement offrirait le produit à qui connaît l'adresse.
