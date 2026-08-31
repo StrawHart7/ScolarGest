@@ -122,7 +122,10 @@ export const SECTIONS: Record<string, Section> = {
         description: 'Formule en cours, échéance et renouvellement.',
         href: '/abonnement',
         icone: 'abonnements',
-        roles: ['DIRECTEUR'],
+        // Le Comptable peut souscrire et renouveler (`/abonnement/souscrire`) :
+        // lui masquer l'entrée le laissait sans aucun chemin vers la page qu'il
+        // a pourtant le droit d'utiliser.
+        roles: ['DIRECTEUR', 'COMPTABLE'],
       },
     ],
   },
@@ -241,6 +244,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
         { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
+        // Entrée directe, et non via « Établissement » que le Comptable n'a
+        // pas : il a le droit de souscrire et de renouveler, il lui faut donc
+        // un chemin visible en dehors du bandeau d'alerte.
+        { label: 'Abonnement', href: '/abonnement', icone: 'abonnements' },
       ];
     case 'ENSEIGNANT':
       return [
