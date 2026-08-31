@@ -13,8 +13,14 @@
  * ni de client Supabase.
  */
 
-/** Nom de cycle tel que seedé dans la table `cycle`. */
-export type NomCycle = 'MATERNELLE' | 'PRIMAIRE' | 'COLLEGE' | 'LYCEE';
+/**
+ * Nom de cycle tel que seedé dans la table `cycle`, restreint aux cycles
+ * encore proposés. La maternelle et le primaire sont sortis du catalogue
+ * (migration `0014`) : leurs lignes subsistent en base pour les établissements
+ * qui les avaient activées, mais aucune configuration nouvelle ne les atteint,
+ * donc plus aucune matière n'a à leur être suggérée.
+ */
+export type NomCycle = 'COLLEGE' | 'LYCEE';
 
 export interface MatiereSuggeree {
   nom: string;
@@ -40,23 +46,6 @@ const TRONC_SECONDAIRE: MatiereSuggeree[] = [
 ];
 
 export const MATIERES_SUGGEREES: Record<NomCycle, MatiereSuggeree[]> = {
-  MATERNELLE: [
-    { nom: 'Langage', code: 'LANG', parDefaut: true },
-    { nom: 'Graphisme et écriture', code: 'GRAPH', parDefaut: true },
-    { nom: 'Découverte du monde', code: 'DDM', parDefaut: true },
-    { nom: 'Activités artistiques', code: 'ART', parDefaut: true },
-    { nom: 'Éducation physique', code: 'EPS', parDefaut: true },
-  ],
-  PRIMAIRE: [
-    { nom: 'Français', code: 'FRA', parDefaut: true },
-    { nom: 'Mathématiques', code: 'MATH', parDefaut: true },
-    { nom: 'Éveil scientifique', code: 'EVS', parDefaut: true },
-    { nom: 'Histoire-Géographie', code: 'HG', parDefaut: true },
-    { nom: 'Éducation Civique et Morale', code: 'ECM', parDefaut: true },
-    { nom: 'Anglais', code: 'ANG', parDefaut: false },
-    { nom: 'Éducation Physique et Sportive', code: 'EPS', parDefaut: true },
-    { nom: 'Activités artistiques', code: 'ART', parDefaut: false },
-  ],
   COLLEGE: TRONC_SECONDAIRE,
   LYCEE: TRONC_SECONDAIRE,
 };

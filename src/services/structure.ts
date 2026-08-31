@@ -35,10 +35,22 @@ export interface Serie {
  * de justification, et l'absence de garde faisait de ces trois fonctions les
  * seules lectures anonymes du domaine scolaire.
  */
+/**
+ * Cycles proposables à la configuration.
+ *
+ * Filtre sur `disponible` : depuis le recentrage sur le secondaire (migration
+ * `0014`), la maternelle et le primaire sont hors catalogue. Les lignes sont
+ * conservées en base — les établissements qui les avaient activées continuent
+ * de fonctionner — mais plus personne ne peut les choisir.
+ */
 export async function listCycles(): Promise<Cycle[]> {
   await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
-  const { data, error } = await supabase.from('cycle').select('id, nom, ordre').order('ordre');
+  const { data, error } = await supabase
+    .from('cycle')
+    .select('id, nom, ordre')
+    .eq('disponible', true)
+    .order('ordre');
   if (error) throw error;
   return data ?? [];
 }
@@ -63,6 +75,23 @@ export async function activerCycle(cycleId: string, pin: string): Promise<void> 
   const ctx = await requireRole('DIRECTEUR');
   await exigerPin(pin, 'DIRECTEUR');
   const supabase = createClient();
+
+  // Le `cycleId` vient de l'appelant : masquer un cycle retiré dans
+  // `listCycles()` ne suffit pas à empêcher de l'activer par un appel forgé.
+  // Le refus doit vivre ici, sur le chemin d'écriture.
+  const { data: cycle, error: erreurCycle } = await supabase
+    .from('cycle')
+    .select('nom, disponible')
+    .eq('id', cycleId)
+    .maybeSingle();
+  if (erreurCycle) throw erreurCycle;
+  if (!cycle) throw new Error("Ce cycle n'existe pas.");
+  if (!(cycle as { disponible: boolean }).disponible) {
+    throw new Error(
+      `Le cycle ${(cycle as { nom: string }).nom} n'est plus proposé : ScolarGest couvre le collège et le lycée.`,
+    );
+  }
+
   const { error } = await supabase
     .from('cycle_etablissement')
     .upsert(

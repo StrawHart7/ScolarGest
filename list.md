@@ -118,7 +118,7 @@
 - [ ] `TypeResponsable` : PERE, MERE, TUTEUR, AUTRE
 
 ### Seeds (données initiales)
-- [ ] Cycles : MATERNELLE, PRIMAIRE, COLLEGE, LYCEE
+- [ ] Cycles : COLLEGE, LYCEE (maternelle et primaire retires du catalogue, migration 0014)
 - [ ] Niveaux par cycle avec `niveau_suivant_id` (séquence complète Togo)
 - [ ] Séries lycée : A4, C, D, F4, G2, G3 (et autres séries togolaises)
 - [ ] Plans d'abonnement : Mensuel, Annuel

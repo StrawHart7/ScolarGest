@@ -152,6 +152,36 @@ Every table includes `etablissement_id`. Isolation is enforced at the **database
 - **Audit log** every sensitive write (payments, grade validation, user creation).
 - **5 fixed roles**: `SUPER_ADMIN`, `DIRECTEUR`, `SECRETAIRE`, `COMPTABLE`, `ENSEIGNANT` — no dynamic role system in v1.
 
+### Périmètre : collège et lycée uniquement
+
+Décision produit du 2026-08-31 — ScolarGest ne s'adresse plus à la maternelle
+ni au primaire. Migration `0014_cycles_secondaire_uniquement.sql`.
+
+**Retrait du catalogue, pas suppression.** `cycle.disponible` vaut `false` pour
+MATERNELLE et PRIMAIRE. La colonne signifie exactement « proposable à la
+configuration d'un établissement », et rien de plus :
+
+- `listCycles()` la filtre — ces cycles disparaissent de `/etablissement/cycles`
+  et de l'étape 2 de `/demarrage`.
+- `activerCycle()` la vérifie **à l'écriture**. Le `cycleId` vient de
+  l'appelant : masquer un cycle dans une liste n'empêche pas de l'activer par un
+  appel forgé. Même raisonnement que pour les gardes de rôle — la liste informe,
+  l'écriture décide.
+- `listCyclesActifs()` ne la filtre **pas**, délibérément. Un établissement déjà
+  en primaire garde ses classes, ses notes et ses bulletins ; filtrer ici lui
+  ferait disparaître son école sous les pieds. C'est aussi pourquoi le gabarit
+  générique `src/lib/pdf/templates/bulletin.ts` reste vivant : le dispatch de
+  `bulletin.ts:94` peut encore l'atteindre pour une classe de primaire
+  existante. **Ne pas le supprimer comme code mort.**
+
+`niveauSuivantId` est coupé sur les cycles retirés : **la 6ème est le niveau
+d'entrée**, `CM2 → 6ème` n'existe plus.
+
+**Piège de lecture** : `0003_seed_catalogues.sql` et `supabase/seed.sql`
+insèrent toujours les quatre cycles — volontairement, ils reconstruisent le
+catalogue historique que `0014` restreint ensuite. Aucun des deux n'est l'état
+final du périmètre.
+
 ## Domain Documentation
 
 All business rules live in `Docs/`. Read the relevant file before implementing any domain feature:

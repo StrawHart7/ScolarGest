@@ -9,8 +9,6 @@ import { activerCyclesAction } from '../actions';
 import { ChampPin } from './ChampPin';
 
 const LIBELLE_CYCLE: Record<string, string> = {
-  MATERNELLE: 'Maternelle',
-  PRIMAIRE: 'Primaire',
   COLLEGE: 'Collège',
   LYCEE: 'Lycée',
 };
