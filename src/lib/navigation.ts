@@ -224,6 +224,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Établissements', labelCourt: 'Écoles', href: '/super-admin/etablissements', icone: 'etablissement' },
         { label: 'Abonnements', href: '/super-admin/abonnements', icone: 'abonnements' },
         { label: 'Demandes de démo', labelCourt: 'Demandes', href: '/super-admin/demandes', icone: 'utilisateurs' },
+        { label: 'Journal d’audit', labelCourt: 'Journal', href: '/super-admin/journal', icone: 'rapports' },
       ];
     case 'DIRECTEUR':
       return [

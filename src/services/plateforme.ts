@@ -373,3 +373,121 @@ export async function getFicheEtablissement(etablissementId: string): Promise<Fi
     })),
   };
 }
+
+export interface EntreeJournal {
+  id: string;
+  action: string;
+  module: string;
+  objetType: string;
+  objetId: string | null;
+  date: string;
+  etablissementNom: string | null;
+  auteur: string | null;
+  ancienneValeur: unknown;
+  nouvelleValeur: unknown;
+}
+
+export interface FiltresJournal {
+  module?: string;
+  etablissementId?: string;
+  /** Recherche sur le nom de l'action, insensible à la casse. */
+  recherche?: string;
+  page?: number;
+}
+
+export interface PageJournal {
+  entrees: EntreeJournal[];
+  total: number;
+  page: number;
+  parPage: number;
+  modules: string[];
+}
+
+export const TAILLE_PAGE_JOURNAL = 50;
+
+/**
+ * Journal d'audit, toutes écoles confondues.
+ *
+ * `audit_log` est alimenté par chaque écriture sensible depuis la Phase 1, mais
+ * n'était lisible que par école, depuis le tableau de bord d'une école. Aucune
+ * vue transverse n'existait : impossible de répondre à « qui a annulé ce
+ * paiement, et quand », ni de constater qu'une action anormale se répète sur
+ * plusieurs tenants.
+ *
+ * Paginé, et il le faut : ce journal est la table qui grossit le plus vite de
+ * toute la base. Tout charger d'un coup marcherait aujourd'hui et deviendrait
+ * inutilisable au dixième client.
+ *
+ * `ancienneValeur` et `nouvelleValeur` sont renvoyées telles quelles. Elles
+ * peuvent contenir des données d'école — c'est le prix d'un audit qui sert à
+ * quelque chose — mais l'écran ne les déplie qu'à la demande.
+ */
+export async function listJournalAudit(filtres: FiltresJournal = {}): Promise<PageJournal> {
+  await requireRole();
+  const supabase = createClient();
+
+  const page = Math.max(1, filtres.page ?? 1);
+  const debut = (page - 1) * TAILLE_PAGE_JOURNAL;
+
+  let requete = supabase
+    .from('audit_log')
+    .select(
+      'id, action, module, "objetType", "objetId", date, "ancienneValeur", "nouvelleValeur", etablissement:etablissement(nom), utilisateur:utilisateur(nom, prenom, email)',
+      { count: 'exact' },
+    )
+    .order('date', { ascending: false })
+    .range(debut, debut + TAILLE_PAGE_JOURNAL - 1);
+
+  if (filtres.module) requete = requete.eq('module', filtres.module);
+  if (filtres.etablissementId) requete = requete.eq('etablissementId', filtres.etablissementId);
+  if (filtres.recherche) requete = requete.ilike('action', `%${filtres.recherche}%`);
+
+  const { data, error, count } = await requete;
+  if (error) throw error;
+
+  type Ligne = {
+    id: string;
+    action: string;
+    module: string;
+    objetType: string;
+    objetId: string | null;
+    date: string;
+    ancienneValeur: unknown;
+    nouvelleValeur: unknown;
+    etablissement: { nom: string } | null;
+    utilisateur: { nom: string; prenom: string; email: string } | null;
+  };
+
+  const entrees: EntreeJournal[] = ((data ?? []) as unknown as Ligne[]).map((l) => ({
+    id: l.id,
+    action: l.action,
+    module: l.module,
+    objetType: l.objetType,
+    objetId: l.objetId,
+    date: l.date,
+    etablissementNom: l.etablissement?.nom ?? null,
+    // Un `userId` nul est normal : une connexion échouée n'a pas d'auteur
+    // identifié, et le webhook de paiement n'en a aucun par construction.
+    auteur: l.utilisateur
+      ? `${l.utilisateur.prenom} ${l.utilisateur.nom}`.trim() || l.utilisateur.email
+      : null,
+    ancienneValeur: l.ancienneValeur,
+    nouvelleValeur: l.nouvelleValeur,
+  }));
+
+  // Les modules réellement présents, pour ne proposer que des filtres qui
+  // donnent des résultats. Une liste écrite en dur divergerait du code dès
+  // qu'un module serait ajouté.
+  const { data: tousModules } = await supabase.from('audit_log').select('module').limit(1000);
+  const modules = [
+    ...new Set(((tousModules ?? []) as { module: string }[]).map((m) => m.module)),
+  ].sort();
+
+  return {
+    entrees,
+    total: count ?? 0,
+    page,
+    parPage: TAILLE_PAGE_JOURNAL,
+    modules,
+  };
+}

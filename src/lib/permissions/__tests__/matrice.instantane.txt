@@ -147,6 +147,7 @@ pin.hashPin = AUCUNE
 pin.verifyPin = AUCUNE
 plateforme.getFicheEtablissement = SUPER_ADMIN
 plateforme.getMetriquesPlateforme = SUPER_ADMIN
+plateforme.listJournalAudit = SUPER_ADMIN
 programme.ajouterMatiereAuProgramme = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 programme.listProgramme = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 programme.retirerDuProgramme = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
