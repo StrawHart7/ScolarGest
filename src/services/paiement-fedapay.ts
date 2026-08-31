@@ -32,8 +32,10 @@ export interface DemandePaiement {
   periodicite: Periodicite;
   /** `null` pour la page hébergée FedaPay. */
   operateur: Operateur | null;
-  /** Requis pour le paiement mobile direct. */
+  /** Numéro national, déjà normalisé. Requis pour le paiement mobile direct. */
   telephone: string | null;
+  /** Code ISO du pays du numéro, déjà validé. */
+  codePays: string | null;
 }
 
 export interface ResultatPaiement {
@@ -125,7 +127,11 @@ export async function creerIntentionPaiement(
     montant,
     fedapayId: creee.id,
     operateur: demande.operateur,
-    telephone: demande.telephone,
+    // Stocké avec son pays : `90123456` seul est ambigu entre trois pays, et
+    // un rapprochement en cas de litige deviendrait impossible.
+    telephone: demande.telephone
+      ? `${demande.codePays ?? ''}:${demande.telephone}`.replace(/^:/, '')
+      : null,
     urlPaiement: creee.url,
     statut: 'EN_ATTENTE',
   });
@@ -140,7 +146,12 @@ export async function creerIntentionPaiement(
   });
 
   if (demande.operateur && demande.telephone && creee.token) {
-    const pays = OPERATEURS.find((o) => o.code === demande.operateur)?.pays ?? 'tg';
+    // Le pays vient de la saisie, pas de l'opérateur : `mtn` sert aussi bien
+    // au Bénin qu'ailleurs, et déduire le pays du seul code opérateur
+    // enverrait un indicatif faux dès qu'un opérateur couvre deux pays.
+    // Repli sur le pays déclaré de l'opérateur si l'appelant l'a omis.
+    const pays =
+      demande.codePays ?? OPERATEURS.find((o) => o.code === demande.operateur)?.pays ?? 'tg';
     await declencherPaiementMobile(
       transaction,
       creee.token,

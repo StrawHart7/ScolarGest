@@ -8,7 +8,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { PRIX_MENSUEL_PAR_CYCLE, PRIX_ANNUEL_PAR_CYCLE } from '@/lib/tarifs';
-import { OPERATEURS } from '@/lib/fedapay/operateurs';
+import { operateursDisponibles } from '@/lib/fedapay/operateurs';
+import { PAYS_FEDAPAY } from '@/lib/fedapay/pays';
 import { FormulaireSouscription } from './FormulaireSouscription';
 
 export const metadata = { title: 'Souscrire' };
@@ -85,7 +86,26 @@ export default async function SouscrirePage() {
           prixMensuel={PRIX_MENSUEL_PAR_CYCLE * nombreCycles}
           prixAnnuel={PRIX_ANNUEL_PAR_CYCLE * nombreCycles}
           nombreCycles={nombreCycles}
-          operateurs={OPERATEURS.map((o) => ({ code: o.code, libelle: o.libelle }))}
+          // `FEDAPAY_ENVIRONMENT` n'a pas de préfixe NEXT_PUBLIC_ : elle n'est
+          // lisible que côté serveur, d'où la résolution ici plutôt que dans le
+          // composant client. On envoie les opérateurs de tous les pays, le
+          // formulaire filtrant selon celui qui est choisi — un aller-retour
+          // serveur à chaque changement de pays serait absurde pour une liste
+          // de quatre entrées.
+          operateurs={PAYS_FEDAPAY.flatMap((p) =>
+            operateursDisponibles(p.code, process.env.FEDAPAY_ENVIRONMENT).map((o) => ({
+              code: o.code,
+              libelle: o.libelle,
+              pays: o.pays,
+              aide: o.aide ?? null,
+            })),
+          )}
+          pays={PAYS_FEDAPAY.map((p) => ({
+            code: p.code,
+            nom: p.nom,
+            indicatif: p.indicatif,
+            exemple: p.exemple,
+          }))}
           renouvellement={Boolean(abonnement)}
         />
       </div>

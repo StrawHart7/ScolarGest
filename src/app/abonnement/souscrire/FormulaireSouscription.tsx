@@ -6,6 +6,13 @@ import { Check, Smartphone, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { formaterFCFA } from '@/lib/tarifs';
 import { souscrireAction } from './actions';
@@ -26,6 +33,16 @@ import { souscrireAction } from './actions';
 export interface OperateurChoix {
   code: string;
   libelle: string;
+  pays: string;
+  /** Consigne propre à l'opérateur, par exemple les numéros de test. */
+  aide?: string | null;
+}
+
+export interface PaysChoix {
+  code: string;
+  nom: string;
+  indicatif: string;
+  exemple: string;
 }
 
 export function FormulaireSouscription({
@@ -33,23 +50,41 @@ export function FormulaireSouscription({
   prixAnnuel,
   nombreCycles,
   operateurs,
+  pays,
   renouvellement,
 }: {
   prixMensuel: number;
   prixAnnuel: number;
   nombreCycles: number;
   operateurs: OperateurChoix[];
+  pays: PaysChoix[];
   renouvellement: boolean;
 }) {
   const router = useRouter();
   const [periodicite, setPeriodicite] = React.useState<'MOIS' | 'AN'>('AN');
   const [moyen, setMoyen] = React.useState<'MOBILE' | 'HEBERGE'>('MOBILE');
-  const [operateur, setOperateur] = React.useState(operateurs[0]?.code ?? '');
+  const [codePays, setCodePays] = React.useState(pays[0]?.code ?? 'tg');
   const [telephone, setTelephone] = React.useState('');
+
+  // Les opérateurs dépendent du pays : changer de pays doit reprendre le
+  // premier opérateur disponible, sinon on enverrait `moov_tg` avec un numéro
+  // ivoirien — combinaison que FedaPay refuse, sans message compréhensible.
+  const operateursDuPays = React.useMemo(
+    () => operateurs.filter((o) => o.pays === codePays),
+    [operateurs, codePays],
+  );
+  const [operateur, setOperateur] = React.useState(operateurs[0]?.code ?? '');
+  React.useEffect(() => {
+    if (!operateursDuPays.some((o) => o.code === operateur)) {
+      setOperateur(operateursDuPays[0]?.code ?? '');
+    }
+  }, [operateursDuPays, operateur]);
   const [enCours, setEnCours] = React.useState(false);
   const [erreur, setErreur] = React.useState<string | null>(null);
   const [succes, setSucces] = React.useState<string | null>(null);
 
+  const paysChoisi = pays.find((p) => p.code === codePays) ?? pays[0];
+  const aideOperateur = operateurs.find((o) => o.code === operateur)?.aide ?? null;
   const total = periodicite === 'AN' ? prixAnnuel : prixMensuel;
   const economie = prixMensuel * 12 - prixAnnuel;
 
@@ -59,7 +94,7 @@ export function FormulaireSouscription({
     setEnCours(true);
     let resultat: Awaited<ReturnType<typeof souscrireAction>> | undefined;
     try {
-      resultat = await souscrireAction({ periodicite, moyen, operateur, telephone });
+      resultat = await souscrireAction({ periodicite, moyen, operateur, telephone, codePays });
     } catch {
       resultat = undefined;
     }
@@ -185,42 +220,81 @@ export function FormulaireSouscription({
 
         {moyen === 'MOBILE' ? (
           <div className="flex flex-col gap-4">
+            {/* Pays d'abord : c'est lui qui détermine les opérateurs
+                disponibles et le format attendu du numéro. L'ordre inverse
+                laisserait choisir un opérateur incompatible avec le pays. */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pays-paiement">Pays</Label>
+              <Select value={codePays} onValueChange={setCodePays}>
+                <SelectTrigger id="pays-paiement">
+                  <SelectValue placeholder="Choisir un pays" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pays.map((p) => (
+                    <SelectItem key={p.code} value={p.code}>
+                      {p.nom} ({p.indicatif})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="operateur">Opérateur</Label>
-              <div className="flex flex-col gap-2">
-                {operateurs.map((o) => (
-                  <button
-                    key={o.code}
-                    type="button"
-                    onClick={() => setOperateur(o.code)}
-                    aria-pressed={operateur === o.code}
-                    className={cn(
-                      'rounded-lg border px-4 py-3 text-left text-body-sm transition-colors',
-                      operateur === o.code
-                        ? 'border-primary-container bg-primary-fixed/50 font-medium text-primary-container'
-                        : 'border-surface-border text-text-secondary hover:border-primary-container/50',
-                    )}
-                  >
-                    {o.libelle}
-                  </button>
-                ))}
-              </div>
+              {operateursDuPays.length === 0 ? (
+                <p className="rounded-lg border border-surface-border bg-surface-container-low p-3 text-body-sm text-text-secondary">
+                  Aucun opérateur mobile n&apos;est disponible pour ce pays. Choisissez
+                  « Autre moyen » pour régler par la page sécurisée de FedaPay.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {operateursDuPays.map((o) => (
+                    <button
+                      key={o.code}
+                      type="button"
+                      onClick={() => setOperateur(o.code)}
+                      aria-pressed={operateur === o.code}
+                      className={cn(
+                        'rounded-lg border px-4 py-3 text-left text-body-sm transition-colors',
+                        operateur === o.code
+                          ? 'border-primary-container bg-primary-fixed/50 font-medium text-primary-container'
+                          : 'border-surface-border text-text-secondary hover:border-primary-container/50',
+                      )}
+                    >
+                      {o.libelle}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="telephone-paiement">Numéro à débiter</Label>
-              <Input
-                id="telephone-paiement"
-                name="telephone-paiement"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="90 12 34 56"
-                value={telephone}
-                onChange={(e) => setTelephone(e.target.value)}
-              />
+              {/* L'indicatif est affiché, pas saisissable : il découle du pays
+                  choisi. Le laisser dans le champ inviterait à le retaper, et
+                  chaque variante (+228, 00228, 228) deviendrait un cas à
+                  rattraper au lieu d'une information déjà connue. */}
+              <div className="flex items-stretch">
+                <span
+                  aria-hidden
+                  className="flex shrink-0 items-center rounded-l-lg border border-r-0 border-surface-border bg-surface-container px-3 text-body-md font-medium text-text-secondary"
+                >
+                  {paysChoisi?.indicatif}
+                </span>
+                <Input
+                  id="telephone-paiement"
+                  name="telephone-paiement"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder={paysChoisi?.exemple}
+                  value={telephone}
+                  onChange={(e) => setTelephone(e.target.value)}
+                  className="rounded-l-none"
+                />
+              </div>
               <p className="text-body-sm text-text-secondary">
-                Vous recevrez une demande de confirmation sur ce numéro.
+                {aideOperateur ?? 'Vous recevrez une demande de confirmation sur ce numéro.'}
               </p>
             </div>
           </div>

@@ -103,6 +103,13 @@ export async function creerTransaction(
  * Rien n'est débité à cet instant : l'opérateur envoie une invite de
  * confirmation sur le combiné. Le résultat n'arrive que par le webhook, ce qui
  * est exactement pourquoi la redirection de retour ne peut pas faire foi.
+ *
+ * **Le troisième argument est le corps de la requête, pas le numéro.** Le SDK
+ * fait `params.token = token` puis poste `params` tel quel : il faut donc lui
+ * passer `{ phone_number: { … } }`. L'exemple de la documentation officielle
+ * écrit `sendNowWithToken(mode, token, phone_number)`, ce qui aplatit l'objet
+ * et produit un `400 — Paramètre manquant ou la valeur est vide phone_number`.
+ * Vérifié contre l'API sandbox : c'est bien l'enveloppe qui manquait.
  */
 export async function declencherPaiementMobile(
   transaction: unknown,
@@ -116,10 +123,12 @@ export async function declencherPaiementMobile(
     sendNowWithToken: (
       mode: string,
       token: string,
-      phone: { number: string; country: string },
+      params: { phone_number: { number: string; country: string } },
     ) => Promise<unknown>;
   };
-  await t.sendNowWithToken(operateur, token, { number: telephone, country: pays });
+  await t.sendNowWithToken(operateur, token, {
+    phone_number: { number: telephone, country: pays },
+  });
 }
 
 /**

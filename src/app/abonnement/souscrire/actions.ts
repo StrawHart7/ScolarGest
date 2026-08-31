@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { creerIntentionPaiement } from '@/services/paiement-fedapay';
 import type { Operateur } from '@/lib/fedapay/operateurs';
+import { normaliserNumero, trouverPays } from '@/lib/fedapay/pays';
 
 export interface ResultatSouscription {
   ok: boolean;
@@ -16,17 +17,8 @@ const schema = z.object({
   moyen: z.enum(['MOBILE', 'HEBERGE']),
   operateur: z.string().optional(),
   telephone: z.string().optional(),
+  codePays: z.string().optional(),
 });
-
-/**
- * Numéro togolais : 8 chiffres, éventuellement précédés de l'indicatif 228.
- * FedaPay attend le numéro national seul, sans indicatif ni séparateur.
- */
-function normaliserTelephone(brut: string): string | null {
-  const chiffres = brut.replace(/\D/g, '');
-  const national = chiffres.startsWith('228') ? chiffres.slice(3) : chiffres;
-  return national.length === 8 ? national : null;
-}
 
 export async function souscrireAction(
   entree: z.input<typeof schema>,
@@ -35,19 +27,27 @@ export async function souscrireAction(
   if (!valide.success) {
     return { ok: false, message: 'Formulaire incomplet.' };
   }
-  const { periodicite, moyen, operateur, telephone } = valide.data;
+  const { periodicite, moyen, operateur, telephone, codePays } = valide.data;
 
   let numero: string | null = null;
+  let pays: string | null = null;
   if (moyen === 'MOBILE') {
     if (!operateur) return { ok: false, message: 'Choisissez un opérateur.' };
-    if (!telephone) return { ok: false, message: 'Saisissez votre numéro de téléphone.' };
-    numero = normaliserTelephone(telephone);
-    if (!numero) {
-      return {
-        ok: false,
-        message: 'Numéro invalide : 8 chiffres attendus, par exemple 90 12 34 56.',
-      };
+    if (!codePays || !trouverPays(codePays)) {
+      return { ok: false, message: 'Choisissez un pays.' };
     }
+    if (!telephone) return { ok: false, message: 'Saisissez votre numéro de téléphone.' };
+
+    // Le pays vient du client : on ne se contente pas de le transmettre, on
+    // vérifie qu'il est connu et que le numéro correspond à son plan de
+    // numérotation. Un couple pays/numéro incohérent est refusé par FedaPay
+    // avec un message que l'école ne pourrait pas interpréter.
+    const resultat = normaliserNumero(telephone, codePays);
+    if (!resultat.ok || !resultat.numero) {
+      return { ok: false, message: resultat.message ?? 'Numéro invalide.' };
+    }
+    numero = resultat.numero;
+    pays = codePays;
   }
 
   try {
@@ -55,6 +55,7 @@ export async function souscrireAction(
       periodicite,
       operateur: moyen === 'MOBILE' ? (operateur as Operateur) : null,
       telephone: numero,
+      codePays: pays,
     });
 
     if (moyen === 'MOBILE') {
