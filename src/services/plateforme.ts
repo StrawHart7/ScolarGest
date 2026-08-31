@@ -208,3 +208,168 @@ export async function getMetriquesPlateforme(): Promise<MetriquesPlateforme> {
     demandesNouvelles: demandesNouvelles ?? 0,
   };
 }
+
+export interface TransactionSupervisee {
+  id: string;
+  montant: number;
+  statut: string;
+  operateur: string | null;
+  createdAt: string;
+  honoree: boolean;
+}
+
+export interface FicheEtablissement {
+  etat: EtatEcole;
+  joursRestants: number | null;
+  essaiDebuteLe: string | null;
+  essaiFinLe: string | null;
+  cycles: string[];
+  anneeActive: string | null;
+  nombreEleves: number;
+  nombreClasses: number;
+  nombreEnseignants: number;
+  /** Dernière écriture tracée, tous modules confondus. */
+  derniereActivite: string | null;
+  transactions: TransactionSupervisee[];
+}
+
+/**
+ * Fiche d'usage d'une école, pour la console plateforme.
+ *
+ * Répond à la seule question qui compte avant de relancer ou de suspendre :
+ * **cette école s'en sert-elle ?** Un abonnement expiré chez une école à 400
+ * élèves et un abonnement expiré chez une coquille vide n'appellent pas le
+ * même geste commercial.
+ *
+ * Volontairement agrégée. Aucun nom d'élève, aucune note, aucune facture — la
+ * console compte, elle ne consulte pas. L'isolation entre écoles est la
+ * promesse du produit, et elle ne doit pas fuir par ici.
+ */
+export async function getFicheEtablissement(etablissementId: string): Promise<FicheEtablissement> {
+  await requireRole();
+  const supabase = createClient();
+  const maintenant = new Date();
+
+  const { data: etab, error: erreurEtab } = await supabase
+    .from('etablissement')
+    .select('"essaiDebuteLe", "essaiFinLe"')
+    .eq('id', etablissementId)
+    .maybeSingle();
+  if (erreurEtab) throw erreurEtab;
+
+  const { data: annee } = await supabase
+    .from('annee_scolaire')
+    .select('id, libelle')
+    .eq('etablissementId', etablissementId)
+    .eq('statut', 'ACTIVE')
+    .maybeSingle();
+  const anneeCourante = annee as { id: string; libelle: string } | null;
+
+  const [
+    { data: abo },
+    { data: cyclesActifs },
+    { count: nombreEleves },
+    { count: nombreClasses },
+    { count: nombreEnseignants },
+    { data: audit },
+    { data: transactions },
+  ] = await Promise.all([
+    supabase
+      .from('abonnement_etablissement')
+      .select('statut, "dateFin"')
+      .eq('etablissementId', etablissementId)
+      .order('dateFin', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('cycle_etablissement')
+      .select('cycle:cycle(nom)')
+      .eq('etablissementId', etablissementId)
+      .eq('actif', true),
+    supabase
+      .from('inscription')
+      .select('id', { count: 'exact', head: true })
+      .eq('etablissementId', etablissementId)
+      .eq('statut', 'ACTIVE'),
+    anneeCourante
+      ? supabase
+          .from('classe')
+          .select('id', { count: 'exact', head: true })
+          .eq('etablissementId', etablissementId)
+          .eq('anneeScolaireId', anneeCourante.id)
+      : Promise.resolve({ count: 0 }),
+    supabase
+      .from('enseignant')
+      .select('id', { count: 'exact', head: true })
+      .eq('etablissementId', etablissementId),
+    supabase
+      .from('audit_log')
+      .select('date')
+      .eq('etablissementId', etablissementId)
+      .order('date', { ascending: false })
+      .limit(1),
+    supabase
+      .from('transaction_fedapay')
+      .select('id, montant, statut, operateur, "createdAt", "abonnementId"')
+      .eq('etablissementId', etablissementId)
+      .order('createdAt', { ascending: false })
+      .limit(10),
+  ]);
+
+  const ligneAbo = abo as { statut: 'ACTIF' | 'EXPIRE' | 'SUSPENDU'; dateFin: string } | null;
+  const statut = statutEffectif(ligneAbo, maintenant);
+  const essaiFinLe = (etab as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null;
+  const joursEssai = joursAvant(essaiFinLe, maintenant);
+
+  let etat: EtatEcole;
+  let joursRestants: number | null;
+  if (statut === 'SUSPENDU') {
+    etat = 'SUSPENDU';
+    joursRestants = ligneAbo ? joursAvant(ligneAbo.dateFin, maintenant) : null;
+  } else if (statut === 'ACTIF') {
+    etat = 'ACTIF';
+    joursRestants = ligneAbo ? joursAvant(ligneAbo.dateFin, maintenant) : null;
+  } else if (joursEssai !== null && joursEssai > 0) {
+    etat = 'ESSAI';
+    joursRestants = joursEssai;
+  } else if (statut === 'EXPIRE') {
+    etat = 'EXPIRE';
+    joursRestants = ligneAbo ? joursAvant(ligneAbo.dateFin, maintenant) : null;
+  } else {
+    etat = 'AUCUN';
+    joursRestants = null;
+  }
+
+  return {
+    etat,
+    joursRestants,
+    essaiDebuteLe: (etab as { essaiDebuteLe: string | null } | null)?.essaiDebuteLe ?? null,
+    essaiFinLe,
+    cycles: ((cyclesActifs ?? []) as unknown as { cycle: { nom: string } | null }[])
+      .map((c) => c.cycle?.nom)
+      .filter((n): n is string => Boolean(n)),
+    anneeActive: anneeCourante?.libelle ?? null,
+    nombreEleves: nombreEleves ?? 0,
+    nombreClasses: nombreClasses ?? 0,
+    nombreEnseignants: nombreEnseignants ?? 0,
+    derniereActivite: ((audit ?? []) as { date: string }[])[0]?.date ?? null,
+    transactions: ((transactions ?? []) as {
+      id: string;
+      montant: number;
+      statut: string;
+      operateur: string | null;
+      createdAt: string;
+      abonnementId: string | null;
+    }[]).map((t) => ({
+      id: t.id,
+      montant: Number(t.montant),
+      statut: t.statut,
+      operateur: t.operateur,
+      createdAt: t.createdAt,
+      // `abonnementId` non nul est la preuve que le paiement a ouvert une
+      // période : c'est plus fiable que le statut, qui pourrait rester en
+      // attente si un webhook s'était perdu.
+      honoree: t.abonnementId !== null,
+    })),
+  };
+}
