@@ -167,6 +167,61 @@ export async function inscriptionsAnnee(anneeScolaireId: string): Promise<SerieA
   return { points, total, totalPrecedent, variation: variation(total, totalPrecedent) };
 }
 
+/**
+ * Effectif de chaque classe, avec sa capacite.
+ *
+ * Le tableau de bord donnait « 276 / 481 places » — un ratio global qui cache
+ * exactement ce qu'un Directeur cherche : **quelles** classes debordent et
+ * lesquelles sont vides. Deux classes a 60 % de remplissage et deux a 20 %
+ * donnent le meme ratio qu'un parc homogene, et n'appellent pas du tout les
+ * memes decisions.
+ *
+ * Les classes sans capacite renseignee sont conservees : leur effectif reste
+ * une information, meme sans point de comparaison.
+ */
+export interface EffectifClasse {
+  id: string;
+  nom: string;
+  effectif: number;
+  capacite: number | null;
+}
+
+export async function effectifsParClasse(anneeScolaireId: string): Promise<EffectifClasse[]> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const supabase = createClient();
+
+  const { data: classes, error: erreurClasses } = await supabase
+    .from('classe')
+    .select('id, nom, capacite')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('anneeScolaireId', anneeScolaireId)
+    .order('nom');
+  if (erreurClasses) throw erreurClasses;
+
+  const { data: inscriptions, error: erreurInscriptions } = await supabase
+    .from('inscription')
+    .select('"classeId"')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('anneeScolaireId', anneeScolaireId)
+    .eq('statut', 'ACTIVE');
+  if (erreurInscriptions) throw erreurInscriptions;
+
+  // Comptage cote application plutot qu'un `group by` : PostgREST ne l'expose
+  // pas sans vue dediee, et le volume tient en memoire — une ecole compte des
+  // dizaines de classes, pas des milliers.
+  const effectifs = new Map<string, number>();
+  for (const i of (inscriptions ?? []) as { classeId: string }[]) {
+    effectifs.set(i.classeId, (effectifs.get(i.classeId) ?? 0) + 1);
+  }
+
+  return ((classes ?? []) as { id: string; nom: string; capacite: number | null }[]).map((c) => ({
+    id: c.id,
+    nom: c.nom,
+    effectif: effectifs.get(c.id) ?? 0,
+    capacite: c.capacite,
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // Fonctions pures, sans garde et sans acces aux donnees.
 //

@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { CourbeAire } from '@/components/ui/courbe-aire';
-import { HistogrammeMensuel } from '@/components/ui/histogramme-mensuel';
+import { BarresHorizontales } from '@/components/ui/barres-horizontales';
 import { formaterValeur } from '@/lib/format-graphe';
-import type { SerieAnnuelle } from '@/services/series-ecole';
+import type { EffectifClasse, SerieAnnuelle } from '@/services/series-ecole';
 
 /**
  * Cartes de graphes du tableau de bord.
@@ -85,19 +85,42 @@ export function CarteEncaissements({ serie }: { serie: SerieAnnuelle }) {
   );
 }
 
-export function CarteInscriptions({ serie }: { serie: SerieAnnuelle }) {
+/**
+ * Effectif de chaque classe, rapporte a sa capacite.
+ *
+ * Remplace l'histogramme des inscriptions, qui n'apprenait rien : dans une
+ * ecole, tout le monde s'inscrit en septembre, et la courbe etait une barre
+ * suivie de dix mois vides. On savait deja son allure avant de la tracer.
+ *
+ * Le remplissage par classe, lui, change d'une annee sur l'autre et appelle
+ * des decisions — ouvrir une division, en fermer une, redistribuer.
+ */
+export function CarteEffectifs({ classes }: { classes: EffectifClasse[] }) {
+  const total = classes.reduce((s, c) => s + c.effectif, 0);
+  const pleines = classes.filter((c) => c.capacite !== null && c.effectif >= c.capacite).length;
+
   return (
     <Card>
-      <Entete
-        titre="Inscriptions de l'année"
-        total={serie.total.toLocaleString('fr-FR')}
-        variation={serie.variation}
-      />
-      {serie.total === 0 ? (
-        <Vide message="Aucune inscription enregistrée sur cette année scolaire." />
+      <CardHeader className="flex flex-row flex-wrap items-baseline justify-between gap-x-4 gap-y-1 space-y-0">
+        <CardTitle>Effectif par classe</CardTitle>
+        <span className="text-body-sm text-text-secondary">
+          {pleines > 0
+            ? `${pleines} classe${pleines > 1 ? 's' : ''} au complet`
+            : `${total.toLocaleString('fr-FR')} élèves`}
+        </span>
+      </CardHeader>
+      {classes.length === 0 ? (
+        <Vide message="Aucune classe créée pour cette année scolaire." />
       ) : (
-        <CardContent>
-          <HistogrammeMensuel barres={serie.points} unite="inscription" />
+        <CardContent className="max-h-80 overflow-y-auto">
+          <BarresHorizontales
+            lignes={classes.map((c) => ({
+              id: c.id,
+              libelle: c.nom,
+              valeur: c.effectif,
+              reference: c.capacite,
+            }))}
+          />
         </CardContent>
       )}
     </Card>

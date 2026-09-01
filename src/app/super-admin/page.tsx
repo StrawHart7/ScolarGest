@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CourbeAire } from '@/components/ui/courbe-aire';
-import { BarresRepartition, CarteMetrique, PiluleVariation } from './Cartes';
+import { BarresRepartition, CarteMetrique, PiluleVariation } from '@/components/ui/carte-metrique';
 import { getSidebarItems } from '@/lib/navigation';
 import { formaterFCFA } from '@/lib/tarifs';
 

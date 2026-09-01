@@ -3,12 +3,12 @@ import { ArrowDownRight, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Cartes du tableau de bord plateforme.
+ * Cartes de metrique des tableaux de bord.
  *
- * **Propres au SUPER_ADMIN, volontairement.** `StatCard` est partagee par les
- * quatre tableaux de bord d'ecole ; la retoucher pour styliser cette page
- * deplacerait des ecrans qui conviennent tels quels. Le prix est une poignee de
- * classes en double, ce qui est moins cher qu'une regression sur quatre pages.
+ * D'abord ecrites pour la seule console plateforme, elles servent desormais
+ * les cinq tableaux de bord. `StatCard` reste en place pour les grilles
+ * compactes ; celle-ci prend le relais des qu'un chiffre merite d'etre
+ * explique — c'est-a-dire presque toujours sur un tableau de bord.
  *
  * Trois partis pris repris des references :
  *
@@ -121,39 +121,58 @@ export interface SegmentRepartition {
 }
 
 /**
- * Repartition en colonnes, chacune surlignee de sa couleur.
+ * Repartition en une barre empilee, legende dessous.
  *
- * Reprend le motif « Customers » de la reference : le chiffre porte
- * l'information, la barre situe la proportion, et le libelle nomme la part.
- * Preferee a un anneau ici parce que les etats d'ecole sont **cinq** — un
- * anneau a cinq parts devient un jeu de devinettes.
+ * Cinq colonnes cote a cote se chevauchaient des que la carte retrecissait :
+ * « Suspendues » et « Sans abonnement » se touchaient, et aucune troncature
+ * n'aurait sauve des libelles qui sont precisement l'identite des parts.
+ *
+ * Une barre empilee dit mieux ce qu'on cherche ici — **la proportion du parc**
+ * — et la legende en lignes accepte n'importe quelle longueur de libelle.
+ * Chaque part est nommee et chiffree : l'identite ne repose jamais sur la
+ * couleur seule.
  */
 export function BarresRepartition({ segments }: { segments: SegmentRepartition[] }) {
-  const max = Math.max(1, ...segments.map((s) => s.valeur));
+  const total = segments.reduce((t, s) => t + s.valeur, 0);
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
-      {segments.map((s) => (
-        <div key={s.libelle} className="min-w-0">
-          <p className="text-headline-md text-text-primary" data-mono>
-            {s.valeur}
-          </p>
-          {/* Pas de troncature : « Sans abo… » n'apprend rien, et ces libelles
-              sont l'identite de la part. On les laisse passer a la ligne. */}
-          <p className="mt-0.5 text-label-md leading-tight text-text-secondary">{s.libelle}</p>
-          {/* Piste toujours visible : une part a zero doit occuper sa place
-              dans la rangee, sinon la lecture se decale. */}
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${(s.valeur / max) * 100}%`,
-                backgroundColor: s.couleur,
-              }}
+    <div className="flex flex-col gap-4">
+      {/* La barre : les parts nulles sont ecartees, un segment de largeur zero
+          n'affichant qu'un liseré d'arrondi. */}
+      <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-surface-container">
+        {total > 0 &&
+          segments
+            .filter((s) => s.valeur > 0)
+            .map((s) => (
+              <div
+                key={s.libelle}
+                className="h-full first:rounded-l-full last:rounded-r-full"
+                style={{
+                  width: `${(s.valeur / total) * 100}%`,
+                  backgroundColor: s.couleur,
+                }}
+                title={`${s.libelle} : ${s.valeur}`}
+              />
+            ))}
+      </div>
+
+      <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+        {segments.map((s) => (
+          <li key={s.libelle} className="flex items-center gap-2.5">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: s.couleur }}
+              aria-hidden
             />
-          </div>
-        </div>
-      ))}
+            <span className="min-w-0 flex-1 truncate text-body-sm text-text-secondary">
+              {s.libelle}
+            </span>
+            <span className="shrink-0 text-body-md font-semibold text-text-primary" data-mono>
+              {s.valeur}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
