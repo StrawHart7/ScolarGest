@@ -1624,31 +1624,77 @@ Seul l'`ECONNRESET` local est établi. À confirmer au prochain déploiement.
 
 ---
 
-### Fonctionnalité — KPI et visualisation des statistiques
+### Fonctionnalité — KPI, graphes et refonte des tableaux de bord
 
-**Statut** : Cadrée, non démarrée. À discuter le 2026-09-01.
+**Statut** : ✅ terminée (2026-09-01) — branche `feat/kpi-graphes`.
+Migration `0019`.
 
-**Objectif** : enrichir la plateforme de graphes pour rendre les statistiques
-lisibles d'un coup d'œil, côté console SUPER_ADMIN comme côté école.
+**Objectif** : rendre les statistiques lisibles d'un coup d'œil. Les données
+existaient déjà ; c'est leur restitution qui était pauvre — des nombres dans
+des cartes, aucune tendance.
 
-**Ce qui existe déjà et sur quoi bâtir** : `getMetriquesPlateforme()` calcule
-déjà le revenu, la répartition par état et les échéances ; `dashboard.ts` porte
-les indicateurs par école. Les données sont là, c'est leur restitution qui est
-pauvre — des nombres dans des cartes, aucune tendance.
+**Le cadrage de la veille était trop pessimiste.** Il notait « aucune table
+n'historise l'état de la plateforme ». C'est vrai de l'*état*, pas des *flux* :
+`paiement.datePaiement`, `inscription.dateInscription` et
+`paiement_abonnement.date` portent leur propre date et reconstituent l'exact,
+mois par mois. Aucune table d'instantanés n'a été nécessaire.
 
-**Questions à trancher avant de coder** :
+**Livrables** :
 
-- **Quelle bibliothèque.** Le projet n'a aucune dépendance de graphes. Recharts
-  est le choix naturel avec React, mais il alourdit le bundle. Des graphes en
-  SVG maison suffisent pour une courbe et un histogramme, et évitent une
-  dépendance de plus — à arbitrer selon le nombre de types de graphes voulus.
-- **Quelles séries temporelles.** Aucune table n'historise l'état de la
-  plateforme dans le temps : le revenu d'il y a trois mois n'est pas
-  reconstituable autrement qu'en rejouant les abonnements. Une courbe de
-  croissance exige soit une agrégation à la volée sur
-  `abonnement_etablissement`, soit une table d'instantanés quotidiens.
-- **Pour qui.** Les KPI du SUPER_ADMIN (revenu, conversion, rétention) et ceux
-  d'une école (effectifs, recouvrement, assiduité) n'ont ni la même audience ni
-  la même sensibilité.
-- **Le mobile.** Le motif de liste mobile du projet n'a pas d'équivalent pour
-  les graphes. Un graphe illisible sous `md` vaut moins qu'un tableau.
+- [x] `src/services/series-ecole.ts` — encaissements et effectifs par classe,
+      calés sur l'année scolaire, avec comparaison à l'année précédente.
+- [x] `getEncaissementsPlateforme` — série mensuelle de la plateforme, tirée de
+      `paiement_abonnement.date`.
+- [x] `src/lib/graphes.ts` + quatre primitives SVG, sans dépendance.
+- [x] `src/components/ui/carte-metrique.tsx` — cartes de métrique partagées.
+- [x] Les cinq tableaux de bord refondus.
+- [x] Migration `0019` — cohérence du passage de cohorte.
+
+**Décisions consignées** :
+
+- **Pas de bibliothèque de graphes.** Préférence exprimée pour l'esthétique :
+  on contrôle chaque trait plutôt que de combattre un style par défaut, et le
+  bundle ne grossit pas.
+- **Interpolation monotone**, pas Catmull-Rom : une spline ordinaire plongerait
+  sous la ligne de base entre un mois vide et un gros mois, affichant des
+  recettes négatives.
+- **L'année scolaire plutôt que douze mois glissants.** « Les Victorieux » a
+  inscrit ses 283 élèves en septembre 2025 : la fenêtre glissante rendait
+  l'histogramme entièrement vide, d'un mois.
+- **L'histogramme des inscriptions a été supprimé** après mise en service : dans
+  une école tout le monde s'inscrit en septembre, on connaissait l'allure de la
+  courbe avant de la tracer. Remplacé par l'effectif par classe, replié par
+  défaut.
+- **Palette validée par script**, pas à l'œil. La séparation tritan reste dans
+  la bande plancher, ce qui impose un encodage secondaire — d'où les étiquettes
+  directes dans la légende.
+
+**Trois pannes en production, toutes invisibles au build** :
+
+- `paiement` **ne porte pas** de colonne `etablissementId` — il est rattaché au
+  tenant par sa facture. Filtrer dessus lève, et le tableau de bord entier
+  tombait. Même piège que lors de la suppression du doublon d'établissement.
+- **Une fonction passée à un composant client** (`formater={fcfa}`) lève
+  « Functions cannot be passed directly to Client Components » à l'exécution
+  seulement : `tsc` accepte, ESLint ignore la frontière, et `/dashboard` est
+  rendu à la demande.
+- `/api/emploi-du-temps` manquait dans `outputFileTracingIncludes`.
+
+**Deux régressions de mise en page, vues seulement à l'écran** : les raccourcis
+coincés dans une colonne de trois cinquièmes tombaient à un mot par ligne, et
+cinq libellés français dans cinq colonnes égales se chevauchaient.
+
+**Constats laissés ouverts** :
+
+- L'audit du passage de cohorte est global et ne dit pas qui a été admis.
+- `proposerDecisions` suggère `DEPART` quand le niveau n'a pas de suivant :
+  depuis le recentrage sur le secondaire, une école encore en CM2 verrait
+  « départ » proposé pour toute sa classe.
+- Les rôles **Secrétaire et Enseignant** et le **mobile** n'ont pas été ouverts.
+- L'extracteur de la matrice de permissions délimite le corps d'une fonction
+  jusqu'au prochain `export function` ; un `export interface` ne l'arrête pas,
+  et une fonction pure peut hériter des gardes de ses voisines. Contourné en
+  plaçant les fonctions pures en fin de fichier ; le défaut demeure.
+
+---
+

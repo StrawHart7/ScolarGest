@@ -208,11 +208,14 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-01) :
-- `feat/emploi-du-temps` — ✅ livrée (2026-09-01), en attente de merge :
+- `feat/kpi-graphes` — ✅ livrée (2026-09-01) : séries temporelles côté école,
+  primitives de graphes en SVG maison, refonte des cinq tableaux de bord, et
+  verrouillage de la cohérence du passage de cohorte. Migration `0019`.
+  Voir `PLAN.md` § 8.
+- `feat/emploi-du-temps` — ✅ terminée et mergée sur `main` (2026-09-01) :
   grille hebdomadaire par classe, export PDF, plus deux corrections sur les
   écrans de classe et deux correctifs de robustesse du build. Migration `0018`.
   Voir `PLAN.md` § 8.
-- `feat/kpi-graphes` — créée, vide. Réservée aux KPI et aux graphes.
 - `feat/super-admin` — ✅ terminée et mergée sur `main` (2026-08-31) : console plateforme — tableau de bord, inventaire des écoles, file des prospects, fiche d'usage, journal d'audit transverse. Aucune migration. Voir `PLAN.md` § 8.
 - `feat/pricing` — ✅ terminée et mergée sur `main` (2026-08-31) : modèle économique complet — essai gratuit de 30 jours, facturation par cycle, section de tarifs publique, paiement Mobile Money via FedaPay, bascule sur le domaine `scolargest.com`. Migrations `0015` à `0017`. Voir `PLAN.md` § 8.
 - `feat/secondaire-uniquement` — ✅ terminée et mergée sur `main` (2026-08-31) : retrait de la maternelle et du primaire du catalogue. Migration `0014`.
@@ -575,6 +578,76 @@ Deux details qui coutent une compilation :
   explicitly written literals`) — d'ou sa repetition dans les deux appels.
 - Sans `unicode-range`, un caractere hors du sous-ensemble latin s'afficherait
   en carre vide au lieu de tomber sur la police de repli.
+
+### Graphes : SVG maison, et une regle qui coute cher a oublier
+
+Aucune bibliotheque de graphes dans le projet — trois composants en SVG
+(`courbe-aire`, `histogramme-mensuel`, `anneau-repartition`) plus des barres
+horizontales, tous nourris par `src/lib/graphes.ts`, qui ne depend de rien.
+
+**L'interpolation est monotone (Fritsch-Carlson), pas une spline de
+Catmull-Rom.** Une spline ordinaire depasse quand la pente s'inverse : un mois
+a zero suivi d'un gros mois ferait plonger le trace **sous la ligne de base**,
+et le graphe afficherait des recettes negatives. Un test le verrouille.
+
+**L'axe part toujours de zero.** Tronquer la base d'une courbe de recettes
+exagere les variations — 90 000 apres 100 000 ressemblerait a un effondrement.
+
+**Ne jamais passer de fonction a un composant client.** `formater={fcfa}`
+depuis un composant serveur leve « Functions cannot be passed directly to
+Client Components » **a l'execution seulement** : `tsc` accepte le type, ESLint
+ne connait pas la frontiere, et le build passe puisque `/dashboard` est rendu a
+la demande. Le format se designe par un **nom** (`src/lib/format-graphe.ts`),
+serialisable. C'est cette erreur qui a fait tomber tout le tableau de bord.
+
+**La palette de statut est validee, pas choisie a l'oeil** — bande de
+luminosite, plancher de chroma, separation daltonisme, contraste. La separation
+tritan reste dans la bande plancher, ce qui **impose** un encodage secondaire :
+d'ou les etiquettes directes et les pourcentages dans la legende de l'anneau.
+Ce n'est pas de l'ornement.
+
+**Les series d'ecole suivent l'annee scolaire, pas douze mois glissants.** Une
+ecole qui inscrit tous ses eleves en septembre voyait son histogramme se vider
+le 1er octobre suivant, alors que l'annee etait en cours. La plateforme, elle,
+n'a pas d'annee scolaire : `getEncaissementsPlateforme` garde une fenetre
+glissante.
+
+**Ce qui n'est pas reconstituable** : l'etat retroactif. `statut` est modifie
+sur place, sans trace, donc « combien de factures etaient impayees en juin »
+exigera des instantanes. Les courbes de flux, non — `paiement.datePaiement`,
+`inscription.dateInscription` et `paiement_abonnement.date` portent leur date.
+
+### Le passage de cohorte se verrouille en base, pas dans l'ecran
+
+Migration `0019`. Trois incoherences ont ete constatees en les provoquant, puis
+fermees. Aucune n'etait atteignable par l'interface — elle ne propose que les
+classes de l'annee cible — mais l'ecran n'est qu'un des chemins.
+
+- **La classe cible doit appartenir a l'annee cible et au tenant.** Une classe
+  d'une autre annee produisait une inscription incoherente et une facture a
+  **0 F**, en silence : la recherche de tarif joint sur
+  `(anneeScolaireId, classeId)` et ne trouvait rien. La plus vicieuse des
+  trois — elle ne casse rien, elle cree des eleves qui ne doivent rien, et cela
+  se decouvre au recouvrement.
+- **L'inscription de depart doit exister et concerner l'eleve annonce.**
+  L'`UPDATE` pouvait n'affecter aucune ligne sans que personne ne s'en
+  apercoive, et la suite inscrivait quand meme.
+- **L'annee cible doit differer de l'annee de depart.**
+
+La garde sur la classe vit dans `fn_inscrire_eleve`, pas seulement dans
+`fn_passer_cohorte` : l'inscription individuelle emprunte le meme chemin.
+
+**Les gardes levent avant l'`UPDATE`**, donc un refus ne laisse pas d'eleve a
+moitie traite — annee clotureee sans nouvelle inscription. Le contrat de retour
+ne change pas : le gestionnaire d'exception par ligne transforme la levee en
+`{ok: false, message}`, et un eleve refuse n'arrete pas les suivants.
+
+**Deux constats laisses ouverts** : l'audit du passage est global (« 30 traites,
+28 succes ») et ne dit pas qui a ete admis — la decision reste lisible sur
+`inscription.decisionFinAnnee`, mais pas son auteur. Et `proposerDecisions`
+suggere `DEPART` quand le niveau n'a pas de suivant : depuis le recentrage sur
+le secondaire, une ecole encore en CM2 verrait « depart » propose pour toute sa
+classe.
 
 ### Domaine et URL publique
 
