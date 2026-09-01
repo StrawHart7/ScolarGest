@@ -28,66 +28,6 @@ export interface PointMensuel {
   valeur: number;
 }
 
-/**
- * Bornes mensuelles d'une annee scolaire, incluses.
- *
- * Une ecole ne raisonne pas en douze mois glissants mais en **annee
- * scolaire**. La fenetre glissante avait un defaut visible des la premiere
- * mise en service : une ecole qui inscrit tous ses eleves en septembre voit son
- * histogramme se vider le 1er octobre suivant, alors que l'annee est en cours.
- * Elle repondait a « ces douze derniers mois », question que personne ne se
- * pose dans une ecole.
- */
-export function moisDeLAnnee(dateDebut: string, dateFin: string): string[] {
-  const debut = new Date(dateDebut);
-  const fin = new Date(dateFin);
-  const mois: string[] = [];
-  const curseur = new Date(Date.UTC(debut.getUTCFullYear(), debut.getUTCMonth(), 1));
-  const borne = new Date(Date.UTC(fin.getUTCFullYear(), fin.getUTCMonth(), 1));
-  // Garde-fou : une annee mal saisie ne doit pas produire une boucle infinie
-  // ni une serie de plusieurs centaines de colonnes.
-  while (curseur <= borne && mois.length < 24) {
-    mois.push(cleMois(curseur));
-    curseur.setUTCMonth(curseur.getUTCMonth() + 1);
-  }
-  return mois;
-}
-
-function cleMois(d: Date): string {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-/**
- * Assemble une serie complete a partir de lignes datees et d'une liste de mois.
- *
- * Exportee pour etre testable sans base : c'est ici que vit la seule logique
- * non triviale du module — le remplissage des mois vides et le rejet des
- * lignes hors fenetre.
- */
-export function construireSerie(
-  lignes: { date: string; valeur: number }[],
-  mois: string[],
-): PointMensuel[] {
-  const cases = new Map<string, number>();
-  for (const m of mois) cases.set(m, 0);
-  for (const ligne of lignes) {
-    const cle = cleMois(new Date(ligne.date));
-    // Une ligne hors fenetre est ignoree plutot qu'ajoutee au premier mois :
-    // la borne SQL peut laisser passer un decalage de fuseau, et la rattacher
-    // creerait un pic artificiel en debut de courbe.
-    if (cases.has(cle)) cases.set(cle, (cases.get(cle) ?? 0) + ligne.valeur);
-  }
-  return [...cases.entries()].map(([m, valeur]) => ({ mois: m, valeur }));
-}
-
-/**
- * Une serie annuelle, avec de quoi la situer.
- *
- * `variation` compare a l'annee scolaire precedente **sur son entierete**, pas
- * au meme rang de mois : une annee en cours a moins de mois ecoules, et la
- * comparer a une annee complete ferait apparaitre une chute qui n'existe pas.
- * `comparable` dit si la comparaison a un sens ; l'interface s'abstient sinon.
- */
 export interface SerieAnnuelle {
   points: PointMensuel[];
   total: number;
@@ -226,3 +166,75 @@ export async function inscriptionsAnnee(anneeScolaireId: string): Promise<SerieA
 
   return { points, total, totalPrecedent, variation: variation(total, totalPrecedent) };
 }
+
+// ---------------------------------------------------------------------------
+// Fonctions pures, sans garde et sans acces aux donnees.
+//
+// Placees en fin de fichier a dessein : l'extracteur de la matrice de
+// permissions delimite le corps d'une fonction exportee jusqu'au **prochain**
+// `export function`, et un `export interface` ne l'arrete pas. Une fonction
+// pure posee avant des fonctions privees gardees absorbait donc leurs
+// `requireRole` et apparaissait dans la matrice avec des roles qu'elle n'a pas.
+// Ici, leur corps court jusqu'a la fin du fichier, sans aucune garde a happer.
+// ---------------------------------------------------------------------------
+
+/**
+ * Bornes mensuelles d'une annee scolaire, incluses.
+ *
+ * Une ecole ne raisonne pas en douze mois glissants mais en **annee
+ * scolaire**. La fenetre glissante avait un defaut visible des la premiere
+ * mise en service : une ecole qui inscrit tous ses eleves en septembre voit son
+ * histogramme se vider le 1er octobre suivant, alors que l'annee est en cours.
+ * Elle repondait a « ces douze derniers mois », question que personne ne se
+ * pose dans une ecole.
+ */
+export function moisDeLAnnee(dateDebut: string, dateFin: string): string[] {
+  const debut = new Date(dateDebut);
+  const fin = new Date(dateFin);
+  const mois: string[] = [];
+  const curseur = new Date(Date.UTC(debut.getUTCFullYear(), debut.getUTCMonth(), 1));
+  const borne = new Date(Date.UTC(fin.getUTCFullYear(), fin.getUTCMonth(), 1));
+  // Garde-fou : une annee mal saisie ne doit pas produire une boucle infinie
+  // ni une serie de plusieurs centaines de colonnes.
+  while (curseur <= borne && mois.length < 24) {
+    mois.push(cleMois(curseur));
+    curseur.setUTCMonth(curseur.getUTCMonth() + 1);
+  }
+  return mois;
+}
+
+function cleMois(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Assemble une serie complete a partir de lignes datees et d'une liste de mois.
+ *
+ * Exportee pour etre testable sans base : c'est ici que vit la seule logique
+ * non triviale du module — le remplissage des mois vides et le rejet des
+ * lignes hors fenetre.
+ */
+export function construireSerie(
+  lignes: { date: string; valeur: number }[],
+  mois: string[],
+): PointMensuel[] {
+  const cases = new Map<string, number>();
+  for (const m of mois) cases.set(m, 0);
+  for (const ligne of lignes) {
+    const cle = cleMois(new Date(ligne.date));
+    // Une ligne hors fenetre est ignoree plutot qu'ajoutee au premier mois :
+    // la borne SQL peut laisser passer un decalage de fuseau, et la rattacher
+    // creerait un pic artificiel en debut de courbe.
+    if (cases.has(cle)) cases.set(cle, (cases.get(cle) ?? 0) + ligne.valeur);
+  }
+  return [...cases.entries()].map(([m, valeur]) => ({ mois: m, valeur }));
+}
+
+/**
+ * Une serie annuelle, avec de quoi la situer.
+ *
+ * `variation` compare a l'annee scolaire precedente **sur son entierete**, pas
+ * au meme rang de mois : une annee en cours a moins de mois ecoules, et la
+ * comparer a une annee complete ferait apparaitre une chute qui n'existe pas.
+ * `comparable` dit si la comparaison a un sens ; l'interface s'abstient sinon.
+ */
