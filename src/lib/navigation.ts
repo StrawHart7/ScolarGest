@@ -233,6 +233,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
         { label: 'Établissement', labelCourt: 'École', href: '/etablissement', icone: 'etablissement' },
+        // Réservée au Directeur : ces chiffres touchent aux personnes — une
+        // classe faible, une matière en difficulté — et le pilotage
+        // pédagogique relève de la direction.
+        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'rapports' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'SECRETAIRE':
