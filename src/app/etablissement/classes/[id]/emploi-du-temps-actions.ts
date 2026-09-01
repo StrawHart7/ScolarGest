@@ -6,9 +6,8 @@ import {
   placerCreneau,
   retirerCreneau,
   detecterConflitEnseignant,
-  NOMBRE_JOURS,
-  NOMBRE_RANGS,
 } from '@/services/emploi-du-temps';
+import { NOMBRE_JOURS, NOMBRE_RANGS } from '@/lib/emploi-du-temps';
 
 /**
  * Actions de l'emploi du temps.

@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import type { Creneau } from '@/services/emploi-du-temps';
+import type { Creneau } from '@/lib/emploi-du-temps';
 import {
   placerCreneauAction,
   retirerCreneauAction,

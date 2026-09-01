@@ -1,4 +1,4 @@
-import { JOURS, RANGS, type Creneau } from '@/services/emploi-du-temps';
+import { JOURS, RANGS, type Creneau } from '@/lib/emploi-du-temps';
 import {
   STYLE_IDENTITE,
   htmlFiligrane,

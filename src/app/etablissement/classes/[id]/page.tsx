@@ -5,12 +5,8 @@ import { getClasse } from '@/services/classe';
 import { listElevesInscritsClasse } from '@/services/eleve';
 import { listProgramme } from '@/services/programme';
 import { listEnseignants } from '@/services/enseignant';
-import {
-  listCreneauxClasse,
-  JOURS,
-  RANGS,
-  type Creneau,
-} from '@/services/emploi-du-temps';
+import { listCreneauxClasse } from '@/services/emploi-du-temps';
+import { JOURS, RANGS, type Creneau } from '@/lib/emploi-du-temps';
 import { GrilleEmploiDuTemps } from './GrilleEmploiDuTemps';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

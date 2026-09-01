@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { exigerPin } from './pin';
+import { NOMBRE_JOURS, NOMBRE_RANGS, type Creneau } from '@/lib/emploi-du-temps';
 
 /**
  * Emploi du temps hebdomadaire d'une classe.
@@ -21,40 +22,13 @@ import { exigerPin } from './pin';
  * toutes deux la vérification applicative.
  */
 
-/** 1 = lundi … 6 = samedi. Pas de dimanche. */
-export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'] as const;
-
-/**
- * Rangs de la journée. Libellés en toutes lettres, sans heure d'horloge :
- * chaque école place sa journée comme elle l'entend.
- */
-export const RANGS = [
-  'Première heure',
-  'Deuxième heure',
-  'Troisième heure',
-  'Quatrième heure',
-  'Cinquième heure',
-  'Sixième heure',
-  'Septième heure',
-  'Huitième heure',
-] as const;
-
-export const NOMBRE_JOURS = JOURS.length;
-export const NOMBRE_RANGS = RANGS.length;
-
-export interface Creneau {
-  id: string;
-  etablissementId: string;
-  anneeScolaireId: string;
-  classeId: string;
-  jour: number;
-  rang: number;
-  matiereId: string;
-  enseignantId: string | null;
-  salle: string | null;
-  matiere: { nom: string; code: string | null };
-  enseignant: { nom: string; prenoms: string } | null;
-}
+export {
+  JOURS,
+  RANGS,
+  NOMBRE_JOURS,
+  NOMBRE_RANGS,
+  type Creneau,
+} from '@/lib/emploi-du-temps';
 
 export interface PlacerCreneauInput {
   classeId: string;
