@@ -1504,6 +1504,126 @@ l'ouverture de la nouvelle page, un prospect réel y attendait depuis 13 jours.
 
 ---
 
+### Fonctionnalité — Emploi du temps
+
+**Statut** : ✅ livrée sur `feat/emploi-du-temps` (2026-09-01), en attente de
+merge. Migration `0018`.
+
+**Objectif** : donner à chaque classe sa grille hebdomadaire, modifiable à tout
+moment par la Secrétaire, et imprimable.
+
+**La décision structurante est l'absence d'horaires.** Les colonnes sont les
+jours (lundi à samedi), les lignes des rangs ordonnés — « Première heure » à
+« Huitième heure ». Une école togolaise n'a pas de journée type universelle :
+07h00 ici, 07h30 là, une pause à géométrie variable. Imposer une grille horaire
+obligerait chaque établissement à décrire sa journée avant de pouvoir placer le
+moindre cours, et le rang suffit à dire « ce cours vient avant celui-là », qui
+est la seule information dont l'affichage a besoin.
+
+**Conséquence heureuse** : les deux conflits qui comptent deviennent des
+contraintes d'unicité, pas des calculs de chevauchement. Ni `btree_gist`, ni
+`EXCLUDE USING gist`, et surtout aucun risque de saisie concurrente qui
+passerait entre deux vérifications applicatives.
+
+**Livrables** :
+
+- [x] Migration `0018` — `emploi_du_temps_creneau`, deux index uniques
+      (classe/case, et enseignant/case en index **partiel**), RLS tenant.
+- [x] `src/services/emploi-du-temps.ts` — lecture de grille, pose (upsert),
+      retrait, détection de conflit. PIN exigé et audit sur les deux écritures.
+- [x] `src/lib/emploi-du-temps.ts` — forme et vocabulaire, sans dépendance.
+- [x] Grille cliquable en bas de `/etablissement/classes/[id]`.
+- [x] Export PDF A4 paysage, avec logo et filigrane de l'établissement.
+- [x] Ligne entière cliquable dans la liste des classes.
+- [x] La carte « La gestion des inscriptions arrive en Phase 2 » liste
+      désormais les élèves réellement inscrits.
+
+**Principes retenus** :
+
+- **Le conflit d'enseignant est annoncé puis refusé.** La vérification préalable
+  produit une phrase lisible pendant la saisie (« assure déjà Mathématiques en
+  3ème A ») ; l'index unique refuse l'écriture. La première sert le confort, le
+  second la correction — deux secrétaires saisissant en même temps passeraient
+  l'une, jamais l'autre.
+- **L'index de l'enseignant est partiel.** Un créneau peut n'avoir aucun
+  enseignant affecté — on place souvent la matière avant de savoir qui l'assure
+  — et NULL ne doit pas entrer en conflit avec NULL.
+- **Suppression franche assumée.** Un créneau n'est ni une note, ni une facture,
+  ni une inscription. L'invariant « pas de suppression dure » protège les
+  données financières et académiques historisées ; un emploi du temps est un
+  réglage courant, réécrit plusieurs fois par trimestre. L'audit garde la trace.
+- **Les matières proposées sont celles du programme du niveau.** Placer une
+  matière hors programme produirait un emploi du temps que le bulletin
+  ignorerait.
+- **PIN exigé** parce que la Secrétaire modifie sans validation hiérarchique.
+
+**Pièges rencontrés** :
+
+- `getClasse` accepte le COMPTABLE, pas `listElevesInscritsClasse` ni
+  `listCreneauxClasse`. Appeler sans conditionner au rôle faisait échouer toute
+  la page pour ce rôle. Restreint côté page plutôt qu'en élargissant une garde.
+- **`/api/emploi-du-temps` manquait dans `outputFileTracingIncludes`.** Toute
+  fonction qui génère un PDF doit y figurer : le tracing omet les assets brotli
+  de `@sparticuz/chromium`, lus à l'exécution et jamais `require`d. En local le
+  chemin serverless n'est pas emprunté — l'export aurait échoué **en production
+  seulement**.
+- Le gabarit PDF importait le service pour trois constantes, tirant tout le
+  graphe serveur dans un générateur de HTML. D'où `src/lib/emploi-du-temps.ts`.
+
+**Reste à faire** :
+
+- L'enseignant ne voit pas encore « son » emploi du temps toutes classes
+  confondues. L'index est en place, l'écran manque.
+
+---
+
+### Fonctionnalité — Robustesse du build (Sentry, polices)
+
+**Statut** : ✅ livrée sur `feat/emploi-du-temps` (2026-09-01). Aucune migration.
+
+**Objectif** : un build ne doit dépendre d'aucun service tiers. Le 2026-09-01,
+un déploiement a mis **trente minutes** sans la moindre erreur de compilation.
+
+**Deux attentes réseau, indépendantes** :
+
+- `sentry-cli releases new` est resté bloqué 3 min 26 avant un `504 Downstream
+  timeout` de sentry.io. Un incident chez un tiers immobilisait la livraison.
+- `next/font/google` téléchargeait Inter et JetBrains Mono **pendant le build**.
+  Un `ECONNRESET` sur `fonts.gstatic.com` laissait Next en réessais.
+
+**Livrables** :
+
+- [x] `errorHandler` sur le plugin Sentry — un échec d'envoi de source maps
+      devient un avertissement. Télémétrie du plugin coupée.
+- [x] Polices auto-hébergées via `next/font/local`, fichiers dans
+      `src/app/fonts/` avec `OFL.txt`.
+
+**Ce que l'auto-hébergement ne change pas** : `next/font/google` servait déjà
+les fichiers depuis notre domaine (`_next/static/media/`), jamais depuis Google.
+Seule l'origine **au moment du build** change. La sortie est identique,
+métriques de police de repli comprises.
+
+**Détails qui coûtent une compilation si on les oublie** :
+
+- Le chargeur de polices exige des **littéraux** : `unicode-range` factorisé
+  dans une constante partagée fait échouer le build (`Font loader values must be
+  explicitly written literals`). La valeur est donc répétée dans les deux
+  appels.
+- Sans `unicode-range`, un caractère hors du sous-ensemble latin s'afficherait
+  en carré vide au lieu de tomber sur la police de repli.
+- Les `.woff2` sont ceux produits par Next lui-même lors du dernier build
+  réussi — un rendu identique, plutôt qu'une version retéléchargée.
+
+**Effet de bord bienvenu** : `.next/static/media` ne contient plus que deux
+fichiers au lieu de treize ; les sous-ensembles cyrillique, grec et vietnamien
+n'étaient jamais servis.
+
+**Constat laissé ouvert** : rien ne prouve que les polices étaient en cause dans
+les trente minutes **sur Vercel** — le log fourni s'arrêtait à l'erreur Sentry.
+Seul l'`ECONNRESET` local est établi. À confirmer au prochain déploiement.
+
+---
+
 ### Fonctionnalité — KPI et visualisation des statistiques
 
 **Statut** : Cadrée, non démarrée. À discuter le 2026-09-01.
