@@ -167,11 +167,14 @@ export async function appliquerCoefficientsOfficiels(
   // Table de correspondance (cycle, code) -> matiere officielle.
   const { data: officielles, error: erreurOfficielles } = await supabase
     .from('matiere_officielle')
-    .select('id, code, "cycleId"');
+    .select('id, "codeEcole", "cycleId"');
   if (erreurOfficielles) throw erreurOfficielles;
+  // `codeEcole` et non `code` : le ministere renomme la meme discipline d'un
+  // cycle a l'autre (ANG -> LV1, PCT -> PC) alors qu'une ecole n'a qu'une
+  // matiere Anglais. Voir migration 0022.
   const parCycleEtCode = new Map(
-    ((officielles ?? []) as { id: string; code: string; cycleId: string }[]).map((m) => [
-      `${m.cycleId}|${m.code}`,
+    ((officielles ?? []) as { id: string; codeEcole: string; cycleId: string }[]).map((m) => [
+      `${m.cycleId}|${m.codeEcole}`,
       m.id,
     ]),
   );
@@ -229,4 +232,43 @@ export async function appliquerCoefficientsOfficiels(
   }
 
   return { appliques, aSaisir: lignes.length - couvertes.size };
+}
+
+/**
+ * Barème national d'un niveau, indexé par le code que l'école utilise.
+ *
+ * Destiné à l'affichage : l'écran de saisie doit pouvoir distinguer, ligne par
+ * ligne, ce qui vient du ministère de ce que l'école a choisi. Une carte vide
+ * signifie que cette combinaison n'est pas couverte — série technique, Seconde,
+ * ou cycle hors périmètre — et l'écran redevient entièrement éditable.
+ */
+export async function baremeOfficiel(
+  niveauId: string,
+  serieId: string | null,
+): Promise<Map<string, number>> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  const supabase = createClient();
+
+  const officiels = await coefficientsOfficiels(niveauId, serieId);
+  if (officiels.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('matiere_officielle')
+    .select('id, "codeEcole"')
+    .in(
+      'id',
+      officiels.map((o) => o.matiereOfficielleId),
+    );
+  if (error) throw error;
+
+  const codeParId = new Map(
+    ((data ?? []) as { id: string; codeEcole: string }[]).map((m) => [m.id, m.codeEcole]),
+  );
+
+  const bareme = new Map<string, number>();
+  for (const o of officiels) {
+    const code = codeParId.get(o.matiereOfficielleId);
+    if (code) bareme.set(code, o.coefficient);
+  }
+  return bareme;
 }

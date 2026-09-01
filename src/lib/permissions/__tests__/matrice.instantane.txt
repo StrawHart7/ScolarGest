@@ -111,6 +111,7 @@ matiere.getMatiere = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 matiere.listMatieres = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 matiere.updateMatiere = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 matiere-officielle.appliquerCoefficientsOfficiels = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
+matiere-officielle.baremeOfficiel = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 matiere-officielle.coefficientsOfficiels = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 matiere-officielle.listMatieresOfficielles = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 matricule.generateMatriculeEleve = AUTHENTIFIE
