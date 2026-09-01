@@ -6,39 +6,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { appelerAction } from '../appel-action';
 import { ErreurEtape, PuceChoix } from '../Bulles';
-import { MATIERES_SUGGEREES, type NomCycle } from '@/lib/onboarding/suggestions';
 import { creerMatieresAction } from '../actions';
 
 /**
- * Contrairement aux cycles et niveaux, il n'existe **aucun catalogue système**
- * de matières : la table `matiere` porte un `etablissementId`, chaque école
- * crée les siennes. Les suggestions viennent donc d'une liste en dur, adaptée
- * aux cycles réellement activés, pour éviter de laisser le Directeur devant un
- * champ vide. L'ajout libre reste possible.
+ * Les matières proposées viennent du **catalogue officiel** du ministère,
+ * chargé côté serveur pour les cycles activés (migration `0020`). Elles
+ * portent leur code, et c'est ce code qui rattachera ensuite le barème
+ * national : une matière saisie librement, ou sous un autre nom, n'aura pas
+ * de coefficient officiel et restera à la main de l'école.
+ *
+ * Cochées par défaut : celles qui ont un coefficient ministériel. Dessin,
+ * Musique, Langues nationales et Enseignement ménager figurent au programme
+ * national avec un volume horaire mais sans coefficient — l'école les ajoute
+ * si elle les enseigne, et fixe elle-même leur poids.
  */
 export function EtapeMatieres({
-  cyclesActifsNoms,
+  catalogue,
   matieresExistantes,
   onTermine,
 }: {
-  cyclesActifsNoms: string[];
+  catalogue: { nom: string; code: string; parDefaut: boolean }[];
   matieresExistantes: string[];
   onTermine: () => void;
 }) {
-  const suggestions = React.useMemo(() => {
-    const parNom = new Map<string, { nom: string; code: string; parDefaut: boolean }>();
-    for (const cycle of cyclesActifsNoms) {
-      for (const matiere of MATIERES_SUGGEREES[cycle as NomCycle] ?? []) {
-        const existante = parNom.get(matiere.nom);
-        // Une matière proposée par défaut dans l'un des cycles de l'école
-        // le reste globalement — le tronc commun prime sur l'option.
-        if (!existante || (!existante.parDefaut && matiere.parDefaut)) {
-          parNom.set(matiere.nom, matiere);
-        }
-      }
-    }
-    return [...parNom.values()].filter((m) => !matieresExistantes.includes(m.nom));
-  }, [cyclesActifsNoms, matieresExistantes]);
+  const suggestions = React.useMemo(
+    () => catalogue.filter((m) => !matieresExistantes.includes(m.nom)),
+    [catalogue, matieresExistantes],
+  );
 
   const [selection, setSelection] = React.useState<string[]>(() =>
     suggestions.filter((m) => m.parDefaut).map((m) => m.nom),

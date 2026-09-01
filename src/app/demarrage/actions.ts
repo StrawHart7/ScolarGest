@@ -12,6 +12,7 @@ import { createClasse } from '@/services/classe';
 import { createMatiere } from '@/services/matiere';
 import { ajouterMatiereAuProgramme } from '@/services/programme';
 import { definirCoefficients } from '@/services/coefficient';
+import { appliquerCoefficientsOfficiels } from '@/services/matiere-officielle';
 import { createEnseignant } from '@/services/enseignant';
 import { inviteUtilisateur } from '@/services/utilisateur';
 import { createTypeFrais } from '@/services/type-frais';
@@ -281,6 +282,7 @@ export async function creerMatieresAction(
 // --- Étape 5 : programme ---------------------------------------------------
 
 const programmeSchema = z.object({
+  anneeScolaireId: z.string().uuid(),
   affectations: z
     .array(z.object({ niveauId: z.string().uuid(), matiereIds: z.array(z.string().uuid()) }))
     .min(1),
@@ -316,7 +318,31 @@ export async function definirProgrammeAction(
   } catch (e) {
     return echec(e, 'Impossible d’enregistrer le programme.');
   }
-  return { ok: true, message: `${ajoutees} association${ajoutees > 1 ? 's' : ''} enregistrée${ajoutees > 1 ? 's' : ''}.` };
+
+  // Le barème du ministère est écrit dans la foulée. Sans cela, les
+  // coefficients officiels ne seraient jamais enregistrés : l'étape suivante
+  // ne les propose plus à la saisie, précisément parce qu'ils sont imposés.
+  //
+  // L'échec n'interrompt pas l'étape : le programme, lui, est bien enregistré,
+  // et l'écran Coefficients porte un bouton pour réappliquer le barème. Perdre
+  // l'association matière/niveau pour un coefficient manquant serait un
+  // mauvais échange.
+  let coefficientsOfficiels = 0;
+  try {
+    const resultat = await appliquerCoefficientsOfficiels(valide.data.anneeScolaireId);
+    coefficientsOfficiels = resultat.appliques;
+  } catch {
+    coefficientsOfficiels = 0;
+  }
+
+  const complement =
+    coefficientsOfficiels > 0
+      ? ` ${coefficientsOfficiels} coefficient${coefficientsOfficiels > 1 ? 's' : ''} du barème national appliqué${coefficientsOfficiels > 1 ? 's' : ''}.`
+      : '';
+  return {
+    ok: true,
+    message: `${ajoutees} association${ajoutees > 1 ? 's' : ''} enregistrée${ajoutees > 1 ? 's' : ''}.${complement}`,
+  };
 }
 
 // --- Étape 6 : coefficients ------------------------------------------------

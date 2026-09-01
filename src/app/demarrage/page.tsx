@@ -5,6 +5,7 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listMatieres } from '@/services/matiere';
 import { listProgramme } from '@/services/programme';
+import { baremeOfficiel, listMatieresOfficielles } from '@/services/matiere-officielle';
 import { listTypesFrais } from '@/services/type-frais';
 import { listTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -164,6 +165,8 @@ async function chargerDonnees(
     seriesParId: {},
     matieres: [],
     lignesProgramme: [],
+    matieresOfficielles: [],
+    programmeDefini: false,
     classes,
     typesFrais: [],
     anneeScolaireId: anneeActive?.id ?? null,
@@ -197,9 +200,33 @@ async function chargerDonnees(
   // en base — c'est aussi ainsi qu'elle se retrouve à la reprise du parcours.
   const niveauxUtilises = niveaux.filter((n) => classes.some((c) => c.niveauId === n.id));
 
+  // Catalogue officiel des cycles activés. Remplace la liste en dur : les
+  // matières proposées sont désormais celles du programme national, avec leur
+  // code — c'est ce code qui rattachera ensuite le barème.
+  const catalogue = new Map<string, { nom: string; code: string; parDefaut: boolean }>();
+  for (const actif of cyclesActifs) {
+    for (const m of await listMatieresOfficielles(actif.cycleId)) {
+      const existante = catalogue.get(m.codeEcole);
+      // Une matière coefficientée dans l'un des cycles de l'école le reste
+      // globalement : le tronc commun prime sur l'option.
+      if (!existante || (!existante.parDefaut && m.aCoefficientOfficiel)) {
+        catalogue.set(m.codeEcole, {
+          nom: m.nom,
+          code: m.codeEcole,
+          parDefaut: m.aCoefficientOfficiel,
+        });
+      }
+    }
+  }
+  const matieresOfficielles = [...catalogue.values()];
+
   const lignesProgramme: LigneProgrammeNiveau[] = [];
+  // Distinct du nombre de lignes restantes : le programme peut etre defini et
+  // entierement couvert par le bareme national.
+  let programmeDefini = false;
   for (const niveau of niveauxUtilises) {
     const programme = await listProgramme(niveau.id);
+    if (programme.length > 0) programmeDefini = true;
     // Seules les séries que l'établissement utilise réellement, déduites de
     // ses classes — proposer les six séries du catalogue alors que l'école
     // n'en ouvre que deux noyait la grille sous des colonnes inutiles.
@@ -210,13 +237,30 @@ async function chargerDonnees(
           .map((c) => c.serieId as string),
       ),
     ];
+
+    // Le barème du ministère, par série. Ce que l'État fixe n'a pas à être
+    // demandé au Directeur : ne restent dans l'étape que les matières et les
+    // séries qu'il lui appartient réellement d'arbitrer.
+    const cibles: (string | null)[] = serieIds.length > 0 ? serieIds : [null];
+    const baremes = new Map<string, Map<string, number>>();
+    for (const cible of cibles) {
+      baremes.set(cible ?? '', await baremeOfficiel(niveau.id, cible));
+    }
+
     for (const item of programme) {
+      const code = item.matiere.code;
+      const serieIdsASaisir = cibles.filter(
+        (cible) => !(code && baremes.get(cible ?? '')?.has(code)),
+      );
+      // Toutes les séries couvertes : la ligne disparaît du questionnaire.
+      if (serieIdsASaisir.length === 0) continue;
+
       lignesProgramme.push({
         programmeEtablissementId: item.id,
         niveauId: niveau.id,
         niveauNom: niveau.nom,
         matiereNom: item.matiere.nom,
-        serieIds,
+        serieIds: serieIdsASaisir.filter((s): s is string => s !== null),
       });
     }
   }
@@ -250,6 +294,8 @@ async function chargerDonnees(
     seriesParId: Object.fromEntries(series.map((s) => [s.id, s.nom])),
     matieres: matieres.map((m) => ({ id: m.id, nom: m.nom })),
     lignesProgramme,
+    matieresOfficielles,
+    programmeDefini,
     resumes,
   };
 }

@@ -21,10 +21,12 @@ export interface MatiereChoisissable {
  * cases est plus rapide que d'en cocher quinze.
  */
 export function EtapeProgramme({
+  anneeScolaireId,
   niveaux,
   matieres,
   onTermine,
 }: {
+  anneeScolaireId: string;
   niveaux: NiveauAvecCycle[];
   matieres: MatiereChoisissable[];
   onTermine: () => void;
@@ -51,6 +53,7 @@ export function EtapeProgramme({
     setErreur(null);
     setEnCours(true);
     const resultat = await appelerAction(() => definirProgrammeAction({
+      anneeScolaireId,
       affectations: niveaux.map((n) => ({ niveauId: n.id, matiereIds: parNiveau[n.id] ?? [] })),
     }));
     setEnCours(false);

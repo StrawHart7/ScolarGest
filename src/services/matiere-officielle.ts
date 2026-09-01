@@ -30,7 +30,14 @@ import { definirCoefficients } from './coefficient';
 
 export interface MatiereOfficielle {
   id: string;
+  /** Code du ministère : « LV1 » au lycée, « ANG » au collège. */
   code: string;
+  /**
+   * Code sous lequel une école range la matière. Il ne diffère du code
+   * officiel que là où le ministère change de nom d'un cycle à l'autre — une
+   * école n'a qu'une matière « Anglais » (voir migration `0022`).
+   */
+  codeEcole: string;
   nom: string;
   ordreAffichage: number;
   /**
@@ -47,7 +54,7 @@ export async function listMatieresOfficielles(cycleId: string): Promise<MatiereO
 
   const { data, error } = await supabase
     .from('matiere_officielle')
-    .select('id, code, nom, "ordreAffichage"')
+    .select('id, code, "codeEcole", nom, "ordreAffichage"')
     .eq('cycleId', cycleId)
     .order('ordreAffichage');
   if (error) throw error;
