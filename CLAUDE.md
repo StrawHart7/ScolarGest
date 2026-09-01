@@ -207,7 +207,12 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-08-31) :
+**Active branches** (2026-09-01) :
+- `feat/emploi-du-temps` — ✅ livrée (2026-09-01), en attente de merge :
+  grille hebdomadaire par classe, export PDF, plus deux corrections sur les
+  écrans de classe et deux correctifs de robustesse du build. Migration `0018`.
+  Voir `PLAN.md` § 8.
+- `feat/kpi-graphes` — créée, vide. Réservée aux KPI et aux graphes.
 - `feat/super-admin` — ✅ terminée et mergée sur `main` (2026-08-31) : console plateforme — tableau de bord, inventaire des écoles, file des prospects, fiche d'usage, journal d'audit transverse. Aucune migration. Voir `PLAN.md` § 8.
 - `feat/pricing` — ✅ terminée et mergée sur `main` (2026-08-31) : modèle économique complet — essai gratuit de 30 jours, facturation par cycle, section de tarifs publique, paiement Mobile Money via FedaPay, bascule sur le domaine `scolargest.com`. Migrations `0015` à `0017`. Voir `PLAN.md` § 8.
 - `feat/secondaire-uniquement` — ✅ terminée et mergée sur `main` (2026-08-31) : retrait de la maternelle et du primaire du catalogue. Migration `0014`.
@@ -501,6 +506,75 @@ vérifier que cet écran suit.
 **Le SUPER_ADMIN est redirigé de `/dashboard` vers `/super-admin`.** La route
 `/dashboard` reste la destination commune après connexion pour les quatre autres
 rôles — ne pas la supprimer.
+
+### Emploi du temps : une grille sans horloge
+
+Migration `0018`. Les colonnes sont les jours (lundi a samedi), les lignes des
+rangs ordonnes — « Premiere heure » a « Huitieme heure ». **Aucune heure
+d'horloge nulle part.**
+
+Une ecole togolaise n'a pas de journee type universelle : imposer une grille
+horaire obligerait chaque etablissement a decrire sa journee avant de placer le
+moindre cours. Le rang suffit a dire « ce cours vient avant celui-la », seule
+information dont l'affichage a besoin.
+
+**Consequence structurante** : les deux conflits deviennent des index uniques,
+pas des calculs de chevauchement. Ni `btree_gist`, ni `EXCLUDE USING gist`.
+Celui de l'enseignant est **partiel** — un creneau peut n'avoir personne
+d'affecte, et NULL ne doit pas entrer en conflit avec NULL.
+
+**Le conflit est annonce puis refuse.** `detecterConflitEnseignant` ne protege
+rien : elle produit une phrase lisible pendant la saisie, la ou le code Postgres
+`23505` ne dirait rien. C'est l'index qui refuse. Supprimer l'un des deux en
+croyant l'autre suffisant est une erreur — deux secretaires saisissant en meme
+temps passeraient la verification applicative sans jamais franchir l'index.
+
+**Suppression franche assumee.** Un creneau n'est ni une note, ni une facture,
+ni une inscription. L'invariant « pas de suppression dure » protege les donnees
+financieres et academiques historisees ; un emploi du temps est un reglage
+courant, reecrit plusieurs fois par trimestre.
+
+**`src/lib/emploi-du-temps.ts` ne depend de rien**, deliberement : le gabarit
+PDF et le composant client y puisent JOURS, RANGS et la forme d'un creneau sans
+tirer le graphe serveur. Ne jamais y importer de service.
+
+**Les matieres proposees sont celles du programme du niveau.** Une matiere hors
+programme produirait un emploi du temps que le bulletin ignorerait.
+
+### Toute fonction qui genere un PDF doit etre tracee
+
+`outputFileTracingIncludes` (`next.config.mjs`) doit lister **chaque** route qui
+appelle `renderHtmlToPdf`. Le tracing de fichiers de Vercel omet les assets
+brotli de `@sparticuz/chromium` (`bin/*.br`), lus a l'execution et jamais
+`require`d.
+
+L'oubli ne casse ni le build ni le developpement local : le chemin serverless
+n'y est pas emprunte. L'export echoue **en production seulement**, avec « The
+input directory .../@sparticuz/chromium/bin does not exist ». C'est exactement
+ce qui est arrive a `/api/emploi-du-temps`.
+
+### Le build ne doit dependre d'aucun service tiers
+
+Le 2026-09-01, un deploiement a mis trente minutes sans la moindre erreur de
+compilation. Deux attentes reseau, independantes :
+
+- `sentry-cli releases new` bloque 3 min 26 avant un `504 Downstream timeout`.
+  Un `errorHandler` degrade desormais ces echecs en avertissement.
+- `next/font/google` telechargeait les polices **pendant le build**. Elles sont
+  auto-hebergees (`next/font/local`, fichiers dans `src/app/fonts/`).
+
+**L'auto-hebergement ne change rien pour l'utilisateur final** :
+`next/font/google` servait deja les fichiers depuis notre domaine
+(`_next/static/media/`), jamais depuis Google. Seule l'origine au moment du
+build change.
+
+Deux details qui coutent une compilation :
+
+- Le chargeur de polices exige des **litteraux**. `unicode-range` factorise dans
+  une constante partagee fait echouer le build (`Font loader values must be
+  explicitly written literals`) — d'ou sa repetition dans les deux appels.
+- Sans `unicode-range`, un caractere hors du sous-ensemble latin s'afficherait
+  en carre vide au lieu de tomber sur la police de repli.
 
 ### Domaine et URL publique
 

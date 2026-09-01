@@ -137,11 +137,16 @@ export default async function ClassesPage({
                     </TableHeader>
                     <TableBody>
                       {page.lignes.map((classe) => (
-                        <TableRow key={classe.id}>
+                        // Toute la ligne mene a la fiche, pas seulement le nom :
+                        // viser un mot de quelques lettres dans une ligne de mille
+                        // pixels est une cible inutilement etroite. Un <a> ne peut
+                        // pas envelopper un <tr>, d'ou le recouvrement absolu
+                        // ancre sur la ligne rendue `relative`.
+                        <TableRow key={classe.id} className="group relative">
                           <TableCell className="font-medium">
                             <Link
                               href={`/etablissement/classes/${classe.id}`}
-                              className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                              className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container"
                             >
                               {classe.nom}
                             </Link>
