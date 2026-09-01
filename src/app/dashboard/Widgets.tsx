@@ -12,75 +12,53 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AnneauRepartition } from '@/components/ui/anneau-repartition';
 import type { StatsFinance } from '@/services/dashboard';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
 
 /**
- * Recouvrement en anneau plutôt qu'en barre de progression : la carte occupait
- * une demi-largeur d'écran pour une seule valeur. L'anneau porte le taux, et
- * l'espace libéré affiche la décomposition encaissé / restant, qui est
- * l'information réellement utile.
+ * Recouvrement en anneau plutot qu'en barre de progression : la carte occupait
+ * une demi-largeur d'ecran pour une seule valeur. L'anneau porte le taux, et
+ * l'espace libere affiche la decomposition encaisse / restant, qui est
+ * l'information reellement utile.
+ *
+ * L'anneau lui-meme vient desormais de `AnneauRepartition`. Il en existait deux
+ * implementations — celle-ci, tracee au `stroke`, et la nouvelle. Un trait epais
+ * deborde l'angle demande a ses extremites, ce qui fausse visiblement les
+ * petites parts ; la version partagee dessine des couronnes fermees. Garder
+ * deux anneaux qui ne racontent pas la meme verite sur les memes chiffres
+ * n'avait aucun sens.
+ *
+ * La signature ne bouge pas : les deux appelants (Directeur et Comptable)
+ * restent inchanges.
  */
 export function TauxRecouvrement({ finance }: { finance: StatsFinance }) {
   const taux =
     finance.attendu > 0 ? Math.round((finance.encaisse / finance.attendu) * 100) : 0;
-  // Anneau SVG : circonférence d'un cercle de rayon 42.
-  const circonference = 2 * Math.PI * 42;
-  const rempli = (Math.min(100, Math.max(0, taux)) / 100) * circonference;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recouvrement</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-wrap items-center gap-6">
-        <div className="relative h-28 w-28 shrink-0">
-          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-            <circle cx="50" cy="50" r="42" fill="none" strokeWidth="10" className="stroke-surface-container" />
-            <circle
-              cx="50"
-              cy="50"
-              r="42"
-              fill="none"
-              strokeWidth="10"
-              strokeLinecap="round"
-              strokeDasharray={`${rempli} ${circonference}`}
-              className="stroke-tertiary-container"
-            />
-          </svg>
-          <div
-            className="absolute inset-0 grid place-items-center"
-            role="img"
-            aria-label={`Taux de recouvrement : ${taux} %`}
-          >
-            <span className="text-headline-md text-text-primary" data-mono>
-              {taux} %
-            </span>
-          </div>
+      <CardContent className="space-y-4">
+        <AnneauRepartition
+          parts={[
+            { libelle: 'Encaissé', valeur: finance.encaisse, teinte: 'bon' },
+            { libelle: 'Reste à recouvrer', valeur: finance.impaye, teinte: 'critique' },
+          ]}
+          valeurCentrale={`${taux} %`}
+          libelleCentral="recouvré"
+          formater={fcfa}
+        />
+        <div className="flex items-baseline justify-between gap-3 border-t border-surface-border pt-3">
+          <span className="text-body-sm text-text-secondary">Factures soldées</span>
+          <span className="text-body-md text-text-primary" data-mono>
+            {nombre(finance.facturesSoldees)} / {nombre(finance.facturesTotal)}
+          </span>
         </div>
-
-        <dl className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <dt className="text-body-sm text-text-secondary">Encaissé</dt>
-            <dd className="text-body-md font-semibold text-tertiary" data-mono>
-              {fcfa(finance.encaisse)}
-            </dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-3">
-            <dt className="text-body-sm text-text-secondary">Reste à recouvrer</dt>
-            <dd className="text-body-md font-semibold text-error" data-mono>
-              {fcfa(finance.impaye)}
-            </dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-3 border-t border-surface-border pt-2">
-            <dt className="text-body-sm text-text-secondary">Factures soldées</dt>
-            <dd className="text-body-md text-text-primary" data-mono>
-              {nombre(finance.facturesSoldees)} / {nombre(finance.facturesTotal)}
-            </dd>
-          </div>
-        </dl>
       </CardContent>
     </Card>
   );

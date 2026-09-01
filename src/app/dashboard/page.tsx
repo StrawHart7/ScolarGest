@@ -24,7 +24,9 @@ import { StatCard } from '@/components/ui/stat-card';
 import { getSidebarItems } from '@/lib/navigation';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
+import { encaissementsParMois, inscriptionsParMois } from '@/services/series-ecole';
 import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
+import { CarteEncaissements, CarteInscriptions } from './CartesGraphes';
 import { BanniereDemarrage } from './BanniereDemarrage';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
@@ -114,9 +116,11 @@ export default async function DashboardPage() {
   }
 
   if (ctx.role === 'DIRECTEUR') {
-    const [stats, flux] = await Promise.all([
+    const [stats, flux, encaissements, inscriptions] = await Promise.all([
       getDashboardDirecteur(annee.id),
       getFluxActivite(),
+      encaissementsParMois(),
+      inscriptionsParMois(),
     ]);
 
     return layout(
@@ -198,10 +202,18 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        {/* Les tendances avant le detail : une courbe repond a « est-ce que ca
+            va dans le bon sens », question qu'on se pose avant « combien
+            exactement ». Le flux d'activite et les raccourcis restent en bas,
+            ou l'on descend quand on cherche une action precise. */}
+        <CarteEncaissements points={encaissements} />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <CarteInscriptions points={inscriptions} />
           <TauxRecouvrement finance={stats.finance} />
-          <FluxActivite evenements={flux} />
         </div>
+
+        <FluxActivite evenements={flux} />
 
         <Raccourcis
           raccourcis={[
@@ -216,7 +228,10 @@ export default async function DashboardPage() {
   }
 
   if (ctx.role === 'COMPTABLE') {
-    const finance = await getDashboardComptable(annee.id);
+    const [finance, encaissements] = await Promise.all([
+      getDashboardComptable(annee.id),
+      encaissementsParMois(),
+    ]);
     return layout(
       <>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
@@ -245,6 +260,8 @@ export default async function DashboardPage() {
           />
         </div>
 
+        <CarteEncaissements points={encaissements} />
+
         <TauxRecouvrement finance={finance} />
 
         <Raccourcis
@@ -260,7 +277,13 @@ export default async function DashboardPage() {
   }
 
   if (ctx.role === 'SECRETAIRE') {
-    const stats = await getDashboardSecretaire(annee.id);
+    // La Secretaire suit les inscriptions, pas l'argent : `getDashboardSecretaire`
+    // ne renvoie deja aucun chiffre financier, et la courbe d'encaissements
+    // n'aurait rien a faire ici.
+    const [stats, inscriptions] = await Promise.all([
+      getDashboardSecretaire(annee.id),
+      inscriptionsParMois(),
+    ]);
     return layout(
       <>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
@@ -290,6 +313,8 @@ export default async function DashboardPage() {
             icon={<FileText className="h-5 w-5" aria-hidden />}
           />
         </div>
+
+        <CarteInscriptions points={inscriptions} />
 
         <Raccourcis
           raccourcis={[
