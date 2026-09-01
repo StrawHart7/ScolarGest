@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { CourbeAire } from '@/components/ui/courbe-aire';
 import { HistogrammeMensuel } from '@/components/ui/histogramme-mensuel';
 import { formaterValeur } from '@/lib/format-graphe';
-import type { PointMensuel } from '@/services/series-ecole';
+import type { SerieAnnuelle } from '@/services/series-ecole';
 
 /**
  * Cartes de graphes du tableau de bord.
@@ -19,7 +20,15 @@ import type { PointMensuel } from '@/services/series-ecole';
 
 
 
-function Entete({ titre, total, precision }: { titre: string; total: string; precision: string }) {
+function Entete({
+  titre,
+  total,
+  variation,
+}: {
+  titre: string;
+  total: string;
+  variation: number | null;
+}) {
   return (
     <CardHeader className="flex flex-row flex-wrap items-baseline justify-between gap-x-4 gap-y-1 space-y-0">
       <CardTitle>{titre}</CardTitle>
@@ -27,7 +36,22 @@ function Entete({ titre, total, precision }: { titre: string; total: string; pre
         <span className="text-headline-md text-text-primary" data-mono>
           {total}
         </span>
-        <span className="text-body-sm text-text-secondary">{precision}</span>
+        {/* La variation ne s'affiche que si elle veut dire quelque chose : sans
+            annee precedente, ou depuis un total nul, il n'y a pas de
+            pourcentage a donner. */}
+        {variation !== null && (
+          <span
+            className={cn(
+              'text-body-sm font-medium',
+              variation > 0 && 'text-tertiary',
+              variation < 0 && 'text-error',
+              variation === 0 && 'text-text-secondary',
+            )}
+          >
+            {variation > 0 ? '+' : ''}
+            {variation} % vs l&apos;an dernier
+          </span>
+        )}
       </div>
     </CardHeader>
   );
@@ -42,38 +66,38 @@ function Vide({ message }: { message: string }) {
   );
 }
 
-export function CarteEncaissements({ points }: { points: PointMensuel[] }) {
-  const total = points.reduce((s, p) => s + p.valeur, 0);
-
+export function CarteEncaissements({ serie }: { serie: SerieAnnuelle }) {
   return (
     <Card>
-      <Entete titre="Encaissements" total={formaterValeur(total, 'fcfa')} precision="sur 12 mois" />
-      {total === 0 ? (
-        <Vide message="Aucun paiement enregistré sur les douze derniers mois." />
+      <Entete
+        titre="Encaissements de l'année"
+        total={formaterValeur(serie.total, 'fcfa')}
+        variation={serie.variation}
+      />
+      {serie.total === 0 ? (
+        <Vide message="Aucun paiement enregistré sur cette année scolaire." />
       ) : (
         <CardContent>
-          <CourbeAire id="encaissements" points={points} format="fcfa" />
+          <CourbeAire id="encaissements" points={serie.points} format="fcfa" />
         </CardContent>
       )}
     </Card>
   );
 }
 
-export function CarteInscriptions({ points }: { points: PointMensuel[] }) {
-  const total = points.reduce((s, p) => s + p.valeur, 0);
-
+export function CarteInscriptions({ serie }: { serie: SerieAnnuelle }) {
   return (
     <Card>
       <Entete
-        titre="Inscriptions"
-        total={total.toLocaleString('fr-FR')}
-        precision="sur 12 mois"
+        titre="Inscriptions de l'année"
+        total={serie.total.toLocaleString('fr-FR')}
+        variation={serie.variation}
       />
-      {total === 0 ? (
-        <Vide message="Aucune inscription enregistrée sur les douze derniers mois." />
+      {serie.total === 0 ? (
+        <Vide message="Aucune inscription enregistrée sur cette année scolaire." />
       ) : (
         <CardContent>
-          <HistogrammeMensuel barres={points} unite="inscription" />
+          <HistogrammeMensuel barres={serie.points} unite="inscription" />
         </CardContent>
       )}
     </Card>

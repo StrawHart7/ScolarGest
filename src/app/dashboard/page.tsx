@@ -24,7 +24,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { getSidebarItems } from '@/lib/navigation';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
-import { encaissementsParMois, inscriptionsParMois } from '@/services/series-ecole';
+import { encaissementsAnnee, inscriptionsAnnee } from '@/services/series-ecole';
 import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
 import { CarteEncaissements, CarteInscriptions } from './CartesGraphes';
 import { BanniereDemarrage } from './BanniereDemarrage';
@@ -119,8 +119,8 @@ export default async function DashboardPage() {
     const [stats, flux, encaissements, inscriptions] = await Promise.all([
       getDashboardDirecteur(annee.id),
       getFluxActivite(),
-      encaissementsParMois(),
-      inscriptionsParMois(),
+      encaissementsAnnee(annee.id),
+      inscriptionsAnnee(annee.id),
     ]);
 
     return layout(
@@ -206,10 +206,10 @@ export default async function DashboardPage() {
             va dans le bon sens », question qu'on se pose avant « combien
             exactement ». Le flux d'activite et les raccourcis restent en bas,
             ou l'on descend quand on cherche une action precise. */}
-        <CarteEncaissements points={encaissements} />
+        <CarteEncaissements serie={encaissements} />
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <CarteInscriptions points={inscriptions} />
+          <CarteInscriptions serie={inscriptions} />
           <TauxRecouvrement finance={stats.finance} />
         </div>
 
@@ -230,7 +230,7 @@ export default async function DashboardPage() {
   if (ctx.role === 'COMPTABLE') {
     const [finance, encaissements] = await Promise.all([
       getDashboardComptable(annee.id),
-      encaissementsParMois(),
+      encaissementsAnnee(annee.id),
     ]);
     return layout(
       <>
@@ -260,7 +260,7 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <CarteEncaissements points={encaissements} />
+        <CarteEncaissements serie={encaissements} />
 
         <TauxRecouvrement finance={finance} />
 
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
     // n'aurait rien a faire ici.
     const [stats, inscriptions] = await Promise.all([
       getDashboardSecretaire(annee.id),
-      inscriptionsParMois(),
+      inscriptionsAnnee(annee.id),
     ]);
     return layout(
       <>
@@ -314,7 +314,7 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <CarteInscriptions points={inscriptions} />
+        <CarteInscriptions serie={inscriptions} />
 
         <Raccourcis
           raccourcis={[
