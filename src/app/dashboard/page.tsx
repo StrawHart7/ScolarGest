@@ -211,24 +211,28 @@ export default async function DashboardPage() {
 
         <CarteEncaissements serie={encaissements} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <CarteEffectifs classes={effectifs} />
-          <TauxRecouvrement finance={stats.finance} />
-        </div>
-
         {/* L'activite recente occupait toute la largeur pour une colonne de
-            libelles courts. Elle passe en colonne laterale, a cote des
-            raccourcis : c'est du contexte, pas le sujet de la page. */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <Raccourcis
-            raccourcis={[
-              RACCOURCIS.suiviPaiements!,
-              RACCOURCIS.bulletins!,
-              RACCOURCIS.rapports!,
-            ]}
-          />
+            libelles courts. Elle passe a cote du recouvrement : c'est du
+            contexte, pas le sujet de la page. */}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <TauxRecouvrement finance={stats.finance} />
           <FluxActivite evenements={flux} />
         </div>
+
+        {/* Repliee par defaut : le detail par classe est precieux quand on le
+            cherche et encombrant quand on ne le cherche pas. Le resume porte
+            l'essentiel, pour decider de deplier sans deplier. */}
+        <CarteEffectifs classes={effectifs} />
+
+        {/* Pleine largeur. Coinces dans une colonne de trois cinquiemes, les
+            raccourcis tombaient a un mot par ligne. */}
+        <Raccourcis
+          raccourcis={[
+            RACCOURCIS.suiviPaiements!,
+            RACCOURCIS.bulletins!,
+            RACCOURCIS.rapports!,
+          ]}
+        />
       </>,
       `${annee.libelle} — vue globale de l’établissement`,
     );

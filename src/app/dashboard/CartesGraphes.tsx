@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { CourbeAire } from '@/components/ui/courbe-aire';
 import { BarresHorizontales } from '@/components/ui/barres-horizontales';
+import { CarteRepliable } from '@/components/ui/carte-repliable';
 import { formaterValeur } from '@/lib/format-graphe';
 import type { EffectifClasse, SerieAnnuelle } from '@/services/series-ecole';
 
@@ -98,21 +99,30 @@ export function CarteEncaissements({ serie }: { serie: SerieAnnuelle }) {
 export function CarteEffectifs({ classes }: { classes: EffectifClasse[] }) {
   const total = classes.reduce((s, c) => s + c.effectif, 0);
   const pleines = classes.filter((c) => c.capacite !== null && c.effectif >= c.capacite).length;
+  const vides = classes.filter((c) => c.effectif === 0).length;
+
+  // Le resume doit suffire a decider si l'on deplie : combien de classes, et
+  // surtout combien meritent une decision.
+  const alertes = [
+    pleines > 0 ? `${pleines} au complet` : null,
+    vides > 0 ? `${vides} sans élève` : null,
+  ].filter(Boolean);
+
+  const resume =
+    classes.length === 0
+      ? 'Aucune classe créée pour cette année scolaire'
+      : `${classes.length} classes, ${total.toLocaleString('fr-FR')} élèves${
+          alertes.length > 0 ? ` — ${alertes.join(', ')}` : ''
+        }`;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-baseline justify-between gap-x-4 gap-y-1 space-y-0">
-        <CardTitle>Effectif par classe</CardTitle>
-        <span className="text-body-sm text-text-secondary">
-          {pleines > 0
-            ? `${pleines} classe${pleines > 1 ? 's' : ''} au complet`
-            : `${total.toLocaleString('fr-FR')} élèves`}
-        </span>
-      </CardHeader>
+    <CarteRepliable titre="Effectif par classe" resume={resume}>
       {classes.length === 0 ? (
-        <Vide message="Aucune classe créée pour cette année scolaire." />
+        <p className="py-6 text-center text-body-sm text-text-secondary">
+          Créez des classes pour suivre leur remplissage.
+        </p>
       ) : (
-        <CardContent className="max-h-80 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           <BarresHorizontales
             lignes={classes.map((c) => ({
               id: c.id,
@@ -121,8 +131,8 @@ export function CarteEffectifs({ classes }: { classes: EffectifClasse[] }) {
               reference: c.capacite,
             }))}
           />
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </CarteRepliable>
   );
 }
