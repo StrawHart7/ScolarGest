@@ -124,7 +124,9 @@ export function AnneauRepartition({
 
       {/* Legende toujours presente : l'identite ne repose jamais sur la couleur
           seule, et le pourcentage evite d'avoir a estimer un angle a l'oeil. */}
-      <ul className="flex w-full min-w-0 flex-col gap-2.5">
+      {/* Largeur bornee : dans une carte pleine largeur, la legende s'etirait
+          sur toute la page et laissait un vide entre le libelle et sa valeur. */}
+      <ul className="flex w-full min-w-0 max-w-sm flex-col gap-2.5">
         {parts.map((part) => {
           const pourcentage = total > 0 ? (part.valeur / total) * 100 : 0;
           return (

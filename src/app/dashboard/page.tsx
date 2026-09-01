@@ -286,17 +286,18 @@ export default async function DashboardPage() {
 
         <CarteEncaissements serie={encaissements} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <TauxRecouvrement finance={finance} />
+        <TauxRecouvrement finance={finance} />
 
-          <Raccourcis
-            raccourcis={[
-              RACCOURCIS.suiviPaiements!,
-              RACCOURCIS.versements!,
-              RACCOURCIS.rapports!,
-            ]}
-          />
-        </div>
+        {/* Pleine largeur. Coinces dans une demi-colonne, les raccourcis
+            tombaient a un mot par ligne : leur propre grille a trois colonnes
+            reduisait encore chaque carte au sixieme de la page. */}
+        <Raccourcis
+          raccourcis={[
+            RACCOURCIS.suiviPaiements!,
+            RACCOURCIS.versements!,
+            RACCOURCIS.rapports!,
+          ]}
+        />
       </>,
       `${annee.libelle} — état financier`,
     );
