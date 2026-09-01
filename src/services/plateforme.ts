@@ -491,3 +491,71 @@ export async function listJournalAudit(filtres: FiltresJournal = {}): Promise<Pa
     modules,
   };
 }
+
+/**
+ * Encaissements de la plateforme, mois par mois.
+ *
+ * Fenetre glissante ici, contrairement aux series d'ecole : la plateforme n'a
+ * pas d'annee scolaire, elle a des mois calendaires. « Les douze derniers
+ * mois » est exactement la question qu'on se pose en regardant un chiffre
+ * d'affaires SaaS.
+ *
+ * Source : `paiement_abonnement.date` — l'argent reellement encaisse, pas le
+ * revenu theorique du catalogue. Les deux different des qu'une ecole paie en
+ * retard ou d'avance, et c'est la tresorerie qui compte pour piloter.
+ */
+export interface SeriePlateforme {
+  points: { mois: string; valeur: number }[];
+  total: number;
+  /** Encaisse du mois en cours et du precedent, pour situer la tendance. */
+  moisCourant: number;
+  moisPrecedent: number;
+  /** Variation en %, `null` si le mois precedent etait nul. */
+  variation: number | null;
+}
+
+export async function getEncaissementsPlateforme(nombreMois = 12): Promise<SeriePlateforme> {
+  await requireRole();
+  const supabase = createClient();
+
+  const maintenant = new Date();
+  const mois: string[] = [];
+  for (let i = nombreMois - 1; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth() - i, 1));
+    mois.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+  }
+
+  const debut = new Date(
+    Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth() - (nombreMois - 1), 1),
+  ).toISOString();
+
+  const { data, error } = await supabase
+    .from('paiement_abonnement')
+    .select('montant, date')
+    .gte('date', debut);
+  if (error) throw error;
+
+  const cases = new Map<string, number>();
+  for (const m of mois) cases.set(m, 0);
+  for (const ligne of (data ?? []) as { montant: number; date: string }[]) {
+    const d = new Date(ligne.date);
+    const cle = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    if (cases.has(cle)) cases.set(cle, (cases.get(cle) ?? 0) + Number(ligne.montant));
+  }
+
+  const points = [...cases.entries()].map(([m, valeur]) => ({ mois: m, valeur }));
+  const moisCourant = points.at(-1)?.valeur ?? 0;
+  const moisPrecedent = points.at(-2)?.valeur ?? 0;
+
+  return {
+    points,
+    total: points.reduce((t, p) => t + p.valeur, 0),
+    moisCourant,
+    moisPrecedent,
+    // Une progression depuis zero n'est pas un pourcentage.
+    variation:
+      moisPrecedent === 0
+        ? null
+        : Math.round(((moisCourant - moisPrecedent) / moisPrecedent) * 100),
+  };
+}

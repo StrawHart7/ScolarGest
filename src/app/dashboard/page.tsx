@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Coins,
   FileText,
-  GraduationCap,
   School,
   Users2,
   Wallet,
@@ -20,15 +19,40 @@ import {
 } from '@/services/dashboard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { StatCard } from '@/components/ui/stat-card';
+import { CarteMetrique } from '@/components/ui/carte-metrique';
 import { getSidebarItems } from '@/lib/navigation';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
+import { encaissementsAnnee, effectifsParClasse } from '@/services/series-ecole';
 import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
+import { CarteEncaissements, CarteEffectifs } from './CartesGraphes';
 import { BanniereDemarrage } from './BanniereDemarrage';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
+
+const ROLE_LISIBLE: Partial<Record<string, string>> = {
+  DIRECTEUR: 'Direction',
+  SECRETAIRE: 'Secrétariat',
+  COMPTABLE: 'Comptabilité',
+  ENSEIGNANT: 'Enseignement',
+};
+
+/**
+ * Salutation selon l'heure.
+ *
+ * Calculee au rendu, donc sur l'heure du **serveur**. Suffisant : ScolarGest
+ * s'adresse au Togo, et Vercel comme Supabase y sont regles sur UTC, a une
+ * heure pres du fuseau local. Une salutation qui se trompe d'une heure au
+ * lever du jour est un defaut sans consequence ; la corriger cote client
+ * imposerait une frontiere client pour un bonjour.
+ */
+function salutation(): string {
+  const heure = new Date().getUTCHours();
+  if (heure < 12) return 'Bonjour';
+  if (heure < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
 
 export default async function DashboardPage() {
   let ctx;
@@ -75,10 +99,21 @@ export default async function DashboardPage() {
       userName={ctx!.email}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-display-sm text-text-primary">Tableau de bord</h1>
-          <p className="text-body-md text-text-secondary">{sousTitre}</p>
-        </div>
+        {/* Le titre nu « Tableau de bord » posait une etiquette de route plutot
+            qu'un en-tete : aucune hierarchie, aucun ancrage. Il porte desormais
+            le nom du role et l'annee, et la salutation dit a qui la page
+            s'adresse — c'est ce qui distingue un tableau de bord d'un rapport. */}
+        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-surface-border pb-5">
+          <div className="min-w-0">
+            <p className="text-label-md uppercase tracking-wider text-primary-container">
+              {ROLE_LISIBLE[ctx.role] ?? 'Tableau de bord'}
+            </p>
+            <h1 className="mt-1 text-[28px] font-semibold leading-tight tracking-tight text-text-primary sm:text-[32px]">
+              {salutation()}
+            </h1>
+            <p className="mt-1 text-body-md text-text-secondary">{sousTitre}</p>
+          </div>
+        </header>
         {rappelDemarrage && (
           <BanniereDemarrage
             nombreFaites={rappelDemarrage.nombreFaites}
@@ -114,95 +149,83 @@ export default async function DashboardPage() {
   }
 
   if (ctx.role === 'DIRECTEUR') {
-    const [stats, flux] = await Promise.all([
+    const [stats, flux, encaissements, effectifs] = await Promise.all([
       getDashboardDirecteur(annee.id),
       getFluxActivite(),
+      encaissementsAnnee(annee.id),
+      effectifsParClasse(annee.id),
     ]);
+    const tauxRemplissage =
+      stats.classes.capaciteTotale > 0
+        ? Math.round((stats.classes.effectifTotal / stats.classes.capaciteTotale) * 100)
+        : null;
 
     return layout(
       <>
-        {/*
-          8 StatCards à plat, en une colonne sous `sm`, formaient un mur
-          anonyme avant même d'atteindre le recouvrement ou les raccourcis —
-          long à parcourir sans repère. Les regrouper sous trois intitulés
-          (Effectifs / Finances / Académique) donne des points d'ancrage au
-          scroll, sans rien retirer : même huit cartes, juste nommées.
-        */}
-        <section className="space-y-3">
-          <h2 className="text-headline-sm text-text-primary">Effectifs</h2>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-            <StatCard
-              label="Élèves inscrits"
-              value={nombre(stats.eleves.actifs)}
-              icon={<Users2 className="h-5 w-5" aria-hidden />}
-              trend={
-                stats.eleves.nouveauxCeMois > 0
-                  ? { label: `${stats.eleves.nouveauxCeMois} ce mois-ci`, direction: 'up' }
-                  : undefined
-              }
-            />
-            <StatCard
-              label="Classes"
-              value={nombre(stats.classes.nombre)}
-              icon={<School className="h-5 w-5" aria-hidden />}
-              trend={{
-                label: `${nombre(stats.classes.effectifTotal)} / ${nombre(stats.classes.capaciteTotale)} places`,
-                direction: 'flat',
-              }}
-            />
-            <StatCard
-              label="Enseignants actifs"
-              value={nombre(stats.enseignantsActifs)}
-              icon={<GraduationCap className="h-5 w-5" aria-hidden />}
-            />
-          </div>
-        </section>
+        {/* Une rangee de metriques expliquees plutot que huit compteurs nus.
+            Chaque carte porte sa comparaison en clair : « 276 » ne dit rien,
+            « 276 / 481 places » dit si l'ecole est pleine. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CarteMetrique
+            label="Élèves inscrits"
+            valeur={nombre(stats.eleves.actifs)}
+            icone={Users2}
+            ton="primaire"
+            comparaison={
+              stats.eleves.nouveauxCeMois > 0
+                ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
+                : 'Aucune nouvelle inscription ce mois-ci'
+            }
+            href="/etablissement/eleves"
+          />
+          <CarteMetrique
+            label="Remplissage"
+            valeur={tauxRemplissage !== null ? `${tauxRemplissage} %` : '—'}
+            icone={School}
+            ton="neutre"
+            comparaison={`${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places, ${nombre(stats.classes.nombre)} classes`}
+            href="/etablissement/classes"
+          />
+          <CarteMetrique
+            label="Encaissé cette année"
+            valeur={fcfa(stats.finance.encaisse)}
+            icone={Wallet}
+            ton="succes"
+            variation={encaissements.variation}
+            comparaison={`sur ${fcfa(stats.finance.attendu)} facturés`}
+            href="/etablissement/finances/paiements"
+          />
+          <CarteMetrique
+            label="Notes à approuver"
+            valeur={nombre(stats.academique.notesEnAttente)}
+            icone={BookOpen}
+            ton={stats.academique.notesEnAttente > 0 ? 'alerte' : 'neutre'}
+            comparaison={
+              stats.academique.notesEnAttente > 0
+                ? 'En attente de votre validation'
+                : `${nombre(stats.academique.bulletinsGeneres)} bulletins générés`
+            }
+            href="/etablissement/notes/approbation"
+          />
+        </div>
 
-        <section className="space-y-3">
-          <h2 className="text-headline-sm text-text-primary">Finances</h2>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <StatCard
-              label="Montant facturé"
-              value={fcfa(stats.finance.attendu)}
-              mono
-              icon={<Coins className="h-5 w-5" aria-hidden />}
-            />
-            <StatCard
-              label="Reste à recouvrer"
-              value={fcfa(stats.finance.impaye)}
-              mono
-              icon={<Wallet className="h-5 w-5" aria-hidden />}
-              trend={{ label: `${fcfa(stats.finance.encaisse)} encaissés`, direction: 'up' }}
-            />
-          </div>
-        </section>
+        <CarteEncaissements serie={encaissements} />
 
-        <section className="space-y-3">
-          <h2 className="text-headline-sm text-text-primary">Académique</h2>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-            <StatCard
-              label="Évaluations"
-              value={nombre(stats.academique.evaluations)}
-              icon={<ClipboardList className="h-5 w-5" aria-hidden />}
-            />
-            <StatCard
-              label="Notes à approuver"
-              value={nombre(stats.academique.notesEnAttente)}
-              icon={<BookOpen className="h-5 w-5" aria-hidden />}
-            />
-            <StatCard
-              label="Bulletins générés"
-              value={nombre(stats.academique.bulletinsGeneres)}
-              icon={<FileText className="h-5 w-5" aria-hidden />}
-            />
-          </div>
-        </section>
-
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        {/* L'activite recente occupait toute la largeur pour une colonne de
+            libelles courts. Elle passe a cote du recouvrement : c'est du
+            contexte, pas le sujet de la page. */}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
           <TauxRecouvrement finance={stats.finance} />
           <FluxActivite evenements={flux} />
         </div>
 
+        {/* Repliee par defaut : le detail par classe est precieux quand on le
+            cherche et encombrant quand on ne le cherche pas. Le resume porte
+            l'essentiel, pour decider de deplier sans deplier. */}
+        <CarteEffectifs classes={effectifs} />
+
+        {/* Pleine largeur. Coinces dans une colonne de trois cinquiemes, les
+            raccourcis tombaient a un mot par ligne. */}
         <Raccourcis
           raccourcis={[
             RACCOURCIS.suiviPaiements!,
@@ -216,37 +239,58 @@ export default async function DashboardPage() {
   }
 
   if (ctx.role === 'COMPTABLE') {
-    const finance = await getDashboardComptable(annee.id);
+    const [finance, encaissements] = await Promise.all([
+      getDashboardComptable(annee.id),
+      encaissementsAnnee(annee.id),
+    ]);
     return layout(
       <>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          <StatCard
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CarteMetrique
             label="Revenus attendus"
-            value={fcfa(finance.attendu)}
-            mono
-            icon={<Coins className="h-5 w-5" aria-hidden />}
+            valeur={fcfa(finance.attendu)}
+            icone={Coins}
+            ton="neutre"
+            comparaison={`${nombre(finance.facturesTotal)} factures émises`}
+            href="/etablissement/finances/factures"
           />
-          <StatCard
+          <CarteMetrique
             label="Encaissé"
-            value={fcfa(finance.encaisse)}
-            mono
-            icon={<Wallet className="h-5 w-5" aria-hidden />}
+            valeur={fcfa(finance.encaisse)}
+            icone={Wallet}
+            ton="succes"
+            variation={encaissements.variation}
+            comparaison="Paiements enregistrés sur l’année"
+            href="/etablissement/finances/paiements"
           />
-          <StatCard
+          <CarteMetrique
             label="Reste à recouvrer"
-            value={fcfa(finance.impaye)}
-            mono
-            icon={<Wallet className="h-5 w-5" aria-hidden />}
+            valeur={fcfa(finance.impaye)}
+            icone={Coins}
+            ton={finance.impaye > 0 ? 'alerte' : 'succes'}
+            comparaison={`${nombre(finance.facturesTotal - finance.facturesSoldees)} factures non soldées`}
+            href="/etablissement/finances/factures"
           />
-          <StatCard
+          <CarteMetrique
             label="Factures soldées"
-            value={`${nombre(finance.facturesSoldees)} / ${nombre(finance.facturesTotal)}`}
-            icon={<FileText className="h-5 w-5" aria-hidden />}
+            valeur={`${nombre(finance.facturesSoldees)} / ${nombre(finance.facturesTotal)}`}
+            icone={FileText}
+            ton="primaire"
+            comparaison={
+              finance.facturesTotal > 0
+                ? `${Math.round((finance.facturesSoldees / finance.facturesTotal) * 100)} % du portefeuille`
+                : 'Aucune facture émise'
+            }
           />
         </div>
 
+        <CarteEncaissements serie={encaissements} />
+
         <TauxRecouvrement finance={finance} />
 
+        {/* Pleine largeur. Coinces dans une demi-colonne, les raccourcis
+            tombaient a un mot par ligne : leur propre grille a trois colonnes
+            reduisait encore chaque carte au sixieme de la page. */}
         <Raccourcis
           raccourcis={[
             RACCOURCIS.suiviPaiements!,
@@ -260,36 +304,57 @@ export default async function DashboardPage() {
   }
 
   if (ctx.role === 'SECRETAIRE') {
-    const stats = await getDashboardSecretaire(annee.id);
+    // La Secretaire suit les effectifs, pas l'argent : `getDashboardSecretaire`
+    // ne renvoie deja aucun chiffre financier, et la courbe d'encaissements
+    // n'aurait rien a faire ici.
+    const [stats, effectifs] = await Promise.all([
+      getDashboardSecretaire(annee.id),
+      effectifsParClasse(annee.id),
+    ]);
     return layout(
       <>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          <StatCard
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CarteMetrique
             label="Élèves inscrits"
-            value={nombre(stats.eleves.actifs)}
-            icon={<Users2 className="h-5 w-5" aria-hidden />}
-            trend={
+            valeur={nombre(stats.eleves.actifs)}
+            icone={Users2}
+            ton="primaire"
+            comparaison={
               stats.eleves.nouveauxCeMois > 0
-                ? { label: `${stats.eleves.nouveauxCeMois} ce mois-ci`, direction: 'up' }
-                : undefined
+                ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
+                : 'Aucune nouvelle inscription ce mois-ci'
             }
+            href="/etablissement/eleves"
           />
-          <StatCard
+          <CarteMetrique
             label="Classes"
-            value={nombre(stats.classes.nombre)}
-            icon={<School className="h-5 w-5" aria-hidden />}
+            valeur={nombre(stats.classes.nombre)}
+            icone={School}
+            ton="neutre"
+            comparaison={`${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places`}
+            href="/etablissement/classes"
           />
-          <StatCard
+          <CarteMetrique
             label="Notes à approuver"
-            value={nombre(stats.notesEnAttente)}
-            icon={<BookOpen className="h-5 w-5" aria-hidden />}
+            valeur={nombre(stats.notesEnAttente)}
+            icone={BookOpen}
+            ton={stats.notesEnAttente > 0 ? 'alerte' : 'neutre'}
+            comparaison={
+              stats.notesEnAttente > 0 ? 'En attente de validation' : 'Rien en attente'
+            }
+            href="/etablissement/notes/approbation"
           />
-          <StatCard
+          <CarteMetrique
             label="Bulletins générés"
-            value={nombre(stats.bulletinsGeneres)}
-            icon={<FileText className="h-5 w-5" aria-hidden />}
+            valeur={nombre(stats.bulletinsGeneres)}
+            icone={FileText}
+            ton="succes"
+            comparaison="Sur l’année scolaire en cours"
+            href="/etablissement/notes/bulletins"
           />
         </div>
+
+        <CarteEffectifs classes={effectifs} />
 
         <Raccourcis
           raccourcis={[
@@ -308,25 +373,39 @@ export default async function DashboardPage() {
   return layout(
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
+        <CarteMetrique
           label="Mes classes"
-          value={nombre(stats.classes)}
-          icon={<School className="h-5 w-5" aria-hidden />}
+          valeur={nombre(stats.classes)}
+          icone={School}
+          ton="primaire"
+          comparaison={`${nombre(stats.matieres)} matière${stats.matieres > 1 ? 's' : ''} enseignée${stats.matieres > 1 ? 's' : ''}`}
+          href="/etablissement/mes-classes"
         />
-        <StatCard
+        <CarteMetrique
           label="Mes matières"
-          value={nombre(stats.matieres)}
-          icon={<BookOpen className="h-5 w-5" aria-hidden />}
+          valeur={nombre(stats.matieres)}
+          icone={BookOpen}
+          ton="neutre"
+          comparaison="Sur l’année scolaire en cours"
         />
-        <StatCard
+        <CarteMetrique
           label="Mes évaluations"
-          value={nombre(stats.evaluations)}
-          icon={<ClipboardList className="h-5 w-5" aria-hidden />}
+          valeur={nombre(stats.evaluations)}
+          icone={ClipboardList}
+          ton="neutre"
+          comparaison="Créées sur l’année"
         />
-        <StatCard
+        <CarteMetrique
           label="Notes en brouillon"
-          value={nombre(stats.notesBrouillon)}
-          icon={<FileText className="h-5 w-5" aria-hidden />}
+          valeur={nombre(stats.notesBrouillon)}
+          icone={FileText}
+          ton={stats.notesBrouillon > 0 ? 'alerte' : 'succes'}
+          comparaison={
+            stats.notesBrouillon > 0
+              ? 'À soumettre pour approbation'
+              : 'Tout est soumis'
+          }
+          href="/etablissement/notes/saisie"
         />
       </div>
 
