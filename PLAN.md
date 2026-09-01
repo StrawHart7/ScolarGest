@@ -1624,6 +1624,55 @@ Seul l'`ECONNRESET` local est établi. À confirmer au prochain déploiement.
 
 ---
 
+### Fonctionnalité — Statistiques académiques
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-01) — branche
+`feat/kpi-graphes`. Aucune migration.
+
+**Objectif** : une vraie lecture des résultats — réussite par classe,
+répartition filles/garçons, matières à renforcer — « dans la limite du
+raisonnable », pour ne pas donner à quelqu'un des chiffres qu'il ne saura pas
+interpréter.
+
+**Ce qu'on a refusé de mesurer.** Pas de statistiques par enseignant. La
+moyenne des classes d'un professeur ne mesure pas son travail : elle mêle la
+difficulté de la matière, le niveau du groupe hérité et l'effectif. Le chiffre
+serait lu comme un classement et se retournerait contre son sujet. Écarté
+explicitement, à rouvrir seulement si le besoin se précise.
+
+**Livrables** :
+
+- [x] `src/lib/statistiques.ts` — agrégation pure, sans dépendance. 9 tests.
+- [x] `src/services/statistiques-academiques.ts` — garde Directeur + Secrétaire.
+- [x] `/statistiques` — quatre métriques, matières à renforcer, distribution,
+      résultats par classe, filles/garçons, sélecteur de trimestre.
+- [x] Entrée « Statistiques » dans la navigation des deux rôles.
+- [x] `BarresHorizontales` : largeur de libellé réglable.
+
+**Décisions consignées** :
+
+- **Le seuil de réussite est 10**, repris du barème d'appréciation existant. Un
+  seuil inventé contredirait l'appréciation imprimée sur le bulletin du même
+  élève. Idem pour les tranches, nommées comme les appréciations.
+- **Un élève sans moyenne n'entre dans aucun calcul.** Le compter zéro ferait
+  plonger la moyenne d'une classe dont les notes ne sont pas encore saisies.
+  Deux compteurs distincts et un avertissement quand ils divergent.
+- **Les moyennes viennent de `getResultatsClasse`**, pas d'un recalcul. Une page
+  à 11,2 et une autre à 11,4 détruiraient la confiance dans les deux.
+- Chaque matière porte son **écart à la moyenne générale** : 9,5 est faible dans
+  un établissement à 13, banal dans un à 9.
+- La répartition filles/garçons porte une phrase rappelant qu'un écart décrit
+  une situation sans l'expliquer.
+
+**Vérifié à l'écran** sur les données réelles : moyenne 11,73/20, 73 % de
+réussite, 276 évalués, bascule de trimestre fonctionnelle, et un COMPTABLE
+forçant l'URL renvoyé sur son tableau de bord.
+
+**Reste ouvert** : l'écran n'a pas été vu sur mobile, et le rôle Enseignant n'a
+pas de vue équivalente sur ses propres classes.
+
+---
+
 ### Fonctionnalité — KPI, graphes et refonte des tableaux de bord
 
 **Statut** : ✅ terminée (2026-09-01) — branche `feat/kpi-graphes`.

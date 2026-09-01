@@ -208,10 +208,10 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-01) :
-- `feat/kpi-graphes` — ✅ livrée (2026-09-01) : séries temporelles côté école,
-  primitives de graphes en SVG maison, refonte des cinq tableaux de bord, et
-  verrouillage de la cohérence du passage de cohorte. Migration `0019`.
-  Voir `PLAN.md` § 8.
+- `feat/kpi-graphes` — ✅ terminée et mergée sur `main` (2026-09-01) : séries
+  temporelles côté école, primitives de graphes en SVG maison, refonte des cinq
+  tableaux de bord, statistiques académiques, et verrouillage de la cohérence du
+  passage de cohorte. Migration `0019`. Voir `PLAN.md` § 8.
 - `feat/emploi-du-temps` — ✅ terminée et mergée sur `main` (2026-09-01) :
   grille hebdomadaire par classe, export PDF, plus deux corrections sur les
   écrans de classe et deux correctifs de robustesse du build. Migration `0018`.
@@ -616,6 +616,45 @@ glissante.
 sur place, sans trace, donc « combien de factures etaient impayees en juin »
 exigera des instantanes. Les courbes de flux, non — `paiement.datePaiement`,
 `inscription.dateInscription` et `paiement_abonnement.date` portent leur date.
+
+### Statistiques academiques : ce qu'on mesure, et ce qu'on refuse de mesurer
+
+`/statistiques`, ouverte au **Directeur et a la Secretaire**. Cette derniere
+saisit et suit deja notes, bulletins et inscriptions : lui refuser la lecture
+d'ensemble de ce qu'elle produit n'aurait pas de sens. Les roles financiers en
+restent exclus.
+
+**Aucune statistique par enseignant**, decision produit du 2026-09-01. La
+moyenne des classes d'un professeur ne mesure pas son travail : elle mele la
+difficulte de la matiere, le niveau du groupe herite et l'effectif. Le chiffre
+serait lu comme un classement et se retournerait contre son sujet. Ne pas
+l'ajouter sans rouvrir la question.
+
+**Les moyennes viennent de `getResultatsClasse`**, le meme calcul que l'ecran
+« Moyennes & classement ». Recalculer ici, meme a l'identique, ferait courir le
+risque d'une divergence : une page annoncant 11,2 quand l'autre affiche 11,4
+detruit la confiance dans les deux. Le prix est une lecture par classe plutot
+qu'une requete globale — acceptable sur un ecran ouvert quelques fois par
+trimestre.
+
+**Le seuil de reussite est 10**, repris du bareme d'appreciation
+(`calcul-moyennes.appreciation` bascule d'« Insuffisant » a « Passable » a 10).
+Un seuil invente contredirait l'appreciation imprimee sur le bulletin du meme
+eleve. Meme raison pour les tranches de la distribution, nommees comme les
+appreciations plutot qu'en intervalles chiffres.
+
+**Un eleve sans moyenne n'entre dans aucun calcul.** Le compter zero ferait
+plonger la moyenne d'une classe dont les notes ne sont pas encore saisies, et
+donnerait l'alerte au pire moment — en debut de trimestre, quand il n'y a rien
+a alerter. `effectifEvalue` et `effectifTotal` sont distincts, et l'ecran
+montre les deux plus un avertissement quand ils divergent.
+
+**Les classes sans eleve evalue figurent quand meme** dans le tableau : leur
+absence se lirait comme un oubli, alors qu'elle dit que personne n'y a saisi de
+notes.
+
+`src/lib/statistiques.ts` ne depend de rien et porte toute l'agregation — c'est
+la seule partie qui peut mentir, donc la seule qui soit testee.
 
 ### Le passage de cohorte se verrouille en base, pas dans l'ecran
 
