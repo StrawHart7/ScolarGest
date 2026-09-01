@@ -93,10 +93,25 @@ export async function encaissementsParMois(nombreMois = 12): Promise<PointMensue
   const supabase = createClient();
   const fin = new Date();
 
+  // `paiement` **ne porte pas** de colonne `etablissementId` : il est rattache
+  // au tenant par sa facture. Filtrer directement dessus ne renvoie pas un
+  // resultat vide, cela leve — et faisait tomber tout le tableau de bord.
+  // Meme piege que lors de la suppression du doublon d'etablissement, ou trois
+  // controles avaient echoue en silence pour cette raison.
+  const { data: factures, error: erreurFactures } = await supabase
+    .from('facture_eleve')
+    .select('id')
+    .eq('etablissementId', ctx.etablissementId)
+    .neq('statut', 'ANNULE');
+  if (erreurFactures) throw erreurFactures;
+
+  const idsFactures = (factures ?? []).map((f) => (f as { id: string }).id);
+  if (idsFactures.length === 0) return construireSerie([], nombreMois, fin);
+
   const { data, error } = await supabase
     .from('paiement')
     .select('montant, "datePaiement"')
-    .eq('etablissementId', ctx.etablissementId)
+    .in('factureId', idsFactures)
     .eq('statut', 'PAYE')
     .gte('datePaiement', debutFenetre(nombreMois, fin));
   if (error) throw error;
