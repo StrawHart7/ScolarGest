@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AnneauRepartition } from '@/components/ui/anneau-repartition';
 import type { StatsFinance } from '@/services/dashboard';
 
-const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
 
 /**
@@ -51,7 +50,7 @@ export function TauxRecouvrement({ finance }: { finance: StatsFinance }) {
           ]}
           valeurCentrale={`${taux} %`}
           libelleCentral="recouvré"
-          formater={fcfa}
+          format="fcfa"
         />
         <div className="flex items-baseline justify-between gap-3 border-t border-surface-border pt-3">
           <span className="text-body-sm text-text-secondary">Factures soldées</span>

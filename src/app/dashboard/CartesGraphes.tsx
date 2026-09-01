@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CourbeAire } from '@/components/ui/courbe-aire';
 import { HistogrammeMensuel } from '@/components/ui/histogramme-mensuel';
+import { formaterValeur } from '@/lib/format-graphe';
 import type { PointMensuel } from '@/services/series-ecole';
 
 /**
@@ -16,7 +17,7 @@ import type { PointMensuel } from '@/services/series-ecole';
  * additionner douze points a l'oeil.
  */
 
-const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
+
 
 function Entete({ titre, total, precision }: { titre: string; total: string; precision: string }) {
   return (
@@ -46,12 +47,12 @@ export function CarteEncaissements({ points }: { points: PointMensuel[] }) {
 
   return (
     <Card>
-      <Entete titre="Encaissements" total={fcfa(total)} precision="sur 12 mois" />
+      <Entete titre="Encaissements" total={formaterValeur(total, 'fcfa')} precision="sur 12 mois" />
       {total === 0 ? (
         <Vide message="Aucun paiement enregistré sur les douze derniers mois." />
       ) : (
         <CardContent>
-          <CourbeAire id="encaissements" points={points} formater={fcfa} />
+          <CourbeAire id="encaissements" points={points} format="fcfa" />
         </CardContent>
       )}
     </Card>

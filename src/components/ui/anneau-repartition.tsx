@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { arcAnneau } from '@/lib/graphes';
 import { cn } from '@/lib/utils';
+import { formaterValeur, type FormatValeur } from '@/lib/format-graphe';
 
 /**
  * Anneau de repartition, valeur mise en avant au centre.
@@ -40,8 +41,9 @@ interface Props {
   valeurCentrale: string;
   /** Legende sous le nombre central. */
   libelleCentral: string;
-  /** Mise en forme des valeurs de la legende. */
-  formater?: (v: number) => string;
+  /** Mise en forme des valeurs de la legende. Un **nom**, pas une fonction :
+      une fonction ne traverse pas la frontiere serveur/client. */
+  format?: FormatValeur;
   className?: string;
 }
 
@@ -56,11 +58,10 @@ export function AnneauRepartition({
   parts,
   valeurCentrale,
   libelleCentral,
-  formater,
+  format = 'nombre',
   className,
 }: Props) {
   const total = parts.reduce((s, p) => s + p.valeur, 0);
-  const formaterValeur = formater ?? ((v: number) => v.toLocaleString('fr-FR'));
 
   const segments = React.useMemo(() => {
     if (total <= 0) return [];
@@ -100,7 +101,7 @@ export function AnneauRepartition({
           className="h-44 w-44"
           role="img"
           aria-label={parts
-            .map((p) => `${p.libelle} : ${formaterValeur(p.valeur)}`)
+            .map((p) => `${p.libelle} : ${formaterValeur(p.valeur, format)}`)
             .join(', ')}
         >
           {/* Piste de fond : sans elle, un anneau vide n'est rien du tout. */}
@@ -137,7 +138,7 @@ export function AnneauRepartition({
                 {part.libelle}
               </span>
               <span className="shrink-0 text-body-sm font-medium text-text-primary" data-mono>
-                {formaterValeur(part.valeur)}
+                {formaterValeur(part.valeur, format)}
               </span>
               <span className="w-11 shrink-0 text-right text-body-sm text-text-secondary" data-mono>
                 {pourcentage.toFixed(0)} %

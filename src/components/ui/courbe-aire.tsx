@@ -10,6 +10,7 @@ import {
   abregerMontant,
 } from '@/lib/graphes';
 import { cn } from '@/lib/utils';
+import { formaterValeur, type FormatValeur } from '@/lib/format-graphe';
 
 /**
  * Courbe d'evolution mensuelle, aire degradee sous le trace.
@@ -44,14 +45,15 @@ export interface PointCourbe {
 
 interface Props {
   points: PointCourbe[];
-  /** Mise en forme de la valeur dans l'infobulle. Par defaut, un nombre brut. */
-  formater?: (v: number) => string;
+  /** Mise en forme de la valeur dans l'infobulle. Un **nom**, pas une fonction :
+      une fonction ne traverse pas la frontiere serveur/client. */
+  format?: FormatValeur;
   /** Identifiant unique du degrade : deux courbes sur une page se marcheraient dessus. */
   id: string;
   className?: string;
 }
 
-export function CourbeAire({ points, formater, id, className }: Props) {
+export function CourbeAire({ points, format = 'nombre', id, className }: Props) {
   const [survole, setSurvole] = React.useState<number | null>(null);
   const svgRef = React.useRef<SVGSVGElement>(null);
 
@@ -66,8 +68,6 @@ export function CourbeAire({ points, formater, id, className }: Props) {
   // L'aire reprend le trace et redescend a la ligne de base : un seul chemin,
   // donc aucun risque que le remplissage se decale du trait.
   const aire = trace ? `${trace} L ${xs.at(-1) ?? 0} ${HAUTEUR} L ${xs[0] ?? 0} ${HAUTEUR} Z` : '';
-
-  const formaterValeur = formater ?? ((v: number) => v.toLocaleString('fr-FR'));
 
   function surDeplacement(e: React.PointerEvent<SVGSVGElement>) {
     const svg = svgRef.current;
@@ -205,7 +205,7 @@ export function CourbeAire({ points, formater, id, className }: Props) {
             {libelleMois(actif.mois)} {actif.mois.slice(0, 4)}
           </p>
           <p className="whitespace-nowrap text-body-md font-semibold text-inverse-on-surface">
-            {formaterValeur(actif.valeur)}
+            {formaterValeur(actif.valeur, format)}
           </p>
         </div>
       )}
