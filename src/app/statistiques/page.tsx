@@ -20,9 +20,9 @@ export const metadata = { title: 'Statistiques' };
 /**
  * Statistiques académiques — pilotage pédagogique.
  *
- * **Réservée au Directeur** : la garde vit dans le service, la redirection ici
- * n'est qu'une courtoisie pour ne pas afficher une page d'erreur aux autres
- * rôles.
+ * **Directeur et Secrétaire** : la garde vit dans le service, la redirection
+ * ici n'est qu'une courtoisie pour ne pas afficher une page d'erreur aux
+ * autres rôles.
  *
  * Le parti pris est de répondre à quatre questions, et pas plus : où en est
  * l'établissement, quelles classes décrochent, quelles matières demandent un
@@ -50,7 +50,7 @@ export default async function StatistiquesPage({
   searchParams: { periode?: string; anneeScolaireId?: string };
 }) {
   const ctx = await getTenantContext();
-  if (ctx.role !== 'DIRECTEUR') redirect('/dashboard');
+  if (ctx.role !== 'DIRECTEUR' && ctx.role !== 'SECRETAIRE') redirect('/dashboard');
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');

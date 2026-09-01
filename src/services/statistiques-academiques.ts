@@ -12,9 +12,11 @@ import {
 /**
  * Statistiques académiques de l'établissement, pour le pilotage pédagogique.
  *
- * **Réservé au Directeur.** Ces chiffres touchent aux personnes — une classe
- * faible, une matière en difficulté — et le pilotage pédagogique relève de la
- * direction. Élargir plus tard si le besoin se confirme, pas par défaut.
+ * **Directeur et Secrétaire.** Le pilotage pédagogique relève de la direction,
+ * mais la Secrétaire saisit et suit déjà les notes, les bulletins et les
+ * inscriptions : lui refuser la lecture d'ensemble de ce qu'elle produit
+ * n'aurait pas de sens. Les rôles financiers en restent exclus — le Comptable
+ * n'a rien à faire des moyennes par classe.
  *
  * **Aucune statistique par enseignant**, décision produit du 2026-09-01. La
  * moyenne des classes d'un professeur ne mesure pas son travail : elle mêle la
@@ -36,7 +38,7 @@ export async function getStatistiquesAcademiques(
   anneeScolaireId: string,
   periode: Periode,
 ): Promise<StatistiquesAcademiques> {
-  const ctx = await requireRole('DIRECTEUR');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   const supabase = createClient();
 
   const classes = await listClasses(anneeScolaireId);
