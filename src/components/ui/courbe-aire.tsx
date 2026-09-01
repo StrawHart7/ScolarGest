@@ -32,10 +32,13 @@ import { formaterValeur, type FormatValeur } from '@/lib/format-graphe';
 const L = 720;
 const H = 240;
 const MARGE_GAUCHE = 52;
+// Le dernier point touche le bord droit du trace ; son etiquette de mois est
+// centree dessus et deborderait de la moitie de sa largeur.
+const MARGE_DROITE = 20;
 const MARGE_BASSE = 28;
 const MARGE_HAUTE = 12;
 
-const LARGEUR = L - MARGE_GAUCHE;
+const LARGEUR = L - MARGE_GAUCHE - MARGE_DROITE;
 const HAUTEUR = H - MARGE_BASSE - MARGE_HAUTE;
 
 export interface PointCourbe {

@@ -9,13 +9,18 @@ import {
   Plus,
 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { getMetriquesPlateforme, type EtatEcole } from '@/services/plateforme';
+import {
+  getMetriquesPlateforme,
+  getEncaissementsPlateforme,
+  type EtatEcole,
+} from '@/services/plateforme';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { StatCard } from '@/components/ui/stat-card';
+import { CourbeAire } from '@/components/ui/courbe-aire';
+import { BarresRepartition, CarteMetrique, PiluleVariation } from './Cartes';
 import { getSidebarItems } from '@/lib/navigation';
 import { formaterFCFA } from '@/lib/tarifs';
 
@@ -34,12 +39,20 @@ export const metadata = { title: 'Vue d’ensemble' };
  * ni l'un ni l'autre.
  */
 
-const TON_ETAT: Record<EtatEcole, 'success' | 'warning' | 'error' | 'neutral' | 'primary'> = {
-  ACTIF: 'success',
-  ESSAI: 'primary',
-  EXPIRE: 'warning',
-  SUSPENDU: 'error',
-  AUCUN: 'neutral',
+/**
+ * Couleurs des etats, reprises de la palette de statut validee.
+ *
+ * Cinq etats, donc au-dela des trois teintes validees : les deux dernieres
+ * sont des neutres, deliberement. Un etat qui n'appelle aucune action n'a pas
+ * besoin d'une couleur qui attire l'oeil, et en inventer une abimerait la
+ * separation des trois qui comptent.
+ */
+const COULEUR_ETAT: Record<EtatEcole, string> = {
+  ACTIF: '#00875a',
+  ESSAI: '#0052cc',
+  EXPIRE: '#b45309',
+  SUSPENDU: '#de350b',
+  AUCUN: '#8993a4',
 };
 
 const LIBELLE_ETAT: Record<EtatEcole, string> = {
@@ -52,7 +65,10 @@ const LIBELLE_ETAT: Record<EtatEcole, string> = {
 
 export default async function SuperAdminPage() {
   const ctx = await getTenantContext();
-  const m = await getMetriquesPlateforme();
+  const [m, encaissements] = await Promise.all([
+    getMetriquesPlateforme(),
+    getEncaissementsPlateforme(),
+  ]);
 
   return (
     <AppLayout
@@ -77,57 +93,100 @@ export default async function SuperAdminPage() {
           }
         />
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard
-            label="Revenu mensuel"
-            value={formaterFCFA(m.revenuMensuel)}
-            icon={<TrendingUp className="h-5 w-5" aria-hidden />}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <CarteMetrique
+            label="Revenu mensuel récurrent"
+            valeur={formaterFCFA(m.revenuMensuel)}
+            icone={TrendingUp}
+            ton="primaire"
+            comparaison="Abonnements actifs, annuels ramenés au douzième"
           />
-          <StatCard
+          <CarteMetrique
             label="Encaissé ce mois"
-            value={formaterFCFA(m.encaisseCeMois)}
-            icon={<Wallet className="h-5 w-5" aria-hidden />}
+            valeur={formaterFCFA(m.encaisseCeMois)}
+            icone={Wallet}
+            ton="succes"
+            variation={encaissements.variation}
+            comparaison={`contre ${formaterFCFA(encaissements.moisPrecedent)} le mois dernier`}
           />
-          <StatCard
+          <CarteMetrique
             label="Écoles"
-            value={m.ecoles.length}
-            icon={<Building2 className="h-5 w-5" aria-hidden />}
+            valeur={String(m.ecoles.length)}
+            icone={Building2}
+            ton="neutre"
+            comparaison={`dont ${m.parEtat.ACTIF} abonnée${m.parEtat.ACTIF > 1 ? 's' : ''} et ${m.parEtat.ESSAI} en essai`}
+            href="/super-admin/etablissements"
           />
-          <StatCard
+          <CarteMetrique
             label="Demandes en attente"
-            value={m.demandesNouvelles}
-            icon={<Inbox className="h-5 w-5" aria-hidden />}
+            valeur={String(m.demandesNouvelles)}
+            icone={Inbox}
+            ton={m.demandesNouvelles > 0 ? 'alerte' : 'neutre'}
+            comparaison={
+              m.demandesNouvelles > 0
+                ? 'Chaque jour d’attente coûte un prospect'
+                : 'Aucun prospect en attente'
+            }
+            href="/super-admin/demandes"
           />
         </div>
 
-        {/* Le revenu mensuel ramène l'annuel au douzième : sans cette
-            précision, un chiffre qui paraît faible face aux encaissements
-            passerait pour une erreur de calcul. */}
-        <p className="text-body-sm text-text-secondary">
-          Le revenu mensuel ramène les abonnements annuels au douzième, et ne compte que les
-          abonnements réellement actifs.
-        </p>
+        {/* Carte héro : le chiffre et sa tendance à gauche, la courbe à droite.
+            Le total répond à « combien », la courbe à « dans quel sens » — deux
+            questions qu'on se pose ensemble, d'où une seule carte. */}
+        <Card className="rounded-2xl">
+          <CardContent className="grid gap-6 p-5 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] lg:items-center">
+            <div>
+              <p className="text-body-sm font-medium text-text-secondary">
+                Encaissements sur 12 mois
+              </p>
+              <p
+                className="mt-2 text-[32px] font-semibold leading-none tracking-tight text-text-primary"
+                data-mono
+              >
+                {formaterFCFA(encaissements.total)}
+              </p>
+              {/* Le grand chiffre est le cumul sur douze mois ; la variation
+                  porte sur le mois en cours. Les accoler sans le dire laissait
+                  croire que les 250 000 avaient baisse de 100 %. */}
+              <div className="mt-4 flex flex-wrap items-baseline gap-2 border-t border-surface-border pt-4">
+                <span className="text-body-sm text-text-secondary">Ce mois :</span>
+                <span className="text-body-md font-semibold text-text-primary" data-mono>
+                  {formaterFCFA(encaissements.moisCourant)}
+                </span>
+                {encaissements.variation !== null && (
+                  <PiluleVariation variation={encaissements.variation} />
+                )}
+              </div>
+              <p className="mt-4 text-body-sm text-text-secondary">
+                Argent réellement encaissé, et non le revenu théorique du catalogue. Les deux
+                diffèrent dès qu’une école paie en retard ou d’avance.
+              </p>
+            </div>
+
+            {encaissements.total === 0 ? (
+              <p className="py-10 text-center text-body-sm text-text-secondary">
+                Aucun paiement d’abonnement encaissé sur les douze derniers mois.
+              </p>
+            ) : (
+              <CourbeAire id="encaissements-plateforme" points={encaissements.points} format="fcfa" />
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          <Card>
-            <CardHeader className="border-b border-surface-border bg-surface-container-low/50 p-5">
+          <Card className="rounded-2xl">
+            <CardHeader className="border-b border-surface-border p-5">
               <CardTitle>Répartition des écoles</CardTitle>
             </CardHeader>
             <CardContent className="p-5">
-              <ul className="flex flex-col gap-3">
-                {(Object.keys(LIBELLE_ETAT) as EtatEcole[]).map((etat) => (
-                  <li key={etat} className="flex items-center justify-between gap-4">
-                    <span className="flex items-center gap-2.5">
-                      <Badge shape="pill" variant={TON_ETAT[etat]}>
-                        {LIBELLE_ETAT[etat]}
-                      </Badge>
-                    </span>
-                    <span className="text-body-md font-semibold text-text-primary" data-mono>
-                      {m.parEtat[etat]}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <BarresRepartition
+                segments={(Object.keys(LIBELLE_ETAT) as EtatEcole[]).map((etat) => ({
+                  libelle: LIBELLE_ETAT[etat],
+                  valeur: m.parEtat[etat],
+                  couleur: COULEUR_ETAT[etat],
+                }))}
+              />
             </CardContent>
           </Card>
 

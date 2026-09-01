@@ -149,6 +149,7 @@ passage-annee.validerPassageCohorte = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 pin.exigerPin = DYNAMIQUE
 pin.hashPin = AUCUNE
 pin.verifyPin = AUCUNE
+plateforme.getEncaissementsPlateforme = SUPER_ADMIN
 plateforme.getFicheEtablissement = SUPER_ADMIN
 plateforme.getMetriquesPlateforme = SUPER_ADMIN
 plateforme.listJournalAudit = SUPER_ADMIN
