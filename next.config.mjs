@@ -22,6 +22,7 @@ const nextConfig = {
       '/etablissement/eleves/**': ['./node_modules/@sparticuz/chromium/bin/**'],
       '/etablissement/finances/**': ['./node_modules/@sparticuz/chromium/bin/**'],
       '/api/rapports/export': ['./node_modules/@sparticuz/chromium/bin/**'],
+      '/api/emploi-du-temps': ['./node_modules/@sparticuz/chromium/bin/**'],
     },
     // `lucide-react` expose des milliers d'icônes en modules séparés : sans
     // cette option, un `import { Users } from 'lucide-react'` fait traverser
@@ -44,6 +45,21 @@ export default withSentryConfig(nextConfig, {
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
+
+  // Le build ne doit pas dependre de la disponibilite de sentry.io. Le
+  // 2026-09-01, `sentry-cli releases new` est reste bloque 3 minutes 26 avant
+  // de recevoir un 504 « Downstream timeout » : un incident chez Sentry
+  // immobilisait un deploiement qui n'avait aucune erreur de compilation.
+  //
+  // `errorHandler` degrade ces echecs en avertissement. Perdre les source maps
+  // d'un deploiement rend une trace moins lisible ; perdre le deploiement
+  // empeche de livrer.
+  errorHandler: (erreur) => {
+    console.warn('[sentry] envoi des source maps ignore :', erreur.message);
+  },
+
+  // Un appel reseau de moins au moment le plus fragile du build.
+  telemetry: false,
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
