@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
+import { definirCoefficients } from './coefficient';
 
 /**
  * Catalogue officiel des matières et de leurs coefficients (migration `0020`).
@@ -108,4 +109,124 @@ export async function coefficientsOfficiels(
     matiereOfficielleId: c.matiereOfficielleId,
     coefficient: Number(c.coefficient),
   }));
+}
+
+export interface ResultatApplication {
+  /** Lignes de programme dotées d'un coefficient national. */
+  appliques: number;
+  /** Lignes laissées à la saisie de l'école — hors barème officiel. */
+  aSaisir: number;
+}
+
+/**
+ * Recopie le barème national dans les coefficients de l'année scolaire.
+ *
+ * **Une copie, pas une lecture au vol.** Le catalogue est une valeur par défaut
+ * au moment où l'année se configure ; le coefficient qui compte reste celui
+ * stocké dans `coefficient_matiere`. Si on lisait le catalogue au moment de
+ * calculer un bulletin, le jour où le ministère révise son barème, tous les
+ * bulletins déjà édités changeraient rétroactivement — l'invariant
+ * d'historisation du projet existe précisément pour ça. Même raisonnement que
+ * `abonnement.montantTotal`, figé à la souscription plutôt que relu depuis le
+ * catalogue des plans.
+ *
+ * **Le rattachement se fait par le code**, et non par une clé étrangère sur
+ * `matiere`. Une école n'a qu'une matière « Français », alors que le catalogue
+ * national en distingue une par cycle : la ligne de programme, elle, porte un
+ * niveau donc un cycle, ce qui lève l'ambiguïté (voir migration `0021`).
+ *
+ * Un code sans correspondance — « INFO », une matière maison — n'est pas une
+ * anomalie : il signifie qu'aucun barème national ne s'applique, et l'école
+ * saisit son coefficient comme avant.
+ *
+ * Idempotente : réappliquer écrase par les mêmes valeurs. C'est aussi ce qui
+ * permet d'offrir un « restaurer le barème officiel » sur l'écran de saisie.
+ */
+export async function appliquerCoefficientsOfficiels(
+  anneeScolaireId: string,
+): Promise<ResultatApplication> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const supabase = createClient();
+
+  // Le programme de l'école, avec le code de la matière et le cycle du niveau :
+  // les deux ensemble désignent la matière officielle.
+  const { data: programme, error } = await supabase
+    .from('programme_etablissement')
+    .select('id, "niveauId", matiere:matiere(code), niveau:niveau("cycleId")')
+    .eq('etablissementId', ctx.etablissementId);
+  if (error) throw error;
+
+  const lignes = (programme ?? []) as unknown as {
+    id: string;
+    niveauId: string;
+    matiere: { code: string | null } | null;
+    niveau: { cycleId: string } | null;
+  }[];
+  if (lignes.length === 0) return { appliques: 0, aSaisir: 0 };
+
+  // Table de correspondance (cycle, code) -> matiere officielle.
+  const { data: officielles, error: erreurOfficielles } = await supabase
+    .from('matiere_officielle')
+    .select('id, code, "cycleId"');
+  if (erreurOfficielles) throw erreurOfficielles;
+  const parCycleEtCode = new Map(
+    ((officielles ?? []) as { id: string; code: string; cycleId: string }[]).map((m) => [
+      `${m.cycleId}|${m.code}`,
+      m.id,
+    ]),
+  );
+
+  // Les combinaisons niveau/série réellement ouvertes cette année. Traiter
+  // toutes les séries du cycle créerait des coefficients pour des classes qui
+  // n'existent pas.
+  const { data: classes, error: erreurClasses } = await supabase
+    .from('classe')
+    .select('"niveauId", "serieId"')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('anneeScolaireId', anneeScolaireId);
+  if (erreurClasses) throw erreurClasses;
+
+  const combinaisons = new Map<string, { niveauId: string; serieId: string | null }>();
+  for (const c of (classes ?? []) as { niveauId: string; serieId: string | null }[]) {
+    combinaisons.set(`${c.niveauId}|${c.serieId ?? ''}`, {
+      niveauId: c.niveauId,
+      serieId: c.serieId,
+    });
+  }
+
+  let appliques = 0;
+  const couvertes = new Set<string>();
+
+  for (const { niveauId, serieId } of combinaisons.values()) {
+    const officiels = await coefficientsOfficiels(niveauId, serieId);
+    if (officiels.length === 0) continue;
+    const parMatiereOfficielle = new Map(
+      officiels.map((o) => [o.matiereOfficielleId, o.coefficient]),
+    );
+
+    const saisies = lignes
+      .filter((l) => l.niveauId === niveauId && l.matiere?.code && l.niveau)
+      .map((l) => {
+        const officielleId = parCycleEtCode.get(`${l.niveau!.cycleId}|${l.matiere!.code}`);
+        return {
+          programmeEtablissementId: l.id,
+          coefficient: officielleId ? parMatiereOfficielle.get(officielleId) : undefined,
+        };
+      })
+      .filter((s): s is { programmeEtablissementId: string; coefficient: number } =>
+        s.coefficient !== undefined,
+      );
+
+    if (saisies.length === 0) continue;
+    // On passe par `definirCoefficients` plutot que d'ecrire directement : la
+    // contrainte unique de `coefficient_matiere` inclut `serieId`, qui est nul
+    // au college — et deux NULL etant distincts en Postgres, un `upsert`
+    // insererait un doublon a chaque application au lieu de mettre a jour.
+    // Cette fonction lit l'existant avant d'ecrire, et journalise.
+    await definirCoefficients(anneeScolaireId, serieId, saisies);
+    appliques += saisies.length;
+    for (const s of saisies) couvertes.add(s.programmeEtablissementId);
+  }
+
+  return { appliques, aSaisir: lignes.length - couvertes.size };
 }
