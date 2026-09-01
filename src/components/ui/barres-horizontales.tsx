@@ -28,9 +28,18 @@ const SEUIL_ALERTE = 1;
 
 export function BarresHorizontales({
   lignes,
+  largeurLibelle = 'w-20',
   className,
 }: {
   lignes: LigneBarre[];
+  /**
+   * Largeur de la colonne de libelles, en classe Tailwind.
+   *
+   * Reglable parce que les libelles varient du tout au tout : « 6ème A » tient
+   * dans 5rem, « Très insuffisant et moins » non — et une troncature sur une
+   * tranche de notes rend la lecture impossible.
+   */
+  largeurLibelle?: string;
   className?: string;
 }) {
   const maxValeur = Math.max(1, ...lignes.map((l) => l.valeur));
@@ -44,7 +53,12 @@ export function BarresHorizontales({
 
         return (
           <li key={ligne.id} className="flex items-center gap-3">
-            <span className="w-20 shrink-0 truncate text-body-sm text-text-secondary">
+            <span
+              className={cn(
+                'shrink-0 truncate text-body-sm text-text-secondary',
+                largeurLibelle,
+              )}
+            >
               {ligne.libelle}
             </span>
 

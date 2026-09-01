@@ -233,6 +233,9 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
         { label: 'Établissement', labelCourt: 'École', href: '/etablissement', icone: 'etablissement' },
+        // Direction et secrétariat seulement : les rôles financiers n'ont
+        // rien à faire des moyennes par classe.
+        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'rapports' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'SECRETAIRE':
@@ -242,6 +245,10 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
         { label: 'Établissement', labelCourt: 'École', href: '/etablissement', icone: 'etablissement' },
+        // La Secrétaire saisit et suit déjà notes, bulletins et inscriptions :
+        // lui refuser la lecture d'ensemble de ce qu'elle produit n'aurait pas
+        // de sens.
+        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'rapports' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'COMPTABLE':
