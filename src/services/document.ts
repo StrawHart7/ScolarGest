@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
+import type { Periode } from './evaluation';
 
 export type TypeDocument = 'BULLETIN' | 'RECU' | 'RAPPORT';
 export type StatutDocument = 'GENERE' | 'OBSOLETE' | 'ARCHIVE';
@@ -16,10 +17,19 @@ export interface Document {
   dateGeneration: string;
   createdById: string;
   statut: StatutDocument;
+  /**
+   * Contexte académique, renseigné pour les BULLETIN seulement (migration
+   * `0025`). Un reçu n'a pas de trimestre : ces trois colonnes sont nulles pour
+   * les autres types de documents, et peuvent l'être pour un bulletin ancien
+   * dont la ligne d'audit avait disparu.
+   */
+  periode: Periode | null;
+  classeId: string | null;
+  anneeScolaireId: string | null;
 }
 
 const DOCUMENT_FIELDS =
-  'id, "etablissementId", type, reference, "cheminFichier", "objetType", "objetId", "dateGeneration", "createdById", statut';
+  'id, "etablissementId", type, reference, "cheminFichier", "objetType", "objetId", "dateGeneration", "createdById", statut, periode, "classeId", "anneeScolaireId"';
 
 export interface EnregistrerDocumentInput {
   type: TypeDocument;
@@ -27,6 +37,15 @@ export interface EnregistrerDocumentInput {
   cheminFichier: string;
   objetType: string;
   objetId: string;
+  /**
+   * Renseigné par la génération de bulletins. Sans lui, un document en base ne
+   * sait pas de quel trimestre il est, et la liste des bulletins déjà édités
+   * d'une classe est impossible à construire — c'était le cas jusqu'à la
+   * migration `0025`.
+   */
+  periode?: Periode | null;
+  classeId?: string | null;
+  anneeScolaireId?: string | null;
 }
 
 /** Insère une ligne `document` après upload Storage réussi. */
@@ -49,6 +68,9 @@ export async function enregistrerDocument(input: EnregistrerDocumentInput): Prom
       objetId: input.objetId,
       createdById: ctx.userId,
       statut: 'GENERE',
+      periode: input.periode ?? null,
+      classeId: input.classeId ?? null,
+      anneeScolaireId: input.anneeScolaireId ?? null,
     })
     .select(DOCUMENT_FIELDS)
     .single();
@@ -126,4 +148,57 @@ export async function listDocumentsParType(type: TypeDocument): Promise<Document
     .order('dateGeneration', { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as Document[];
+}
+
+export interface BulletinGenere {
+  documentId: string;
+  reference: string;
+  dateGeneration: string;
+  statut: StatutDocument;
+  eleveId: string;
+}
+
+/**
+ * Bulletins déjà édités pour une classe et une période.
+ *
+ * Les documents OBSOLETE sont retournés eux aussi : ce sont les versions
+ * remplacées par une régénération, et l'écran doit pouvoir les distinguer
+ * plutôt que de les faire disparaître. Le fichier reste en stockage,
+ * l'opération est réversible — c'est la raison d'être du statut.
+ *
+ * `classeId` et `periode` viennent de l'appelant : ils sont comparés au tenant
+ * par la clause `etablissementId`, jamais par la seule RLS.
+ */
+export async function listBulletinsClasse(
+  classeId: string,
+  periode: Periode,
+): Promise<BulletinGenere[]> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('document')
+    .select('id, reference, "dateGeneration", statut, "objetId"')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('type', 'BULLETIN')
+    .eq('classeId', classeId)
+    .eq('periode', periode)
+    .order('dateGeneration', { ascending: false });
+  if (error) throw error;
+
+  return (
+    (data ?? []) as unknown as {
+      id: string;
+      reference: string;
+      dateGeneration: string;
+      statut: StatutDocument;
+      objetId: string;
+    }[]
+  ).map((d) => ({
+    documentId: d.id,
+    reference: d.reference,
+    dateGeneration: d.dateGeneration,
+    statut: d.statut,
+    eleveId: d.objetId,
+  }));
 }

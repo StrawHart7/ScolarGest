@@ -17,12 +17,19 @@ export function BulletinsFiltres({
   defaultAnneeScolaireId,
   defaultClasseId,
   defaultPeriode,
+  basePath = '/etablissement/notes/bulletins',
 }: {
   annees: { id: string; libelle: string }[];
   classes: { id: string; nom: string }[];
   defaultAnneeScolaireId: string;
   defaultClasseId: string;
   defaultPeriode: Periode;
+  /**
+   * La même barre de filtres sert l'écran de génération et celui des bulletins
+   * prêts : les deux se lisent avec les mêmes trois sélecteurs, et
+   * dupliquer le composant les ferait diverger à la première évolution.
+   */
+  basePath?: string;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -33,7 +40,7 @@ export function BulletinsFiltres({
     if (next.classeId) params.set('classeId', next.classeId);
     params.set('periode', next.periode);
     startTransition(() => {
-      router.push(`/etablissement/notes/bulletins?${params.toString()}`);
+      router.push(`${basePath}?${params.toString()}`);
     });
   }
 

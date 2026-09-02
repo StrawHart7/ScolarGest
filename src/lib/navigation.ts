@@ -163,6 +163,13 @@ export const SECTIONS: Record<string, Section> = {
         icone: 'notes',
         roles: TOUS_ADMIN,
       },
+      {
+        titre: 'Bulletins prêts',
+        description: 'Bulletins prêts par classe et par trimestre, et ceux qui manquent.',
+        href: '/etablissement/notes/bulletins/generes',
+        icone: 'notes',
+        roles: TOUS_ADMIN,
+      },
     ],
   },
   '/etablissement/finances': {
