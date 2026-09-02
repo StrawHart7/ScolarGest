@@ -1838,3 +1838,61 @@ cinq libellés français dans cinq colonnes égales se chevauchaient.
 
 ---
 
+
+### Fonctionnalité — Bulletins : mise en page, bulletins prêts, téléchargement groupé
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-02) — branche
+`feat/bulletin-mise-en-page`. Migration `0025`.
+
+**Objectif** : rendre le bulletin PDF régulier d'un élève à l'autre, et donner
+un endroit où voir les bulletins produits — l'application n'en avait aucun.
+
+**Le manque de fond.** L'écran de génération ne listait que les élèves à
+traiter. Le PDF s'ouvrait dans un onglet puis disparaissait de l'application :
+impossible de savoir qui avait déjà son bulletin, donc on régénérait à
+l'aveugle. Une seule classe portait 61 versions remplacées au premier
+trimestre.
+
+**Obstacle rencontré.** `document` ne portait ni période, ni classe, ni année :
+un bulletin en base ne savait pas de quel trimestre il était. L'information
+n'existait que dans le journal d'audit. La migration `0025` ajoute les trois
+colonnes et reprend l'existant depuis ce journal — **146 bulletins sur 146**
+repris, aucun orphelin. Les colonnes restent nullables : un reçu n'a pas de
+trimestre, et un document sans ligne d'audit reste sans période plutôt que de
+s'en voir attribuer une au hasard.
+
+**Livrables** :
+
+- [x] Hauteurs de ligne égales sur le bulletin secondaire, calculées au rendu à
+      partir du seul nombre de matières ; contenu plafonné au lieu de pousser la
+      ligne ; page toujours pleine par `flex:1`, sans lignes anonymes.
+- [x] Pied de page réorganisé : un seul bloc « Résultats », la moyenne de la
+      période n'y figure plus deux fois sous deux noms différents.
+- [x] Migration `0025` — `periode`, `classeId`, `anneeScolaireId` sur `document`.
+- [x] `listBulletinsClasse()` — garde Directeur, Secrétaire, Comptable.
+- [x] `/etablissement/notes/bulletins/generes` — bulletins prêts et manquants,
+      partant des élèves inscrits et non des documents.
+- [x] Statut « Prêt » / « À générer » par élève sur l'écran de génération.
+- [x] Téléchargement groupé dans un dossier choisi (`showDirectoryPicker`), un
+      PDF par élève ; repli ZIP sans dépendance (`src/lib/zip.ts`, 15 tests).
+- [x] `scripts/apercu-bulletin.ts` — rendu du gabarit sans base ni session.
+
+**Trois pièges consignés** :
+
+- `window.open(url, '_blank', 'noopener')` renvoie `null` **même en cas de
+  succès** : le message « fenêtre bloquée » s'affichait à chaque téléchargement
+  réussi.
+- Des backticks dans un commentaire CSS **à l'intérieur d'un template literal**
+  terminent la chaîne et cassent la compilation.
+- `networkidle` ne se stabilise jamais en développement (websocket HMR).
+
+**Reste ouvert** :
+
+- La case **Statut** du bulletin (Redoublant / Nouveau) est toujours vide. Elle
+  est déductible du `decisionFinAnnee` de l'année précédente, mais un élève
+  venu d'un autre établissement serait affiché « Nouveau » à tort. Laissée à
+  remplir à la main, décision non tranchée.
+- Le sélecteur de dossier n'existe pas sur Firefox, Safari ni mobile : le ZIP
+  reste le repli, et Chrome refuse les dossiers système.
+
+---
