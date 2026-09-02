@@ -2,6 +2,7 @@ import { Sidebar, type SidebarItem } from './Sidebar';
 import { Header } from './Header';
 import { AbonnementBanner } from './AbonnementBanner';
 import { BottomNav } from './BottomNav';
+import { BulleSupport } from './BulleSupport';
 import { SidebarCollapseProvider, ContenuDecale } from './sidebar-collapse';
 import { ToastProvider } from '@/components/ui/toast';
 
@@ -33,6 +34,7 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
             </main>
           </ContenuDecale>
           <BottomNav items={items} />
+          <BulleSupport role={role} />
         </div>
       </SidebarCollapseProvider>
     </ToastProvider>

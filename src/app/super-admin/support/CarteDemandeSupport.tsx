@@ -43,7 +43,18 @@ function ilYA(iso: string): string {
  * Une demande déjà répondue reste modifiable — le champ est prérempli. Les
  * corrections d'une réponse hâtive sont la norme, pas l'exception.
  */
-export function CarteDemandeSupport({ demande }: { demande: DemandeSupportPlateforme }) {
+export function CarteDemandeSupport({
+  demande,
+  visuel,
+}: {
+  demande: DemandeSupportPlateforme;
+  /**
+   * Icône et teinte de la catégorie, décidées par la file qui rend la carte.
+   * Passer le composant d'icône depuis un parent client est sans risque — la
+   * frontière serveur/client, elle, interdirait de le faire depuis une page.
+   */
+  visuel?: { Icone: typeof Mail; classe: string };
+}) {
   const router = useRouter();
   const [statut, setStatut] = React.useState<StatutSupport>(demande.statut);
   const [reponse, setReponse] = React.useState(demande.reponseSupport ?? '');
@@ -115,11 +126,24 @@ export function CarteDemandeSupport({ demande }: { demande: DemandeSupportPlatef
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-body-md font-semibold text-text-primary">{demande.sujet}</p>
-          <p className="text-body-sm text-text-secondary">
-            {demande.etablissementNom} — {demande.auteurNom} ({demande.auteurRole})
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          {visuel && (
+            <span
+              className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                visuel.classe,
+              )}
+              aria-hidden
+            >
+              <visuel.Icone className="h-4.5 w-4.5" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="text-body-md font-semibold text-text-primary">{demande.sujet}</p>
+            <p className="text-body-sm text-text-secondary">
+              {demande.etablissementNom} — {demande.auteurNom} ({demande.auteurRole})
+            </p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {enRetard && (
