@@ -1717,8 +1717,7 @@ normal en usage réel — mais il ne touchait pas ces données.
 
 ### Fonctionnalité — Import en deux temps
 
-**Statut** : en cours — branche `feat/contact-support`. Migration `0024`
-**écrite, non appliquée**.
+**Statut** : ✅ livrée (2026-09-02) — branche `feat/contact-support`.
 
 **Objectif** : ne plus écrire à l'aveugle. Le dépôt d'un fichier déclenchait
 l'écriture immédiate ; on analyse désormais, on montre le bilan, et rien n'est
@@ -1745,6 +1744,7 @@ l'invariant interdit la suppression dure.
       confirmation, rapport final.
 - [x] Colonnes non reconnues : bouton d'envoi du fichier au support.
 - [x] 25 tests, dont un classeur construit en mémoire.
+- [x] Deux classeurs de test fournis (conforme, colonnes erronées).
 - [ ] Vérification par le chemin réel : import joué de bout en bout.
 
 **Décisions consignées** :
@@ -1789,8 +1789,8 @@ final le dira.
 
 ### Fonctionnalité — Contact support
 
-**Statut** : en cours — branche `feat/contact-support`. Migration `0023`
-**écrite, non appliquée**.
+**Statut** : ✅ livrée (2026-09-02) — branche `feat/contact-support`.
+Migrations `0023` et `0024` **appliquées**.
 
 **Objectif** : donner à une école un moyen de joindre la plateforme depuis le
 produit. `/profil/aide` répondait à sept questions figées et s'arrêtait là :
@@ -1809,6 +1809,13 @@ une école bloquée sur autre chose n'avait aucun recours.
       SUPER_ADMIN) et renvoi depuis `/profil/aide`.
 - [x] Pièce jointe (migration `0024`) : bucket privé `support`, dépôt par la
       clé service-role, lien signé de 5 minutes pour le téléchargement.
+- [x] File de travail : cartes-filtres cliquables (à traiter / en cours /
+      closes / toutes), recherche, filtres par catégorie, icône et teinte par
+      catégorie, alerte sur la plus ancienne demande sans réponse.
+- [x] Accès par bulle flottante desktop ; `ITEM_SUPPORT` rattaché au menu
+      « Plus » mobile.
+- [x] Skill `scolargest-inputs` (hors dépôt, `~/.claude/skills/`) : remise en
+      forme d'un classeur quelconque vers les gabarits d'import.
 - [ ] Vérification par le chemin réel : pages ouvertes, dépôt et réponse joués
       de bout en bout.
 
