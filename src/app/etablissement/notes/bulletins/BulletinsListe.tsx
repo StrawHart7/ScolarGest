@@ -3,22 +3,33 @@
 import { useState, useTransition } from 'react';
 import { FileText, GraduationCap, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { genererBulletinAction, genererBulletinsClasseAction } from './actions';
 
 export function BulletinsListe({
   eleves,
+  elevesAvecBulletin,
   classeId,
   periode,
   anneeScolaireId,
 }: {
   eleves: { id: string; nom: string; prenoms: string; matricule: string }[];
+  /**
+   * Élèves dont le bulletin est déjà prêt pour cette classe et ce trimestre.
+   * Un tableau et non un `Set` : les propriétés passées à un composant client
+   * doivent être sérialisables.
+   */
+  elevesAvecBulletin: string[];
   classeId: string;
   periode: string;
   anneeScolaireId: string;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
+  // L'état de départ vient du serveur ; les générations faites dans cette
+  // session s'y ajoutent, sans attendre un rechargement de la page.
+  const [prets, setPrets] = useState<Set<string>>(() => new Set(elevesAvecBulletin));
   const [generes, setGeneres] = useState<Record<string, boolean>>({});
   const [bulkPending, startBulkTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,12 +55,13 @@ export function BulletinsListe({
         // deux gestes distincts : générer crée un NOUVEAU document, avec une
         // nouvelle référence, à chaque appel. Les confondre poussait à
         // regénérer pour relire, ce qui empile les versions et brouille
-        // laquelle fait foi. Le document se relit sur « Bulletins édités ».
+        // laquelle fait foi. Le document se relit sur « Bulletins prêts ».
         //
         // Accessoirement, cela retire un `window.open` avec `noopener`, qui
         // renvoie `null` même en cas de succès et faisait croire à un blocage
         // de fenêtre surgissante.
         setGeneres((prec) => ({ ...prec, [eleveId]: true }));
+        setPrets((prec) => new Set(prec).add(eleveId));
       })
       .catch(() => {
         setPendingId(null);
@@ -115,6 +127,7 @@ export function BulletinsListe({
             <TableRow>
               <TableHead>Matricule</TableHead>
               <TableHead>Nom &amp; Prénoms</TableHead>
+              <TableHead>Bulletin</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -124,6 +137,13 @@ export function BulletinsListe({
                 <TableCell data-mono>{eleve.matricule}</TableCell>
                 <TableCell className="font-medium">
                   {eleve.nom} {eleve.prenoms}
+                </TableCell>
+                <TableCell>
+                  {prets.has(eleve.id) ? (
+                    <Badge variant="success">Prêt</Badge>
+                  ) : (
+                    <Badge variant="warning">À générer</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end gap-1">
@@ -138,10 +158,10 @@ export function BulletinsListe({
                       ) : (
                         <FileText className="h-4 w-4" aria-hidden />
                       )}
-                      Générer le bulletin
+                      {prets.has(eleve.id) ? 'Régénérer' : 'Générer le bulletin'}
                     </Button>
                     {generes[eleve.id] && !errors[eleve.id] && (
-                      <p className="text-body-sm text-text-secondary">Bulletin édité</p>
+                      <p className="text-body-sm text-text-secondary">Bulletin prêt</p>
                     )}
                     {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
                   </div>
@@ -159,6 +179,11 @@ export function BulletinsListe({
             icone={GraduationCap}
             titre={`${eleve.nom} ${eleve.prenoms}`}
             reference={eleve.matricule}
+            statut={
+              prets.has(eleve.id)
+                ? { libelle: 'Prêt', ton: 'succes' }
+                : { libelle: 'À générer', ton: 'alerte' }
+            }
             actions={
               <div className="flex flex-col items-start gap-1">
                 <Button
@@ -172,10 +197,10 @@ export function BulletinsListe({
                   ) : (
                     <FileText className="h-4 w-4" aria-hidden />
                   )}
-                  Générer le bulletin
+                  {prets.has(eleve.id) ? 'Régénérer' : 'Générer le bulletin'}
                 </Button>
                 {generes[eleve.id] && !errors[eleve.id] && (
-                  <p className="text-body-sm text-text-secondary">Bulletin édité</p>
+                  <p className="text-body-sm text-text-secondary">Bulletin prêt</p>
                 )}
                 {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
               </div>

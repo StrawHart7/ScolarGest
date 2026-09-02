@@ -14,7 +14,7 @@ import { BulletinsFiltres } from '../BulletinsFiltres';
 import { BulletinsGeneresListe, type LigneBulletin } from './BulletinsGeneresListe';
 
 /**
- * Bulletins déjà édités d'une classe, pour une période.
+ * Bulletins prêts d'une classe, pour une période.
  *
  * L'écran de génération ne montrait que les élèves à traiter, jamais ce qui
  * avait déjà été produit : le PDF s'ouvrait dans un onglet et disparaissait de
@@ -55,10 +55,10 @@ export default async function BulletinsGeneresPage({
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <h1 className="text-display-sm text-text-primary">Bulletins édités</h1>
+            <h1 className="text-display-sm text-text-primary">Bulletins prêts</h1>
             <p className="hidden text-body-sm text-text-secondary md:block">
-              Bulletins déjà produits pour la classe et le trimestre sélectionnés, avec leur
-              référence et leur date. Les élèves sans bulletin y figurent aussi.
+              Bulletins prêts pour la classe et le trimestre sélectionnés, avec leur référence
+              et leur date. Les élèves dont le bulletin manque y figurent aussi.
             </p>
           </div>
           <Button asChild size="sm" variant="secondary" className="w-full md:w-auto">
@@ -87,7 +87,7 @@ export default async function BulletinsGeneresPage({
               <p className="text-body-sm text-text-secondary">
                 {classes.length === 0
                   ? 'Aucune classe disponible pour cette année scolaire.'
-                  : 'Sélectionnez une classe pour afficher les bulletins édités.'}
+                  : 'Sélectionnez une classe pour afficher les bulletins prêts.'}
               </p>
             </CardContent>
           ) : (

@@ -26,7 +26,7 @@ export function BulletinsFiltres({
   defaultPeriode: Periode;
   /**
    * La même barre de filtres sert l'écran de génération et celui des bulletins
-   * déjà édités : les deux se lisent avec les mêmes trois sélecteurs, et
+   * prêts : les deux se lisent avec les mêmes trois sélecteurs, et
    * dupliquer le composant les ferait diverger à la première évolution.
    */
   basePath?: string;

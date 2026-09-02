@@ -4,6 +4,7 @@ import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listElevesInscritsClasse } from '@/services/eleve';
+import { listBulletinsClasse } from '@/services/document';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,11 +66,15 @@ export default async function BulletinsPage({
           </div>
           {/* Le PDF s'ouvrait dans un onglet puis disparaissait de
               l'application : il fallait un endroit où revoir ce qui a déjà été
-              édité, et repérer les élèves qui n'ont pas leur bulletin. */}
-          <Button asChild size="sm" variant="secondary" className="w-full md:w-auto">
+              produit, et repérer les élèves qui n'ont pas leur bulletin. */}
+          {/* En avant, et non en bouton secondaire : c'est la destination
+              naturelle après une génération, et le seul endroit où l'on relit
+              un bulletin. `whitespace-nowrap` parce que le libellé se coupait
+              sur deux lignes dans la colonne étroite du desktop. */}
+          <Button asChild className="w-full whitespace-nowrap md:w-auto">
             <Link href={`/etablissement/notes/bulletins/generes?${parametres.toString()}`}>
               <FolderOpen className="h-4 w-4" aria-hidden />
-              Voir les bulletins édités
+              Voir les bulletins prêts
             </Link>
           </Button>
         </div>
@@ -114,7 +119,16 @@ async function ElevesListe({
   periode: Periode;
   anneeScolaireId: string;
 }) {
-  const eleves = await listElevesInscritsClasse(classeId, anneeScolaireId);
+  // L'état du bulletin est chargé avec les élèves : sans lui, l'écran ne
+  // distingue pas celui qui attend son bulletin de celui qui l'a déjà, et on
+  // regénère ceux qui n'en avaient pas besoin.
+  const [eleves, documents] = await Promise.all([
+    listElevesInscritsClasse(classeId, anneeScolaireId),
+    listBulletinsClasse(classeId, periode),
+  ]);
+  const elevesAvecBulletin = documents
+    .filter((d) => d.statut === 'GENERE')
+    .map((d) => d.eleveId);
 
   if (eleves.length === 0) {
     return (
@@ -130,6 +144,7 @@ async function ElevesListe({
   return (
     <BulletinsListe
       eleves={eleves.map((e) => ({ id: e.id, nom: e.nom, prenoms: e.prenoms, matricule: e.matricule }))}
+      elevesAvecBulletin={elevesAvecBulletin}
       classeId={classeId}
       periode={periode}
       anneeScolaireId={anneeScolaireId}

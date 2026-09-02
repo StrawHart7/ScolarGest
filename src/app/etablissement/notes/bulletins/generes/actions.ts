@@ -12,7 +12,7 @@ export interface TelechargementResult {
 }
 
 /**
- * URL signée (5 minutes) vers le PDF d'un bulletin déjà édité.
+ * URL signée (5 minutes) vers le PDF d'un bulletin prêt.
  *
  * Le lien n'est pas rendu dans la page : une URL signée posée dans le HTML
  * serait périmée avant même que la page soit relue, et figurerait dans le

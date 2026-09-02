@@ -95,7 +95,7 @@ export function TelechargerTout({
         return;
       }
       if (resultat.fichiers.length === 0) {
-        setMessage('Aucun bulletin édité pour cette classe et ce trimestre.');
+        setMessage('Aucun bulletin prêt pour cette classe et ce trimestre.');
         return;
       }
 

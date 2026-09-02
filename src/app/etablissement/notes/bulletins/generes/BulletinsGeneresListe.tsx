@@ -101,19 +101,19 @@ export function BulletinsGeneresListe({
       });
   }
 
-  const edites = lignes.filter((l) => l.courant !== null).length;
+  const prets = lignes.filter((l) => l.courant !== null).length;
 
   return (
     <div>
       <div className="flex flex-col gap-3 border-b border-surface-border px-1 py-3 md:flex-row md:items-center md:justify-between md:p-4">
         <p className="text-body-sm text-text-secondary">
-          {edites} bulletin(s) édité(s) sur {lignes.length} élève(s) inscrit(s)
+          {prets} bulletin(s) prêt(s) sur {lignes.length} élève(s) inscrit(s)
         </p>
         <TelechargerTout
           classeId={classeId}
           periode={periode}
           anneeScolaireId={anneeScolaireId}
-          nombreEdites={edites}
+          nombreEdites={prets}
           libelleClasse={libelleClasse}
         />
       </div>
@@ -126,7 +126,7 @@ export function BulletinsGeneresListe({
               <TableHead>Nom &amp; Prénoms</TableHead>
               <TableHead>État</TableHead>
               <TableHead>Référence</TableHead>
-              <TableHead>Édité le</TableHead>
+              <TableHead>Prêt le</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -140,7 +140,7 @@ export function BulletinsGeneresListe({
                 <TableCell>
                   {ligne.courant ? (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge variant="success">Édité</Badge>
+                      <Badge variant="success">Prêt</Badge>
                       {ligne.versionsRemplacees > 0 && (
                         <Badge variant="neutral">
                           {ligne.versionsRemplacees} version(s) remplacée(s)
@@ -148,7 +148,7 @@ export function BulletinsGeneresListe({
                       )}
                     </div>
                   ) : (
-                    <Badge variant="warning">Non édité</Badge>
+                    <Badge variant="warning">À générer</Badge>
                   )}
                 </TableCell>
                 <TableCell data-mono>{ligne.courant?.reference ?? '—'}</TableCell>
@@ -220,7 +220,7 @@ export function BulletinsGeneresListe({
                     )}
                   </>
                 ) : (
-                  <Badge variant="warning">Non édité</Badge>
+                  <Badge variant="warning">À générer</Badge>
                 )}
               </div>
             }

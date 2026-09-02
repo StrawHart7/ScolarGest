@@ -52,7 +52,7 @@ async function main() {
 
   const titre = await page.locator('h1').first().innerText();
   const lignes = await page.locator('tbody tr').count();
-  const resume = await page.locator('p:has-text("bulletin(s) édité(s)")').first().innerText();
+  const resume = await page.locator('p:has-text("bulletin(s) prêt(s)")').first().innerText();
 
   await navigateur.close();
   console.log(`Titre : ${titre}`);
