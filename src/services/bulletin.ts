@@ -132,6 +132,12 @@ export async function genererBulletin(
     cheminFichier,
     objetType: 'ELEVE',
     objetId: eleveId,
+    // Sans ce contexte, le document ne sait pas de quel trimestre il est : la
+    // liste des bulletins déjà édités d'une classe devient impossible à
+    // construire, et on régénère à l'aveugle (migration `0025`).
+    periode,
+    classeId,
+    anneeScolaireId,
   });
 
   await auditLog({
@@ -174,6 +180,9 @@ export async function regenererBulletin(
     type: 'BULLETIN',
     reference,
     cheminFichier,
+    periode,
+    classeId,
+    anneeScolaireId,
     objetType: 'ELEVE',
     objetId: eleveId,
   });

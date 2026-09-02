@@ -1,25 +1,31 @@
 import Link from 'next/link';
-import { FolderOpen, Users2 } from 'lucide-react';
+import { FileText, Users2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listElevesInscritsClasse } from '@/services/eleve';
+import { listBulletinsClasse } from '@/services/document';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
-import { getParametresDocument } from '@/services/parametres-document';
-import { InviteIdentiteDocuments } from '@/components/documents/InviteIdentiteDocuments';
-import { BulletinsFiltres } from './BulletinsFiltres';
-import { BulletinsListe } from './BulletinsListe';
+import { BulletinsFiltres } from '../BulletinsFiltres';
+import { BulletinsGeneresListe, type LigneBulletin } from './BulletinsGeneresListe';
 
-// La génération d'une classe entière enchaîne un rendu Chromium par élève :
-// la fenêtre serverless par défaut (10s) est largement dépassée. On demande le
-// maximum courant. Plan Hobby : plafonné à 60s ; Pro/Enterprise : jusqu'à 300s.
-export const maxDuration = 60;
-
-export default async function BulletinsPage({
+/**
+ * Bulletins déjà édités d'une classe, pour une période.
+ *
+ * L'écran de génération ne montrait que les élèves à traiter, jamais ce qui
+ * avait déjà été produit : le PDF s'ouvrait dans un onglet et disparaissait de
+ * l'application. On ne pouvait donc pas répondre à la seule question qu'on se
+ * pose ici — « qui n'a pas encore son bulletin ? » — et on régénérait à
+ * l'aveugle, ce qui empile les documents et brouille lequel fait foi.
+ *
+ * La liste part des **élèves inscrits**, pas des documents : un élève sans
+ * bulletin doit apparaître, c'est même l'information la plus utile de l'écran.
+ */
+export default async function BulletinsGeneresPage({
   searchParams,
 }: {
   searchParams: { classeId?: string; periode?: Periode; anneeScolaireId?: string };
@@ -39,11 +45,6 @@ export default async function BulletinsPage({
   if (classeId) parametres.set('classeId', classeId);
   parametres.set('periode', periode);
 
-  // Proposé une seule fois, et seulement à la direction : elle seule peut
-  // enregistrer le logo et le filigrane.
-  const parametresDocument = await getParametresDocument();
-  const proposerIdentite = ctx.role === 'DIRECTEUR' && !parametresDocument.dejaConfigure;
-
   return (
     <AppLayout
       items={getSidebarItems(ctx.role)}
@@ -54,27 +55,19 @@ export default async function BulletinsPage({
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-          <h1 className="text-display-sm text-text-primary">Génération de bulletins</h1>
-          {/* Description réservée au desktop : sur mobile elle poussait la liste
-              hors du premier écran. */}
-          <p className="hidden text-body-sm text-text-secondary md:block">
-            Sélectionnez une classe et une période pour générer les bulletins trimestriels des élèves
-            inscrits. Assurez-vous que les notes du trimestre concerné ont été saisies et approuvées
-            avant de générer.
-          </p>
+            <h1 className="text-display-sm text-text-primary">Bulletins édités</h1>
+            <p className="hidden text-body-sm text-text-secondary md:block">
+              Bulletins déjà produits pour la classe et le trimestre sélectionnés, avec leur
+              référence et leur date. Les élèves sans bulletin y figurent aussi.
+            </p>
           </div>
-          {/* Le PDF s'ouvrait dans un onglet puis disparaissait de
-              l'application : il fallait un endroit où revoir ce qui a déjà été
-              édité, et repérer les élèves qui n'ont pas leur bulletin. */}
           <Button asChild size="sm" variant="secondary" className="w-full md:w-auto">
-            <Link href={`/etablissement/notes/bulletins/generes?${parametres.toString()}`}>
-              <FolderOpen className="h-4 w-4" aria-hidden />
-              Voir les bulletins édités
+            <Link href={`/etablissement/notes/bulletins?${parametres.toString()}`}>
+              <FileText className="h-4 w-4" aria-hidden />
+              Générer des bulletins
             </Link>
           </Button>
         </div>
-
-        {proposerIdentite && <InviteIdentiteDocuments />}
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <div className="border-b border-surface-border px-1 py-3 md:p-4">
@@ -84,6 +77,7 @@ export default async function BulletinsPage({
               defaultAnneeScolaireId={anneeScolaireId ?? ''}
               defaultClasseId={classeId ?? ''}
               defaultPeriode={periode}
+              basePath="/etablissement/notes/bulletins/generes"
             />
           </div>
 
@@ -93,11 +87,11 @@ export default async function BulletinsPage({
               <p className="text-body-sm text-text-secondary">
                 {classes.length === 0
                   ? 'Aucune classe disponible pour cette année scolaire.'
-                  : 'Sélectionnez une classe pour afficher les élèves.'}
+                  : 'Sélectionnez une classe pour afficher les bulletins édités.'}
               </p>
             </CardContent>
           ) : (
-            <ElevesListe classeId={classeId} periode={periode} anneeScolaireId={anneeScolaireId} />
+            <Liste classeId={classeId} periode={periode} anneeScolaireId={anneeScolaireId} />
           )}
         </Card>
       </div>
@@ -105,7 +99,7 @@ export default async function BulletinsPage({
   );
 }
 
-async function ElevesListe({
+async function Liste({
   classeId,
   periode,
   anneeScolaireId,
@@ -114,7 +108,10 @@ async function ElevesListe({
   periode: Periode;
   anneeScolaireId: string;
 }) {
-  const eleves = await listElevesInscritsClasse(classeId, anneeScolaireId);
+  const [eleves, documents] = await Promise.all([
+    listElevesInscritsClasse(classeId, anneeScolaireId),
+    listBulletinsClasse(classeId, periode),
+  ]);
 
   if (eleves.length === 0) {
     return (
@@ -127,12 +124,38 @@ async function ElevesListe({
     );
   }
 
-  return (
-    <BulletinsListe
-      eleves={eleves.map((e) => ({ id: e.id, nom: e.nom, prenoms: e.prenoms, matricule: e.matricule }))}
-      classeId={classeId}
-      periode={periode}
-      anneeScolaireId={anneeScolaireId}
-    />
-  );
+  // Les documents arrivent triés du plus récent au plus ancien. Le bulletin en
+  // vigueur est celui en statut GENERE ; les autres sont les versions qu'une
+  // régénération a remplacées, conservées en stockage (jamais de suppression
+  // dure) et comptées ici pour que la régénération reste visible.
+  const parEleve = new Map<string, { courant: (typeof documents)[number] | null; remplacees: number }>();
+  for (const doc of documents) {
+    const entree = parEleve.get(doc.eleveId) ?? { courant: null, remplacees: 0 };
+    if (doc.statut === 'GENERE' && entree.courant === null) {
+      entree.courant = doc;
+    } else {
+      entree.remplacees += 1;
+    }
+    parEleve.set(doc.eleveId, entree);
+  }
+
+  const lignes: LigneBulletin[] = eleves.map((eleve) => {
+    const entree = parEleve.get(eleve.id);
+    return {
+      eleveId: eleve.id,
+      nom: eleve.nom,
+      prenoms: eleve.prenoms,
+      matricule: eleve.matricule,
+      courant: entree?.courant
+        ? {
+            documentId: entree.courant.documentId,
+            reference: entree.courant.reference,
+            dateGeneration: entree.courant.dateGeneration,
+          }
+        : null,
+      versionsRemplacees: entree?.remplacees ?? 0,
+    };
+  });
+
+  return <BulletinsGeneresListe lignes={lignes} />;
 }
