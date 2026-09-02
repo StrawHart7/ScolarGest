@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getTenantContext } from '@/services/tenant';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { getSidebarItems } from '@/lib/navigation';
 import { Badge } from '@/components/ui/badge';
 import { listDemandesSupportEtablissement } from '@/services/support';
@@ -51,6 +52,17 @@ export default async function SupportPage({
   const brut = searchParams?.depuis ?? null;
   const pageOrigine = brut && brut.startsWith('/') && !brut.startsWith('//') ? brut : null;
 
+  // Le support n'a pas de parent : la bulle flottante l'ouvre depuis n'importe
+  // quel ecran. Un retour en dur vers `/profil` serait donc faux la plupart du
+  // temps — on ne remonte que vers d'ou l'on vient, et seulement si l'entree de
+  // barre laterale correspondante donne un nom a annoncer. Sans nom, pas de
+  // lien : « Retour » seul ne dit pas ou l'on va.
+  const entreeOrigine = pageOrigine
+    ? getSidebarItems(ctx.role).find(
+        (item) => pageOrigine === item.href || pageOrigine.startsWith(`${item.href}/`),
+      )
+    : undefined;
+
   return (
     <AppLayout
       items={getSidebarItems(ctx.role)}
@@ -59,6 +71,10 @@ export default async function SupportPage({
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-8">
+        {pageOrigine && entreeOrigine && (
+          <LienRetour href={pageOrigine}>Retour — {entreeOrigine.label}</LienRetour>
+        )}
+
         <div>
           <h1 className="text-display-sm text-text-primary">Contacter le support</h1>
           <p className="text-body-sm text-text-secondary">
