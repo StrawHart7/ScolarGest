@@ -1685,12 +1685,33 @@ comptés zéro. `moyenneTrimestrielle` renvoyait 0 pour un trimestre sans aucune
 note. Tout bulletin de 1er trimestre déjà édité porte donc une moyenne annuelle
 fausse ; un PDF étant figé, ils ne se corrigent pas rétroactivement.
 
+**Régénération des bulletins de démonstration** (2026-09-02) : les 62 anciens
+bulletins des Victorieux sont passés en `OBSOLETE` — le statut existait déjà
+dans `statut_document` — et 76 ont été régénérés (1ère D, 6ème A, 6e A au 1er
+trimestre, Tle C au 3e).
+
+Deux constats de cette opération :
+
+- **`genererBulletin` crée toujours un nouveau document**, il ne remplace jamais.
+  Régénérer sans marquer les anciens obsolètes laisse plusieurs bulletins par
+  élève sans qu'on sache lequel fait foi.
+- **La génération groupée traite toute la classe**, pas seulement les élèves qui
+  avaient déjà un bulletin : 76 produits là où 24 étaient attendus.
+
+**Correction d'une affirmation trop large** : il avait été annoncé que tous les
+bulletins déjà édités portaient une moyenne annuelle fausse. C'est inexact. Le
+défaut ne se déclenche que si un trimestre n'a **aucune** note ; or les
+Victorieux ont des notes sur les trois trimestres (12,33 / 12,12 / 11,96 en
+1ère D), donc leur moyenne annuelle était déjà juste. Ce qui a changé sur ces
+bulletins, ce sont les **coefficients**, désormais alignés sur le barème
+national. Le bug reste réel et touchera toute école en cours d'année — cas
+normal en usage réel — mais il ne touchait pas ces données.
+
 **Reste ouvert** :
 
 - Les deux colonnes de la Seconde. Une seule ligne est mal lue parmi Français,
   Histo-Géo, Éducation civique, Langue vivante 1 et Mathématiques ; l'écart est
   de +1 sur les deux colonnes. À vérifier sur le document papier.
-- Les bulletins déjà générés avec la moyenne annuelle fausse.
 
 ---
 
