@@ -1624,6 +1624,76 @@ Seul l'`ECONNRESET` local est établi. À confirmer au prochain déploiement.
 
 ---
 
+### Fonctionnalité — Coefficients officiels du ministère
+
+**Statut** : ✅ livrée sur `feat/coefficients-officiels` (2026-09-02).
+Migrations `0020` à `0022`.
+
+**Objectif** : les coefficients ne sont pas une donnée d'établissement, ils sont
+fixés au niveau national. Le Directeur remplissait une grille niveau × matière
+avant de pouvoir éditer le moindre bulletin, sans avoir la moindre latitude sur
+les valeurs.
+
+**Sources** : documents du Ministère des Enseignements Primaire, Secondaire,
+Technique et de l'Artisanat, applicables à compter de 2022-2023, fournis par
+l'utilisateur.
+
+**Livrables** :
+
+- [x] `0020` — `matiere_officielle` et `coefficient_officiel`, catalogues
+      système sans `etablissementId`. Semis du collège et du lycée.
+- [x] `0021` — retrait de `matiere.matiereOfficielleId`, rattachement par le
+      code.
+- [x] `0022` — `codeEcole`, pour les disciplines que le ministère renomme d'un
+      cycle à l'autre.
+- [x] `src/services/matiere-officielle.ts` — lecture du catalogue et
+      `appliquerCoefficientsOfficiels`.
+- [x] Onboarding : étape Matières sur le catalogue officiel, barème appliqué à
+      la fin de l'étape Programme, étape Coefficients réduite aux matières
+      libres.
+- [x] Écran Coefficients : mention « Barème national » par ligne, bouton
+      d'application.
+- [x] Correction du moteur : un trimestre sans aucune note vaut `null`.
+
+**Décisions consignées** :
+
+- **La copie plutôt que la lecture au vol.** Le catalogue est une valeur par
+  défaut à la configuration de l'année ; le coefficient qui compte reste dans
+  `coefficient_matiere`. Sinon une révision du barème ministériel réécrirait
+  rétroactivement tous les bulletins déjà édités. Même raisonnement que
+  `abonnement.montantTotal`.
+- **Une matière sélectionnée ne peut pas avoir zéro** — `check (coefficient > 0)`
+  en base. L'absence de barème se dit par l'absence de ligne.
+- **Trois zones non couvertes**, où l'école garde la saisie manuelle : les séries
+  techniques (E, F, G), absentes des documents ; la Seconde, dont les totaux ne
+  se recoupent pas avec la lecture des cellules ; et les matières à volume
+  horaire sans coefficient (Dessin, Musique, Langues nationales, Enseignement
+  ménager).
+- **La migration porte sa propre somme de contrôle** : un bloc `do $$` compare
+  les coefficients semés aux totaux du ministère et lève si une colonne ne tombe
+  pas juste.
+
+**Vérifié** : parcours `/demarrage` déroulé de bout en bout sur un établissement
+vide — l'étape Coefficients se franchit toute seule, la base contient le barème
+exact de la 3ème (total 18). Puis un élève inscrit, huit notes posées, et le
+bulletin PDF comparé à un calcul fait à la main : **TOTAL 18 / 222, moyenne
+12,33/20**, concordance parfaite.
+
+**Le bug trouvé par cet oracle** : le bulletin affichait « moyenne annuelle
+4,11 » pour un élève à 12,33 — soit 12,33 ÷ 3, les trimestres à venir étant
+comptés zéro. `moyenneTrimestrielle` renvoyait 0 pour un trimestre sans aucune
+note. Tout bulletin de 1er trimestre déjà édité porte donc une moyenne annuelle
+fausse ; un PDF étant figé, ils ne se corrigent pas rétroactivement.
+
+**Reste ouvert** :
+
+- Les deux colonnes de la Seconde. Une seule ligne est mal lue parmi Français,
+  Histo-Géo, Éducation civique, Langue vivante 1 et Mathématiques ; l'écart est
+  de +1 sur les deux colonnes. À vérifier sur le document papier.
+- Les bulletins déjà générés avec la moyenne annuelle fausse.
+
+---
+
 ### Fonctionnalité — Statistiques académiques
 
 **Statut** : ✅ terminée et mergée sur `main` (2026-09-01) — branche
