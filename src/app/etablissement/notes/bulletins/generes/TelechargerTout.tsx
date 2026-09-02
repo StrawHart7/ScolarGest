@@ -62,8 +62,23 @@ export function TelechargerTout({
         dossier =
           (await (window as FenetreAvecSelecteur).showDirectoryPicker!({ mode: 'readwrite' })) ??
           null;
-      } catch {
-        // L'utilisateur a fermé le sélecteur : ce n'est pas une erreur.
+      } catch (e) {
+        // Deux refus très différents arrivent par le même chemin.
+        //
+        // `AbortError` : l'utilisateur a fermé le sélecteur. Ce n'est pas une
+        // erreur, on ne dit rien.
+        //
+        // Tout le reste : le navigateur a refusé le dossier lui-même. Chrome
+        // interdit les emplacements sensibles — racine d'un disque, Windows,
+        // Program Files, racine du profil utilisateur — et affiche sa propre
+        // boîte « Can't open this folder ». Sans message de notre côté, le
+        // bouton semblait simplement ne rien faire une fois la boîte fermée.
+        const nom = (e as { name?: string })?.name;
+        if (nom !== 'AbortError') {
+          setMessage(
+            "Ce dossier est refusé par le navigateur. Choisissez un dossier ordinaire, par exemple Documents ou un sous-dossier que vous créez : la racine d'un disque et les dossiers système sont interdits.",
+          );
+        }
         return;
       }
     }
@@ -136,7 +151,12 @@ export function TelechargerTout({
         )}
         {selecteurDisponible ? 'Télécharger tout dans un dossier' : 'Télécharger tout'}
       </Button>
-      {message && <p className="text-body-sm text-text-secondary">{message}</p>}
+      {message && <p className="text-body-sm text-text-secondary md:text-right">{message}</p>}
+      {selecteurDisponible && !message && nombreEdites > 0 && (
+        <p className="text-body-sm text-text-secondary md:text-right">
+          Un fichier PDF par élève, dans le dossier de votre choix.
+        </p>
+      )}
     </div>
   );
 }
