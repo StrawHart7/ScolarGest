@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CATEGORIES_SUPPORT } from '@/services/support';
+import { CATEGORIES_SUPPORT } from '@/lib/support';
 import { envoyerDemandeSupportAction, type ResultatSupport } from './actions';
 
 const initial: ResultatSupport = { ok: false, message: '' };

@@ -3,12 +3,8 @@ import { getTenantContext } from '@/services/tenant';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { getSidebarItems } from '@/lib/navigation';
 import { Badge } from '@/components/ui/badge';
-import {
-  listDemandesSupportEtablissement,
-  libelleCategorie,
-  LIBELLES_STATUT_SUPPORT,
-  type StatutSupport,
-} from '@/services/support';
+import { listDemandesSupportEtablissement } from '@/services/support';
+import { libelleCategorie, LIBELLES_STATUT_SUPPORT, type StatutSupport } from '@/lib/support';
 import { FormulaireSupport } from './FormulaireSupport';
 
 export const metadata = { title: 'Contacter le support' };

@@ -11,7 +11,7 @@ import {
   LIBELLES_STATUT_SUPPORT,
   type DemandeSupportPlateforme,
   type StatutSupport,
-} from '@/services/support';
+} from '@/lib/support';
 import { repondreAction, changerStatutSupportAction } from './actions';
 
 const TON: Record<StatutSupport, 'neutral' | 'primary' | 'success' | 'warning'> = {

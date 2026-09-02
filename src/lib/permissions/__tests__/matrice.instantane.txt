@@ -182,7 +182,6 @@ structure.listNiveauxParCycle = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEI
 structure.listSeriesParCycle = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 support.changerStatutDemandeSupport = SUPER_ADMIN
 support.creerDemandeSupport = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
-support.libelleCategorie = AUCUNE
 support.listDemandesSupport = SUPER_ADMIN
 support.listDemandesSupportEtablissement = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 support.repondreDemandeSupport = SUPER_ADMIN

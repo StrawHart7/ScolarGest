@@ -1,7 +1,25 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
-import type { Role } from './tenant';
+import type {
+  DemandeSupport,
+  DemandeSupportPlateforme,
+  NouvelleDemandeSupport,
+  StatutSupport,
+} from '@/lib/support';
+
+// Le vocabulaire (catégories, statuts, libellés, formes) vit dans
+// `src/lib/support.ts`, qui ne dépend de rien : les composants clients en ont
+// besoin, et l'importer depuis ce fichier-ci ferait remonter `next/headers`
+// dans un bundle client — ce qui casse le build sans que `tsc` ni ESLint ne le
+// voient. Réexporté ici pour que les appelants serveur n'aient qu'un import.
+export type {
+  CategorieSupport,
+  StatutSupport,
+  DemandeSupport,
+  DemandeSupportPlateforme,
+  NouvelleDemandeSupport,
+} from '@/lib/support';
 
 /**
  * Contact support : le canal par lequel une école joint la plateforme.
@@ -26,68 +44,8 @@ import type { Role } from './tenant';
  * refermerait le canal au pire moment, sans erreur visible nulle part.
  */
 
-export type CategorieSupport =
-  | 'COMPTE_ACCES'
-  | 'NOTES_BULLETINS'
-  | 'FINANCES'
-  | 'ABONNEMENT_PAIEMENT'
-  | 'ANOMALIE'
-  | 'AUTRE';
-
-export type StatutSupport = 'NOUVELLE' | 'EN_COURS' | 'RESOLUE' | 'FERMEE';
-
-export const CATEGORIES_SUPPORT: { valeur: CategorieSupport; libelle: string }[] = [
-  { valeur: 'COMPTE_ACCES', libelle: 'Compte et accès' },
-  { valeur: 'NOTES_BULLETINS', libelle: 'Notes et bulletins' },
-  { valeur: 'FINANCES', libelle: 'Factures et paiements' },
-  { valeur: 'ABONNEMENT_PAIEMENT', libelle: 'Abonnement ScolarGest' },
-  { valeur: 'ANOMALIE', libelle: 'Anomalie ou comportement inattendu' },
-  { valeur: 'AUTRE', libelle: 'Autre' },
-];
-
-export const STATUTS_SUPPORT: StatutSupport[] = ['NOUVELLE', 'EN_COURS', 'RESOLUE', 'FERMEE'];
-
-export const LIBELLES_STATUT_SUPPORT: Record<StatutSupport, string> = {
-  NOUVELLE: 'Nouvelle',
-  EN_COURS: 'En cours',
-  RESOLUE: 'Résolue',
-  FERMEE: 'Fermée',
-};
-
-export function libelleCategorie(categorie: CategorieSupport): string {
-  return CATEGORIES_SUPPORT.find((c) => c.valeur === categorie)?.libelle ?? categorie;
-}
-
-export interface DemandeSupport {
-  id: string;
-  etablissementId: string;
-  auteurNom: string;
-  auteurEmail: string;
-  auteurRole: Role;
-  categorie: CategorieSupport;
-  sujet: string;
-  message: string;
-  pageOrigine: string | null;
-  statut: StatutSupport;
-  reponseSupport: string | null;
-  repondueLe: string | null;
-  createdAt: string;
-}
-
-/** Une demande vue par la plateforme, avec le nom de l'école qui l'a envoyée. */
-export interface DemandeSupportPlateforme extends DemandeSupport {
-  etablissementNom: string;
-}
-
 const CHAMPS =
   'id, "etablissementId", "auteurNom", "auteurEmail", "auteurRole", categorie, sujet, message, "pageOrigine", statut, "reponseSupport", "repondueLe", "createdAt"';
-
-export interface NouvelleDemandeSupport {
-  categorie: CategorieSupport;
-  sujet: string;
-  message: string;
-  pageOrigine?: string | null;
-}
 
 /**
  * Dépose une demande pour l'établissement de l'appelant.
