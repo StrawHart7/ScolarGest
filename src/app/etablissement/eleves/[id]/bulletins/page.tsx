@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
 import { listDocumentsEleve, getUrlTelechargementDocument } from '@/services/document';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -38,13 +39,7 @@ export default async function BulletinsElevePage({ params }: { params: { id: str
       userName={ctx.email}
     >
       <div className="mx-auto max-w-4xl space-y-6">
-        <Link
-          href={`/etablissement/eleves/${eleve.id}`}
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour à la fiche élève
-        </Link>
+        <LienRetour href={`/etablissement/eleves/${eleve.id}`}>Retour à la fiche élève</LienRetour>
 
         <Card>
           <CardHeader>

@@ -1,8 +1,8 @@
-import Link from 'next/link';
-import { ArrowLeft, UserRound } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getUtilisateur } from '@/services/utilisateur';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getSidebarItems } from '@/lib/navigation';
@@ -26,13 +26,7 @@ export default async function UtilisateurDetailPage({ params }: { params: { id: 
       userName={ctx.email}
     >
       <div className="mx-auto max-w-2xl space-y-6">
-        <Link
-          href="/utilisateurs"
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour aux utilisateurs
-        </Link>
+        <LienRetour href="/utilisateurs">Retour aux utilisateurs</LienRetour>
 
         <Card>
           <CardContent className="flex flex-col gap-6 p-6">

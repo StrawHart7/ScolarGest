@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { ArrowLeft, ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEnseignant } from '@/services/enseignant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
@@ -7,6 +6,7 @@ import { listClasses } from '@/services/classe';
 import { listMatieres } from '@/services/matiere';
 import { listAffectationsEnseignant } from '@/services/affectation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { getSidebarItems } from '@/lib/navigation';
@@ -27,13 +27,7 @@ export default async function AffectationsEnseignantPage({ params }: { params: {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          href={`/etablissement/enseignants/${enseignant.id}`}
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour à la fiche enseignant
-        </Link>
+        <LienRetour href={`/etablissement/enseignants/${enseignant.id}`}>Retour à la fiche enseignant</LienRetour>
 
         <div>
           <h1 className="text-display-sm text-text-primary">

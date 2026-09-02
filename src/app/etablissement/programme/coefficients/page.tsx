@@ -6,6 +6,7 @@ import { listProgramme } from '@/services/programme';
 import { listCoefficients } from '@/services/coefficient';
 import { baremeOfficiel } from '@/services/matiere-officielle';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { NiveauSelector, type NiveauOption } from '../NiveauSelector';
@@ -85,6 +86,8 @@ export default async function CoefficientsPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
+        <LienRetour href="/etablissement/programme">Retour au programme</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">Coefficients</h1>
           <p className="max-w-3xl text-body-md text-text-secondary">

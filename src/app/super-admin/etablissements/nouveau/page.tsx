@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { creerEtablissementEtDirecteur } from './actions';
 
 function SubmitButton() {
@@ -21,6 +22,9 @@ export default function NouvelEtablissementPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-gutter py-gutter sm:p-container-pad">
+      <LienRetour href="/super-admin/etablissements" className="mb-4">
+        Retour aux établissements
+      </LienRetour>
       <h1 className="mb-6 text-display-sm text-text-primary">Nouvel établissement</h1>
 
       <form action={formAction} className="flex flex-col gap-6">

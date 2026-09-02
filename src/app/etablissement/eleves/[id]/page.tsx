@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, UserCircle2, FileText, Receipt } from 'lucide-react';
+import { UserCircle2, FileText, Receipt } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
 import { getFacturesEleve } from '@/services/facture';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,13 +27,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          href="/etablissement/eleves"
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour aux élèves
-        </Link>
+        <LienRetour href="/etablissement/eleves">Retour aux élèves</LienRetour>
 
         <Card>
           <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">

@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
 import { getFactureDetail, type StatutFacture } from '@/services/facture';
 import { listTypesFrais } from '@/services/type-frais';
 import { listDocumentsParType } from '@/services/document';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -75,13 +76,7 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <Link
-              href="/etablissement/finances/factures"
-              className="inline-flex items-center gap-1.5 text-body-sm text-primary hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Suivi des paiements
-            </Link>
+            <LienRetour href="/etablissement/finances/factures">Retour au suivi des paiements</LienRetour>
             <h1 className="mt-1 text-display-sm text-text-primary">
               {facture.eleve.nom} {facture.eleve.prenoms}
             </h1>

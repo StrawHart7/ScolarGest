@@ -1,6 +1,7 @@
 import { getTenantContext } from '@/services/tenant';
 import { listCycles, listCyclesActifs } from '@/services/structure';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getSidebarItems } from '@/lib/navigation';
@@ -19,6 +20,8 @@ export default async function CyclesPage() {
       userName={ctx.email}
     >
       <div className="space-y-6">
+        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">Cycles</h1>
           <p className="text-body-md text-text-secondary">

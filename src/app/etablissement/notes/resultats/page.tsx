@@ -6,6 +6,7 @@ import { listMesAffectations } from '@/services/affectation';
 import { getResultatsClasse, type ResultatEleve } from '@/services/resultats-classe';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -76,6 +77,8 @@ export default async function ResultatsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
+        <LienRetour href="/etablissement/notes">Retour aux notes et résultats</LienRetour>
+
         <div className="hidden md:block">
           <PageHeader
             title="Moyennes & classement"

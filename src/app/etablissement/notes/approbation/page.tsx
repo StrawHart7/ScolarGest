@@ -3,6 +3,7 @@ import { getTenantContext } from '@/services/tenant';
 import { requireRole } from '@/services/authorization';
 import { listNotesEnAttente, listEvaluationsSoumises } from '@/services/note';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
@@ -28,6 +29,8 @@ export default async function ApprobationNotesPage() {
       userName={ctx.email}
     >
       <div className="space-y-6">
+        <LienRetour href="/etablissement/notes">Retour aux notes et résultats</LienRetour>
+
         <PageHeader
           title="Approbation des notes"
           description="Soumissions d'évaluations et demandes de correction en attente d'une décision."

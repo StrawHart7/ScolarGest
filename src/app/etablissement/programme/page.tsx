@@ -5,6 +5,7 @@ import { listCyclesActifs, listNiveauxParCycle } from '@/services/structure';
 import { listMatieres } from '@/services/matiere';
 import { listProgramme } from '@/services/programme';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,8 @@ export default async function ProgrammePage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
+        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+
         {/* Sur mobile, le titre descend dans EnteteListe au-dessus de la liste ;
             la gestion des coefficients reste accessible dans la barre du
             sélecteur de niveau. */}

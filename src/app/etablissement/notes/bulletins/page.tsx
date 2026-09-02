@@ -7,6 +7,7 @@ import { listElevesInscritsClasse } from '@/services/eleve';
 import { listBulletinsClasse } from '@/services/document';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
@@ -53,6 +54,8 @@ export default async function BulletinsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
+        <LienRetour href="/etablissement/notes">Retour aux notes et résultats</LienRetour>
+
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
           <h1 className="text-display-sm text-text-primary">Génération de bulletins</h1>

@@ -4,6 +4,7 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listMesAffectations } from '@/services/affectation';
 import { listEvaluations, type Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getSidebarItems } from '@/lib/navigation';
@@ -28,6 +29,8 @@ export default async function SaisieNotesPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
+        <LienRetour href="/etablissement/notes">Retour aux notes et résultats</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">Saisie des notes</h1>
           <p className="text-body-sm text-text-secondary">

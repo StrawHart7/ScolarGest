@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, GraduationCap, ShieldAlert } from 'lucide-react';
+import { GraduationCap, ShieldAlert } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listMesAffectations } from '@/services/affectation';
 import { listElevesInscritsClasse } from '@/services/eleve';
@@ -7,6 +7,7 @@ import { listNotesEvaluation } from '@/services/note';
 import { getEvaluationDetail } from '@/services/evaluation-detail';
 import type { Periode, TypeEvaluation } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { SaisieNotesForm } from './SaisieNotesForm';
@@ -52,13 +53,7 @@ export default async function SaisieEvaluationPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <Link
-          href="/etablissement/notes/saisie"
-          className="inline-flex items-center gap-1 text-body-sm text-text-secondary hover:text-primary-container"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour à la saisie des notes
-        </Link>
+        <LienRetour href="/etablissement/notes/saisie">Retour à la saisie des notes</LienRetour>
 
         {ctx.role !== 'ENSEIGNANT' ? (
           <Card>

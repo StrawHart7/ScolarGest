@@ -2,6 +2,7 @@ import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { ImportPaiementsForm } from './ImportForm';
@@ -22,6 +23,8 @@ export default async function ImportPaiementsPage() {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
+        <LienRetour href="/etablissement/finances">Retour aux finances</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">
             Import Excel — historique financier

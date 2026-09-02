@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { ArrowLeft, UserCircle2, BookOpen } from 'lucide-react';
+import { UserCircle2, BookOpen } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEnseignant } from '@/services/enseignant';
 import { listAffectationsEnseignant } from '@/services/affectation';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,13 +39,7 @@ export default async function FicheEnseignantPage({ params }: { params: { id: st
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          href="/etablissement/enseignants"
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour aux enseignants
-        </Link>
+        <LienRetour href="/etablissement/enseignants">Retour aux enseignants</LienRetour>
 
         <Card>
           <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">

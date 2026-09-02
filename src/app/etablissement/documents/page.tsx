@@ -1,6 +1,7 @@
 import { getTenantContext } from '@/services/tenant';
 import { getParametresDocument, chargerLogoDataUri } from '@/services/parametres-document';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { ParametresDocumentForm } from './ParametresDocumentForm';
@@ -43,6 +44,8 @@ export default async function ParametresDocumentPage() {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
+        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">Identité des documents</h1>
           <p className="text-body-md text-text-secondary">

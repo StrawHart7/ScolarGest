@@ -3,6 +3,7 @@ import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
 import { listTypesFrais } from '@/services/type-frais';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,8 @@ export default async function TypesFraisPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
+        <LienRetour href="/etablissement/finances">Retour aux finances</LienRetour>
+
         {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
             doublon avec la ligne de densité. */}
         <div className="hidden md:block">
