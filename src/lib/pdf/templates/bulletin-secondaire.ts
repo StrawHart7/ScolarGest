@@ -6,9 +6,9 @@ import { STYLE_IDENTITE, htmlFiligrane, htmlLogo } from './identite';
  * Enseignements Primaire et Secondaire.
  *
  * Fac-similé du modèle fourni par l'établissement : en-tête à trois colonnes,
- * encart Sexe/Statut, tableau des matières à neuf colonnes, puis le bloc de
- * bas de page (assiduité, distinctions, rappel des moyennes, décision du
- * conseil, observation du chef d'établissement).
+ * encart Sexe/Statut, tableau des matières à dix colonnes, puis le bloc de
+ * bas de page (assiduité, distinctions, résultats, décision du conseil,
+ * observation du chef d'établissement).
  *
  * Les zones en pointillés du modèle papier (absences, retards, punitions,
  * exclusions, tableau d'honneur, félicitations, décision du conseil,
@@ -60,6 +60,35 @@ function noteDefinitive(moyenne: number | null, coefficient: number): number | n
   return moyenne * coefficient;
 }
 
+/**
+ * Hauteur de ligne du tableau des matières, calculée à la génération.
+ *
+ * **Toutes les lignes d'un bulletin ont la même hauteur, et deux élèves d'une
+ * même classe reçoivent un document au même gabarit.** Auparavant la hauteur
+ * d'une ligne suivait son contenu : un nom de professeur long ou une
+ * appréciation en deux mots faisait grossir la ligne. Sur une pile de
+ * bulletins signés à la main, l'irrégularité se voit immédiatement.
+ *
+ * Le budget est le corps de page A4 (297 mm − 24 mm de marges ≈ 1032 px à
+ * 96 dpi) moins l'en-tête du document, l'en-tête du tableau, la ligne TOTAL et
+ * le bloc de pied. Il est réparti à parts égales entre les matières, borné pour
+ * rester lisible : une classe à six matières n'étire pas ses lignes jusqu'à
+ * l'absurde, une classe à quinze ne déborde pas sur une seconde page.
+ *
+ * Le reliquat n'est pas comblé par des lignes anonymes — elles ont été
+ * supprimées à dessein le 2026-08-30 — mais absorbé par le `margin-top:auto` du
+ * bloc de pied, qui reste ainsi collé au bas de la page.
+ */
+const BUDGET_CORPS_PX = 452;
+const HAUTEUR_LIGNE_MIN_PX = 20;
+const HAUTEUR_LIGNE_MAX_PX = 38;
+
+export function hauteurLigneMatiere(nombreMatieres: number): number {
+  if (nombreMatieres <= 0) return HAUTEUR_LIGNE_MIN_PX;
+  const brute = Math.floor(BUDGET_CORPS_PX / nombreMatieres);
+  return Math.max(HAUTEUR_LIGNE_MIN_PX, Math.min(HAUTEUR_LIGNE_MAX_PX, brute));
+}
+
 export function renderBulletinSecondaireHtml(
   input: BulletinTemplateInput & { eleve: { sexe?: 'M' | 'F' } },
 ): string {
@@ -70,19 +99,25 @@ export function renderBulletinSecondaireHtml(
   const periodeMajuscule = periodeLabel.toUpperCase();
   const sexeLibelle = eleve.sexe === 'F' ? 'Féminin' : eleve.sexe === 'M' ? 'Masculin' : '';
 
+  const hauteurLigne = hauteurLigneMatiere(donnees.matieres.length);
+  // La hauteur utile retranche bordures et padding vertical : c'est elle qui
+  // plafonne le contenu, sans quoi un texte long repousserait la ligne et
+  // ruinerait l'égalité des hauteurs.
+  const hauteurUtile = hauteurLigne - 6;
+
   const lignesRemplies = donnees.matieres
     .map(
       (m) => `
       <tr>
-        <td class="c-matiere">${esc(m.matiereNom)}</td>
-        <td class="num">${num(m.moyClasse)}</td>
-        <td class="num">${num(m.composition)}</td>
-        <td class="num">${num(m.moyenneFinale)}</td>
-        <td class="num">${m.coefficient || ''}</td>
-        <td class="num">${num(noteDefinitive(m.moyenneFinale, m.coefficient))}</td>
-        <td class="num">${m.rangMatiere ?? ''}</td>
-        <td>${esc(appreciationMatiere(m.moyenneFinale))}</td>
-        <td>${esc(m.professeurs)}</td>
+        <td class="c-matiere"><div class="cellule">${esc(m.matiereNom)}</div></td>
+        <td class="num"><div class="cellule">${num(m.moyClasse)}</div></td>
+        <td class="num"><div class="cellule">${num(m.composition)}</div></td>
+        <td class="num"><div class="cellule">${num(m.moyenneFinale)}</div></td>
+        <td class="num"><div class="cellule">${m.coefficient || ''}</div></td>
+        <td class="num"><div class="cellule">${num(noteDefinitive(m.moyenneFinale, m.coefficient))}</div></td>
+        <td class="num"><div class="cellule">${m.rangMatiere ?? ''}</div></td>
+        <td><div class="cellule">${esc(appreciationMatiere(m.moyenneFinale))}</div></td>
+        <td><div class="cellule">${esc(m.professeurs)}</div></td>
         <td></td>
       </tr>`,
     )
@@ -100,10 +135,39 @@ export function renderBulletinSecondaireHtml(
     0,
   );
 
-  const ligneRang =
-    synthese.rangGeneral !== null
-      ? `${synthese.rangGeneral} sur ${synthese.effectifClasse} Elèves`
-      : `sur ${synthese.effectifClasse} Elèves`;
+  /** Une ligne « libellé … valeur » du bloc des résultats. */
+  const ligneResultat = (libelle: string, valeur: string, classe = '') =>
+    `<tr class="${classe}"><th>${libelle}</th><td>${valeur}</td></tr>`;
+
+  const sur20 = (v: number | null) => (v === null ? '—' : `${num(v)} / 20`);
+
+  // Un seul bloc de moyennes, et chaque chiffre n'y figure qu'une fois. Le pied
+  // affichait la moyenne de la période deux fois sous deux noms différents
+  // (« Moyenne du 1ER TRIMESTRE » puis « Moyenne du Semestre »), dans deux
+  // cellules distinctes : le lecteur devait vérifier lui-même qu'il s'agissait
+  // du même nombre.
+  //
+  // Il n'existe pas de classement annuel en base. Afficher « Rang sur 20
+  // élèves » sans rang, comme le faisait la version précédente, laissait croire
+  // à une donnée manquante plutôt qu'à une donnée qui n'existe pas.
+  const lignesResultats = [
+    ligneResultat(`Moyenne du ${esc(periodeLabel)}`, sur20(synthese.moyenneTrimestrielle), 'forte'),
+    ligneResultat(
+      'Rang',
+      `${synthese.rangGeneral ?? '—'}<span class="menu"> sur ${synthese.effectifClasse} élèves</span>`,
+    ),
+    synthese.appreciation ? ligneResultat('Appréciation', esc(synthese.appreciation)) : '',
+    ligneResultat(
+      'Moyenne générale de la classe',
+      sur20(synthese.moyenneGeneraleClasse),
+      'separateur',
+    ),
+    ligneResultat('Moyenne la plus forte', sur20(synthese.meilleureMoyenneClasse)),
+    ligneResultat('Moyenne la plus faible', sur20(synthese.plusFaibleMoyenneClasse)),
+    synthese.moyenneAnnuelle !== null
+      ? ligneResultat('Moyenne annuelle', sur20(synthese.moyenneAnnuelle), 'separateur forte')
+      : '',
+  ].join('');
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -119,6 +183,11 @@ export function renderBulletinSecondaireHtml(
     font-size: 10.5px;
     color: #000;
     line-height: 1.25;
+    /* Le document occupe exactement une page : le bloc de pied est poussé au
+       bas par son margin-top:auto, quel que soit le nombre de matières. */
+    min-height: 273mm;
+    display: flex;
+    flex-direction: column;
   }
   .entete { display: flex; justify-content: space-between; align-items: flex-start; }
   .entete .colonne { width: 33%; }
@@ -129,31 +198,77 @@ export function renderBulletinSecondaireHtml(
   .republique { text-align: right; font-weight: bold; }
   .devise { text-align: right; font-style: italic; font-weight: normal; }
   .trait-court { width: 70px; border-top: 1px solid #000; margin: 10px auto 10px 34px; }
-  .titre-bulletin { text-align: center; font-weight: bold; margin: 14px 0 10px; font-size: 12px; }
+  .titre-bulletin { text-align: center; font-weight: bold; margin: 12px 0 8px; font-size: 12px; }
   .bloc-sexe { border: 1px solid #000; width: 210px; margin-left: auto; }
   .bloc-sexe table { width: 100%; border-collapse: collapse; }
   .bloc-sexe td, .bloc-sexe th {
     border: 1px solid #000; padding: 2px 4px; font-weight: normal; text-align: left;
   }
-  .bloc-sexe .valeur { text-align: center; height: 20px; }
-  .nom-eleve { text-align: center; margin: 12px 0 8px; }
+  .bloc-sexe .valeur { text-align: center; height: 18px; }
+  .nom-eleve { text-align: center; margin: 10px 0 6px; }
 
-  table.notes { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  table.notes th, table.notes td { border: 1px solid #000; padding: 2px 3px; height: 17px; }
+  /* flex:1 fait occuper au tableau toute la hauteur laissée libre par
+     l'en-tête et le pied : le surplus est réparti entre des lignes de hauteur
+     identique, donc également, et la page est pleine sans ligne inventée. */
+  table.notes {
+    width: 100%; border-collapse: collapse; table-layout: fixed; flex: 1 1 auto;
+  }
+  table.notes th, table.notes td { border: 1px solid #000; padding: 2px 3px; }
+  /* Les lignes pouvant être hautes, le contenu est centré verticalement :
+     collé en haut d'une case de 90 px, il flotterait. */
+  table.notes tbody td { vertical-align: middle; }
+  table.notes tbody tr { height: ${hauteurLigne}px; }
+  /* Le contenu est plafonné au lieu de pousser la ligne : deux bulletins de la
+     même classe gardent le même gabarit. */
+  table.notes tbody td .cellule {
+    max-height: ${hauteurUtile}px; overflow: hidden; line-height: 1.15;
+  }
   table.notes thead th {
     background: #7BA7D7; color: #fff; font-weight: bold; vertical-align: bottom;
-    text-align: left; font-size: 10px;
+    text-align: left; font-size: 10px; height: 34px;
   }
   table.notes td.num { text-align: right; font-variant-numeric: tabular-nums; }
   table.notes td.c-matiere { text-align: left; }
-  table.notes tfoot td { font-weight: bold; font-style: italic; }
+  table.notes tfoot td { font-weight: bold; font-style: italic; height: 18px; }
 
-  table.pied { width: 100%; border-collapse: collapse; margin-top: -1px; }
-  table.pied td { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
-  .pointilles { border-bottom: 1px dotted #000; display: inline-block; min-width: 60px; }
-  .case { display: inline-block; width: 34px; height: 12px; border: 1px solid #000; vertical-align: middle; }
-  .centre-titre { text-align: center; text-decoration: underline; }
-  .ligne-vide { border-bottom: 1px dotted #000; height: 14px; margin-top: 6px; }
+  table.pied { width: 100%; border-collapse: collapse; margin-top: auto; }
+  table.pied > tbody > tr > td { border: 1px solid #000; padding: 5px 7px; vertical-align: top; }
+  .titre-case {
+    text-align: center; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 0.02em; border-bottom: 1px solid #000; padding-bottom: 2px;
+    margin-bottom: 5px;
+  }
+  /* Libellé à gauche, zone à remplir à droite : les pointillés s'alignent tous
+     sur la même colonne au lieu de commencer là où le mot finit. */
+  table.champs { width: 100%; border-collapse: collapse; }
+  table.champs th {
+    font-weight: normal; text-align: left; white-space: nowrap; padding: 1px 0;
+  }
+  table.champs td { border-bottom: 1px dotted #000; width: 100%; padding: 1px 0 1px 6px; }
+  table.champs td.suffixe { border: 0; width: 1%; padding-left: 4px; white-space: nowrap; }
+  table.champs td.cases { border: 0; width: 1%; white-space: nowrap; text-align: right; }
+  .case {
+    display: inline-block; width: 30px; height: 12px; border: 1px solid #000;
+    vertical-align: middle;
+  }
+
+  /* Bloc des résultats : un libellé, une valeur, une colonne de chiffres
+     alignée. Les moyennes étaient réparties entre deux cellules du pied. */
+  table.resultats { width: 100%; border-collapse: collapse; }
+  table.resultats th { font-weight: normal; text-align: left; padding: 1.5px 0; }
+  table.resultats td {
+    text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;
+    padding: 1.5px 0;
+  }
+  table.resultats tr.forte th, table.resultats tr.forte td { font-weight: bold; }
+  table.resultats tr.separateur th, table.resultats tr.separateur td {
+    border-top: 1px solid #000; padding-top: 4px;
+  }
+  table.resultats .menu { font-weight: normal; font-size: 9.5px; }
+
+  .ligne-vide { border-bottom: 1px dotted #000; height: 15px; }
+  .ligne-vide + .ligne-vide { margin-top: 5px; }
+  .zone-signature { height: 46px; }
 ${STYLE_IDENTITE}
 </style>
 </head>
@@ -235,62 +350,60 @@ ${STYLE_IDENTITE}
   </table>
 
   <table class="pied">
-    <tr>
-      <td style="width:22%;">
-        Absences <span class="pointilles"></span>fois<br />
-        Retards <span class="pointilles"></span>fois<br />
-        Punition <span class="pointilles"></span>fois<br />
-        Exclusions <span class="pointilles"></span>fois
-      </td>
-      <td style="width:33%;">
-        Tableau d'honneur <span class="pointilles" style="min-width:120px;"></span><br />
-        Félicitations <span class="pointilles" style="min-width:140px;"></span><br />
-        Encouragements <span class="pointilles" style="min-width:130px;"></span><br />
-        Avertissement Trav <span class="case"></span> Disc <span class="case"></span><br />
-        Blâme <span class="case"></span> Trav <span class="case"></span> Disc <span class="case"></span>
-      </td>
-      <td style="width:45%;">
-        <div class="centre-titre">RAPPEL DES MOYENNES</div>
-        <div style="margin-top:4px;">
-          Moyenne du ${esc(periodeMajuscule)}
-          ${synthese.moyenneTrimestrielle !== null ? `${num(synthese.moyenneTrimestrielle)}/20` : '/20'},
-          Rang ${ligneRang}
-        </div>
-        <div style="margin-top:8px;">
-          MOYENNE ANNUELLE
-          ${synthese.moyenneAnnuelle !== null ? `${num(synthese.moyenneAnnuelle)}` : ''}/20,
-          Rang sur ${synthese.effectifClasse} Elèves
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Moyenne du Semestre
-        ${synthese.moyenneTrimestrielle !== null ? num(synthese.moyenneTrimestrielle) : ''} /20
-        Rang ${synthese.rangGeneral ?? ''}<br />
-        Moyenne plus forte
-        ${synthese.meilleureMoyenneClasse !== null ? num(synthese.meilleureMoyenneClasse) : ''}<br />
-        Moyenne plus faible
-        ${synthese.plusFaibleMoyenneClasse !== null ? num(synthese.plusFaibleMoyenneClasse) : ''}
-        <div style="margin-top:8px;">Moyenne Générale de la classe : ${
-          synthese.moyenneGeneraleClasse !== null ? num(synthese.moyenneGeneraleClasse) : ''
-        }</div>
-        <div style="margin-top:10px;" class="centre-titre">Décision du conseil</div>
-        <div class="ligne-vide"></div>
-        <div class="ligne-vide"></div>
-      </td>
-      <td>
-        <div style="text-align:center; text-decoration:underline;">Signature et nom du Titulaire</div>
-        <div style="text-align:center; height:38px;"></div>
-      </td>
-      <td>
-        <div style="text-align:center;">OBSERVATION DU CHEF D'ETABLISSEMENT</div>
-        <div class="ligne-vide"></div>
-        <div class="ligne-vide"></div>
-        <div style="text-align:center; margin-top:8px;">Le ,<span class="pointilles" style="min-width:140px;"></span></div>
-        <div style="text-align:center;">Le Directeur</div>
-      </td>
-    </tr>
+    <tbody>
+      <tr>
+        <td style="width:26%;">
+          <div class="titre-case">Assiduité</div>
+          <table class="champs">
+            <tr><th>Absences</th><td></td><td class="suffixe">fois</td></tr>
+            <tr><th>Retards</th><td></td><td class="suffixe">fois</td></tr>
+            <tr><th>Punitions</th><td></td><td class="suffixe">fois</td></tr>
+            <tr><th>Exclusions</th><td></td><td class="suffixe">fois</td></tr>
+          </table>
+        </td>
+        <td style="width:31%;">
+          <div class="titre-case">Distinctions et sanctions</div>
+          <table class="champs">
+            <tr><th>Tableau d'honneur</th><td></td></tr>
+            <tr><th>Félicitations</th><td></td></tr>
+            <tr><th>Encouragements</th><td></td></tr>
+            <tr>
+              <th>Avertissement</th>
+              <td class="cases">Trav <span class="case"></span> Disc <span class="case"></span></td>
+            </tr>
+            <tr>
+              <th>Blâme</th>
+              <td class="cases">Trav <span class="case"></span> Disc <span class="case"></span></td>
+            </tr>
+          </table>
+        </td>
+        <td style="width:43%;">
+          <div class="titre-case">Résultats</div>
+          <table class="resultats">${lignesResultats}</table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="titre-case">Décision du conseil</div>
+          <div class="ligne-vide"></div>
+          <div class="ligne-vide"></div>
+          <div class="ligne-vide"></div>
+        </td>
+        <td>
+          <div class="titre-case">Visa du titulaire</div>
+          <div class="zone-signature"></div>
+        </td>
+        <td>
+          <div class="titre-case">Observation du chef d'établissement</div>
+          <div class="ligne-vide"></div>
+          <div class="ligne-vide"></div>
+          <div style="margin-top:8px; text-align:right;">
+            Le <span style="display:inline-block; border-bottom:1px dotted #000; min-width:120px;"></span>
+          </div>
+          <div style="text-align:right; font-weight:bold;">Le Directeur</div>
+        </td>
+      </tr>
+    </tbody>
   </table>
 
 </body>
