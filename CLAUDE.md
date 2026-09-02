@@ -517,6 +517,92 @@ vérifier que cet écran suit.
 `/dashboard` reste la destination commune après connexion pour les quatre autres
 rôles — ne pas la supprimer.
 
+### Contact support : un recours, pas une destination
+
+Migrations `0023` et `0024`. `support_demande` porte une demande par
+etablissement, avec l'identite de son auteur **figee a l'envoi** (nom, email,
+role) : un compte change de role ou est desactive, la demande doit continuer de
+dire qui l'a ecrite et a quel titre.
+
+**La page vit sous `/profil/support` deliberement.** `/profil` figure dans
+`PATHS_TOUJOURS_ACCESSIBLES` (`src/lib/supabase/middleware.ts`), donc une ecole
+passee en lecture seule peut encore ecrire au support — c'est precisement celle
+qui en a le plus besoin. La deplacer ailleurs refermerait le canal au pire
+moment, sans erreur visible nulle part.
+
+**Les quatre roles ecole ecrivent ; seul le SUPER_ADMIN repond.** `statut` et
+`reponseSupport` sont proteges par une policy `for update` reservee au
+SUPER_ADMIN : les laisser au tenant lui permettrait de se repondre a lui-meme
+ou de refermer une demande que personne n'a traitee.
+
+**L'acces se fait par une bulle flottante** (`BulleSupport`), pas par une
+entree de menu : ce n'est pas une destination qu'on visite, c'est un recours
+dont on a besoin *pendant* qu'on fait autre chose. Elle est **desktop
+uniquement** — sous `md`, ce coin est deja pris par le bouton d'action des
+listes (`bottom-24 right-4`) et surplombe par la barre d'onglets. D'ou
+`ITEM_SUPPORT`, sorti de `ITEMS_BAS_SIDEBAR` et rattache explicitement au menu
+« Plus » de `BottomNav` : sans cette ligne, le support serait injoignable sur
+telephone.
+
+**La piece jointe passe par la cle service-role.** Le bucket `support` est
+prive et le tenant n'y a que la lecture : lui donner l'ecriture directe le
+laisserait choisir son prefixe, donc ecrire sous le dossier d'une autre ecole.
+Le chemin est construit cote serveur, jamais recu.
+
+### Import en deux temps : analyser, montrer, puis ecrire
+
+Le depot d'un fichier declenchait l'ecriture immediate. `preparerImport*` lit
+et decide ; `executerImport*` ecrit, et **ne touche que les lignes marquees
+`PRETE` par l'analyse**. Une seule source de verite : decider deux fois, a deux
+endroits, finirait par afficher un bilan que l'ecriture contredit.
+
+**Le fichier est relu et reanalyse a la confirmation**, jamais repris depuis le
+navigateur : une analyse renvoyee par le client est une decision que l'appelant
+peut reecrire.
+
+**Le doublon d'eleve n'etait arrete par rien.** Pas de recherche avant
+l'insertion ; la seule unicite en base porte sur le matricule, or c'est un
+compteur `max+1`, structurellement incapable de rejouer une valeur ; et le
+garde-fou de `fn_inscrire_eleve` teste l'identifiant eleve, neuf par
+construction. Un fichier redepose recreait tout **en entier** — eleve,
+responsable, inscription et facture. La detection porte sur (nom, prenoms, date
+de naissance) et **l'ensemble grandit au fil du fichier** : le charger une fois
+avant la boucle laissait passer la seconde occurrence d'une ligne repetee.
+
+**Aucune contrainte d'unicite en base**, deliberement : deux eleves reels
+peuvent partager ce triplet, et une contrainte refuserait une inscription
+legitime sans recours. **Aucune detection sur les paiements** non plus — deux
+versements identiques le meme jour sont legitimes.
+
+**Trois categories distinctes : prete, doublon, refusee.** Les confondre
+afficherait « 230 echecs » sur un fichier redepose ou tout s'est bien passe.
+
+**Le controle des en-tetes court-circuite tout le reste.** Un fichier dont la
+colonne s'appelle « Date de naissance » produirait 230 fois la meme erreur Zod
+pour un unique probleme situe en ligne 1. La casse et l'ordre sont tolerees :
+les cles sont normalisees a la lecture, sinon le controle accepterait « Nom »
+que la lecture ne trouverait pas.
+
+### Un composant client n'importe jamais depuis `src/services/`
+
+Panne du 2026-09-02, en production seulement :
+
+    You're importing a component that needs next/headers.
+    ./src/lib/supabase/server.ts -> ./src/services/support.ts
+                                 -> ./src/app/profil/support/FormulaireSupport.tsx
+
+Le formulaire n'avait besoin que d'une liste de categories. En l'important
+depuis le service, il tirait `next/headers` dans un bundle client.
+
+`tsc` accepte, ESLint ignore la frontiere, et l'echec arrive **a la
+compilation Next**. La parade existe deja dans le depot : un module sans
+dependance — `src/lib/emploi-du-temps.ts`, `src/lib/support.ts`,
+`src/lib/import/entetes.ts`. Le vocabulaire y vit, le service ne garde que les
+fonctions gardees et reexporte les types.
+
+C'est la meme famille que la fonction passee a un composant client
+(`formater={fcfa}`), a ceci pres que celle-la tombe a l'execution.
+
 ### Emploi du temps : une grille sans horloge
 
 Migration `0018`. Les colonnes sont les jours (lundi a samedi), les lignes des

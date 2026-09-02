@@ -1715,6 +1715,145 @@ normal en usage réel — mais il ne touchait pas ces données.
 
 ---
 
+### Fonctionnalité — Import en deux temps
+
+**Statut** : ✅ livrée (2026-09-02) — branche `feat/contact-support`.
+
+**Objectif** : ne plus écrire à l'aveugle. Le dépôt d'un fichier déclenchait
+l'écriture immédiate ; on analyse désormais, on montre le bilan, et rien n'est
+enregistré tant que l'utilisateur n'a pas confirmé.
+
+**Le défaut qui l'a motivé.** Rien dans la chaîne ne détectait un élève déjà
+présent : aucune recherche avant l'insertion, une unicité en base portant sur
+le seul matricule — un compteur `max+1`, donc structurellement incapable de
+rejouer une valeur — et le garde-fou de `fn_inscrire_eleve` qui teste
+l'identifiant élève, neuf par construction. Un fichier redéposé pour corriger
+trois lignes recréait les 230 autres **en entier** : élève, responsable,
+inscription et facture. Effectifs faux sur tous les tableaux de bord, double
+facturation, et un nettoyage qui passe par des statuts `ANNULE` puisque
+l'invariant interdit la suppression dure.
+
+**Livrables** :
+
+- [x] `src/lib/import/entetes.ts`, `analyse.ts` — sans dépendance, affichés
+      côté client. `excel.ts` — lecture partagée, serveur uniquement.
+- [x] Les trois importateurs passent en deux temps : `preparerImport*` (lecture
+      seule) puis `executerImport*`.
+- [x] Détection des doublons sur les élèves, en base **et** dans le fichier.
+- [x] `ApercuImport` — trois états : colonnes non reconnues, bilan avant
+      confirmation, rapport final.
+- [x] Colonnes non reconnues : bouton d'envoi du fichier au support.
+- [x] 25 tests, dont un classeur construit en mémoire.
+- [x] Deux classeurs de test fournis (conforme, colonnes erronées).
+- [ ] Vérification par le chemin réel : import joué de bout en bout.
+
+**Décisions consignées** :
+
+- **`preparerImport*` est la seule source de vérité.** L'écran de bilan et
+  l'écriture l'appellent tous deux ; l'écriture ne touche que les lignes
+  marquées `PRETE`. Décider deux fois, à deux endroits, finirait par afficher
+  un bilan que l'écriture contredit.
+- **Le fichier est relu et réanalysé à la confirmation**, jamais repris depuis
+  le navigateur : une analyse renvoyée par le client est une décision que
+  l'appelant peut réécrire. Conséquence assumée — si les données ont changé
+  entre les deux temps, c'est l'état à l'écriture qui fait foi.
+- **Trois catégories distinctes : prête, doublon, refusée.** Confondre doublon
+  et refus afficherait « 230 échecs » sur un fichier redéposé où tout s'est
+  bien passé. Un bilan alarmant sur une opération réussie apprend à ne plus
+  lire les bilans.
+- **L'ensemble des identités grandit au fil du fichier.** Le charger une fois
+  avant la boucle ne suffit pas : un classeur contenant deux fois la même ligne
+  verrait la seconde passer. Verrouillé par un test.
+- **Aucune contrainte d'unicité en base.** Deux élèves réels peuvent partager
+  nom, prénoms et date de naissance ; une contrainte refuserait une inscription
+  légitime sans recours. La détection écarte d'un import de masse, la saisie
+  individuelle reste ouverte.
+- **Pas de détection de doublons sur les paiements**, délibérément. Deux
+  versements identiques le même jour sont légitimes — deux tranches réglées
+  matin et après-midi — et les refuser ferait disparaître de l'argent
+  réellement encaissé.
+- **Le contrôle des en-têtes court-circuite tout le reste.** Un fichier dont la
+  colonne s'appelle « Date de naissance » produirait 230 fois la même erreur
+  Zod, pour un unique problème situé en ligne 1.
+- **La casse et l'ordre des colonnes sont tolérés**, le reste non. Les clés
+  sont normalisées à la lecture, sinon le contrôle d'en-têtes accepterait
+  « Nom » que la lecture, elle, ne trouverait pas.
+
+**Limite connue** : pour les enseignants et les paiements, l'analyse résout ce
+qu'elle peut en lecture (classe, matricule, facture) mais ne peut pas
+anticiper un dépassement de solde, qui dépend du cumul des lignes. Le rapport
+final le dira.
+
+**Reste** : `parseFichierExcel` a disparu des trois services au profit de
+`lireClasseur` — aucun appelant hors dépôt, mais c'est une rupture d'API.
+
+### Fonctionnalité — Contact support
+
+**Statut** : ✅ livrée (2026-09-02) — branche `feat/contact-support`.
+Migrations `0023` et `0024` **appliquées**.
+
+**Objectif** : donner à une école un moyen de joindre la plateforme depuis le
+produit. `/profil/aide` répondait à sept questions figées et s'arrêtait là :
+une école bloquée sur autre chose n'avait aucun recours.
+
+**Livrables** :
+
+- [x] Migration `0023` — `support_demande`, énumérations `categorie_support` et
+      `statut_support`, policies RLS.
+- [x] `src/services/support.ts` — dépôt, lecture par école, file plateforme,
+      réponse, changement de statut. Six gardes à la matrice.
+- [x] `/profil/support` — formulaire + historique des demandes de l'école.
+- [x] `/super-admin/support` — file à traiter / en cours / closes, réponse
+      inline.
+- [x] Entrées de navigation (bas de sidebar pour tous, entrée dédiée
+      SUPER_ADMIN) et renvoi depuis `/profil/aide`.
+- [x] Pièce jointe (migration `0024`) : bucket privé `support`, dépôt par la
+      clé service-role, lien signé de 5 minutes pour le téléchargement.
+- [x] File de travail : cartes-filtres cliquables (à traiter / en cours /
+      closes / toutes), recherche, filtres par catégorie, icône et teinte par
+      catégorie, alerte sur la plus ancienne demande sans réponse.
+- [x] Accès par bulle flottante desktop ; `ITEM_SUPPORT` rattaché au menu
+      « Plus » mobile.
+- [x] Skill `scolargest-inputs` (hors dépôt, `~/.claude/skills/`) : remise en
+      forme d'un classeur quelconque vers les gabarits d'import.
+- [ ] Vérification par le chemin réel : pages ouvertes, dépôt et réponse joués
+      de bout en bout.
+
+**Décisions consignées** :
+
+- **La page vit sous `/profil/support` délibérément.** `/profil` figure dans
+  `PATHS_TOUJOURS_ACCESSIBLES` : une école passée en lecture seule peut donc
+  encore écrire au support — c'est précisément celle qui en a le plus besoin.
+  Déplacer cette page ailleurs refermerait le canal au pire moment, sans erreur
+  visible nulle part.
+- **La demande est portée par l'établissement, pas par l'auteur.** Le Directeur
+  relit ce que sa Secrétaire a envoyé ; sinon le même ticket se rouvre en
+  double la semaine suivante.
+- **L'identité de l'auteur est figée à l'envoi** (nom, email, rôle). Un compte
+  change de rôle ou est désactivé ; la demande doit continuer de dire qui l'a
+  écrite et à quel titre. Même raisonnement que l'historisation des tarifs.
+- **Les quatre rôles école peuvent écrire.** Le blocage arrive chez celui qui
+  saisit, pas chez le Directeur ; le faire transiter par la direction retarde
+  et déforme.
+- **`statut` et `reponseSupport` ne sont écrivables que par le SUPER_ADMIN**
+  (policy `for update`). Laisser l'école les écrire lui permettrait de se
+  répondre à elle-même ou de refermer une demande que personne n'a traitée.
+- **Une seule réponse, pas un fil de discussion.** Un fil demanderait une table
+  de messages, des notifications et une notion de « non lu ». Rien n'empêche de
+  l'ajouter plus tard.
+- **`pageOrigine` est repris de `?depuis=`**, et seulement s'il commence par
+  `/` : on ne stocke pas de domaine et on ne rend pas cliquable ce qu'un tiers
+  pourrait injecter.
+
+**Piège rencontré** : le générateur de `Docs/11-Matrice-permissions.md` lit les
+appels `requireRole` **textuellement**. Un tableau de rôles déplié dans l'appel
+ressort en « DYNAMIQUE », donc invérifiable — et un commentaire citant cette
+forme suffit à déclencher la même détection. Les rôles s'écrivent en toutes
+lettres dans l'appel.
+
+**Reste** : notification du support à l'arrivée d'une demande (aujourd'hui il
+faut ouvrir l'écran), et compteur de demandes en attente sur `/super-admin`.
+
 ### Fonctionnalité — Statistiques académiques
 
 **Statut** : ✅ terminée et mergée sur `main` (2026-09-01) — branche

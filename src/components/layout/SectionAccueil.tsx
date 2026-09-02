@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BookOpenCheck,
   CircleHelp,
+  LifeBuoy,
   CreditCard,
   GraduationCap,
   LayoutDashboard,
@@ -31,6 +32,7 @@ const ICONES: Record<NomIcone, LucideIcon> = {
   utilisateurs: Users,
   parametres: Settings,
   aide: CircleHelp,
+  support: LifeBuoy,
 };
 
 /**

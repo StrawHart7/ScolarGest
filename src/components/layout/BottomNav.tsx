@@ -6,7 +6,7 @@ import * as React from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ITEMS_BAS_SIDEBAR, type SidebarItem } from '@/lib/navigation';
+import { ITEMS_BAS_SIDEBAR, ITEM_SUPPORT, type SidebarItem } from '@/lib/navigation';
 import { ICONES } from './Sidebar';
 
 /**
@@ -54,7 +54,14 @@ export function BottomNav({ items }: { items: SidebarItem[] }) {
   const principaux = items.slice(0, MAX_ONGLETS_DIRECTS);
   // « Plus » regroupe les entrées du rôle au-delà des onglets directs, plus les
   // réglages communs.
-  const surplus: SidebarItem[] = [...items.slice(MAX_ONGLETS_DIRECTS), ...ITEMS_BAS_SIDEBAR];
+  // Le support est rattaché ici et non à `ITEMS_BAS_SIDEBAR` : sur desktop il
+  // passe par la bulle flottante, qui est masquée sous `md`. Sans cette ligne,
+  // il serait injoignable sur téléphone.
+  const surplus: SidebarItem[] = [
+    ...items.slice(MAX_ONGLETS_DIRECTS),
+    ...ITEMS_BAS_SIDEBAR,
+    ITEM_SUPPORT,
+  ];
 
   if (items.length === 0) return null;
 
