@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { renderBulletinSecondaireHtml } from '../templates/bulletin-secondaire';
+import {
+  renderBulletinSecondaireHtml,
+  hauteurLigneMatiere,
+} from '../templates/bulletin-secondaire';
 import type { BulletinTemplateInput } from '../templates/bulletin';
 
 /**
@@ -105,27 +108,71 @@ describe('renderBulletinSecondaireHtml', () => {
     expect(html).toContain('Insuffisant');
   });
 
-  it('reprend le rappel des moyennes et les statistiques de classe', () => {
-    expect(html).toContain('RAPPEL DES MOYENNES');
-    expect(html).toContain('Rang 1 sur 18 Elèves');
-    expect(html).toContain('Moyenne plus forte');
-    expect(html).toContain('Moyenne Générale de la classe : 13.1');
+  it('rassemble toutes les moyennes dans un seul bloc de résultats', () => {
+    expect(html).toContain('Résultats');
+    expect(html).toContain('Moyenne du 1er Trimestre');
+    expect(html).toContain('16 / 20');
+    expect(html).toContain('sur 18 élèves');
+    expect(html).toContain('Moyenne la plus forte');
+    expect(html).toContain('Moyenne générale de la classe');
+    expect(html).toContain('13.1 / 20');
+  });
+
+  it('n’affiche la moyenne de la période qu’une seule fois', () => {
+    // Le pied la donnait deux fois sous deux noms différents (« Moyenne du
+    // 1ER TRIMESTRE » puis « Moyenne du Semestre »), dans deux cellules
+    // distinctes : le lecteur devait vérifier lui-même que c'était le même
+    // nombre.
+    expect(html).not.toContain('Moyenne du Semestre');
+    expect(html).not.toContain('RAPPEL DES MOYENNES');
+    expect((html.match(/Moyenne du 1er Trimestre/g) ?? []).length).toBe(1);
+  });
+
+  it('n’annonce pas de rang annuel, qui n’existe pas en base', () => {
+    // La version précédente imprimait « Rang sur 18 Elèves » sans rang après
+    // la moyenne annuelle : ça se lit comme une donnée manquante plutôt que
+    // comme une donnée qui n'est pas calculée.
+    const avecAnnuelle = renderBulletinSecondaireHtml({
+      ...ENTREE,
+      donnees: {
+        ...ENTREE.donnees,
+        synthese: { ...ENTREE.donnees.synthese, moyenneAnnuelle: 14.42 },
+      },
+    });
+    expect(avecAnnuelle).toContain('Moyenne annuelle');
+    expect(avecAnnuelle).toContain('14.42 / 20');
+    expect((avecAnnuelle.match(/sur 18 élèves/g) ?? []).length).toBe(1);
+  });
+
+  it('omet la ligne annuelle tant qu’elle n’est pas calculable', () => {
+    expect(html).not.toContain('Moyenne annuelle');
   });
 
   it('laisse vides les zones remplies à la main sur le modèle papier', () => {
     for (const zone of [
       'Absences',
       'Retards',
-      'Punition',
+      'Punitions',
       'Exclusions',
       "Tableau d'honneur",
       'Félicitations',
       'Encouragements',
       'Décision du conseil',
-      "OBSERVATION DU CHEF D'ETABLISSEMENT",
+      "Observation du chef d'établissement",
     ]) {
       expect(html).toContain(zone);
     }
+  });
+
+  it('donne la même hauteur à toutes les lignes, quel que soit le contenu', () => {
+    // C'est le défaut corrigé : la hauteur d'une ligne suivait la longueur du
+    // nom du professeur, si bien que deux élèves d'une même classe recevaient
+    // deux documents de proportions différentes.
+    const hauteurs = html.match(/table\.notes tbody tr \{ height: (\d+)px; \}/);
+    expect(hauteurs).not.toBeNull();
+    expect(Number(hauteurs![1])).toBeGreaterThan(0);
+    // Aucune hauteur n'est posée ligne par ligne : la règle est unique.
+    expect(html).not.toMatch(/<tr style="height/);
   });
 
   it('échappe le HTML des données saisies', () => {
@@ -178,7 +225,7 @@ describe('renderBulletinSecondaireHtml', () => {
   it('calcule la note définitive en multipliant la moyenne par le coefficient', () => {
     // Moyenne 8, coefficient 2 → 16. La colonne reprenait auparavant la
     // moyenne telle quelle, donc la même valeur que « Moy. Géné sur 20 ».
-    const cellules = html.match(/<td class="num">[^<]*<\/td>/g) ?? [];
+    const cellules = html.match(/<td class="num"><div class="cellule">[^<]*<\/div><\/td>/g) ?? [];
     const valeurs = cellules.map((c) => c.replace(/<[^>]+>/g, ''));
     // Ordre des colonnes numériques d'une ligne : moyClasse, compo,
     // moyGénérale, coef, note définitive, rang.
@@ -193,10 +240,44 @@ describe('renderBulletinSecondaireHtml', () => {
         matieres: [{ ...ENTREE.donnees.matieres[0]!, moyenneFinale: null }],
       },
     });
-    const cellules = (sansMoyenne.match(/<td class="num">[^<]*<\/td>/g) ?? []).map((c) =>
+    const cellules = (sansMoyenne.match(/<td class="num"><div class="cellule">[^<]*<\/div><\/td>/g) ?? []).map((c) =>
       c.replace(/<[^>]+>/g, ''),
     );
     // Coefficient toujours affiché, mais aucune note définitive inventée.
     expect(cellules.slice(3, 5)).toEqual(['2', '']);
+  });
+});
+
+/**
+ * La mise en page finale se regarde, elle ne se teste pas : rendre le gabarit
+ * avec `npx tsx scripts/apercu-bulletin.ts <nombre de matières>`. Ce qui se
+ * teste ici, c'est la seule règle capable de produire un bulletin à deux pages
+ * ou des lignes illisibles.
+ */
+describe('hauteurLigneMatiere', () => {
+  it('ne dépend que du nombre de matières, jamais de leur contenu', () => {
+    expect(hauteurLigneMatiere(10)).toBe(hauteurLigneMatiere(10));
+  });
+
+  it('plafonne la hauteur quand les matières sont peu nombreuses', () => {
+    // Le surplus est absorbé par le flex du tableau, pas par des lignes
+    // démesurées.
+    expect(hauteurLigneMatiere(3)).toBe(38);
+    expect(hauteurLigneMatiere(6)).toBe(38);
+  });
+
+  it('resserre les lignes quand les matières sont nombreuses', () => {
+    expect(hauteurLigneMatiere(15)).toBe(30);
+    expect(hauteurLigneMatiere(22)).toBe(20);
+  });
+
+  it('ne descend jamais sous le plancher lisible', () => {
+    expect(hauteurLigneMatiere(40)).toBe(20);
+    expect(hauteurLigneMatiere(200)).toBe(20);
+  });
+
+  it('reste défini pour un bulletin sans matière', () => {
+    expect(hauteurLigneMatiere(0)).toBe(20);
+    expect(hauteurLigneMatiere(-1)).toBe(20);
   });
 });
