@@ -3,6 +3,7 @@ import { getEleve } from '@/services/eleve';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { InscriptionForm } from './InscriptionForm';
@@ -24,6 +25,10 @@ export default async function InscriptionPage({ params }: { params: { id: string
       userName={ctx.email}
     >
       <div className="mx-auto max-w-2xl space-y-6">
+        <LienRetour href={`/etablissement/eleves/${params.id}`}>
+          Retour à la fiche de l&apos;élève
+        </LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">Inscription en classe</h1>
           <p className="text-body-sm text-text-secondary">

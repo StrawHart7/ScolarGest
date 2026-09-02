@@ -5,6 +5,7 @@ import { listNotesEnAttente, listEvaluationsSoumises } from '@/services/note';
 import { getAccesAbonnementCourant } from '@/services/abonnement';
 import { JOURS_AVERTISSEMENT } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { getSidebarItems } from '@/lib/navigation';
 
 interface Notification {
@@ -71,6 +72,8 @@ export default async function NotificationsPage() {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-2xl space-y-6">
+        <LienRetour href="/profil">Retour au profil</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">Notifications</h1>
           <p className="text-body-sm text-text-secondary">

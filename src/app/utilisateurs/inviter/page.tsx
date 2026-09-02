@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { inviterUtilisateur } from '../actions';
 
 function SubmitButton() {
@@ -22,6 +23,7 @@ export default function InviterUtilisateurPage() {
 
   return (
     <main className="mx-auto max-w-xl px-gutter py-gutter sm:p-container-pad">
+      <LienRetour href="/utilisateurs" className="mb-4">Retour aux utilisateurs</LienRetour>
       <h1 className="mb-6 text-display-sm text-text-primary">Inviter un utilisateur</h1>
 
       <form action={formAction} className="flex flex-col gap-6">

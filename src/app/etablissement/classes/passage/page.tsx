@@ -4,6 +4,7 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listInscriptionsACloturer, proposerDecisions } from '@/services/passage-annee';
 import { listClasses } from '@/services/classe';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { PassageCohorteForm } from './PassageCohorteForm';
@@ -37,6 +38,8 @@ export default async function PassageCohortePage({
       userName={ctx.email}
     >
       <div className="mx-auto max-w-5xl space-y-6">
+        <LienRetour href="/etablissement/classes">Retour aux classes</LienRetour>
+
         <div>
           <h1 className="text-display-sm text-text-primary">
             Passage de cohorte — fin d&apos;année

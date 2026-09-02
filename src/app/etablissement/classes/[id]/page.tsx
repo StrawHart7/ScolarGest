@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Users2, School } from 'lucide-react';
+import { Users2, School } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getClasse } from '@/services/classe';
 import { listElevesInscritsClasse } from '@/services/eleve';
@@ -9,6 +9,7 @@ import { listCreneauxClasse } from '@/services/emploi-du-temps';
 import { JOURS, RANGS, type Creneau } from '@/lib/emploi-du-temps';
 import { GrilleEmploiDuTemps } from './GrilleEmploiDuTemps';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
@@ -57,13 +58,7 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
       userName={ctx.email}
     >
       <div className="mx-auto max-w-4xl space-y-6">
-        <Link
-          href={`/etablissement/classes?anneeScolaireId=${classe.anneeScolaireId}`}
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour aux classes
-        </Link>
+        <LienRetour href={`/etablissement/classes?anneeScolaireId=${classe.anneeScolaireId}`}>Retour aux classes</LienRetour>
 
         <Card>
           <CardContent className="flex flex-col gap-6 p-6">

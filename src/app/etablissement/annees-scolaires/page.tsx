@@ -3,6 +3,7 @@ import { CalendarRange } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { bilanCloture, listAnneesScolaires, type BilanCloture } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,8 @@ export default async function AnneesScolairesPage() {
       userName={ctx.email}
     >
       <div className="space-y-6">
+        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+
         <div className="hidden md:block">
           <PageHeader
             title="Années scolaires"

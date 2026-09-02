@@ -1,10 +1,13 @@
 import { Wallet } from 'lucide-react';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { PaiementForm } from './PaiementForm';
 
 export default function ValiderPaiementPage({ params }: { params: { id: string } }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface p-gutter">
       <div className="flex w-full max-w-md flex-col gap-6 rounded-xl border border-surface-border bg-surface-container-lowest p-container-pad shadow-floating">
+        <LienRetour href="/super-admin/abonnements">Retour aux abonnements</LienRetour>
+
         <header className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-tertiary/10 text-tertiary">
             <Wallet className="h-7 w-7" aria-hidden />

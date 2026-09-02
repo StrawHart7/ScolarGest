@@ -1,10 +1,9 @@
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getAbonnementCourant, getEssaiFinLe } from '@/services/abonnement';
 import { listCyclesActifs } from '@/services/structure';
 import { evaluerAcces } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { PRIX_MENSUEL_PAR_CYCLE, PRIX_ANNUEL_PAR_CYCLE } from '@/lib/tarifs';
@@ -63,13 +62,7 @@ export default async function SouscrirePage() {
     <AppLayout items={items} schoolName="ScolarGest" role={ctx.role} userName={ctx.email}>
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link
-            href="/abonnement"
-            className="mb-3 inline-flex items-center gap-1.5 text-body-sm text-text-secondary transition-colors hover:text-primary-container"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            Retour à mon abonnement
-          </Link>
+          <LienRetour href="/abonnement" className="mb-3">Retour à mon abonnement</LienRetour>
           <h1 className="text-display-sm text-text-primary">
             {abonnement ? 'Renouveler mon abonnement' : 'Activer mon abonnement'}
           </h1>

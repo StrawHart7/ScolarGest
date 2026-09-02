@@ -1,11 +1,11 @@
-import Link from 'next/link';
-import { ArrowLeft, ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getClasse } from '@/services/classe';
 import { listEnseignants } from '@/services/enseignant';
 import { listAffectationsClasse } from '@/services/affectation';
 import { getTitulaire } from '@/services/titularite';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { getSidebarItems } from '@/lib/navigation';
@@ -30,13 +30,7 @@ export default async function AffectationsClassePage({ params }: { params: { id:
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          href={`/etablissement/classes/${classe.id}`}
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour à la classe
-        </Link>
+        <LienRetour href={`/etablissement/classes/${classe.id}`}>Retour à la classe</LienRetour>
 
         <div>
           <h1 className="text-display-sm text-text-primary">Affectations — {classe.nom}</h1>

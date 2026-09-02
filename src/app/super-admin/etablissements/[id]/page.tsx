@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { ArrowLeft, Building2, Users, GraduationCap, School, Clock, CreditCard } from 'lucide-react';
+import { Building2, Users, GraduationCap, School, Clock, CreditCard } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEtablissement } from '@/services/etablissement';
 import { listAbonnementsParEtablissement } from '@/services/abonnement';
 import { listUtilisateursParEtablissement } from '@/services/utilisateur';
 import { getFicheEtablissement, type EtatEcole } from '@/services/plateforme';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,13 +70,7 @@ export default async function EtablissementDetailPage({ params }: { params: { id
       userName={ctx.email}
     >
       <div className="mx-auto max-w-4xl space-y-6">
-        <Link
-          href="/super-admin/etablissements"
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour aux établissements
-        </Link>
+        <LienRetour href="/super-admin/etablissements">Retour aux établissements</LienRetour>
 
         <Card>
           <CardContent className="flex items-center gap-4 p-6">

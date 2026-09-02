@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { ArrowLeft, CalendarRange } from 'lucide-react';
+import { CalendarRange } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getAnneeScolaire, listAnneesScolaires } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getSidebarItems } from '@/lib/navigation';
@@ -29,13 +30,7 @@ export default async function AnneeScolaireDetailPage({ params }: { params: { id
       userName={ctx.email}
     >
       <div className="mx-auto max-w-2xl space-y-6">
-        <Link
-          href="/etablissement/annees-scolaires"
-          className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Retour aux années scolaires
-        </Link>
+        <LienRetour href="/etablissement/annees-scolaires">Retour aux années scolaires</LienRetour>
 
         <Card>
           <CardContent className="flex flex-col gap-6 p-6">
