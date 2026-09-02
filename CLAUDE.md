@@ -847,6 +847,38 @@ Règle qui en découle : **une branche par session, jamais de travail direct sur
 `main`** — y compris juste après un merge, moment où l'on se retrouve sur `main`
 sans y penser. Vérifier `git branch --show-current` avant la première écriture.
 
+### Regenerer un document ne remplace rien
+
+`genererBulletin` cree **toujours** un nouveau document, avec une nouvelle
+reference. Regenerer sans precaution laisse plusieurs bulletins par eleve, et
+rien ne dit lequel fait foi.
+
+`statut_document` porte une valeur `OBSOLETE` prevue pour ca : marquer les
+anciens avant de regenerer, ne pas les supprimer — le fichier reste en stockage
+et l'operation est reversible.
+
+Deux pieges constates le 2026-09-02 :
+
+- **La generation groupee traite toute la classe**, pas seulement les eleves qui
+  avaient deja un bulletin. Annoncer le volume reel avant de lancer.
+- **Le bouton passe par un `confirm()`**, que le pilotage programmatique du
+  navigateur rejette silencieusement. Deux tentatives n'ont rien fait avant que
+  l'absence de `POST` dans les logs du serveur ne le revele. Quand une action
+  d'interface semble sans effet, **verifier le log du serveur** avant de
+  chercher ailleurs.
+
+### Une affirmation trop large est une erreur, meme si le bug est reel
+
+Il a ete annonce que « tous les bulletins deja edites portent une moyenne
+annuelle fausse ». Le bug existait bien, mais il ne se declenche que si un
+trimestre n'a **aucune** note — condition que les donnees concernees ne
+remplissaient pas.
+
+Avant de chiffrer l'impact d'un defaut, verifier que les donnees reelles
+remplissent sa condition de declenchement. Un correctif juste peut s'accompagner
+d'un diagnostic d'ampleur faux, et c'est le diagnostic que l'utilisateur retient
+pour decider.
+
 ### Style des messages de commit
 
 Le message dit **pourquoi**, pas quoi : le diff dit déjà quoi. Un bon message
