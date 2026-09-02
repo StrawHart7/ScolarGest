@@ -1,7 +1,8 @@
 'use server';
 
 import { z } from 'zod';
-import { getUrlTelechargementDocument } from '@/services/document';
+import { getUrlTelechargementDocument, listBulletinsClasse } from '@/services/document';
+import { listElevesInscritsClasse } from '@/services/eleve';
 
 const uuidSchema = z.string().uuid();
 
@@ -36,5 +37,63 @@ export async function telechargerBulletinAction(documentId: string): Promise<Tel
         ? e.message
         : ((e as { message?: string })?.message ?? 'Le téléchargement a échoué.');
     return { error: message };
+  }
+}
+
+export interface FichierBulletin {
+  /** Nom de fichier lisible, pas la référence seule : « KOFFI Yao - BUL-...pdf ». */
+  nomFichier: string;
+  url: string;
+}
+
+/**
+ * Liens de téléchargement de tous les bulletins en vigueur d'une classe.
+ *
+ * Une seule action pour toute la classe, plutôt qu'un aller-retour par élève :
+ * vingt actions successives depuis le navigateur, c'est vingt occasions
+ * d'échouer à mi-parcours sur une connexion instable, et l'utilisateur se
+ * retrouverait avec un dossier à moitié rempli sans savoir lesquels manquent.
+ *
+ * Les documents OBSOLETE sont exclus : on télécharge ce qui fait foi, pas les
+ * versions qu'une régénération a remplacées.
+ *
+ * Les URL sont signées 5 minutes. C'est court, mais l'appelant les consomme
+ * immédiatement ; les poser dans le HTML de la page les rendrait périmées
+ * avant le premier clic.
+ */
+export async function urlsBulletinsClasseAction(
+  classeId: string,
+  periode: string,
+  anneeScolaireId: string,
+): Promise<{ error: string | null; fichiers: FichierBulletin[] }> {
+  const classe = uuidSchema.safeParse(classeId);
+  const annee = uuidSchema.safeParse(anneeScolaireId);
+  const periodeAnalysee = z.enum(['TRIMESTRE_1', 'TRIMESTRE_2', 'TRIMESTRE_3']).safeParse(periode);
+  if (!classe.success || !annee.success || !periodeAnalysee.success) {
+    return { error: 'Paramètres invalides', fichiers: [] };
+  }
+
+  try {
+    const [eleves, documents] = await Promise.all([
+      listElevesInscritsClasse(classe.data, annee.data),
+      listBulletinsClasse(classe.data, periodeAnalysee.data),
+    ]);
+    const nomParEleve = new Map(eleves.map((e) => [e.id, `${e.nom} ${e.prenoms}`]));
+
+    const enVigueur = documents.filter((d) => d.statut === 'GENERE');
+    const fichiers: FichierBulletin[] = [];
+    for (const document of enVigueur) {
+      const url = await getUrlTelechargementDocument(document.documentId);
+      const nom = nomParEleve.get(document.eleveId) ?? 'Eleve';
+      fichiers.push({ nomFichier: `${nom} - ${document.reference}.pdf`, url });
+    }
+
+    return { error: null, fichiers };
+  } catch (e) {
+    const message =
+      e instanceof Error
+        ? e.message
+        : ((e as { message?: string })?.message ?? 'La préparation des téléchargements a échoué.');
+    return { error: message, fichiers: [] };
   }
 }

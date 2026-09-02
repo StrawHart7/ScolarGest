@@ -91,7 +91,12 @@ export default async function BulletinsGeneresPage({
               </p>
             </CardContent>
           ) : (
-            <Liste classeId={classeId} periode={periode} anneeScolaireId={anneeScolaireId} />
+            <Liste
+              classeId={classeId}
+              periode={periode}
+              anneeScolaireId={anneeScolaireId}
+              libelleClasse={classes.find((c) => c.id === classeId)?.nom ?? 'classe'}
+            />
           )}
         </Card>
       </div>
@@ -103,10 +108,12 @@ async function Liste({
   classeId,
   periode,
   anneeScolaireId,
+  libelleClasse,
 }: {
   classeId: string;
   periode: Periode;
   anneeScolaireId: string;
+  libelleClasse: string;
 }) {
   const [eleves, documents] = await Promise.all([
     listElevesInscritsClasse(classeId, anneeScolaireId),
@@ -157,5 +164,13 @@ async function Liste({
     };
   });
 
-  return <BulletinsGeneresListe lignes={lignes} />;
+  return (
+    <BulletinsGeneresListe
+      lignes={lignes}
+      classeId={classeId}
+      periode={periode}
+      anneeScolaireId={anneeScolaireId}
+      libelleClasse={libelleClasse}
+    />
+  );
 }

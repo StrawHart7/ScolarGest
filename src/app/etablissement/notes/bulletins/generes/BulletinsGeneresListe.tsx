@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { telechargerBulletinAction } from './actions';
+import { TelechargerTout } from './TelechargerTout';
 
 export interface LigneBulletin {
   eleveId: string;
@@ -34,31 +35,57 @@ function formaterDate(iso: string): string {
   });
 }
 
-export function BulletinsGeneresListe({ lignes }: { lignes: LigneBulletin[] }) {
+export function BulletinsGeneresListe({
+  lignes,
+  classeId,
+  periode,
+  anneeScolaireId,
+  libelleClasse,
+}: {
+  lignes: LigneBulletin[];
+  classeId: string;
+  periode: string;
+  anneeScolaireId: string;
+  libelleClasse: string;
+}) {
   const [enCours, setEnCours] = useState<string | null>(null);
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
 
   function telecharger(documentId: string) {
     setEnCours(documentId);
     setErreurs((prec) => ({ ...prec, [documentId]: '' }));
+    // L'onglet est ouvert MAINTENANT, dans le geste de l'utilisateur : c'est la
+    // seule fenêtre où le navigateur l'autorise sans condition. L'URL signée y
+    // sera posée quand l'action reviendra.
+    //
+    // Ne jamais passer `noopener` ici : avec cette option, `window.open`
+    // renvoie `null` **même quand l'onglet s'ouvre**, et tout test « null donc
+    // bloqué » se déclenche alors à chaque téléchargement réussi. C'est
+    // exactement ce qui affichait « le navigateur a bloqué la fenêtre » à des
+    // utilisateurs qui avaient autorisé les fenêtres surgissantes.
+    const onglet = window.open('', '_blank');
+    if (onglet) onglet.opener = null;
     telechargerBulletinAction(documentId)
       .then((resultat) => {
         setEnCours(null);
         // Une Server Action interrompue peut se résoudre sur `undefined` : on
         // ne lit jamais `.url` sans garde, sinon le clic plante côté client.
         if (!resultat) {
+          onglet?.close();
           setErreurs((prec) => ({ ...prec, [documentId]: 'Le lien a expiré. Réessayez.' }));
           return;
         }
         if (resultat.error) {
+          onglet?.close();
           setErreurs((prec) => ({ ...prec, [documentId]: resultat.error! }));
           return;
         }
         if (resultat.url) {
-          const onglet = window.open(resultat.url, '_blank', 'noopener,noreferrer');
-          // Un bloqueur de fenêtres surgissantes rendait la génération
-          // silencieuse : rien ne s'ouvrait, et rien ne le disait.
-          if (!onglet) {
+          if (onglet) {
+            onglet.location.href = resultat.url;
+          } else {
+            // Ici seulement le blocage est réel : l'ouverture a été refusée
+            // dans le geste même de l'utilisateur.
             setErreurs((prec) => ({
               ...prec,
               [documentId]:
@@ -69,6 +96,7 @@ export function BulletinsGeneresListe({ lignes }: { lignes: LigneBulletin[] }) {
       })
       .catch(() => {
         setEnCours(null);
+        onglet?.close();
         setErreurs((prec) => ({ ...prec, [documentId]: 'Le téléchargement a échoué.' }));
       });
   }
@@ -77,10 +105,17 @@ export function BulletinsGeneresListe({ lignes }: { lignes: LigneBulletin[] }) {
 
   return (
     <div>
-      <div className="border-b border-surface-border px-1 py-3 md:p-4">
+      <div className="flex flex-col gap-3 border-b border-surface-border px-1 py-3 md:flex-row md:items-center md:justify-between md:p-4">
         <p className="text-body-sm text-text-secondary">
           {edites} bulletin(s) édité(s) sur {lignes.length} élève(s) inscrit(s)
         </p>
+        <TelechargerTout
+          classeId={classeId}
+          periode={periode}
+          anneeScolaireId={anneeScolaireId}
+          nombreEdites={edites}
+          libelleClasse={libelleClasse}
+        />
       </div>
 
       <div className="hidden md:block">

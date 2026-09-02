@@ -19,6 +19,7 @@ export function BulletinsListe({
   anneeScolaireId: string;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [generes, setGeneres] = useState<Record<string, boolean>>({});
   const [bulkPending, startBulkTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
@@ -39,9 +40,16 @@ export function BulletinsListe({
           setErrors((prev) => ({ ...prev, [eleveId]: result.error! }));
           return;
         }
-        if (result.url) {
-          window.open(result.url, '_blank', 'noopener,noreferrer');
-        }
+        // Plus d'ouverture automatique du PDF. Générer et télécharger sont
+        // deux gestes distincts : générer crée un NOUVEAU document, avec une
+        // nouvelle référence, à chaque appel. Les confondre poussait à
+        // regénérer pour relire, ce qui empile les versions et brouille
+        // laquelle fait foi. Le document se relit sur « Bulletins édités ».
+        //
+        // Accessoirement, cela retire un `window.open` avec `noopener`, qui
+        // renvoie `null` même en cas de succès et faisait croire à un blocage
+        // de fenêtre surgissante.
+        setGeneres((prec) => ({ ...prec, [eleveId]: true }));
       })
       .catch(() => {
         setPendingId(null);
@@ -132,6 +140,9 @@ export function BulletinsListe({
                       )}
                       Générer le bulletin
                     </Button>
+                    {generes[eleve.id] && !errors[eleve.id] && (
+                      <p className="text-body-sm text-text-secondary">Bulletin édité</p>
+                    )}
                     {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
                   </div>
                 </TableCell>
@@ -163,6 +174,9 @@ export function BulletinsListe({
                   )}
                   Générer le bulletin
                 </Button>
+                {generes[eleve.id] && !errors[eleve.id] && (
+                  <p className="text-body-sm text-text-secondary">Bulletin édité</p>
+                )}
                 {errors[eleve.id] && <p className="text-body-sm text-error">{errors[eleve.id]}</p>}
               </div>
             }
