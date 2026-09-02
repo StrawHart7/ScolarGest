@@ -62,6 +62,10 @@ export interface DemandeSupport {
   statut: StatutSupport;
   reponseSupport: string | null;
   repondueLe: string | null;
+  /** Chemin dans le bucket `support`. Null si aucune pièce jointe. */
+  fichierChemin: string | null;
+  /** Nom d'origine du fichier : le chemin de stockage est randomisé. */
+  fichierNom: string | null;
   createdAt: string;
 }
 
@@ -76,3 +80,38 @@ export interface NouvelleDemandeSupport {
   message: string;
   pageOrigine?: string | null;
 }
+
+/**
+ * Une pièce jointe en attente d'envoi.
+ *
+ * Le contenu transite en mémoire plutôt que par un chemin de fichier : la
+ * Server Action reçoit un `File` du navigateur, elle n'a pas de disque à
+ * partager avec lui.
+ */
+export interface PieceJointeSupport {
+  nom: string;
+  type: string;
+  contenu: ArrayBuffer;
+}
+
+/**
+ * Types acceptés en pièce jointe, et taille maximale.
+ *
+ * Restreint aux classeurs, PDF et images : c'est ce qu'une école a sous la
+ * main pour illustrer un problème. Accepter n'importe quoi ferait du bucket un
+ * dépôt de fichiers arbitraires, alimenté par des comptes que la plateforme ne
+ * choisit pas.
+ */
+export const TYPES_PIECE_JOINTE = [
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'text/csv',
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+] as const;
+
+export const TAILLE_MAX_PIECE_JOINTE = 10 * 1024 * 1024;
+
+export const EXTENSIONS_PIECE_JOINTE = '.xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.webp';

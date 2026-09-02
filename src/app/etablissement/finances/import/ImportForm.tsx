@@ -3,20 +3,91 @@
 import { useState, useTransition } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ImportRapport } from '@/components/eleves/ImportRapport';
+import { ApercuImport } from '@/components/import/ApercuImport';
 import { PAIEMENT_IMPORT_COLUMNS } from '@/lib/import/paiement-import-schema';
-import { importerFichierPaiements, type ImportActionResult } from './actions';
+import type { AnalyseImport } from '@/lib/import/analyse';
+import {
+  analyserFichierPaiements,
+  confirmerImportPaiements,
+  type ImportActionResult,
+} from './actions';
 
+/**
+ * Import des versements en deux temps : analyser, relire le bilan, confirmer.
+ *
+ * Le fichier reste **côté navigateur** entre les deux temps et il est renvoyé
+ * à la confirmation. Rien n'est stocké en attente : pas de fichier temporaire à
+ * expirer, pas d'analyse en session à réconcilier. Le serveur relit et
+ * réanalyse au moment d'écrire, ce qui interdit de lui renvoyer une décision
+ * fabriquée.
+ */
 export function ImportPaiementsForm({ anneeScolaireId }: { anneeScolaireId: string }) {
   const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<ImportActionResult | null>(null);
+  const [fichier, setFichier] = useState<File | null>(null);
+  const [analyse, setAnalyse] = useState<AnalyseImport | null>(null);
+  const [resultat, setResultat] = useState<ImportActionResult | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function formDataAvecFichier(): FormData | null {
+    if (!fichier) return null;
+    const formData = new FormData();
+    formData.set('fichier', fichier);
+    formData.set('anneeScolaireId', anneeScolaireId);
+    return formData;
+  }
+
+  function analyser(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const formData = formDataAvecFichier();
+    if (!formData) {
+      setMessage('Aucun fichier sélectionné');
+      return;
+    }
+    setMessage(null);
+    setResultat(null);
     startTransition(async () => {
-      const res = await importerFichierPaiements(formData);
-      setResult(res);
+      let res: Awaited<ReturnType<typeof analyserFichierPaiements>> | undefined;
+      try {
+        res = await analyserFichierPaiements(formData);
+      } catch {
+        res = undefined;
+      }
+      if (!res) {
+        setMessage('Connexion interrompue. Votre fichier est conservé, réessayez.');
+        return;
+      }
+      if (!res.ok || !res.analyse) {
+        setMessage(res.message ?? "Analyse impossible");
+        setAnalyse(null);
+        return;
+      }
+      setAnalyse(res.analyse);
+    });
+  }
+
+  function confirmer() {
+    const formData = formDataAvecFichier();
+    if (!formData) return;
+    setMessage(null);
+    startTransition(async () => {
+      let res: Awaited<ReturnType<typeof confirmerImportPaiements>> | undefined;
+      try {
+        res = await confirmerImportPaiements(formData);
+      } catch {
+        res = undefined;
+      }
+      if (!res) {
+        setMessage(
+          'Connexion interrompue. Rien ne garantit que l’enregistrement a eu lieu : relancez l’analyse pour voir l’état réel avant de réessayer.',
+        );
+        return;
+      }
+      if (!res.ok) {
+        setMessage(res.message ?? "Enregistrement impossible");
+        return;
+      }
+      setResultat(res);
+      if (res.analyse) setAnalyse(res.analyse);
     });
   }
 
@@ -25,7 +96,8 @@ export function ImportPaiementsForm({ anneeScolaireId }: { anneeScolaireId: stri
       <div className="rounded-lg border border-surface-border bg-surface-container-low p-4">
         <p className="mb-2 text-body-md font-medium text-text-primary">Gabarit de colonnes attendu</p>
         <p className="text-body-sm text-text-secondary">
-          La première ligne du fichier Excel doit reprendre exactement ces en-têtes, dans cet ordre :
+          La première ligne du fichier Excel doit reprendre ces en-têtes. L&apos;ordre et la casse
+          n&apos;ont pas d&apos;importance.
         </p>
         <code
           className="mt-2 block overflow-x-auto rounded bg-surface-container-lowest p-2 text-body-sm"
@@ -33,40 +105,43 @@ export function ImportPaiementsForm({ anneeScolaireId }: { anneeScolaireId: stri
         >
           {PAIEMENT_IMPORT_COLUMNS.join(' | ')}
         </code>
-        <p className="mt-3 text-body-sm text-text-secondary">
-          L&apos;élève est identifié par son matricule et le versement est imputé sur sa facture de
-          l&apos;année ciblée. Les mêmes règles qu&apos;une saisie manuelle s&apos;appliquent : un
-          versement qui dépasserait le solde restant est rejeté, ligne par ligne, sans bloquer les
-          autres.
-        </p>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <input type="hidden" name="anneeScolaireId" value={anneeScolaireId} />
+      <form onSubmit={analyser} className="flex flex-col gap-4">
         <div className="flex items-center gap-3 rounded-lg border border-dashed border-surface-border p-4">
-          <UploadCloud className="h-6 w-6 text-text-secondary" aria-hidden />
+          <UploadCloud className="h-6 w-6 shrink-0 text-text-secondary" aria-hidden />
           <input
             type="file"
             name="fichier"
             accept=".xlsx,.xls"
             required
             className="text-body-sm text-text-primary"
+            onChange={(e) => {
+              setFichier(e.target.files?.[0] ?? null);
+              setAnalyse(null);
+              setResultat(null);
+              setMessage(null);
+            }}
           />
         </div>
         <div className="flex justify-end">
-          <Button type="submit" disabled={pending}>
-            {pending ? 'Import en cours...' : 'Importer les versements'}
+          <Button type="submit" disabled={pending || !fichier}>
+            {pending && !analyse ? 'Analyse en cours…' : 'Analyser le fichier'}
           </Button>
         </div>
       </form>
 
-      {result && (
-        <>
-          {result.message && !result.ok && (
-            <p className="text-body-sm text-error">{result.message}</p>
-          )}
-          <ImportRapport rapport={result.rapport} erreursValidation={result.erreursValidation} />
-        </>
+      {message && <p className="text-body-sm text-error">{message}</p>}
+
+      {analyse && (
+        <ApercuImport
+          analyse={analyse}
+          rapport={resultat?.rapport}
+          domaine="paiements"
+          fichier={fichier}
+          onConfirmer={confirmer}
+          enCours={pending}
+        />
       )}
     </div>
   );

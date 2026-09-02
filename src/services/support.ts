@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import { TAILLE_MAX_PIECE_JOINTE, TYPES_PIECE_JOINTE } from '@/lib/support';
 import type {
   DemandeSupport,
   DemandeSupportPlateforme,
   NouvelleDemandeSupport,
+  PieceJointeSupport,
   StatutSupport,
 } from '@/lib/support';
 
@@ -19,6 +22,7 @@ export type {
   DemandeSupport,
   DemandeSupportPlateforme,
   NouvelleDemandeSupport,
+  PieceJointeSupport,
 } from '@/lib/support';
 
 /**
@@ -45,7 +49,9 @@ export type {
  */
 
 const CHAMPS =
-  'id, "etablissementId", "auteurNom", "auteurEmail", "auteurRole", categorie, sujet, message, "pageOrigine", statut, "reponseSupport", "repondueLe", "createdAt"';
+  'id, "etablissementId", "auteurNom", "auteurEmail", "auteurRole", categorie, sujet, message, "pageOrigine", statut, "reponseSupport", "repondueLe", "fichierChemin", "fichierNom", "createdAt"';
+
+const BUCKET_SUPPORT = 'support';
 
 /**
  * Dépose une demande pour l'établissement de l'appelant.
@@ -61,6 +67,7 @@ const CHAMPS =
  */
 export async function creerDemandeSupport(
   input: NouvelleDemandeSupport,
+  piece?: PieceJointeSupport | null,
 ): Promise<{ id: string }> {
   // Les rôles sont écrits en toutes lettres, jamais via un tableau partagé
   // qu'on déplierait ici : le générateur de `Docs/11-Matrice-permissions.md`
@@ -83,6 +90,11 @@ export async function creerDemandeSupport(
   const identite = auteur as { nom: string; prenom: string } | null;
   const nomComplet = identite ? `${identite.prenom} ${identite.nom}`.trim() : ctx.email;
 
+  // Le fichier est deverse AVANT la ligne : si le depot echoue, aucune demande
+  // n'est creee, et l'ecole reessaie. L'ordre inverse laisserait une demande
+  // annoncant une piece jointe absente, que le support reclamerait en vain.
+  const chemin = piece ? await deposerPieceJointe(ctx.etablissementId, piece) : null;
+
   const { data, error } = await supabase
     .from('support_demande')
     .insert({
@@ -95,6 +107,8 @@ export async function creerDemandeSupport(
       sujet: input.sujet,
       message: input.message,
       pageOrigine: input.pageOrigine ?? null,
+      fichierChemin: chemin,
+      fichierNom: piece ? piece.nom : null,
     })
     .select('id')
     .single();
@@ -220,4 +234,72 @@ export async function changerStatutDemandeSupport(
     ancienneValeur: { statut: (avant as { statut: string }).statut },
     nouvelleValeur: { statut, sujet: (avant as { sujet: string }).sujet },
   });
+}
+
+/**
+ * Depose une piece jointe et renvoie son chemin.
+ *
+ * Ecriture par la cle service-role, apres la garde de role de l'appelant. Le
+ * bucket est prive et le tenant n'y a que la lecture : lui donner l'ecriture
+ * directe le laisserait **choisir son prefixe**, donc ecrire sous le dossier
+ * d'une autre ecole. Le chemin est construit ici, jamais recu.
+ *
+ * Le nom de stockage est randomise et l'extension deduite du nom d'origine :
+ * reprendre le nom envoye ferait entrer dans un chemin de stockage une chaine
+ * choisie par l'appelant.
+ */
+async function deposerPieceJointe(
+  etablissementId: string,
+  piece: PieceJointeSupport,
+): Promise<string> {
+  if (piece.contenu.byteLength > TAILLE_MAX_PIECE_JOINTE) {
+    throw new Error('Fichier trop volumineux (10 Mo maximum).');
+  }
+  if (!(TYPES_PIECE_JOINTE as readonly string[]).includes(piece.type)) {
+    throw new Error('Type de fichier non accepte (classeur, PDF ou image).');
+  }
+
+  const extension = (piece.nom.split('.').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const suffixe = extension ? `.${extension}` : '';
+  const chemin = `${etablissementId}/support/${crypto.randomUUID()}${suffixe}`;
+
+  const admin = createAdminClient();
+  const { error } = await admin.storage
+    .from(BUCKET_SUPPORT)
+    .upload(chemin, Buffer.from(piece.contenu), { contentType: piece.type, upsert: false });
+  if (error) throw error;
+
+  return chemin;
+}
+
+/**
+ * Lien de telechargement temporaire pour la piece jointe d'une demande.
+ *
+ * Le bucket etant prive, le navigateur n'a aucune session pour aller y chercher
+ * un fichier : il faut une URL signee, emise cote serveur.
+ *
+ * Ouvert au SUPER_ADMIN et aux roles ecole, mais le chemin n'est jamais recu de
+ * l'appelant — il est relu depuis la demande, dont la lecture est deja filtree
+ * par la RLS. Accepter un chemin en parametre transformerait cette fonction en
+ * lecteur universel du bucket.
+ */
+export async function getLienPieceJointe(demandeId: string): Promise<string | null> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('support_demande')
+    .select('"fichierChemin"')
+    .eq('id', demandeId)
+    .maybeSingle();
+  if (error) throw error;
+  const chemin = (data as { fichierChemin: string | null } | null)?.fichierChemin;
+  if (!chemin) return null;
+
+  const admin = createAdminClient();
+  const { data: signe, error: erreurSignature } = await admin.storage
+    .from(BUCKET_SUPPORT)
+    .createSignedUrl(chemin, 300);
+  if (erreurSignature) throw erreurSignature;
+  return signe?.signedUrl ?? null;
 }

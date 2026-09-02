@@ -1,10 +1,12 @@
-import * as XLSX from 'xlsx';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { generateMatriculeEnseignant } from './matricule';
 import { inviteUtilisateur } from './utilisateur';
 import { createMatiere } from './matiere';
+import { lireClasseur, type LigneBrute } from '@/lib/import/excel';
+import { analyserEntetes } from '@/lib/import/entetes';
+import type { AnalyseImport, LigneAnalysee } from '@/lib/import/analyse';
 import {
   ENSEIGNANT_IMPORT_COLUMNS,
   enseignantImportLigneSchema,
@@ -12,27 +14,7 @@ import {
   type LigneErreur,
 } from '@/lib/import/enseignant-import-schema';
 
-export interface LigneBrute {
-  ligne: number; // numéro de ligne dans le fichier (1-based, hors en-tête)
-  valeurs: Record<string, unknown>;
-}
-
-/**
- * Lit un classeur Excel (buffer) et retourne les lignes brutes de la première
- * feuille, alignées sur le gabarit de colonnes fixe. Ne valide rien ici.
- */
-export function parseFichierExcel(buffer: ArrayBuffer | Buffer): LigneBrute[] {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
-  const sheet = workbook.Sheets[sheetName];
-  if (!sheet) return [];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: '',
-    raw: false,
-  });
-  return rows.map((valeurs, index) => ({ ligne: index + 2, valeurs })); // +2: 1-based + en-tête
-}
+export type { LigneBrute };
 
 export interface ValidationResult {
   valides: { ligne: number; data: EnseignantImportLigne }[];
@@ -256,4 +238,115 @@ export async function importerLignesValides(
   });
 
   return { totalLignes: details.length, succes, echecs, details, erreursValidation: [] };
+}
+
+/**
+ * Analyse un fichier d'enseignants sans rien ecrire.
+ *
+ * Deux limites assumees, differentes de l'import des eleves :
+ *
+ * - **Pas de detection de doublons.** L'identite d'un enseignant est son email,
+ *   et `inviteUtilisateur` refuse deja un email deja pris — le refus est donc
+ *   bruyant, la ou un eleve duplique passait en silence.
+ * - **Une matiere inconnue ne bloque pas.** L'import la cree, deliberement
+ *   (voir `importerLignesValides`). La marquer refusee ici mentirait sur ce qui
+ *   va se passer.
+ *
+ * La classe, elle, est resolue des l'analyse : c'est le refus le plus frequent,
+ * et le decouvrir apres ecriture n'a aucun interet.
+ */
+export async function preparerImportEnseignants(
+  buffer: ArrayBuffer | Buffer,
+  anneeScolaireId: string,
+): Promise<{
+  analyse: AnalyseImport;
+  aEcrire: { ligne: number; data: EnseignantImportLigne }[];
+}> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const supabase = createClient();
+
+  const { entetes, lignes: lignesBrutes } = lireClasseur(buffer);
+  const analyseEntetes = analyserEntetes(entetes, ENSEIGNANT_IMPORT_COLUMNS);
+  if (!analyseEntetes.conforme) {
+    return {
+      analyse: {
+        entetes: analyseEntetes,
+        totalLignes: lignesBrutes.length,
+        lignes: [],
+        erreursValidation: [],
+      },
+      aEcrire: [],
+    };
+  }
+
+  const { valides, erreurs } = validerLignes(lignesBrutes);
+
+  const { data: classes, error: classesError } = await supabase
+    .from('classe')
+    .select('id, nom')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('anneeScolaireId', anneeScolaireId);
+  if (classesError) throw classesError;
+  const classesConnues = new Set((classes ?? []).map((c) => c.nom.trim().toLowerCase()));
+
+  const lignesAnalysees: LigneAnalysee[] = [];
+  const aEcrire: { ligne: number; data: EnseignantImportLigne }[] = [];
+
+  const parLigne = new Map<number, string[]>();
+  for (const e of erreurs) {
+    const motifs = parLigne.get(e.ligne) ?? [];
+    motifs.push(`${e.champ} : ${e.message}`);
+    parLigne.set(e.ligne, motifs);
+  }
+  for (const [ligne, motifs] of parLigne) {
+    lignesAnalysees.push({
+      ligne,
+      statut: 'REFUSEE',
+      libelle: `Ligne ${ligne}`,
+      motif: motifs.join(' ; '),
+    });
+  }
+
+  for (const { ligne, data } of valides) {
+    const libelle = `${data.nom} ${data.prenoms} — ${data.matiere} (${data.classe})`.trim();
+    if (!classesConnues.has(data.classe.trim().toLowerCase())) {
+      lignesAnalysees.push({
+        ligne,
+        statut: 'REFUSEE',
+        libelle,
+        motif: `Classe « ${data.classe} » introuvable pour l’année scolaire ciblée`,
+      });
+      continue;
+    }
+    lignesAnalysees.push({ ligne, statut: 'PRETE', libelle, motif: '' });
+    aEcrire.push({ ligne, data });
+  }
+
+  lignesAnalysees.sort((a, b) => a.ligne - b.ligne);
+
+  return {
+    analyse: {
+      entetes: analyseEntetes,
+      totalLignes: lignesBrutes.length,
+      lignes: lignesAnalysees,
+      erreursValidation: erreurs,
+    },
+    aEcrire,
+  };
+}
+
+/** Ecrit les lignes retenues par l'analyse. Le fichier est relu cote serveur. */
+export async function executerImportEnseignants(
+  buffer: ArrayBuffer | Buffer,
+  anneeScolaireId: string,
+): Promise<{ analyse: AnalyseImport; rapport: ImportRapport }> {
+  const { analyse, aEcrire } = await preparerImportEnseignants(buffer, anneeScolaireId);
+  if (aEcrire.length === 0) {
+    return {
+      analyse,
+      rapport: { totalLignes: 0, succes: 0, echecs: 0, details: [], erreursValidation: [] },
+    };
+  }
+  const rapport = await importerLignesValides(aEcrire, anneeScolaireId);
+  return { analyse, rapport };
 }

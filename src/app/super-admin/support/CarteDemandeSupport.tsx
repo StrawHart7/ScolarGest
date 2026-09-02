@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Clock, MapPin } from 'lucide-react';
+import { Mail, Clock, MapPin, Paperclip } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,11 @@ import {
   type DemandeSupportPlateforme,
   type StatutSupport,
 } from '@/lib/support';
-import { repondreAction, changerStatutSupportAction } from './actions';
+import {
+  repondreAction,
+  changerStatutSupportAction,
+  lienPieceJointeAction,
+} from './actions';
 
 const TON: Record<StatutSupport, 'neutral' | 'primary' | 'success' | 'warning'> = {
   NOUVELLE: 'primary',
@@ -46,6 +50,18 @@ export function CarteDemandeSupport({ demande }: { demande: DemandeSupportPlatef
   const [ouvert, setOuvert] = React.useState(false);
   const [enCours, setEnCours] = React.useState(false);
   const [erreur, setErreur] = React.useState<string | null>(null);
+
+  async function telechargerPieceJointe() {
+    setErreur(null);
+    const resultat = await appeler(() => lienPieceJointeAction(demande.id));
+    if (!resultat || !resultat.ok || !resultat.url) {
+      setErreur(resultat?.message ?? 'Lien indisponible. Reessayez.');
+      return;
+    }
+    // Ouverture dans un onglet : le bucket est prive, l'URL signee expire vite,
+    // et la faire transiter par un lien rendu dans la page la perimerait.
+    window.open(resultat.url, '_blank', 'noopener,noreferrer');
+  }
 
   async function appeler<T>(appel: () => Promise<T | undefined>): Promise<T | undefined> {
     // Une Server Action interrompue peut se résoudre sur `undefined` sans
@@ -139,6 +155,13 @@ export function CarteDemandeSupport({ demande }: { demande: DemandeSupportPlatef
       <p className="whitespace-pre-wrap rounded-lg border-l-2 border-surface-border bg-surface-container-low p-3 text-body-sm leading-relaxed text-text-secondary">
         {demande.message}
       </p>
+
+      {demande.fichierChemin && (
+        <Button size="sm" variant="secondary" className="self-start" onClick={telechargerPieceJointe}>
+          <Paperclip className="h-4 w-4" aria-hidden />
+          {demande.fichierNom ?? 'Telecharger la piece jointe'}
+        </Button>
+      )}
 
       {demande.reponseSupport && !ouvert && (
         <div className="rounded-lg border-l-2 border-primary-container bg-primary-fixed/40 p-3">

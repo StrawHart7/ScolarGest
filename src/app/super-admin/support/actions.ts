@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { repondreDemandeSupport, changerStatutDemandeSupport } from '@/services/support';
+import {
+  repondreDemandeSupport,
+  changerStatutDemandeSupport,
+  getLienPieceJointe,
+} from '@/services/support';
 
 export interface ResultatAction {
   ok: boolean;
@@ -64,6 +68,28 @@ export async function changerStatutSupportAction(
     revalidatePath('/super-admin/support');
     revalidatePath('/super-admin');
     return { ok: true, message: 'Statut mis à jour.' };
+  } catch (e) {
+    return { ok: false, message: messageErreur(e) };
+  }
+}
+
+/**
+ * Lien de telechargement de la piece jointe.
+ *
+ * Emis a la demande plutot que rendu dans la page : une URL signee expire, et
+ * une page mise en cache avec un lien mort donnerait un « fichier
+ * introuvable » sans explication. L'identifiant de la demande est le seul
+ * parametre — le chemin de stockage n'est jamais accepte de l'appelant.
+ */
+export async function lienPieceJointeAction(
+  demandeId: string,
+): Promise<{ ok: boolean; url?: string; message?: string }> {
+  const valide = z.string().uuid().safeParse(demandeId);
+  if (!valide.success) return { ok: false, message: 'Demande invalide.' };
+  try {
+    const url = await getLienPieceJointe(valide.data);
+    if (!url) return { ok: false, message: 'Aucune piece jointe sur cette demande.' };
+    return { ok: true, url };
   } catch (e) {
     return { ok: false, message: messageErreur(e) };
   }
