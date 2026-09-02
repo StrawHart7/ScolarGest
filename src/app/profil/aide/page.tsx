@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { LifeBuoy } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { getSidebarItems, SECTIONS } from '@/lib/navigation';
@@ -88,6 +90,21 @@ export default async function AidePage() {
               </details>
             ))}
           </div>
+        </section>
+
+        <section className="rounded-lg border border-surface-border bg-surface-container-lowest px-5 py-4">
+          <h2 className="text-headline-sm text-text-primary">Votre question n&apos;est pas ici ?</h2>
+          <p className="mt-1 text-body-sm text-text-secondary">
+            Écrivez à l&apos;équipe ScolarGest : la réponse s&apos;affichera sur cette même page,
+            visible par votre établissement.
+          </p>
+          <Link
+            href="/profil/support"
+            className="mt-3 inline-flex items-center gap-1.5 text-body-sm font-medium text-primary-container hover:underline"
+          >
+            <LifeBuoy className="h-4 w-4" aria-hidden />
+            Contacter le support
+          </Link>
         </section>
 
         <section className="space-y-3">

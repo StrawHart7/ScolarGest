@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   BookOpenCheck,
   CircleHelp,
+  LifeBuoy,
   CreditCard,
   GraduationCap,
   LayoutDashboard,
@@ -35,6 +36,7 @@ export const ICONES: Record<NomIcone, LucideIcon> = {
   utilisateurs: Users,
   parametres: Settings,
   aide: CircleHelp,
+  support: LifeBuoy,
 };
 
 function LienSidebar({

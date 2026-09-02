@@ -23,7 +23,8 @@ export type NomIcone =
   | 'abonnements'
   | 'utilisateurs'
   | 'parametres'
-  | 'aide';
+  | 'aide'
+  | 'support';
 
 export interface SidebarItem {
   label: string;
@@ -224,6 +225,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Établissements', labelCourt: 'Écoles', href: '/super-admin/etablissements', icone: 'etablissement' },
         { label: 'Abonnements', href: '/super-admin/abonnements', icone: 'abonnements' },
         { label: 'Demandes de démo', labelCourt: 'Demandes', href: '/super-admin/demandes', icone: 'utilisateurs' },
+        { label: 'Support', href: '/super-admin/support', icone: 'support' },
         { label: 'Journal d’audit', labelCourt: 'Journal', href: '/super-admin/journal', icone: 'rapports' },
       ];
     case 'DIRECTEUR':
@@ -278,4 +280,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
 export const ITEMS_BAS_SIDEBAR: SidebarItem[] = [
   { label: 'Paramètres', href: '/profil/parametres', icone: 'parametres' },
   { label: 'Aide', href: '/profil/aide', icone: 'aide' },
+  // Sous `/profil` délibérément : ce chemin reste accessible même quand
+  // l'abonnement a expiré (voir `src/services/support.ts`).
+  { label: 'Support', href: '/profil/support', icone: 'support' },
 ];

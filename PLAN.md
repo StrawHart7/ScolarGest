@@ -1715,6 +1715,64 @@ normal en usage réel — mais il ne touchait pas ces données.
 
 ---
 
+### Fonctionnalité — Contact support
+
+**Statut** : en cours — branche `feat/contact-support`. Migration `0023`
+**écrite, non appliquée**.
+
+**Objectif** : donner à une école un moyen de joindre la plateforme depuis le
+produit. `/profil/aide` répondait à sept questions figées et s'arrêtait là :
+une école bloquée sur autre chose n'avait aucun recours.
+
+**Livrables** :
+
+- [x] Migration `0023` — `support_demande`, énumérations `categorie_support` et
+      `statut_support`, policies RLS.
+- [x] `src/services/support.ts` — dépôt, lecture par école, file plateforme,
+      réponse, changement de statut. Six gardes à la matrice.
+- [x] `/profil/support` — formulaire + historique des demandes de l'école.
+- [x] `/super-admin/support` — file à traiter / en cours / closes, réponse
+      inline.
+- [x] Entrées de navigation (bas de sidebar pour tous, entrée dédiée
+      SUPER_ADMIN) et renvoi depuis `/profil/aide`.
+- [ ] Vérification par le chemin réel : pages ouvertes, dépôt et réponse joués
+      de bout en bout.
+
+**Décisions consignées** :
+
+- **La page vit sous `/profil/support` délibérément.** `/profil` figure dans
+  `PATHS_TOUJOURS_ACCESSIBLES` : une école passée en lecture seule peut donc
+  encore écrire au support — c'est précisément celle qui en a le plus besoin.
+  Déplacer cette page ailleurs refermerait le canal au pire moment, sans erreur
+  visible nulle part.
+- **La demande est portée par l'établissement, pas par l'auteur.** Le Directeur
+  relit ce que sa Secrétaire a envoyé ; sinon le même ticket se rouvre en
+  double la semaine suivante.
+- **L'identité de l'auteur est figée à l'envoi** (nom, email, rôle). Un compte
+  change de rôle ou est désactivé ; la demande doit continuer de dire qui l'a
+  écrite et à quel titre. Même raisonnement que l'historisation des tarifs.
+- **Les quatre rôles école peuvent écrire.** Le blocage arrive chez celui qui
+  saisit, pas chez le Directeur ; le faire transiter par la direction retarde
+  et déforme.
+- **`statut` et `reponseSupport` ne sont écrivables que par le SUPER_ADMIN**
+  (policy `for update`). Laisser l'école les écrire lui permettrait de se
+  répondre à elle-même ou de refermer une demande que personne n'a traitée.
+- **Une seule réponse, pas un fil de discussion.** Un fil demanderait une table
+  de messages, des notifications et une notion de « non lu ». Rien n'empêche de
+  l'ajouter plus tard.
+- **`pageOrigine` est repris de `?depuis=`**, et seulement s'il commence par
+  `/` : on ne stocke pas de domaine et on ne rend pas cliquable ce qu'un tiers
+  pourrait injecter.
+
+**Piège rencontré** : le générateur de `Docs/11-Matrice-permissions.md` lit les
+appels `requireRole` **textuellement**. Un tableau de rôles déplié dans l'appel
+ressort en « DYNAMIQUE », donc invérifiable — et un commentaire citant cette
+forme suffit à déclencher la même détection. Les rôles s'écrivent en toutes
+lettres dans l'appel.
+
+**Reste** : notification du support à l'arrivée d'une demande (aujourd'hui il
+faut ouvrir l'écran), et compteur de demandes en attente sur `/super-admin`.
+
 ### Fonctionnalité — Statistiques académiques
 
 **Statut** : ✅ terminée et mergée sur `main` (2026-09-01) — branche
