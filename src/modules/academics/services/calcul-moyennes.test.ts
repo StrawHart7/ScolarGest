@@ -64,6 +64,38 @@ describe('moyenneMatiere', () => {
 });
 
 describe('moyenneTrimestrielle', () => {
+  it('rend null quand aucune matière n’est notée, et non zéro', () => {
+    // Un trimestre qui n'a pas commencé ne vaut pas zéro : il ne vaut rien.
+    // Sinon il remonte à 0 dans la moyenne annuelle — un bulletin de 1er
+    // trimestre à 12,33 affichait « moyenne annuelle 4,11 », soit 12,33 ÷ 3.
+    expect(
+      moyenneTrimestrielle([
+        { moyenne: null, coefficient: 3, obligatoire: true },
+        { moyenne: null, coefficient: 2, obligatoire: true },
+        { moyenne: null, coefficient: 1, obligatoire: true },
+      ]),
+    ).toBeNull();
+  });
+
+  it('compte toujours à zéro une matière obligatoire non notée parmi d’autres notées', () => {
+    // La règle conservatrice reste : un élève absent à une composition ne doit
+    // pas y gagner. Seul le trimestre entièrement vide change de comportement.
+    // (14 × 3 + 0 × 1) / 4 = 10,5
+    expect(
+      moyenneTrimestrielle([
+        { moyenne: 14, coefficient: 3, obligatoire: true },
+        { moyenne: null, coefficient: 1, obligatoire: true },
+      ]),
+    ).toBe(10.5);
+  });
+
+  it('une moyenne de zéro réellement obtenue reste une moyenne', () => {
+    // Distinction essentielle : zéro saisi n'est pas zéro absent.
+    expect(
+      moyenneTrimestrielle([{ moyenne: 0, coefficient: 2, obligatoire: true }]),
+    ).toBe(0);
+  });
+
   it('cas standard pondéré', () => {
     const items = [
       { moyenne: 12, coefficient: 4, obligatoire: true },

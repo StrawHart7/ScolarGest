@@ -115,6 +115,12 @@ async function purger() {
     for (const table of [
       'onboarding_progression',
       'parametres_document',
+      // `transaction_fedapay` reference l'etablissement depuis la migration
+      // `0017`, et la purge ne le savait pas : `--reset` echouait sur une
+      // violation de cle etrangere des qu'une tentative de paiement avait
+      // touche l'etablissement de test. Avant `abonnement_etablissement`,
+      // qu'elle reference aussi.
+      'transaction_fedapay',
       'abonnement_etablissement',
       'facture_eleve',
       'tarif_scolaire',

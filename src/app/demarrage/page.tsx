@@ -224,9 +224,13 @@ async function chargerDonnees(
   // Distinct du nombre de lignes restantes : le programme peut etre defini et
   // entierement couvert par le bareme national.
   let programmeDefini = false;
+  // Compte les associations reelles : `lignesProgramme` ne retient que celles
+  // qui restent a coefficienter, et servirait un resume faux.
+  let nombreAssociations = 0;
   for (const niveau of niveauxUtilises) {
     const programme = await listProgramme(niveau.id);
     if (programme.length > 0) programmeDefini = true;
+    nombreAssociations += programme.length;
     // Seules les séries que l'établissement utilise réellement, déduites de
     // ses classes — proposer les six séries du catalogue alors que l'école
     // n'en ouvre que deux noyait la grille sous des colonnes inutiles.
@@ -278,9 +282,12 @@ async function chargerDonnees(
   if (matieres.length > 0) {
     resumes.matieres = `${matieres.length} matière${matieres.length > 1 ? 's' : ''}`;
   }
-  if (lignesProgramme.length > 0) {
-    resumes.programme = `${lignesProgramme.length} association${lignesProgramme.length > 1 ? 's' : ''}`;
-    resumes.coefficients = 'Coefficients enregistrés';
+  if (nombreAssociations > 0) {
+    resumes.programme = `${nombreAssociations} association${nombreAssociations > 1 ? 's' : ''}`;
+    resumes.coefficients =
+      lignesProgramme.length === 0
+        ? 'Barème national appliqué'
+        : `${lignesProgramme.length} à saisir`;
   }
 
   return {

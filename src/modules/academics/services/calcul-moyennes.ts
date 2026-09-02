@@ -57,10 +57,26 @@ export interface MatiereBulletinInput {
  * Matière facultative SANS note → exclue.
  * Matière obligatoire SANS note → comptée à 0 pour ne pas fausser (choix conservateur).
  * Coefficient 0 → poids nul, la matière ne compte pas.
+ *
+ * **Un trimestre où aucune matière n'est notée ne vaut pas zéro : il ne vaut
+ * rien.** La règle « obligatoire sans note comptée à 0 » se défend à
+ * l'intérieur d'un trimestre partiellement noté — un élève absent à une
+ * composition ne doit pas y gagner. Appliquée à un trimestre entièrement vide,
+ * elle transformait « pas encore évalué » en « zéro pointé », et le trimestre
+ * remontait à 0 dans la moyenne annuelle.
+ *
+ * Le symptôme se voyait sur tout bulletin du 1er trimestre : une moyenne
+ * trimestrielle de 12,33 donnait une **moyenne annuelle de 4,11**, soit
+ * 12,33 ÷ 3, les deux trimestres à venir étant comptés zéro. Un parent lisait
+ * 4,11 sur le bulletin d'un enfant qui avait 12,33.
  */
 export function moyenneTrimestrielle(items: MatiereBulletinInput[]): number | null {
   let sum = 0;
   let coefTotal = 0;
+  // Distinct de `coefTotal` : celui-ci ne compte que les matières réellement
+  // notées, et c'est lui qui dit si le trimestre a commencé.
+  let aUneNote = false;
+
   for (const item of items) {
     if (item.coefficient <= 0) continue;
     if (item.moyenne === null) {
@@ -69,10 +85,13 @@ export function moyenneTrimestrielle(items: MatiereBulletinInput[]): number | nu
       coefTotal += item.coefficient;
       continue;
     }
+    aUneNote = true;
     sum += item.moyenne * item.coefficient;
     coefTotal += item.coefficient;
   }
+
   if (coefTotal === 0) return null;
+  if (!aUneNote) return null;
   return arrondi2(sum / coefTotal);
 }
 
