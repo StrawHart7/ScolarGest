@@ -207,7 +207,10 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-01) :
+**Active branches** (2026-09-02) :
+- `feat/coefficients-officiels` — ✅ livrée (2026-09-02) : catalogue national des
+  matières et coefficients, onboarding allégé, correction du moteur sur la
+  moyenne annuelle. Migrations `0020` à `0022`. Voir `PLAN.md` § 8.
 - `feat/kpi-graphes` — ✅ terminée et mergée sur `main` (2026-09-01) : séries
   temporelles côté école, primitives de graphes en SVG maison, refonte des cinq
   tableaux de bord, statistiques académiques, et verrouillage de la cohérence du
@@ -704,6 +707,155 @@ FedaPay**.
 **La protection de déploiement Vercel bloque les webhooks en preview.**
 `vercel_auth_enabled` renvoie un 401 avant d'atteindre le code. Il faut une
 exception de chemin sur `/api/fedapay/webhook`, ou tester en production.
+
+## Méthode de travail
+
+Cette section vaut pour **toute session sur ce dépôt**, y compris plusieurs en
+parallèle. Ce n'est pas une liste de bonnes intentions : chaque règle vient
+d'une erreur réellement commise ici, et son coût est indiqué.
+
+### Ne jamais annoncer une correction non constatée
+
+La faute la plus fréquente, et la plus coûteuse en confiance. Deux fois dans la
+même journée du 2026-09-01, une correction a été annoncée sans avoir été
+observée — dont une qui **ne s'était pas appliquée du tout** : un `replace`
+écrit sans vérifier qu'il correspondait au fichier avait échoué en silence.
+
+Trois gestes qui l'évitent :
+
+- Tout script de modification porte une **assertion** (`assert old in s`) avant
+  de remplacer. Un remplacement qui ne correspond à rien doit planter, pas
+  passer.
+- Après un correctif d'interface, **ouvrir la page**. `tsc` et ESLint ne voient
+  ni la mise en page ni la frontière serveur/client.
+- Distinguer dans le compte rendu ce qui a été **vérifié** de ce qui a été
+  **raisonné**. « Le diagnostic colle mais je ne l'ai pas observé » est une
+  phrase acceptable ; « c'est corrigé » sans observation ne l'est pas.
+
+### L'oracle indépendant
+
+Pour tout ce qui calcule — moyennes, coefficients, totaux, montants —
+**calculer le résultat attendu à la main, puis comparer**. Ne jamais valider un
+moteur avec le moteur lui-même.
+
+C'est ce qui a révélé qu'un bulletin de 1er trimestre affichait une moyenne
+annuelle de 4,11 pour un élève à 12,33. Les tests unitaires passaient, l'écran
+des résultats affichait la bonne valeur, et le défaut ne se voyait que sur le
+PDF.
+
+Quand la source de données fournit une **somme de contrôle** — les totaux par
+colonne des documents du ministère, par exemple — s'en servir, et faire échouer
+le semis plutôt qu'écrire une valeur douteuse. Voir le bloc `do $$` de la
+migration `0020`.
+
+### Ne pas deviner une donnée invérifiable
+
+Une valeur fausse dans un barème ne fait pas planter l'application : elle
+produit des bulletins faux, signés, remis aux familles, et se découvre des mois
+plus tard. Devant une donnée qu'on ne peut pas vérifier — deux colonnes de la
+Seconde dont les totaux ne se recoupent pas — **laisser le trou et le
+documenter** vaut mieux que combler au jugé. Le repli sur saisie manuelle existe
+déjà : l'utiliser coûte dix saisies, se tromper coûte une année de bulletins.
+
+### Vérifier par le chemin réel
+
+Un contrôle qui rassure à tort est pire que pas de contrôle.
+
+- Tester les accès avec un **client anon plus session**, jamais la clé
+  service-role : elle contourne précisément la RLS qu'on prétend vérifier.
+- Vérifier qu'une cible **existe** avant de conclure qu'elle est vide. Un script
+  de suppression a conclu « aucune donnée rattachée » alors que trois contrôles
+  avaient échoué en silence — `evaluation`, `note` et `paiement` ne portent pas
+  de colonne `etablissementId`.
+- Monter un **bac à sable jetable** pour les essais destructifs, puis le nettoyer
+  et **confirmer que les données réelles n'ont pas bougé**.
+
+### Ce que le build ne prouve pas
+
+Un build vert ne dit rien d'une page rendue à la demande — elle n'est jamais
+exécutée à la compilation. Deux pannes de production sont passées ainsi :
+
+- une **fonction passée à un composant client** (`formater={fcfa}`) : `tsc`
+  accepte le type, ESLint ignore la frontière, le build passe, la page tombe ;
+- une route PDF absente d'`outputFileTracingIncludes` : rien ne casse en local,
+  l'export échoue **en production seulement**.
+
+Face à un déploiement anormalement long ou à une page en erreur, ne pas déduire
+la cause du log de build : demander le **log d'exécution** (Vercel, onglet Logs)
+ou reproduire par le chemin réel.
+
+### Avant de toucher une garde ou une colonne
+
+- **Chercher qui appelle** avant de resserrer ou d'élargir un `requireRole`.
+  `/abonnement` est ouverte à tous les rôles par conception, et la Secrétaire a
+  un accès finance en lecture seule. Une garde resserrée sans vérification casse
+  un écran entier pour un rôle légitime.
+- **Régénérer l'instantané de la matrice et relire le diff** ligne à ligne. C'est
+  le geste qui manquait quand la Phase 5 a livré un `getEtablissement` réservé au
+  SUPER_ADMIN.
+- **Une colonne morte finit par être lue.** `matiere.matiereOfficielleId` s'est
+  révélée impossible à remplir correctement : elle a été retirée par une
+  migration plutôt que laissée inerte. `etablissement.logo` traîne depuis `0001`
+  et il a fallu l'écrire ici pour que personne ne s'en serve.
+
+### Documenter un piège n'empêche pas de le refaire
+
+La migration `0020` explique que `unique(...)` sur une colonne nullable ne
+protège rien en Postgres. Vingt minutes plus tard, un `upsert` sur
+`coefficient_matiere` — dont la contrainte inclut `serieId`, nul au collège —
+aurait inséré un doublon à chaque appel.
+
+Donc : avant tout `upsert`, **relire la contrainte réelle** dans la migration qui
+l'a créée. Et préférer une fonction existante qui lit avant d'écrire
+(`definirCoefficients`) à un `upsert` écrit sur place.
+
+### Demander avant
+
+- **Le moteur de calcul** (`src/modules/academics/services/calcul-moyennes.ts`)
+  et les **services** : prévenir avant de modifier.
+- **Un `npm run build`** : il chauffe la machine de l'utilisateur. `typecheck`
+  (une trentaine de secondes) et les tests suffisent presque toujours.
+- **Appliquer une migration** sur la base réelle.
+- Pour un choix de conception dont le retour arrière coûte cher, poser la
+  question **avant** d'écrire, avec les conséquences chiffrées de chaque option.
+
+### Ce qu'une capture d'écran ne prouve pas
+
+Une capture réduite ment sur les contrastes faibles : une pastille active a été
+diagnostiquée « cassée » alors qu'elle fonctionnait. Interroger le **DOM**
+(`read_page`, `javascript_tool`) avant de conclure à un défaut d'affichage.
+
+### Sessions parallèles : trois points de collision
+
+Plusieurs sessions travaillant simultanément **se marcheront dessus** sur trois
+fichiers. Ce ne sont pas des conflits Git ordinaires : ils produisent du code qui
+compile et qui est faux.
+
+1. **La numérotation des migrations.** Deux sessions créant chacune un `0023_`
+   produisent deux fichiers différents portant le même numéro. Avant d'en créer
+   une, faire `ls supabase/migrations/ | tail -3` **et** annoncer le numéro pris
+   dans le compte rendu, pour que l'utilisateur arbitre.
+2. **`src/lib/permissions/__tests__/matrice.instantane.txt`.** Chaque session le
+   régénère intégralement, et un merge naïf efface les gardes de l'autre. Après
+   tout merge touchant ce fichier, **régénérer et relire le diff** plutôt que de
+   résoudre le conflit à la main.
+3. **La base de données est partagée.** Une migration appliquée par une session
+   l'est pour toutes, et ne se « débranche » pas comme un commit. Le signaler
+   explicitement quand on en applique une.
+
+Règle qui en découle : **une branche par session, jamais de travail direct sur
+`main`** — y compris juste après un merge, moment où l'on se retrouve sur `main`
+sans y penser. Vérifier `git branch --show-current` avant la première écriture.
+
+### Style des messages de commit
+
+Le message dit **pourquoi**, pas quoi : le diff dit déjà quoi. Un bon message
+consigne la décision et l'alternative écartée, pour qu'on ne la reprenne pas
+dans six mois. Les erreurs commises en chemin y figurent : elles expliquent des
+gardes qui, sans elles, ressembleraient à de la paranoïa.
+
+Sujet à l'infinitif ou nominal, en français, sans emoji. Terminer par la ligne
+`Co-Authored-By` habituelle.
 
 ### Vérification : `typecheck` n'est pas optionnel
 

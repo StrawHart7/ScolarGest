@@ -1,54 +1,19 @@
 /**
- * Listes proposées au questionnaire de démarrage (`/demarrage`).
+ * Types de frais proposés au questionnaire de démarrage (`/demarrage`).
  *
- * Contrairement aux cycles, niveaux et séries — catalogues système seedés en
- * base (`0003_seed_catalogues.sql`) — les matières et les types de frais sont
- * propres à chaque établissement (`matiere` et `type_frais` portent tous deux
- * un `etablissementId`). Il n'existe donc rien à lire : ces listes servent à
- * proposer des cases à cocher plutôt que de laisser le Directeur face à un
- * champ vide. Elles restent purement indicatives, l'ajout libre est toujours
- * possible.
+ * `type_frais` porte un `etablissementId` : chaque école crée les siens, il
+ * n'existe aucun catalogue à lire. Cette liste sert à proposer des cases à
+ * cocher plutôt que de laisser la Secrétaire face à un champ vide. Purement
+ * indicative, l'ajout libre reste possible.
+ *
+ * **Les matières, elles, ne sont plus ici.** Elles viennent du catalogue
+ * officiel du ministère (`matiere_officielle`, migration `0020`), lu en base :
+ * une liste en dur ne pourrait pas porter les codes qui rattachent le barème
+ * national, et aurait diverge du programme réel à la première révision.
  *
  * Données pures, aucune logique : ce fichier ne doit jamais importer de service
  * ni de client Supabase.
  */
-
-/**
- * Nom de cycle tel que seedé dans la table `cycle`, restreint aux cycles
- * encore proposés. La maternelle et le primaire sont sortis du catalogue
- * (migration `0014`) : leurs lignes subsistent en base pour les établissements
- * qui les avaient activées, mais aucune configuration nouvelle ne les atteint,
- * donc plus aucune matière n'a à leur être suggérée.
- */
-export type NomCycle = 'COLLEGE' | 'LYCEE';
-
-export interface MatiereSuggeree {
-  nom: string;
-  code: string;
-  /** Cochée par défaut : le tronc commun réel du cycle au Togo. */
-  parDefaut: boolean;
-}
-
-const TRONC_SECONDAIRE: MatiereSuggeree[] = [
-  { nom: 'Français', code: 'FRA', parDefaut: true },
-  { nom: 'Mathématiques', code: 'MATH', parDefaut: true },
-  { nom: 'Anglais', code: 'ANG', parDefaut: true },
-  { nom: 'Histoire-Géographie', code: 'HG', parDefaut: true },
-  { nom: 'Sciences de la Vie et de la Terre', code: 'SVT', parDefaut: true },
-  { nom: 'Physique-Chimie', code: 'PC', parDefaut: true },
-  { nom: 'Éducation Physique et Sportive', code: 'EPS', parDefaut: true },
-  { nom: 'Éducation Civique et Morale', code: 'ECM', parDefaut: false },
-  { nom: 'Informatique', code: 'INFO', parDefaut: false },
-  { nom: 'Espagnol', code: 'ESP', parDefaut: false },
-  { nom: 'Allemand', code: 'ALL', parDefaut: false },
-  { nom: 'Philosophie', code: 'PHILO', parDefaut: false },
-  { nom: 'Économie', code: 'ECO', parDefaut: false },
-];
-
-export const MATIERES_SUGGEREES: Record<NomCycle, MatiereSuggeree[]> = {
-  COLLEGE: TRONC_SECONDAIRE,
-  LYCEE: TRONC_SECONDAIRE,
-};
 
 export interface TypeFraisSuggere {
   nom: string;

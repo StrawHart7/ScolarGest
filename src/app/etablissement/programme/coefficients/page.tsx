@@ -4,12 +4,14 @@ import { listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/ser
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listProgramme } from '@/services/programme';
 import { listCoefficients } from '@/services/coefficient';
+import { baremeOfficiel } from '@/services/matiere-officielle';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { NiveauSelector, type NiveauOption } from '../NiveauSelector';
 import { SerieSelector } from './SerieSelector';
 import { CoefficientsForm, type LigneCoefficient } from './CoefficientsForm';
+import { BoutonBaremeOfficiel } from './BoutonBaremeOfficiel';
 
 export default async function CoefficientsPage({
   searchParams,
@@ -52,12 +54,26 @@ export default async function CoefficientsPage({
       )
     : new Map<string, number>();
 
+  // Le barème national, indexé par le code que l'école utilise. Vide sur les
+  // séries techniques, la Seconde et les cycles hors périmètre : l'écran
+  // redevient alors entièrement éditable, comme avant.
+  const officiel = niveauId ? await baremeOfficiel(niveauId, serieId) : new Map<string, number>();
+
   const lignes: LigneCoefficient[] = programme.map((p) => ({
     programmeEtablissementId: p.id,
     matiereNom: p.matiere.nom,
     obligatoire: p.obligatoire,
     coefficient: coefficients.get(p.id) ?? null,
+    coefficientOfficiel: p.matiere.code ? (officiel.get(p.matiere.code) ?? null) : null,
   }));
+
+  const nombreOfficiels = lignes.filter((l) => l.coefficientOfficiel !== null).length;
+  // Un barème appliqué n'est pas un barème disponible : tant que la valeur
+  // enregistrée diffère de l'officielle, l'école travaille sur autre chose que
+  // ce que prescrit le ministère, et doit pouvoir le voir.
+  const aRegulariser = lignes.filter(
+    (l) => l.coefficientOfficiel !== null && l.coefficient !== l.coefficientOfficiel,
+  ).length;
 
   const serieCourante = series.find((s) => s.id === serieId);
 
@@ -109,6 +125,35 @@ export default async function CoefficientsPage({
                 {serieCourante ? ` — série ${serieCourante.nom}` : ''}
               </span>
             </div>
+
+            {/* Ce que le Directeur doit comprendre en arrivant : ce qui est
+                impose par le ministere, et ce qui lui reste a decider. Sans
+                cette phrase, la mention « Bareme national » sur chaque ligne
+                ressemble a une decoration. */}
+            {nombreOfficiels > 0 && anneeActive && (
+              <div className="mx-4 mb-4 flex flex-col gap-3 rounded-lg border border-surface-border bg-surface-container-low px-4 py-3 md:mx-6">
+                <p className="text-body-sm text-text-secondary">
+                  {nombreOfficiels} matière{nombreOfficiels > 1 ? 's' : ''} sur {lignes.length}{' '}
+                  {nombreOfficiels > 1 ? 'suivent' : 'suit'} le barème fixé par le ministère : leur
+                  coefficient n&apos;a pas à être décidé ici.
+                  {aRegulariser > 0 && (
+                    <>
+                      {' '}
+                      <span className="text-text-primary">
+                        {aRegulariser} s&apos;écarte{aRegulariser > 1 ? 'nt' : ''} actuellement de la
+                        valeur officielle.
+                      </span>
+                    </>
+                  )}
+                </p>
+                {/* L'action va chercher les valeurs nationales ; « Enregistrer »
+                    ne ferait que resoumettre ce qui est affiché, donc ce qui est
+                    déjà en base. Deux gestes différents, deux boutons. */}
+                {aRegulariser > 0 && canWrite && (
+                  <BoutonBaremeOfficiel anneeScolaireId={anneeActive.id} />
+                )}
+              </div>
+            )}
 
             {programme.length === 0 ? (
               <CardContent className="py-10 text-center text-body-md text-text-secondary">

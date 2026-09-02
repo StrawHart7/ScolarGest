@@ -14,6 +14,8 @@ export interface LigneCoefficient {
   matiereNom: string;
   obligatoire: boolean;
   coefficient: number | null;
+  /** Valeur prescrite par le ministère, `null` hors barème national. */
+  coefficientOfficiel: number | null;
 }
 
 /**
@@ -65,6 +67,7 @@ export function CoefficientsForm({
                 </p>
                 <p className="text-[11px] text-text-secondary">
                   {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
+                  {ligne.coefficientOfficiel !== null && ' · Barème national'}
                 </p>
               </div>
               {modifiable ? (
@@ -75,7 +78,7 @@ export function CoefficientsForm({
                   inputMode="numeric"
                   min={0}
                   step={1}
-                  defaultValue={ligne.coefficient ?? ''}
+                  defaultValue={ligne.coefficient ?? ligne.coefficientOfficiel ?? ''}
                   placeholder="—"
                   aria-label={`Coefficient de ${ligne.matiereNom}`}
                   className="w-16 shrink-0 text-center font-bold"
@@ -109,7 +112,17 @@ export function CoefficientsForm({
           <TableBody>
             {lignes.map((ligne) => (
               <TableRow key={ligne.programmeEtablissementId}>
-                <TableCell className="font-medium">{ligne.matiereNom}</TableCell>
+                <TableCell className="font-medium">
+                  {ligne.matiereNom}
+                  {/* Une matiere au bareme national se signale : le Directeur
+                      n'a rien a y decider, et voir lesquelles lui restent a
+                      arbitrer est la seule information utile de cet ecran. */}
+                  {ligne.coefficientOfficiel !== null && (
+                    <span className="ml-2 rounded-full border border-primary-container/40 bg-primary-fixed/50 px-2 py-0.5 text-label-md text-primary-container">
+                      Barème national
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="text-text-secondary">
                   {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
                 </TableCell>
@@ -122,7 +135,7 @@ export function CoefficientsForm({
                       inputMode="numeric"
                       min={0}
                       step={1}
-                      defaultValue={ligne.coefficient ?? ''}
+                      defaultValue={ligne.coefficient ?? ligne.coefficientOfficiel ?? ''}
                       placeholder="—"
                       aria-label={`Coefficient de ${ligne.matiereNom}`}
                       className="ml-auto w-24 text-right"

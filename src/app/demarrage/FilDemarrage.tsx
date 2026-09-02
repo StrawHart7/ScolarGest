@@ -38,6 +38,14 @@ export interface DonneesDemarrage {
   seriesParId: Record<string, string>;
   matieres: MatiereChoisissable[];
   lignesProgramme: LigneProgrammeNiveau[];
+  /**
+   * Catalogue officiel des cycles activés, chargé côté serveur. Remplace la
+   * liste en dur : les matières proposées sont celles du programme national,
+   * et `parDefaut` distingue celles qui portent un coefficient ministériel.
+   */
+  matieresOfficielles: { nom: string; code: string; parDefaut: boolean }[];
+  /** Le programme existe, même si plus rien n'y reste à coefficienter. */
+  programmeDefini: boolean;
   classes: ClasseTarifable[];
   typesFrais: TypeFraisTarifable[];
   anneeScolaireId: string | null;
@@ -131,14 +139,15 @@ export function FilDemarrage({
       case 'matieres':
         return (
           <EtapeMatieres
-            cyclesActifsNoms={donnees.cyclesActifsNoms}
+            catalogue={donnees.matieresOfficielles}
             matieresExistantes={donnees.matieres.map((m) => m.nom)}
             onTermine={avancer}
           />
         );
       case 'programme':
-        return donnees.niveauxUtilises.length > 0 ? (
+        return donnees.niveauxUtilises.length > 0 && donnees.anneeScolaireId ? (
           <EtapeProgramme
+            anneeScolaireId={donnees.anneeScolaireId}
             niveaux={donnees.niveauxUtilises}
             matieres={donnees.matieres}
             onTermine={avancer}
@@ -154,6 +163,15 @@ export function FilDemarrage({
             seriesParId={donnees.seriesParId}
             onTermine={avancer}
           />
+        ) : donnees.programmeDefini ? (
+          // Toutes les matières du programme suivent le barème du ministère :
+          // il n'y a rien à décider ici. Afficher « définissez d'abord le
+          // programme » serait faux, et laisserait croire à un blocage.
+          <p className="mt-3 text-body-sm text-text-secondary">
+            Rien à saisir : toutes les matières de votre programme suivent le barème fixé par le
+            ministère, déjà appliqué. Vous n&apos;auriez à intervenir que pour une matière ajoutée
+            hors programme national.
+          </p>
         ) : (
           <p className="mt-3 text-body-sm text-error">
             Définissez d&apos;abord le programme de vos niveaux.

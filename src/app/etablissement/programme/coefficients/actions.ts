@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { definirCoefficients, type CoefficientSaisi } from '@/services/coefficient';
+import { appliquerCoefficientsOfficiels } from '@/services/matiere-officielle';
 
 const schema = z.object({
   anneeScolaireId: z.string().uuid('Année scolaire requise'),
@@ -54,4 +55,43 @@ export async function definirCoefficientsAction(
 
   revalidatePath('/etablissement/programme/coefficients');
   return 'OK';
+}
+
+/**
+ * Recopie le barème du ministère dans l'année scolaire en cours.
+ *
+ * Distincte de l'enregistrement du formulaire, et pas par confort : le
+ * formulaire soumet ce qui est **affiché**, c'est-à-dire les valeurs déjà
+ * enregistrées. Un bouton « Enregistrer » ne peut donc pas aligner sur le
+ * barème national — il réécrirait à l'identique. Il faut une action qui va
+ * chercher les valeurs officielles.
+ *
+ * Toutes les combinaisons niveau/série ouvertes cette année sont traitées d'un
+ * coup : aligner série par série obligerait à parcourir l'écran huit fois pour
+ * un lycée complet, et laisserait des trous invisibles.
+ */
+export async function appliquerBaremeOfficielAction(
+  _etatPrecedent: string | null,
+  donnees: FormData,
+): Promise<string | null> {
+  const anneeScolaireId = String(donnees.get('anneeScolaireId') ?? '');
+  if (!z.string().uuid().safeParse(anneeScolaireId).success) {
+    return 'Année scolaire requise';
+  }
+
+  try {
+    const { appliques } = await appliquerCoefficientsOfficiels(anneeScolaireId);
+    revalidatePath('/etablissement/programme/coefficients');
+    return appliques === 0
+      ? 'Aucun coefficient national ne correspond à ce programme.'
+      : `Barème national appliqué : ${appliques} coefficient${appliques > 1 ? 's' : ''}.`;
+  } catch (e) {
+    // Les erreurs Supabase ne sont pas des `Error` : `instanceof` y est
+    // toujours faux et masquerait la cause réelle derrière un message
+    // générique.
+    if (e && typeof e === 'object' && 'message' in e) {
+      return String((e as { message: unknown }).message);
+    }
+    return 'Impossible d’appliquer le barème national.';
+  }
 }
