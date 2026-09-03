@@ -71,12 +71,12 @@ export function Header({ role, userName }: HeaderProps) {
           <Link
             href="/profil"
             aria-label="Mon profil"
-            className="ml-1 flex items-center gap-2 rounded-full text-body-md text-text-secondary transition-colors md:ml-0 md:h-9 md:rounded md:px-2 md:hover:bg-surface-container-high md:hover:text-text-primary"
+            title={userName}
+            className="ml-1 grid h-10 w-10 place-items-center rounded-full transition-colors md:ml-0 md:h-9 md:w-9 md:hover:bg-surface-container-high"
           >
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-surface-border bg-secondary text-label-md text-white md:h-7 md:w-7 md:border-0">
               {(userName ?? 'U').slice(0, 1).toUpperCase()}
             </span>
-            <span className="hidden md:inline">{userName}</span>
           </Link>
         </div>
       </div>
