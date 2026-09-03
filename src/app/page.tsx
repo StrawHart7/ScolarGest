@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   GraduationCap,
@@ -18,6 +19,13 @@ import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/Reveal';
 import { DemandeDemoForm } from '@/components/marketing/DemandeDemoForm';
 import { SectionTarifs } from '@/components/marketing/SectionTarifs';
+
+const LIENS_NAV = [
+  { href: '#modules', label: 'Fonctionnalités' },
+  { href: '#securite', label: 'Sécurité' },
+  { href: '#roles', label: 'Rôles' },
+  { href: '#tarifs', label: 'Tarifs' },
+];
 
 const MODULES = [
   {
@@ -124,137 +132,125 @@ const ETAPES_DEMO = [
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-on-surface antialiased">
-      <header className="fixed top-0 z-50 w-full border-b border-surface-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-container-pad">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-surface-tint shadow-md transition-shadow duration-300 hover:shadow-glow sm:h-10 sm:w-10">
-              <GraduationCap className="h-5 w-5 text-white sm:h-6 sm:w-6" aria-hidden />
+      {/*
+        Barre flottante en pilule : elle survole le hero au lieu de le couper par
+        un bandeau plein. Elle reste `fixed` — le hero reserve la hauteur qu'il
+        faut par son padding haut, plutot que le `pt-16` global d'avant, qui
+        empechait toute section de remonter sous la barre.
+      */}
+      <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-5">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 rounded-full border border-white/70 bg-white/75 pl-3 pr-2 shadow-[0_8px_30px_rgba(9,30,66,0.10)] backdrop-blur-xl sm:h-16 sm:pl-5 sm:pr-3">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-container to-primary shadow-md">
+              <GraduationCap className="h-5 w-5 text-white" aria-hidden />
             </div>
-            <span className="text-lg font-bold tracking-tight text-primary sm:text-xl">
-              Scolar<span className="font-semibold text-surface-tint">Gest</span>
+            <span className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+              Scolar<span className="font-semibold text-primary-container">Gest</span>
             </span>
-          </div>
-          <nav className="hidden items-center gap-8 lg:flex">
-            <a
-              href="#modules"
-              className="text-sm font-medium text-text-secondary transition-colors hover:text-primary"
-            >
-              Fonctionnalités
-            </a>
-            <a
-              href="#securite"
-              className="text-sm font-medium text-text-secondary transition-colors hover:text-primary"
-            >
-              Sécurité
-            </a>
-            <a
-              href="#roles"
-              className="text-sm font-medium text-text-secondary transition-colors hover:text-primary"
-            >
-              Rôles
-            </a>
-            <a
-              href="#tarifs"
-              className="text-sm font-medium text-text-secondary transition-colors hover:text-primary"
-            >
-              Tarifs
-            </a>
+          </Link>
+
+          <nav className="hidden items-center gap-7 lg:flex">
+            {LIENS_NAV.map(({ href, label }) => (
+              <a
+                key={href}
+                href={href}
+                className="text-sm font-medium text-text-secondary transition-colors hover:text-primary-container"
+              >
+                {label}
+              </a>
+            ))}
           </nav>
-          <div className="flex items-center gap-3 sm:gap-4">
+
+          <div className="flex items-center gap-1 sm:gap-2">
             <Link
               href="/login"
-              className="text-xs font-medium text-primary transition-colors hover:text-primary-container sm:text-sm"
+              className="rounded-full px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:text-primary-container sm:text-sm"
             >
               Connexion
             </Link>
-            <Button
-              asChild
-              size="sm"
-              className="transition-transform duration-200 hover:-translate-y-0.5 sm:h-10 sm:px-4 sm:text-sm"
+            <a
+              href="#demo"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-primary-container px-4 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(0,82,204,0.30)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary sm:h-11 sm:px-5 sm:text-sm"
             >
-              <a href="#demo">
-                <span className="sm:hidden">Démo</span>
-                <span className="hidden sm:inline">Demander une démo</span>
-              </a>
-            </Button>
+              <span className="sm:hidden">Démo</span>
+              <span className="hidden sm:inline">Demander une démo</span>
+            </a>
           </div>
         </div>
       </header>
 
-      <main className="flex-grow pt-16 sm:pt-[72px]">
-        {/* Hero */}
-        <section className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24">
-          <div className="pointer-events-none absolute right-0 top-0 h-[400px] w-[400px] -translate-y-1/4 translate-x-1/4 rounded-full bg-primary-fixed/30 blur-[100px] sm:h-[700px] sm:w-[700px] sm:blur-[120px]" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-[300px] w-[300px] -translate-x-1/4 translate-y-1/4 rounded-full bg-tertiary-fixed/20 blur-[80px] sm:h-[500px] sm:w-[500px] sm:blur-[100px]" />
-          <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center gap-10 lg:flex-row lg:gap-16">
-            <Reveal className="flex flex-col gap-6 text-center lg:w-1/2 lg:gap-8 lg:text-left">
-              <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-surface-border bg-surface-container-lowest/80 px-3 py-1.5 shadow-subtle backdrop-blur-sm sm:px-4 sm:py-2 lg:mx-0">
-                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-surface-tint opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-primary sm:text-xs">
-                  Conçu pour les écoles privées togolaises
-                </span>
-              </div>
-              <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-text-primary sm:text-5xl lg:text-6xl">
-                La gestion scolaire,
-                <br />
-                <span className="bg-gradient-to-br from-primary to-surface-tint bg-clip-text text-transparent">
-                  enfin unifiée.
-                </span>
-              </h1>
-              <p className="mx-auto max-w-lg text-base leading-relaxed text-text-secondary sm:text-lg lg:mx-0">
-                Élèves, enseignants, notes, finances et documents officiels dans une seule
-                plateforme sécurisée — pensée pour la réalité des établissements privés au
-                Togo, dès l’inscription jusqu’au bulletin.
-              </p>
-              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-center lg:justify-start">
-                <Button
-                  size="lg"
-                  asChild
-                  className="h-12 w-full px-8 shadow-lg shadow-primary/25 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/30 sm:w-auto"
-                >
-                  <a href="#demo">
-                    Demander une démo
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </a>
-                </Button>
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  asChild
-                  className="h-12 w-full px-8 transition-transform duration-300 hover:-translate-y-1 sm:w-auto"
-                >
-                  <Link href="/login">Se connecter</Link>
-                </Button>
-              </div>
-            </Reveal>
+      <main className="flex-grow">
+        {/*
+          Le hero tient dans une seule hauteur d'ecran, quel que soit le zoom.
+          Deux choix y suffisent : `100svh` plutot que `100vh` (la barre d'URL
+          mobile ne recadre plus le bas), et des tailles en `clamp(rem, vw, rem)`
+          plutot qu'une echelle par paliers `sm:`/`lg:`. Un zoom navigateur
+          reduit la largeur du viewport en pixels CSS : les `vw` suivent, donc la
+          composition se contracte au lieu de deborder sous la ligne de flottaison.
+          La capture est volontairement rognee en bas par `overflow-hidden` — elle
+          se poursuit sous le pli, ce qui indique qu'il y a une suite.
+        */}
+        <section className="relative isolate flex min-h-svh flex-col overflow-hidden">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(125%_95%_at_50%_-15%,#ffffff_32%,#e4ecff_62%,#bed3f7_100%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[55svh] bg-[radial-gradient(55%_100%_at_50%_0%,rgba(0,82,204,0.14),transparent_72%)]"
+          />
 
-            <Reveal delayMs={150} className="relative w-full lg:w-1/2">
-              <div className="absolute inset-0 rotate-2 scale-105 rounded-2xl bg-gradient-to-tr from-primary/10 via-surface-tint/5 to-transparent" />
-              <div className="animate-float relative overflow-hidden rounded-2xl border border-surface-border/60 bg-surface-container-lowest shadow-premium transition-transform duration-700 hover:-translate-y-2">
-                <div className="flex items-center gap-2 border-b border-surface-border bg-surface/80 px-3 py-2.5 sm:px-4 sm:py-3">
-                  <div className="h-2.5 w-2.5 rounded-full bg-error/80 sm:h-3 sm:w-3" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-amber-400/80 sm:h-3 sm:w-3" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-tertiary-fixed/80 sm:h-3 sm:w-3" />
-                  <div className="ml-3 flex-grow truncate rounded-md bg-surface-container px-2 py-1 text-center font-mono text-[9px] text-text-secondary sm:px-4 sm:text-[10px]">
-                    app.scolargest.com/dashboard
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 p-5 sm:gap-4 sm:p-8">
-                  <div className="h-4 w-1/3 rounded bg-surface-container-high" />
-                  <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                    <div className="h-14 rounded-lg bg-primary/10 transition-colors duration-500 hover:bg-primary/20 sm:h-20" />
-                    <div className="h-14 rounded-lg bg-tertiary/10 transition-colors duration-500 hover:bg-tertiary/20 sm:h-20" />
-                    <div className="h-14 rounded-lg bg-secondary/10 transition-colors duration-500 hover:bg-secondary/20 sm:h-20" />
-                  </div>
-                  <div className="h-24 rounded-lg bg-surface-container-high sm:h-32" />
-                  <div className="h-4 w-2/3 rounded bg-surface-container-high" />
-                  <div className="h-4 w-1/2 rounded bg-surface-container-high" />
-                </div>
+          <div className="flex flex-1 flex-col items-center px-4 pb-0 pt-[clamp(6rem,15vh,9.5rem)] text-center sm:px-6">
+            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 py-1 pl-1 pr-3 shadow-[0_4px_14px_rgba(9,30,66,0.08)] backdrop-blur-sm">
+              <span className="rounded-full bg-text-primary px-2.5 py-1 text-[11px] font-semibold text-white">
+                Nouveau
+              </span>
+              <span className="text-[11px] font-medium text-text-secondary sm:text-xs">
+                Conçu pour les écoles privées togolaises
+              </span>
+            </div>
+
+            <h1 className="mt-[clamp(1.25rem,3.5vh,2rem)] max-w-4xl text-[clamp(2.125rem,6.2vw,4.25rem)] font-extrabold leading-[1.05] tracking-tight text-text-primary">
+              La gestion scolaire,
+              <span className="block font-serif text-[1.04em] font-normal italic text-primary-container">
+                enfin unifiée.
+              </span>
+            </h1>
+
+            <p className="mt-[clamp(1rem,2.5vh,1.5rem)] max-w-xl text-[clamp(0.95rem,1.15vw,1.125rem)] leading-relaxed text-text-secondary">
+              Élèves, enseignants, notes, finances et documents officiels dans une seule
+              plateforme sécurisée — de l’inscription jusqu’au bulletin.
+            </p>
+
+            <div className="mt-[clamp(1.5rem,3.5vh,2.25rem)] flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+              <a
+                href="#demo"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-container px-8 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,82,204,0.32)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary sm:w-auto"
+              >
+                Demander une démo
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </a>
+              <Link
+                href="/login"
+                className="inline-flex h-12 w-full items-center justify-center rounded-full border border-surface-border bg-white px-8 text-sm font-semibold text-text-primary shadow-[0_4px_14px_rgba(9,30,66,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim sm:w-auto"
+              >
+                Se connecter
+              </Link>
+            </div>
+
+            <div className="mt-[clamp(2rem,5vh,3.5rem)] w-full max-w-6xl">
+              <div className="relative mx-auto h-[clamp(180px,40svh,520px)] overflow-hidden rounded-t-2xl border border-white/90 bg-white shadow-[0_-2px_0_rgba(255,255,255,0.9),0_30px_70px_-20px_rgba(9,30,66,0.35)] sm:rounded-t-3xl">
+                <Image
+                  src="/assets/images/illustrations/Dashboard_hero.png"
+                  alt="Tableau de bord ScolarGest : effectifs, remplissage, encaissements de l’année et bulletins générés."
+                  width={1672}
+                  height={941}
+                  priority
+                  sizes="(min-width: 1280px) 1152px, 100vw"
+                  className="w-full"
+                />
               </div>
-            </Reveal>
+            </div>
           </div>
         </section>
 
