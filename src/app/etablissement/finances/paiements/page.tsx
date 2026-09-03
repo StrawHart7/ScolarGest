@@ -10,13 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe } from '@/components/ui/actions-mobile';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { PaiementsFiltres } from './PaiementsFiltres';
@@ -88,17 +83,25 @@ export default async function HistoriqueVersementsPage({
           />
         </div>
 
+        <BarreListe
+          placeholderRecherche="Élève, matricule ou référence…"
+          filtresLibres={
+            <PaiementsFiltres
+              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+              defaultAnneeScolaireId={anneeScolaireId ?? ''}
+              defaultStatut={statut ?? ''}
+            />
+          }
+          nombreFiltresLibresActifs={statut ? 1 : 0}
+          tri={[
+            { cle: 'date', libelle: 'Date' },
+            { cle: 'eleve', libelle: 'Élève' },
+            { cle: 'montant', libelle: 'Montant' },
+            { cle: 'mode', libelle: 'Mode' },
+          ]}
+        />
+
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <BarreOutilsListe className="md:justify-between">
-            <RechercheListe placeholder="Élève, matricule ou référence…" />
-            <FiltresMobile nombreActifs={statut ? 1 : 0}>
-              <PaiementsFiltres
-                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-                defaultAnneeScolaireId={anneeScolaireId ?? ''}
-                defaultStatut={statut ?? ''}
-              />
-            </FiltresMobile>
-          </BarreOutilsListe>
 
           <EnteteListe
             titre="Versements"

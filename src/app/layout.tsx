@@ -4,6 +4,7 @@ import './globals.css';
 import { PwaInstaller } from '@/components/pwa/pwa-installer';
 import { ConnectivityProvider } from '@/components/connectivity/connectivity-context';
 import { ConnectivityBanner } from '@/components/connectivity/connectivity-banner';
+import { ScrollbarAutoHide } from '@/components/layout/ScrollbarAutoHide';
 
 /**
  * Polices auto-hebergees.
@@ -99,6 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ConnectivityBanner />
         </ConnectivityProvider>
         <PwaInstaller />
+        <ScrollbarAutoHide />
       </body>
     </html>
   );

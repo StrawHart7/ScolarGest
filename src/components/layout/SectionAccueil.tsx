@@ -1,39 +1,10 @@
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BookOpenCheck,
-  CircleHelp,
-  LifeBuoy,
-  CreditCard,
-  GraduationCap,
-  LayoutDashboard,
-  Presentation,
-  Settings,
-  ShieldCheck,
-  Users,
-  UsersRound,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { getSidebarItems, blocsSection, SECTIONS, type NomIcone } from '@/lib/navigation';
+import { getSidebarItems, blocsSection, SECTIONS } from '@/lib/navigation';
+import { ICONES } from '@/components/layout/icones-navigation';
 import { getTenantContext } from '@/services/tenant';
 
-const ICONES: Record<NomIcone, LucideIcon> = {
-  'tableau-de-bord': LayoutDashboard,
-  eleves: GraduationCap,
-  enseignants: UsersRound,
-  notes: BookOpenCheck,
-  finances: Wallet,
-  etablissement: ShieldCheck,
-  rapports: Presentation,
-  'mes-classes': Users,
-  abonnements: CreditCard,
-  utilisateurs: Users,
-  parametres: Settings,
-  aide: CircleHelp,
-  support: LifeBuoy,
-};
 
 /**
  * Page d'accueil d'une section : présente en blocs les fonctionnalités que le

@@ -10,14 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe, BoutonFlottant } from '@/components/ui/actions-mobile';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  FiltreListe,
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BoutonFlottant } from '@/components/ui/actions-mobile';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { DesactiverButton } from './DesactiverButton';
@@ -95,29 +90,30 @@ export default async function UtilisateursPage({
           />
         </div>
 
-        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <BarreOutilsListe>
-            <RechercheListe placeholder="Nom, e-mail ou rôle…" />
-            <FiltresMobile nombreActifs={(roleFiltre ? 1 : 0) + (statutFiltre ? 1 : 0)}>
-              <FiltreListe
-                parametre="role"
-                libelle="Rôle"
-                options={OPTIONS_ROLE}
-                libelleTout="Tous les rôles"
-              />
-              <FiltreListe
-                parametre="statutUtilisateur"
-                libelle="Statut"
-                options={[
-                  { valeur: 'ACTIF', libelle: 'Actif' },
-                  { valeur: 'INACTIF', libelle: 'Inactif' },
-                  { valeur: 'BLOQUE', libelle: 'Bloqué' },
-                ]}
-                libelleTout="Tous les statuts"
-              />
-            </FiltresMobile>
-          </BarreOutilsListe>
+        <BarreListe
+          placeholderRecherche="Nom, e-mail ou rôle…"
+          filtres={[
+            { parametre: 'role', libelle: 'Rôle', options: OPTIONS_ROLE, libelleTout: 'Tous les rôles' },
+            {
+              parametre: 'statutUtilisateur',
+              libelle: 'Statut',
+              options: [
+                { valeur: 'ACTIF', libelle: 'Actif' },
+                { valeur: 'INACTIF', libelle: 'Inactif' },
+                { valeur: 'BLOQUE', libelle: 'Bloqué' },
+              ],
+              libelleTout: 'Tous les statuts',
+            },
+          ]}
+          tri={[
+            { cle: 'nom', libelle: 'Nom' },
+            { cle: 'email', libelle: 'E-mail' },
+            { cle: 'role', libelle: 'Rôle' },
+            { cle: 'statut', libelle: 'Statut' },
+          ]}
+        />
 
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <EnteteListe
             titre="Utilisateurs"
             compte={`${page.total} utilisateur${page.total > 1 ? 's' : ''}`}

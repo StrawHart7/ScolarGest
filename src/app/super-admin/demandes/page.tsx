@@ -3,6 +3,7 @@ import { listDemandesDemo } from '@/services/demande-demo';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
+import { BarreListe } from '@/components/ui/barre-liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { CarteDemande } from './CarteDemande';
 
@@ -20,15 +21,31 @@ export const metadata = { title: 'Demandes de démo' };
  * les noyer dans l'ordre chronologique reviendrait à reconstruire le problème
  * qu'on corrige.
  */
-export default async function DemandesPage() {
+export default async function DemandesPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const ctx = await getTenantContext();
   const demandes = await listDemandesDemo();
 
-  const aTraiter = demandes.filter((d) => d.statut === 'NOUVELLE');
-  const enCours = demandes.filter((d) => d.statut === 'CONTACTEE');
+  // Pas de filtre par statut ici : la page est deja organisee en sections par
+  // statut, et un filtre ferait disparaitre les sections une a une. Seule la
+  // recherche a du sens — retrouver un prospect quand la file s'allonge.
+  const brut = searchParams.q;
+  const terme = ((Array.isArray(brut) ? brut[0] : brut) ?? '').trim().toLowerCase();
+  const correspond = (d: (typeof demandes)[number]) =>
+    !terme ||
+    `${d.nomEtablissement} ${d.nomContact} ${d.email} ${d.ville ?? ''}`
+      .toLowerCase()
+      .includes(terme);
+
+  const aTraiter = demandes.filter((d) => d.statut === 'NOUVELLE' && correspond(d));
+  const enCours = demandes.filter((d) => d.statut === 'CONTACTEE' && correspond(d));
   const closes = demandes.filter(
-    (d) => d.statut === 'CONVERTIE' || d.statut === 'REJETEE',
+    (d) => (d.statut === 'CONVERTIE' || d.statut === 'REJETEE') && correspond(d),
   );
+  const nombreAffichees = aTraiter.length + enCours.length + closes.length;
 
   const converties = demandes.filter((d) => d.statut === 'CONVERTIE').length;
   const traitees = demandes.length - aTraiter.length;
@@ -69,14 +86,20 @@ export default async function DemandesPage() {
           }
         />
 
-        {demandes.length === 0 ? (
+        {demandes.length > 0 && <BarreListe placeholderRecherche="École, contact, e-mail ou ville…" />}
+
+        {demandes.length === 0 || nombreAffichees === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
-              <p className="text-body-md text-text-primary">Aucune demande pour le moment.</p>
-              <p className="mt-1 text-body-sm text-text-secondary">
-                Les demandes envoyées depuis le formulaire de la page d&apos;accueil
-                apparaîtront ici.
+              <p className="text-body-md text-text-primary">
+                {terme ? 'Aucune demande ne correspond à cette recherche.' : 'Aucune demande pour le moment.'}
               </p>
+              {!terme && (
+                <p className="mt-1 text-body-sm text-text-secondary">
+                  Les demandes envoyées depuis le formulaire de la page d&apos;accueil
+                  apparaîtront ici.
+                </p>
+              )}
             </CardContent>
           </Card>
         ) : (

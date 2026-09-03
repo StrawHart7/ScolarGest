@@ -16,13 +16,8 @@ import {
   LigneCarteMobile,
   type TonStatut,
 } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe } from '@/components/ui/actions-mobile';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { SuiviFiltres } from './SuiviFiltres';
@@ -111,19 +106,26 @@ export default async function SuiviPaiementsPage({
           />
         </div>
 
+        <BarreListe
+          placeholderRecherche="Élève, matricule ou classe…"
+          filtresLibres={
+            <SuiviFiltres
+              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+              classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+              defaultAnneeScolaireId={anneeScolaireId ?? ''}
+              defaultClasseId={lireUnique('classeId') ?? ''}
+              defaultStatut={statut ?? ''}
+            />
+          }
+          nombreFiltresLibresActifs={(lireUnique('classeId') ? 1 : 0) + (statut ? 1 : 0)}
+          tri={[
+            { cle: 'eleve', libelle: 'Nom de l’élève' },
+            { cle: 'classe', libelle: 'Classe' },
+            { cle: 'total', libelle: 'Total dû' },
+          ]}
+        />
+
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <BarreOutilsListe className="md:justify-between">
-            <RechercheListe placeholder="Élève, matricule ou classe…" />
-            <FiltresMobile nombreActifs={(lireUnique('classeId') ? 1 : 0) + (statut ? 1 : 0)}>
-              <SuiviFiltres
-                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-                defaultAnneeScolaireId={anneeScolaireId ?? ''}
-                defaultClasseId={lireUnique('classeId') ?? ''}
-                defaultStatut={statut ?? ''}
-              />
-            </FiltresMobile>
-          </BarreOutilsListe>
 
           <EnteteListe
             titre="Suivi des paiements"

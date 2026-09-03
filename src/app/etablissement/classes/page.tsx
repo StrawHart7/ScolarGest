@@ -10,13 +10,13 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
-import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe } from '@/components/ui/actions-mobile';
 import {
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+  CarteListeMobile,
+  EnteteListe,
+  LigneCarteMobile,
+} from '@/components/ui/carte-liste-mobile';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { ClasseForm, type CycleOption } from './ClasseForm';
@@ -104,95 +104,108 @@ export default async function ClassesPage({
             </CardContent>
           </Card>
         ) : (
-          <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-            <BarreOutilsListe>
-              <RechercheListe placeholder="Nom, niveau ou série…" />
-              {peutCreer && cycles.length > 0 && (
-                <div className="md:ml-auto">
+          <>
+            <BarreListe
+              placeholderRecherche="Nom, niveau ou série…"
+              tri={[
+                { cle: 'nom', libelle: 'Nom' },
+                { cle: 'niveau', libelle: 'Niveau' },
+                { cle: 'serie', libelle: 'Série' },
+                { cle: 'capacite', libelle: 'Capacité' },
+              ]}
+              actions={
+                peutCreer && cycles.length > 0 ? (
                   <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} />
-                </div>
-              )}
-            </BarreOutilsListe>
-
-            <EnteteListe
-              titre="Classes"
-              compte={`${page.total} classe${page.total > 1 ? 's' : ''}`}
+                ) : null
+              }
+              className="mb-4 md:mb-6"
             />
 
-            {page.total === 0 ? (
-              <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-                <School className="h-10 w-10 text-text-secondary/50" aria-hidden />
-                <p className="text-body-md text-text-primary">Aucune classe pour cette année.</p>
-              </CardContent>
-            ) : (
-              <>
-                <div className="hidden md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TriColonne cle="nom">Nom</TriColonne>
-                        <TriColonne cle="niveau">Niveau</TriColonne>
-                        <TriColonne cle="serie">Série</TriColonne>
-                        <TriColonne cle="capacite" numerique>
-                          Capacité
-                        </TriColonne>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {page.lignes.map((classe) => (
-                        // Toute la ligne mene a la fiche, pas seulement le nom :
-                        // viser un mot de quelques lettres dans une ligne de mille
-                        // pixels est une cible inutilement etroite. Un <a> ne peut
-                        // pas envelopper un <tr>, d'ou le recouvrement absolu
-                        // ancre sur la ligne rendue `relative`.
-                        <TableRow key={classe.id} className="group relative">
-                          <TableCell className="font-medium">
-                            <Link
-                              href={`/etablissement/classes/${classe.id}`}
-                              className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container"
-                            >
-                              {classe.nom}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="text-text-secondary">{classe.niveau.nom}</TableCell>
-                          <TableCell className="text-text-secondary">
-                            {classe.serie?.nom ?? '—'}
-                          </TableCell>
-                          <TableCell className="text-right text-text-secondary" data-mono>
-                            {classe.capacite ?? '—'}
-                          </TableCell>
+            <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+              <EnteteListe
+                titre="Classes"
+                compte={`${page.total} classe${page.total > 1 ? 's' : ''}`}
+              />
+
+              {page.total === 0 ? (
+                <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
+                  <School className="h-10 w-10 text-text-secondary/50" aria-hidden />
+                  <p className="text-body-md text-text-primary">Aucune classe pour cette année.</p>
+                </CardContent>
+              ) : (
+                <>
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TriColonne cle="nom">Nom</TriColonne>
+                          <TriColonne cle="niveau">Niveau</TriColonne>
+                          <TriColonne cle="serie">Série</TriColonne>
+                          <TriColonne cle="capacite" numerique>
+                            Capacité
+                          </TriColonne>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {page.lignes.map((classe) => (
+                          // Toute la ligne mene a la fiche, pas seulement le nom :
+                          // viser un mot de quelques lettres dans une ligne de mille
+                          // pixels est une cible inutilement etroite. Un <a> ne peut
+                          // pas envelopper un <tr>, d'ou le recouvrement absolu
+                          // ancre sur la ligne rendue `relative`.
+                          <TableRow key={classe.id} className="group relative">
+                            <TableCell className="font-medium">
+                              <Link
+                                href={`/etablissement/classes/${classe.id}`}
+                                className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container"
+                              >
+                                {classe.nom}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="text-text-secondary">
+                              {classe.niveau.nom}
+                            </TableCell>
+                            <TableCell className="text-text-secondary">
+                              {classe.serie?.nom ?? '—'}
+                            </TableCell>
+                            <TableCell className="text-right text-text-secondary" data-mono>
+                              {classe.capacite ?? '—'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
 
-                <CarteListeMobile>
-                  {page.lignes.map((classe) => (
-                    <LigneCarteMobile
-                      key={classe.id}
-                      href={`/etablissement/classes/${classe.id}`}
-                      icone={School}
-                      titre={classe.nom}
-                      sousTitre={
-                        classe.serie?.nom ? `${classe.niveau.nom} · ${classe.serie.nom}` : classe.niveau.nom
-                      }
-                      valeurSecondaire={classe.capacite ? `${classe.capacite} places` : undefined}
-                    />
-                  ))}
-                </CarteListeMobile>
+                  <CarteListeMobile>
+                    {page.lignes.map((classe) => (
+                      <LigneCarteMobile
+                        key={classe.id}
+                        href={`/etablissement/classes/${classe.id}`}
+                        icone={School}
+                        titre={classe.nom}
+                        sousTitre={
+                          classe.serie?.nom
+                            ? `${classe.niveau.nom} · ${classe.serie.nom}`
+                            : classe.niveau.nom
+                        }
+                        valeurSecondaire={classe.capacite ? `${classe.capacite} places` : undefined}
+                      />
+                    ))}
+                  </CarteListeMobile>
 
-                <PaginationListe
-                  page={page.page}
-                  nombrePages={page.nombrePages}
-                  debut={page.debut}
-                  fin={page.fin}
-                  total={page.total}
-                  libelle="classe(s)"
-                />
-              </>
-            )}
-          </Card>
+                  <PaginationListe
+                    page={page.page}
+                    nombrePages={page.nombrePages}
+                    debut={page.debut}
+                    fin={page.fin}
+                    total={page.total}
+                    libelle="classe(s)"
+                  />
+                </>
+              )}
+            </Card>
+          </>
         )}
       </div>
     </AppLayout>

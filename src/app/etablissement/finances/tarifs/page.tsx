@@ -12,13 +12,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe } from '@/components/ui/actions-mobile';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { TarifsFiltres } from './TarifsFiltres';
@@ -88,26 +83,36 @@ export default async function TarifsPage({
           />
         </div>
 
-        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <BarreOutilsListe className="md:justify-between">
-            <RechercheListe placeholder="Rechercher un tarif…" />
-            <FiltresMobile nombreActifs={classeId ? 1 : 0}>
-              <TarifsFiltres
-                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-                defaultAnneeScolaireId={anneeScolaireId ?? ''}
-                defaultClasseId={classeId ?? ''}
-              />
-            </FiltresMobile>
-            {canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 && (
+        <BarreListe
+          placeholderRecherche="Rechercher un tarif…"
+          filtresLibres={
+            <TarifsFiltres
+              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+              classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+              defaultAnneeScolaireId={anneeScolaireId ?? ''}
+              defaultClasseId={classeId ?? ''}
+            />
+          }
+          nombreFiltresLibresActifs={classeId ? 1 : 0}
+          tri={[
+            { cle: 'classe', libelle: 'Classe' },
+            { cle: 'type', libelle: 'Type de frais' },
+            { cle: 'montant', libelle: 'Montant' },
+            { cle: 'date', libelle: 'Date de création' },
+          ]}
+          actions={
+            canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 ? (
               <TarifForm
                 anneeScolaireId={anneeScolaireId}
                 classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
                 typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
                 defaultClasseId={classeId ?? ''}
               />
-            )}
-          </BarreOutilsListe>
+            ) : null
+          }
+        />
+
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
 
           <EnteteListe titre="Tarifs" compte={`${page.total} tarif${page.total > 1 ? 's' : ''}`} />
 

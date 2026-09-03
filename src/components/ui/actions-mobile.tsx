@@ -60,6 +60,12 @@ export function BoutonOutilPrincipal({ href, libelle, icone: Icone }: ActionMobi
  * elle reprend la disposition existante (recherche et filtres alignés à
  * gauche) ; sous `md` elle devient la ligne compacte de la maquette.
  */
+/**
+ * Remplace par `BarreListe` (`src/components/ui/barre-liste.tsx`), qui porte
+ * desormais l'en-tete commune des listes : recherche, filtres, tri, actions.
+ * Conserve tant que des branches en cours l'importent — les supprimer ferait
+ * echouer leur merge, pas la compilation de celle-ci.
+ */
 export function BarreOutilsListe({
   className,
   ...props

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LifeBuoy } from 'lucide-react';
+import { Headset } from 'lucide-react';
 
 /**
  * Accès flottant au support, en bas à droite.
@@ -33,22 +33,35 @@ export function BulleSupport({ role }: { role?: string }) {
   const href = `/profil/support?depuis=${encodeURIComponent(pathname)}`;
 
   return (
-    <Link
-      href={href}
-      aria-label="Contacter le support"
-      title="Contacter le support"
-      className="group fixed bottom-6 right-6 z-30 hidden items-center gap-2 rounded-full bg-primary-container py-3 pl-4 pr-4 text-white shadow-floating transition-[padding,background-color] hover:bg-primary md:flex"
-    >
-      <LifeBuoy className="h-5 w-5 shrink-0" aria-hidden />
+    <div className="fixed bottom-6 right-6 z-30 hidden md:block">
       {/*
-        Le libellé n'apparaît qu'au survol : une bulle muette laisse douter de
-        ce qu'elle fait, une bulle bavarde encombre en permanence un coin qui
-        ne doit pas voler l'attention. La transition porte sur la largeur, pas
-        sur l'opacité, pour que rien ne clignote au passage de la souris.
+        Bouton rond plein plutôt que la pilule discrète d'avant : à cette
+        taille et avec un casque d'assistance, il se lit sans avoir à le
+        survoler. L'ancienne version reposait sur un libellé qui n'apparaissait
+        qu'au survol — donc sur le fait de survoler par hasard un objet dont
+        rien ne disait ce qu'il faisait.
       */}
-      <span className="max-w-0 overflow-hidden whitespace-nowrap text-body-sm font-medium opacity-0 transition-[max-width,opacity] duration-200 group-hover:max-w-[10rem] group-hover:opacity-100">
-        Contacter le support
-      </span>
-    </Link>
+      <Link
+        href={href}
+        aria-label="Contacter le support"
+        className="group relative grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-primary-container to-primary text-white shadow-[0_10px_28px_-6px_rgba(0,61,155,0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-8px_rgba(0,61,155,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/50 focus-visible:ring-offset-2 active:scale-95"
+      >
+        {/* Halo qui bat lentement : attire l'œil une fois, sans clignoter. */}
+        <span
+          aria-hidden
+          className="animate-ring-pulse absolute inset-0 rounded-full bg-primary-container"
+        />
+        <Headset className="relative h-6 w-6" aria-hidden />
+
+        {/*
+          Le libellé reste au survol, mais il n'est plus le seul indice : c'est
+          une confirmation, pas la découverte. Transition sur la largeur, pas
+          sur l'opacité, pour que rien ne clignote au passage de la souris.
+        */}
+        <span className="pointer-events-none absolute right-full mr-3 max-w-0 overflow-hidden whitespace-nowrap rounded-full bg-text-primary px-0 py-2 text-body-sm font-medium text-white opacity-0 shadow-floating transition-[max-width,opacity,padding] duration-200 group-hover:max-w-[12rem] group-hover:px-3.5 group-hover:opacity-100">
+          Contacter le support
+        </span>
+      </Link>
+    </div>
   );
 }

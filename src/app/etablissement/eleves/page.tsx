@@ -14,14 +14,9 @@ import {
   LigneCarteMobile,
   type TonStatut,
 } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe, BoutonFlottant, BoutonOutilPrincipal } from '@/components/ui/actions-mobile';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  FiltreListe,
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BoutonFlottant, BoutonOutilPrincipal } from '@/components/ui/actions-mobile';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { bornesPage, lireParametresListe, paginationDepuisBase } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 
@@ -110,26 +105,32 @@ export default async function ElevesPage({
           />
         </div>
 
-        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <BarreOutilsListe>
-            <RechercheListe placeholder="Nom, prénoms ou matricule…" />
-            <FiltresMobile nombreActifs={lireUnique('statut') ? 1 : 0}>
-              <FiltreListe
-                parametre="statut"
-                libelle="Statut"
-                options={OPTIONS_STATUT}
-                libelleTout="Tous les statuts"
-              />
-            </FiltresMobile>
-            {canWrite && (
+        <BarreListe
+          placeholderRecherche="Nom, prénoms ou matricule…"
+          filtres={[
+            {
+              parametre: 'statut',
+              libelle: 'Statut',
+              options: OPTIONS_STATUT,
+              libelleTout: 'Tous les statuts',
+            },
+          ]}
+          tri={[
+            { cle: 'nom', libelle: 'Nom et prénoms' },
+            { cle: 'statut', libelle: 'Statut' },
+          ]}
+          actions={
+            canWrite && (
               <BoutonOutilPrincipal
                 href="/etablissement/eleves/import"
                 libelle="Import Excel"
                 icone={FileSpreadsheet}
               />
-            )}
-          </BarreOutilsListe>
+            )
+          }
+        />
 
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <EnteteListe
             titre="Liste des élèves"
             compte={`${page.total} élève${page.total > 1 ? 's' : ''}`}

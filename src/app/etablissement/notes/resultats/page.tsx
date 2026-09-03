@@ -11,12 +11,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { ResultatsFiltres } from './ResultatsFiltres';
@@ -87,19 +83,22 @@ export default async function ResultatsPage({
         </div>
         <h1 className="text-display-sm text-text-primary md:hidden">Moyennes &amp; classement</h1>
 
+        <BarreListe
+          placeholderRecherche="Rechercher un élève…"
+          filtresLibres={
+            <ResultatsFiltres
+              annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
+              classes={classeOptions}
+              defaultAnneeScolaireId={anneeScolaireId ?? ''}
+              defaultClasseId={classeId ?? ''}
+              defaultPeriode={periode}
+            />
+          }
+          nombreFiltresLibresActifs={classeId ? 1 : 0}
+          className="mb-4 md:mb-6"
+        />
+
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-3 md:gap-4 md:p-4">
-            <FiltresMobile>
-              <ResultatsFiltres
-                annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-                classes={classeOptions}
-                defaultAnneeScolaireId={anneeScolaireId ?? ''}
-                defaultClasseId={classeId ?? ''}
-                defaultPeriode={periode}
-              />
-            </FiltresMobile>
-            <RechercheListe placeholder="Rechercher un élève…" />
-          </div>
 
           {!anneeScolaireId || !classeId ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">

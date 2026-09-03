@@ -2,42 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  BookOpenCheck,
-  CircleHelp,
-  LifeBuoy,
-  CreditCard,
-  GraduationCap,
-  LayoutDashboard,
-  Presentation,
-  Settings,
-  ShieldCheck,
-  Users,
-  UsersRound,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react';
+import { GraduationCap, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ITEMS_BAS_SIDEBAR, type NomIcone, type SidebarItem } from '@/lib/navigation';
+import { ITEMS_BAS_SIDEBAR, type SidebarItem } from '@/lib/navigation';
 import { useSidebarCollapse } from './sidebar-collapse';
+import { ICONES } from './icones-navigation';
+
+// Reexport : `BottomNav` importe la table depuis ce module de longue date.
+export { ICONES };
 
 export type { SidebarItem };
 
-export const ICONES: Record<NomIcone, LucideIcon> = {
-  'tableau-de-bord': LayoutDashboard,
-  eleves: GraduationCap,
-  enseignants: UsersRound,
-  notes: BookOpenCheck,
-  finances: Wallet,
-  etablissement: ShieldCheck,
-  rapports: Presentation,
-  'mes-classes': Users,
-  abonnements: CreditCard,
-  utilisateurs: Users,
-  parametres: Settings,
-  aide: CircleHelp,
-  support: LifeBuoy,
-};
 
 function LienSidebar({
   item,
@@ -96,7 +71,16 @@ export function Sidebar({ items }: { items: SidebarItem[] }) {
         replie ? 'w-sidebar-rail' : 'w-sidebar',
       )}
     >
-      {/* Le logo est le bouton de bascule : un clic replie/déplie la sidebar. */}
+      {/*
+        Le logo est le bouton de bascule. Rien ne le disait : l'affordance
+        reposait sur le seul `title`, qui n'apparait qu'apres une seconde de
+        survol et jamais au tactile. Une icone de panneau l'annonce desormais.
+
+        Depliee, elle se pose a droite du nom. Repliee, il n'y a pas la place :
+        c'est le logo lui-meme qui se change en icone au survol — deux calques
+        en opacite croisee plutot qu'un rendu conditionnel, pour que rien ne
+        saute pendant la transition de largeur.
+      */}
       <button
         type="button"
         onClick={basculer}
@@ -104,14 +88,34 @@ export function Sidebar({ items }: { items: SidebarItem[] }) {
         aria-pressed={replie}
         title={replie ? 'Déplier le menu' : 'Replier le menu'}
         className={cn(
-          'flex h-header items-center gap-2 border-b border-surface-border transition-colors hover:bg-surface-container-high',
+          'group flex h-header items-center gap-2 border-b border-surface-border transition-colors hover:bg-surface-container-high',
           replie ? 'justify-center px-0' : 'px-6',
         )}
       >
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary-container text-white">
-          <GraduationCap className="h-5 w-5" aria-hidden />
+        <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary-container text-white">
+          <GraduationCap
+            className={cn(
+              'h-5 w-5 transition-opacity duration-200',
+              replie && 'group-hover:opacity-0',
+            )}
+            aria-hidden
+          />
+          {replie && (
+            <PanelLeftOpen
+              className="absolute h-[18px] w-[18px] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              aria-hidden
+            />
+          )}
         </span>
-        {!replie && <span className="text-headline-md text-text-primary">ScolarGest</span>}
+        {!replie && (
+          <>
+            <span className="text-headline-md text-text-primary">ScolarGest</span>
+            <PanelLeftClose
+              className="ml-auto h-[18px] w-[18px] shrink-0 text-text-secondary/60 transition-colors duration-200 group-hover:text-primary-container"
+              aria-hidden
+            />
+          </>
+        )}
       </button>
 
       <nav className="flex-1 overflow-y-auto py-4">

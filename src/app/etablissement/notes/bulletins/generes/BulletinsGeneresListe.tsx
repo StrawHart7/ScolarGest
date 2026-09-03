@@ -13,6 +13,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { RechercheLocale } from '@/components/ui/liste-toolbar';
 import { telechargerBulletinAction } from './actions';
 import { TelechargerTout } from './TelechargerTout';
 
@@ -50,6 +51,17 @@ export function BulletinsGeneresListe({
 }) {
   const [enCours, setEnCours] = useState<string | null>(null);
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
+  // Meme raison que sur l'ecran de generation : la classe est deja en memoire,
+  // le filtrage est local.
+  const [recherche, setRecherche] = useState('');
+  const terme = recherche.trim().toLowerCase();
+  const lignesFiltrees = terme
+    ? lignes.filter((ligne) =>
+        `${ligne.nom} ${ligne.prenoms} ${ligne.matricule} ${ligne.courant?.reference ?? ''}`
+          .toLowerCase()
+          .includes(terme),
+      )
+    : lignes;
 
   function telecharger(documentId: string) {
     setEnCours(documentId);
@@ -106,9 +118,18 @@ export function BulletinsGeneresListe({
   return (
     <div>
       <div className="flex flex-col gap-3 border-b border-surface-border px-1 py-3 md:flex-row md:items-center md:justify-between md:p-4">
-        <p className="text-body-sm text-text-secondary">
-          {prets} bulletin(s) prêt(s) sur {lignes.length} élève(s) inscrit(s)
-        </p>
+        <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4">
+          <RechercheLocale
+            valeur={recherche}
+            onChange={setRecherche}
+            placeholder="Nom, matricule ou référence…"
+          />
+          <p className="text-body-sm text-text-secondary">
+            {terme
+              ? `${lignesFiltrees.length} sur ${lignes.length} élève(s)`
+              : `${prets} bulletin(s) prêt(s) sur ${lignes.length} élève(s) inscrit(s)`}
+          </p>
+        </div>
         <TelechargerTout
           classeId={classeId}
           periode={periode}
@@ -131,7 +152,7 @@ export function BulletinsGeneresListe({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lignes.map((ligne) => (
+            {lignesFiltrees.map((ligne) => (
               <TableRow key={ligne.eleveId}>
                 <TableCell data-mono>{ligne.matricule}</TableCell>
                 <TableCell className="font-medium">
@@ -190,7 +211,7 @@ export function BulletinsGeneresListe({
       </div>
 
       <CarteListeMobile>
-        {lignes.map((ligne) => (
+        {lignesFiltrees.map((ligne) => (
           <LigneCarteMobile
             key={ligne.eleveId}
             icone={GraduationCap}
