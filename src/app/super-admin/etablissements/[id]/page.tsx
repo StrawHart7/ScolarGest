@@ -5,6 +5,7 @@ import { getEtablissement } from '@/services/etablissement';
 import { listAbonnementsParEtablissement } from '@/services/abonnement';
 import { listUtilisateursParEtablissement } from '@/services/utilisateur';
 import { getFicheEtablissement, type EtatEcole } from '@/services/plateforme';
+import { PanneauFacturation } from './PanneauFacturation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -138,6 +139,22 @@ export default async function EtablissementDetailPage({ params }: { params: { id
                 </dd>
               </div>
             </dl>
+          </CardContent>
+        </Card>
+
+        {/* Gestes commerciaux. Places apres l'usage, deliberement : on decide
+            de prolonger ou de suspendre au vu de ce que l'ecole fait du
+            produit, pas avant de l'avoir regarde. */}
+        <Card className="overflow-hidden rounded-xl">
+          <CardHeader className="border-b border-surface-border bg-surface-container-low/50 p-5">
+            <CardTitle>Abonnement et acces</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            <PanneauFacturation
+              etablissementId={params.id}
+              essaiDemarre={fiche.essaiDebuteLe !== null}
+              suspension={fiche.suspension}
+            />
           </CardContent>
         </Card>
 

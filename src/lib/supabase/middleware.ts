@@ -156,7 +156,11 @@ async function gardeAbonnement(
   // sont rares et sont le vrai enjeu du verrou, relisent toujours la base.
   if (!ecriture) {
     const cache = request.cookies.get(COOKIE_ACCES)?.value;
-    if (cache === 'OK' || cache === 'LECTURE_SEULE') return RIEN;
+    // Seule la suspension change la destination d'une lecture ; tous les
+    // autres niveaux la laissent passer, y compris AVANT_ESSAI et
+    // LECTURE_SEULE — c'est le principe : on ne prend pas les données de
+    // l'école en otage.
+    if (cache && cache !== 'BLOQUE') return RIEN;
     if (cache === 'BLOQUE') {
       return { reponse: NextResponse.redirect(new URL('/abonnement', request.url)), acces: null };
     }
@@ -177,16 +181,53 @@ async function gardeAbonnement(
       .maybeSingle(),
     supabase
       .from('etablissement')
-      .select('"essaiFinLe"')
+      .select('"essaiDebuteLe", "essaiFinLe", "suspenduLe", "motifSuspension"')
       .eq('id', meta.etablissement_id)
       .maybeSingle(),
   ]);
 
+  const ligneEtab = etab as {
+    essaiDebuteLe: string | null;
+    essaiFinLe: string | null;
+    suspenduLe: string | null;
+    motifSuspension: string | null;
+  } | null;
+
   const acces = evaluerAcces({
     abonnement:
       (data as { statut: 'ACTIF' | 'EXPIRE' | 'SUSPENDU'; dateFin: string } | null) ?? null,
-    essaiFinLe: (etab as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null,
+    essaiFinLe: ligneEtab?.essaiFinLe ?? null,
+    essaiDebuteLe: ligneEtab?.essaiDebuteLe ?? null,
+    suspension: ligneEtab?.suspenduLe
+      ? { le: ligneEtab.suspenduLe, motif: ligneEtab.motifSuspension ?? 'Motif non précisé.' }
+      : null,
   });
+
+  // Sortie du blocage circulaire de l'essai.
+  //
+  // L'essai démarre à la définition du code de confirmation, première étape de
+  // `/demarrage`. Mais c'est une écriture, et une école sans essai ni
+  // abonnement se la voyait refuser ici même : l'essai ne pouvait donc jamais
+  // démarrer, et toute école neuve naissait en lecture seule. C'est exactement
+  // pourquoi `seed-onboarding-test.ts` doit fabriquer un abonnement ACTIF.
+  //
+  // L'exception est **conditionnelle**, et pas une entrée de plus dans
+  // `PATHS_TOUJOURS_ACCESSIBLES` : ouvrir `/demarrage` en grand laisserait une
+  // école expirée continuer d'y créer cycles, années et classes. Elle se
+  // referme d'elle-même à la seconde où le code est posé, puisque l'essai
+  // démarre alors.
+  // Mêmes deux conditions que le niveau AVANT_ESSAI : aucune trace d'essai, ni
+  // début ni fin. Ne tester que le début rouvrirait /demarrage en écriture à
+  // une école dont l'essai est échu.
+  const enConfiguration = !ligneEtab?.essaiDebuteLe && !ligneEtab?.essaiFinLe && !data;
+  if (
+    ecriture &&
+    enConfiguration &&
+    !acces.motifSuspension &&
+    (pathname === '/demarrage' || pathname.startsWith('/demarrage/'))
+  ) {
+    return RIEN;
+  }
 
   if (!ecriture) aMemoriser = acces.niveau;
 

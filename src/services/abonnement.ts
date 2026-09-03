@@ -2,7 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { getTenantContext } from './tenant';
 import { auditLog } from './audit';
-import { evaluerAcces, ecritureAutorisee, type AccesAbonnement } from './abonnement-acces';
+import {
+  evaluerAcces,
+  ecritureAutorisee,
+  debutProchainePeriode,
+  finDePeriode,
+  type AccesAbonnement,
+  type EtatFacturation,
+} from './abonnement-acces';
 import { memoiserParRequete } from '@/lib/memo';
 
 export type StatutAbonnement = 'ACTIF' | 'EXPIRE' | 'SUSPENDU';
@@ -26,18 +33,38 @@ export interface Abonnement {
   plan: { nom: string; prix: number; duree: string };
 }
 
-export interface CreateAbonnementInput {
+export type ModePaiement = 'ESPECES' | 'CHEQUE' | 'VIREMENT' | 'MOBILE_MONEY' | 'AUTRE';
+
+/**
+ * Ouverture d'une période d'abonnement par la plateforme.
+ *
+ * Remplace l'ancien trio `createAbonnement` / `renouvelerAbonnement` /
+ * `validerPaiement`. Le motif du regroupement : `renouvelerAbonnement` créait
+ * la période en `SUSPENDU` en attendant le règlement, or `SUSPENDU` fermait
+ * l'accès — préparer l'échéance suivante d'une école parfaitement à jour la
+ * mettait donc dehors. La règle est désormais qu'**une ligne d'abonnement
+ * n'existe que si elle est acquise**, exactement comme le fait déjà le webhook
+ * FedaPay.
+ *
+ * `reglement` est facultatif : une période offerte (geste commercial, école
+ * pilote) n'a pas de versement à consigner, mais son `montantTotal` vaut alors
+ * zéro — c'est bien ce que l'école a payé, et le revenu de la console reste
+ * juste.
+ */
+export interface OuvrirPeriodeInput {
   etablissementId: string;
   planId: string;
-  dateDebut: string;
-  dateFin: string;
-}
-
-export interface ValiderPaiementInput {
-  abonnementId: string;
-  montant: number;
-  modePaiement: 'ESPECES' | 'CHEQUE' | 'VIREMENT' | 'MOBILE_MONEY' | 'AUTRE';
-  reference?: string;
+  nombreCycles: number;
+  montantTotal: number;
+  /** Défaut : enchaîne sur l'essai et la période en cours. */
+  dateDebut?: string;
+  reglement?: {
+    montant: number;
+    modePaiement: ModePaiement;
+    reference?: string;
+  } | null;
+  /** Consigné dans le journal d'audit. Obligatoire pour une période offerte. */
+  motif?: string;
 }
 
 /**
@@ -82,16 +109,77 @@ export async function listAbonnementsParEtablissement(etablissementId: string): 
   return (data ?? []) as unknown as Abonnement[];
 }
 
-export async function createAbonnement(input: CreateAbonnementInput): Promise<Abonnement> {
+/**
+ * Ouvre une période d'abonnement acquise, et consigne son règlement.
+ *
+ * Le montant et le nombre de cycles sont **obligatoires**. L'ancienne
+ * `createAbonnement` les omettait, et la base en porte la trace : deux
+ * abonnements à `montantTotal` nul et un à 250 000 F qui ne correspond à
+ * aucune ligne du catalogue. Le revenu de la console plateforme se lit sur
+ * cette colonne — un NULL n'y est pas une donnée manquante, c'est un chiffre
+ * d'affaires faux. La migration `0026` la passe en NOT NULL.
+ *
+ * La date de début, si elle n'est pas imposée, enchaîne sur l'essai et sur la
+ * période en cours : voir `debutProchainePeriode`.
+ */
+export async function ouvrirPeriode(input: OuvrirPeriodeInput): Promise<Abonnement> {
   await requireRole();
   const supabase = createClient();
+
+  if (input.nombreCycles < 1) {
+    throw new Error('Le nombre de cycles facturés doit être au moins de 1.');
+  }
+  if (input.montantTotal < 0) {
+    throw new Error('Le montant facturé ne peut pas être négatif.');
+  }
+  if (input.montantTotal === 0 && !input.motif?.trim()) {
+    // Une période gratuite est un geste commercial : sans motif, personne ne
+    // saura dans six mois pourquoi cette école n'a rien payé.
+    throw new Error('Une période offerte exige un motif.');
+  }
+
+  const { data: plan, error: erreurPlan } = await supabase
+    .from('plan_abonnement')
+    .select('duree')
+    .eq('id', input.planId)
+    .single();
+  if (erreurPlan) throw erreurPlan;
+
+  let debut: Date;
+  if (input.dateDebut) {
+    debut = new Date(input.dateDebut);
+  } else {
+    const [{ data: courant }, { data: etab }] = await Promise.all([
+      supabase
+        .from('abonnement_etablissement')
+        .select('"dateFin"')
+        .eq('etablissementId', input.etablissementId)
+        .order('dateFin', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('etablissement')
+        .select('"essaiFinLe"')
+        .eq('id', input.etablissementId)
+        .maybeSingle(),
+    ]);
+    debut = debutProchainePeriode(
+      (etab as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null,
+      (courant as { dateFin: string } | null)?.dateFin ?? null,
+    );
+  }
+  const fin = finDePeriode(debut, (plan as { duree: 'MOIS' | 'AN' }).duree);
+
   const { data, error } = await supabase
     .from('abonnement_etablissement')
     .insert({
       etablissementId: input.etablissementId,
       planId: input.planId,
-      dateDebut: input.dateDebut,
-      dateFin: input.dateFin,
+      dateDebut: debut.toISOString(),
+      dateFin: fin.toISOString(),
+      statut: 'ACTIF',
+      nombreCycles: input.nombreCycles,
+      montantTotal: input.montantTotal,
     })
     .select(
       'id, "etablissementId", "planId", "dateDebut", "dateFin", statut, "createdAt", etablissement:etablissement(nom), plan:plan_abonnement(nom, prix, duree)',
@@ -99,38 +187,61 @@ export async function createAbonnement(input: CreateAbonnementInput): Promise<Ab
     .single();
   if (error) throw error;
 
+  const abonnementId = (data as { id: string }).id;
+
+  if (input.reglement) {
+    const { error: erreurReglement } = await supabase.from('paiement_abonnement').insert({
+      abonnementId,
+      montant: input.reglement.montant,
+      modePaiement: input.reglement.modePaiement,
+      reference: input.reglement.reference || null,
+    });
+    if (erreurReglement) throw erreurReglement;
+  }
+
   await auditLog({
-    action: 'CREATE_ABONNEMENT',
+    action: input.montantTotal === 0 ? 'OFFRIR_PERIODE' : 'OUVRIR_PERIODE_ABONNEMENT',
     module: 'saas',
     objetType: 'AbonnementEtablissement',
-    objetId: data.id,
-    nouvelleValeur: { etablissementId: input.etablissementId, planId: input.planId },
+    objetId: abonnementId,
+    nouvelleValeur: {
+      etablissementId: input.etablissementId,
+      planId: input.planId,
+      nombreCycles: input.nombreCycles,
+      montantTotal: input.montantTotal,
+      dateDebut: debut.toISOString(),
+      dateFin: fin.toISOString(),
+      motif: input.motif ?? null,
+      reglement: input.reglement?.modePaiement ?? null,
+    },
   });
 
   return data as unknown as Abonnement;
 }
 
 /**
- * Records a manual payment (wire/mobile money confirmed off-platform) and
- * brings the subscription back to ACTIF. No online payment integration in v1.
+ * Enregistre un versement sur une période déjà ouverte.
+ *
+ * Ne touche plus au statut : une période n'existe que si elle est acquise, un
+ * versement ne « réactive » donc rien. Sert aux règlements échelonnés et aux
+ * régularisations.
  */
-export async function validerPaiement(input: ValiderPaiementInput): Promise<void> {
+export async function enregistrerReglement(input: {
+  abonnementId: string;
+  montant: number;
+  modePaiement: ModePaiement;
+  reference?: string;
+}): Promise<void> {
   await requireRole();
   const supabase = createClient();
 
-  const { error: paiementError } = await supabase.from('paiement_abonnement').insert({
+  const { error } = await supabase.from('paiement_abonnement').insert({
     abonnementId: input.abonnementId,
     montant: input.montant,
     modePaiement: input.modePaiement,
     reference: input.reference || null,
   });
-  if (paiementError) throw paiementError;
-
-  const { error: statutError } = await supabase
-    .from('abonnement_etablissement')
-    .update({ statut: 'ACTIF' })
-    .eq('id', input.abonnementId);
-  if (statutError) throw statutError;
+  if (error) throw error;
 
   await auditLog({
     action: 'VALIDER_PAIEMENT_ABONNEMENT',
@@ -141,21 +252,139 @@ export async function validerPaiement(input: ValiderPaiementInput): Promise<void
   });
 }
 
-export async function suspendreAbonnement(abonnementId: string): Promise<void> {
+// ------------------------------------------------------------------
+// Suspension : une décision qui vise l'école, pas une période
+// ------------------------------------------------------------------
+
+/**
+ * Suspend un établissement, motif obligatoire.
+ *
+ * Le motif n'est pas une formalité de journal : il est **affiché au Directeur
+ * et à la Secrétaire**. Une école coupée sans explication appelle le support
+ * pour demander pourquoi ; celle qui lit le motif appelle pour le résoudre.
+ * La contrainte `etablissement_motif_suspension_requis` (migration `0026`) le
+ * rend impossible à omettre, y compris par un appel direct à PostgREST.
+ *
+ * La suspension porte sur l'établissement depuis `0026`. Sur l'abonnement,
+ * elle s'effaçait toute seule : l'abonnement courant étant celui dont la
+ * `dateFin` est la plus lointaine, une nouvelle période rendait l'école
+ * active. Une sanction qu'un paiement suffit à lever n'en est pas une.
+ */
+export async function suspendreEtablissement(
+  etablissementId: string,
+  motif: string,
+): Promise<void> {
   await requireRole();
   const supabase = createClient();
+
+  const propre = motif.trim();
+  if (propre.length < 10) {
+    throw new Error('Le motif de suspension doit être explicite (10 caractères minimum).');
+  }
+
   const { error } = await supabase
-    .from('abonnement_etablissement')
-    .update({ statut: 'SUSPENDU' })
-    .eq('id', abonnementId);
+    .from('etablissement')
+    .update({ suspenduLe: new Date().toISOString(), motifSuspension: propre })
+    .eq('id', etablissementId);
   if (error) throw error;
 
   await auditLog({
-    action: 'SUSPENDRE_ABONNEMENT',
+    action: 'SUSPENDRE_ETABLISSEMENT',
     module: 'saas',
-    objetType: 'AbonnementEtablissement',
-    objetId: abonnementId,
+    objetType: 'Etablissement',
+    objetId: etablissementId,
+    nouvelleValeur: { motif: propre },
   });
+}
+
+/** Lève une suspension. L'abonnement retrouve son effet naturel. */
+export async function leverSuspension(etablissementId: string): Promise<void> {
+  await requireRole();
+  const supabase = createClient();
+
+  const { data: avant } = await supabase
+    .from('etablissement')
+    .select('"motifSuspension"')
+    .eq('id', etablissementId)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from('etablissement')
+    .update({ suspenduLe: null, motifSuspension: null })
+    .eq('id', etablissementId);
+  if (error) throw error;
+
+  await auditLog({
+    action: 'LEVER_SUSPENSION',
+    module: 'saas',
+    objetType: 'Etablissement',
+    objetId: etablissementId,
+    ancienneValeur: {
+      motif: (avant as { motifSuspension: string | null } | null)?.motifSuspension ?? null,
+    },
+  });
+}
+
+/**
+ * Prolonge l'essai gratuit d'un établissement.
+ *
+ * Geste commercial courant — une école qui découvre le produit en pleine
+ * rentrée n'a matériellement pas le temps de l'évaluer en trente jours. Le
+ * trigger `fn_proteger_facturation` refuse cette écriture à tout le monde sauf
+ * au SUPER_ADMIN et à la clé de service : l'école ne peut pas se prolonger
+ * elle-même.
+ *
+ * Le motif est consigné, pas affiché : une prolongation est une bonne
+ * nouvelle, elle n'a pas à être justifiée auprès de son bénéficiaire.
+ */
+export async function prolongerEssai(
+  etablissementId: string,
+  jours: number,
+  motif: string,
+): Promise<string> {
+  await requireRole();
+  if (!Number.isInteger(jours) || jours < 1 || jours > 180) {
+    throw new Error('La prolongation doit être comprise entre 1 et 180 jours.');
+  }
+  if (motif.trim().length < 5) {
+    throw new Error('Indiquez le motif de la prolongation.');
+  }
+
+  const supabase = createClient();
+  const { data: etab, error: erreurLecture } = await supabase
+    .from('etablissement')
+    .select('"essaiDebuteLe", "essaiFinLe"')
+    .eq('id', etablissementId)
+    .single();
+  if (erreurLecture) throw erreurLecture;
+
+  const ligne = etab as { essaiDebuteLe: string | null; essaiFinLe: string | null };
+  if (!ligne.essaiDebuteLe) {
+    throw new Error("L'essai de cet établissement n'a pas encore démarré : rien à prolonger.");
+  }
+
+  // Repart d'aujourd'hui si l'essai est déjà échu : prolonger de sept jours un
+  // essai terminé depuis un mois ne rouvrirait rien.
+  const base = new Date(ligne.essaiFinLe ?? Date.now());
+  const depart = base.getTime() > Date.now() ? base : new Date();
+  const nouvelleFin = new Date(depart.getTime() + jours * 24 * 60 * 60 * 1000);
+
+  const { error } = await supabase
+    .from('etablissement')
+    .update({ essaiFinLe: nouvelleFin.toISOString() })
+    .eq('id', etablissementId);
+  if (error) throw error;
+
+  await auditLog({
+    action: 'PROLONGER_ESSAI',
+    module: 'saas',
+    objetType: 'Etablissement',
+    objetId: etablissementId,
+    ancienneValeur: { essaiFinLe: ligne.essaiFinLe },
+    nouvelleValeur: { essaiFinLe: nouvelleFin.toISOString(), jours, motif: motif.trim() },
+  });
+
+  return nouvelleFin.toISOString();
 }
 
 // ------------------------------------------------------------------
@@ -184,79 +413,6 @@ export async function expirerAbonnementsEchus(): Promise<number> {
   const { data, error } = await supabase.rpc('fn_expirer_abonnements');
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
-}
-
-/**
- * Ouvre la période suivante. Le nouvel abonnement naît SUSPENDU : l'accès
- * n'est rétabli qu'une fois le paiement constaté (`validerPaiement`), ce qui
- * évite d'offrir une période à une école qui n'a pas encore réglé.
- */
-export async function renouvelerAbonnement(
-  abonnementId: string,
-  planId: string,
-): Promise<{ abonnementId: string; dateDebut: string; dateFin: string }> {
-  await requireRole();
-  const supabase = createClient();
-
-  const { data, error } = await supabase.rpc('fn_renouveler_abonnement', {
-    p_abonnement_id: abonnementId,
-    p_plan_id: planId,
-  });
-  if (error) throw new Error(error.message);
-
-  const resultat = data as { abonnementId: string; dateDebut: string; dateFin: string };
-
-  await auditLog({
-    action: 'RENOUVELER_ABONNEMENT',
-    module: 'saas',
-    objetType: 'AbonnementEtablissement',
-    objetId: resultat.abonnementId,
-    ancienneValeur: { abonnementPrecedentId: abonnementId },
-    nouvelleValeur: { planId, dateDebut: resultat.dateDebut, dateFin: resultat.dateFin },
-  });
-
-  return resultat;
-}
-
-/**
- * Lève une suspension. Refusé si l'échéance est déjà passée : réactiver un
- * abonnement échu rouvrirait l'accès sans contrepartie — il faut le
- * renouveler puis valider le paiement.
- */
-export async function reactiverAbonnement(abonnementId: string): Promise<void> {
-  await requireRole();
-  const supabase = createClient();
-
-  const { data: abonnement, error: lectureError } = await supabase
-    .from('abonnement_etablissement')
-    .select('id, statut, "dateFin"')
-    .eq('id', abonnementId)
-    .single();
-  if (lectureError) throw lectureError;
-
-  if (abonnement.statut !== 'SUSPENDU') {
-    throw new Error("Cet abonnement n'est pas suspendu.");
-  }
-  if (new Date(abonnement.dateFin as string) < new Date()) {
-    throw new Error(
-      'Cet abonnement est échu : renouvelez-le et validez le paiement plutôt que de le réactiver.',
-    );
-  }
-
-  const { error } = await supabase
-    .from('abonnement_etablissement')
-    .update({ statut: 'ACTIF' })
-    .eq('id', abonnementId);
-  if (error) throw error;
-
-  await auditLog({
-    action: 'REACTIVER_ABONNEMENT',
-    module: 'saas',
-    objetType: 'AbonnementEtablissement',
-    objetId: abonnementId,
-    ancienneValeur: { statut: 'SUSPENDU' },
-    nouvelleValeur: { statut: 'ACTIF' },
-  });
 }
 
 /**
@@ -314,24 +470,70 @@ export async function getAbonnementCourant(
 }
 
 /**
- * Fenêtre d'essai gratuit de l'établissement courant.
+ * Facturation portée par l'établissement lui-même : fenêtre d'essai et
+ * suspension.
  *
- * Portée par `etablissement` et non par `abonnement_etablissement` : un essai
- * n'est pas une vente, et `planId` y est NOT NULL (voir la migration `0015`).
+ * Une seule lecture pour les trois colonnes. Elles se consultent toujours
+ * ensemble — `evaluerAcces` en a besoin simultanément — et trois allers-retours
+ * là où un suffit se paient sur chaque navigation.
+ *
+ * L'essai est porté par `etablissement` et non par `abonnement_etablissement` :
+ * un essai n'est pas une vente, et `planId` y est NOT NULL (migration `0015`).
+ * La suspension l'a rejoint en `0026`, pour ne pas s'effacer au renouvellement.
  */
-export async function getEssaiFinLe(etablissementId: string): Promise<string | null> {
+export interface EtatEtablissement {
+  essaiDebuteLe: string | null;
+  essaiFinLe: string | null;
+  suspension: { le: string; motif: string } | null;
+}
+
+export async function getEtatEtablissement(
+  etablissementId: string,
+): Promise<EtatEtablissement> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   if (ctx.role !== 'SUPER_ADMIN' && etablissementId !== ctx.etablissementId) {
-    throw new Error("Accès refusé : établissement différent du contexte.");
+    throw new Error('Accès refusé : établissement différent du contexte.');
   }
   const supabase = createClient();
   const { data, error } = await supabase
     .from('etablissement')
-    .select('"essaiFinLe"')
+    .select('"essaiDebuteLe", "essaiFinLe", "suspenduLe", "motifSuspension"')
     .eq('id', etablissementId)
     .maybeSingle();
   if (error) throw error;
-  return (data as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null;
+
+  const ligne = data as {
+    essaiDebuteLe: string | null;
+    essaiFinLe: string | null;
+    suspenduLe: string | null;
+    motifSuspension: string | null;
+  } | null;
+
+  return {
+    essaiDebuteLe: ligne?.essaiDebuteLe ?? null,
+    essaiFinLe: ligne?.essaiFinLe ?? null,
+    // Le motif est obligatoire en base dès que `suspenduLe` est posé : le repli
+    // ne couvre qu'une ligne écrite avant la contrainte.
+    suspension: ligne?.suspenduLe
+      ? { le: ligne.suspenduLe, motif: ligne.motifSuspension ?? 'Motif non précisé.' }
+      : null,
+  };
+}
+
+/**
+ * État de facturation complet d'un établissement, prêt pour `evaluerAcces`.
+ */
+export async function getEtatFacturation(etablissementId: string): Promise<EtatFacturation> {
+  const [abonnement, etat] = await Promise.all([
+    getAbonnementCourant(etablissementId),
+    getEtatEtablissement(etablissementId),
+  ]);
+  return {
+    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
+    essaiFinLe: etat.essaiFinLe,
+    essaiDebuteLe: etat.essaiDebuteLe,
+    suspension: etat.suspension,
+  };
 }
 
 /**
@@ -383,14 +585,7 @@ export const getAccesAbonnementCourant = memoiserParRequete(async function getAc
   if (ctx.role === 'SUPER_ADMIN') {
     return { niveau: 'OK', statut: 'ACTIF', joursRestants: null, message: null };
   }
-  const [abonnement, essaiFinLe] = await Promise.all([
-    getAbonnementCourant(ctx.etablissementId),
-    getEssaiFinLe(ctx.etablissementId),
-  ]);
-  return evaluerAcces({
-    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-    essaiFinLe,
-  });
+  return evaluerAcces(await getEtatFacturation(ctx.etablissementId));
 });
 
 /**

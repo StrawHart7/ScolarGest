@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Clock } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { getAbonnementCourant, getEssaiFinLe } from '@/services/abonnement';
+import { getEtatFacturation } from '@/services/abonnement';
 import { evaluerAcces } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,15 +25,8 @@ export const metadata = { title: 'Retour de paiement' };
  */
 export default async function RetourPaiementPage() {
   const ctx = await getTenantContext();
-  const [abonnement, essaiFinLe] = await Promise.all([
-    getAbonnementCourant(ctx.etablissementId),
-    getEssaiFinLe(ctx.etablissementId),
-  ]);
-
-  const acces = evaluerAcces({
-    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-    essaiFinLe,
-  });
+  const etat = await getEtatFacturation(ctx.etablissementId);
+  const acces = evaluerAcces(etat);
   const actif = acces.niveau === 'OK' || acces.niveau === 'AVERTISSEMENT';
 
   return (
@@ -52,8 +45,8 @@ export default async function RetourPaiementPage() {
                 <p className="max-w-md text-body-md text-text-secondary">
                   Le règlement a bien été enregistré. Votre espace est de nouveau pleinement
                   modifiable
-                  {abonnement
-                    ? `, jusqu’au ${new Date(abonnement.dateFin).toLocaleDateString('fr-FR')}.`
+                  {etat.abonnement
+                    ? `, jusqu’au ${new Date(etat.abonnement.dateFin).toLocaleDateString('fr-FR')}.`
                     : '.'}
                 </p>
                 <Button asChild>

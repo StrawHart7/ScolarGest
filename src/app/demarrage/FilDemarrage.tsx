@@ -25,6 +25,7 @@ import { ignorerEtapeAction, terminerOnboardingAction } from './actions';
 import { appelerAction } from './appel-action';
 import type { DefinitionEtape, IdEtape } from '@/lib/onboarding/etapes';
 import type { ProgressionOnboarding, BilanOnboarding } from '@/services/onboarding';
+import type { FormuleProposee } from '@/lib/abonnement-formule';
 import type { Cycle } from '@/services/structure';
 
 export interface DonneesDemarrage {
@@ -68,11 +69,15 @@ export function FilDemarrage({
   progression,
   donnees,
   bilan,
+  essaiFinLe,
+  formules,
 }: {
   definitions: DefinitionEtape[];
   progression: ProgressionOnboarding;
   donnees: DonneesDemarrage;
   bilan: BilanOnboarding;
+  essaiFinLe: string | null;
+  formules: FormuleProposee[];
 }) {
   const router = useRouter();
   const [enCours, setEnCours] = React.useState(false);
@@ -232,7 +237,13 @@ export function FilDemarrage({
 
         <section className="min-w-0 p-5 sm:p-8">
           {progression.complete || !definitionCourante ? (
-            <EcranFinal bilan={bilan} onTerminer={terminer} enCours={enCours} />
+            <EcranFinal
+              bilan={bilan}
+              onTerminer={terminer}
+              enCours={enCours}
+              essaiFinLe={essaiFinLe}
+              formules={formules}
+            />
           ) : (
             <div key={definitionCourante.id} className="animate-slide-up">
               <p className="text-label-md uppercase tracking-wide text-primary-container">

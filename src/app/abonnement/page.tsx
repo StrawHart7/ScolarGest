@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { getAbonnementCourant, getEssaiFinLe, listPaiementsAbonnement } from '@/services/abonnement';
+import {
+  getAbonnementCourant,
+  getEtatEtablissement,
+  listPaiementsAbonnement,
+} from '@/services/abonnement';
 import { evaluerAcces, statutEffectif } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,10 +52,12 @@ export default async function AbonnementPage() {
   const statut = statutEffectif(
     abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
   );
-  const essaiFinLe = await getEssaiFinLe(ctx.etablissementId);
+  const etat = await getEtatEtablissement(ctx.etablissementId);
   const acces = evaluerAcces({
     abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-    essaiFinLe,
+    essaiFinLe: etat.essaiFinLe,
+    essaiDebuteLe: etat.essaiDebuteLe,
+    suspension: etat.suspension,
   });
 
   return (
@@ -85,8 +91,12 @@ export default async function AbonnementPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle>Situation actuelle</CardTitle>
-            <Badge variant={STATUT_BADGE[statut]} shape="pill">
-              {statut === 'AUCUN' ? 'Aucun abonnement' : statut}
+            <Badge variant={etat.suspension ? 'error' : STATUT_BADGE[statut]} shape="pill">
+              {etat.suspension
+                ? 'Suspendu'
+                : statut === 'AUCUN'
+                  ? 'Aucun abonnement'
+                  : statut}
             </Badge>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -124,7 +134,23 @@ export default async function AbonnementPage() {
               </>
             )}
 
-            {acces.message && (
+            {/* Le motif est montré, pas seulement le fait d'être suspendu.
+                Une école coupée sans explication appelle le support pour
+                demander pourquoi ; celle qui lit le motif appelle pour le
+                résoudre. */}
+            {etat.suspension && (
+              <div className="rounded-lg border border-error/20 bg-error/5 p-3">
+                <p className="text-body-sm font-medium text-error">
+                  Accès suspendu depuis le{' '}
+                  {new Date(etat.suspension.le).toLocaleDateString('fr-FR')}
+                </p>
+                <p className="mt-1 text-body-sm text-text-secondary">
+                  Motif : {etat.suspension.motif}
+                </p>
+              </div>
+            )}
+
+            {!etat.suspension && acces.message && (
               <p
                 className={`rounded-lg border p-3 text-body-sm ${
                   acces.niveau === 'AVERTISSEMENT'
@@ -137,8 +163,8 @@ export default async function AbonnementPage() {
             )}
 
             <p className="text-body-sm text-text-secondary">
-              Le règlement se fait par virement ou Mobile Money, puis notre équipe l&apos;enregistre
-              manuellement — l&apos;accès est rétabli dès la validation.
+              Le règlement se fait en Mobile Money depuis l&apos;application. L&apos;accès est
+              rétabli dès la confirmation du paiement.
             </p>
           </CardContent>
         </Card>

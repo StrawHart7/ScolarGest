@@ -73,7 +73,10 @@ export async function getMetriquesPlateforme(): Promise<MetriquesPlateforme> {
     { data: cycles, error: erreurCycles },
     { data: inscriptions, error: erreurInscriptions },
   ] = await Promise.all([
-    supabase.from('etablissement').select('id, nom, ville, "essaiFinLe"').order('nom'),
+    supabase
+      .from('etablissement')
+      .select('id, nom, ville, "essaiFinLe", "suspenduLe"')
+      .order('nom'),
     supabase
       .from('abonnement_etablissement')
       .select('"etablissementId", statut, "dateFin", "montantTotal", "nombreCycles", plan:plan_abonnement(duree)')
@@ -128,6 +131,7 @@ export async function getMetriquesPlateforme(): Promise<MetriquesPlateforme> {
     nom: string;
     ville: string | null;
     essaiFinLe: string | null;
+    suspenduLe: string | null;
   }[]).map((e) => {
     const abo = aboParEcole.get(e.id) ?? null;
     const statut = statutEffectif(abo ? { statut: abo.statut, dateFin: abo.dateFin } : null, maintenant);
@@ -138,7 +142,9 @@ export async function getMetriquesPlateforme(): Promise<MetriquesPlateforme> {
     // serait pire qu'une absence d'information.
     let etat: EtatEcole;
     let joursRestants: number | null;
-    if (statut === 'SUSPENDU') {
+    // La suspension se lit sur l'établissement depuis la migration `0026` :
+    // sur l'abonnement, elle disparaissait au renouvellement suivant.
+    if (e.suspenduLe) {
       etat = 'SUSPENDU';
       joursRestants = abo ? joursAvant(abo.dateFin, maintenant) : null;
     } else if (statut === 'ACTIF') {
@@ -223,6 +229,8 @@ export interface FicheEtablissement {
   joursRestants: number | null;
   essaiDebuteLe: string | null;
   essaiFinLe: string | null;
+  /** Suspension plateforme en cours, motif compris. */
+  suspension: { le: string; motif: string } | null;
   cycles: string[];
   anneeActive: string | null;
   nombreEleves: number;
@@ -252,10 +260,16 @@ export async function getFicheEtablissement(etablissementId: string): Promise<Fi
 
   const { data: etab, error: erreurEtab } = await supabase
     .from('etablissement')
-    .select('"essaiDebuteLe", "essaiFinLe"')
+    .select('"essaiDebuteLe", "essaiFinLe", "suspenduLe", "motifSuspension"')
     .eq('id', etablissementId)
     .maybeSingle();
   if (erreurEtab) throw erreurEtab;
+  const ligneEtab = etab as {
+    essaiDebuteLe: string | null;
+    essaiFinLe: string | null;
+    suspenduLe: string | null;
+    motifSuspension: string | null;
+  } | null;
 
   const { data: annee } = await supabase
     .from('annee_scolaire')
@@ -323,7 +337,7 @@ export async function getFicheEtablissement(etablissementId: string): Promise<Fi
 
   let etat: EtatEcole;
   let joursRestants: number | null;
-  if (statut === 'SUSPENDU') {
+  if (ligneEtab?.suspenduLe) {
     etat = 'SUSPENDU';
     joursRestants = ligneAbo ? joursAvant(ligneAbo.dateFin, maintenant) : null;
   } else if (statut === 'ACTIF') {
@@ -343,8 +357,11 @@ export async function getFicheEtablissement(etablissementId: string): Promise<Fi
   return {
     etat,
     joursRestants,
-    essaiDebuteLe: (etab as { essaiDebuteLe: string | null } | null)?.essaiDebuteLe ?? null,
+    essaiDebuteLe: ligneEtab?.essaiDebuteLe ?? null,
     essaiFinLe,
+    suspension: ligneEtab?.suspenduLe
+      ? { le: ligneEtab.suspenduLe, motif: ligneEtab.motifSuspension ?? 'Motif non précisé.' }
+      : null,
     cycles: ((cyclesActifs ?? []) as unknown as { cycle: { nom: string } | null }[])
       .map((c) => c.cycle?.nom)
       .filter((n): n is string => Boolean(n)),

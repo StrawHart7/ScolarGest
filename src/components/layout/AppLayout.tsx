@@ -1,6 +1,7 @@
 import { Sidebar, type SidebarItem } from './Sidebar';
 import { Header } from './Header';
 import { AbonnementBanner } from './AbonnementBanner';
+import { RappelFinEssai } from './RappelFinEssai';
 import { BottomNav } from './BottomNav';
 import { BulleSupport } from './BulleSupport';
 import { SidebarCollapseProvider, ContenuDecale } from './sidebar-collapse';
@@ -23,6 +24,7 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
           <ContenuDecale>
             <Header schoolName={schoolName} role={role} userName={userName} />
             <AbonnementBanner />
+            <RappelFinEssai />
             {/*
               Le bas de page doit dégager la barre de navigation flottante :
               56px de hauteur, 24px de décalage du bord, une gouttière, et

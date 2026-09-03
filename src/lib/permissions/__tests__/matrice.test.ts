@@ -129,6 +129,8 @@ describe('matrice des permissions réelle', () => {
       "journalise les tentatives de connexion, y compris échouées : par définition, il n'y a alors aucune session à contrôler.",
     'paiement-fedapay.recevoirWebhookFedapay':
       "appelée par le webhook FedaPay, qui arrive sans session ni cookie. L'authentification est la signature X-FEDAPAY-SIGNATURE, vérifiée avant tout traitement : un requireRole y serait toujours en échec et rendrait le paiement impossible.",
+    'relances-abonnement.traiterEcheances':
+      "appelée par le balayage quotidien des échéances, déclenché par un planificateur sans session ni cookie. L'authentification est le secret partagé CRON_SECRET, vérifié dans la route avant tout appel ; un requireRole y serait toujours en échec et aucune relance ne partirait jamais.",
     'paiement-fedapay.traiterEvenementFedapay':
       "traite un événement dont la signature a déjà été vérifiée par recevoirWebhookFedapay. Aucun appelant utilisateur : l'unique chemin est la route de webhook.",
   };
