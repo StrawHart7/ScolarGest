@@ -1,12 +1,13 @@
 import { getTenantContext } from '@/services/tenant';
-import { getAbonnementCourant, getEssaiFinLe } from '@/services/abonnement';
-import { listCyclesActifs } from '@/services/structure';
+import { getEtatFacturation } from '@/services/abonnement';
+import { cyclesFactures } from '@/services/paiement-fedapay';
+import { paiementEnLigneActif } from '@/services/activation-plateforme';
 import { evaluerAcces } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
-import { PRIX_MENSUEL_PAR_CYCLE, PRIX_ANNUEL_PAR_CYCLE } from '@/lib/tarifs';
+import { prixPourCycles, nomFormule } from '@/lib/abonnement-formule';
 import { operateursDisponibles } from '@/lib/fedapay/operateurs';
 import { PAYS_FEDAPAY } from '@/lib/fedapay/pays';
 import { FormulaireSouscription } from './FormulaireSouscription';
@@ -43,20 +44,22 @@ export default async function SouscrirePage() {
     );
   }
 
-  const [abonnement, essaiFinLe, cyclesActifs] = await Promise.all([
-    getAbonnementCourant(ctx.etablissementId),
-    getEssaiFinLe(ctx.etablissementId),
-    listCyclesActifs(),
+  const [etat, cycles] = await Promise.all([
+    getEtatFacturation(ctx.etablissementId),
+    // `cyclesFactures` et non `listCyclesActifs` : seuls les cycles encore au
+    // catalogue sont facturables. Une école entrée avant le recentrage sur le
+    // secondaire garde ses classes de primaire, mais on ne lui vend pas un
+    // cycle qu'on ne propose plus.
+    cyclesFactures(),
   ]);
+  const abonnement = etat.abonnement;
 
-  const acces = evaluerAcces({
-    abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
-    essaiFinLe,
-  });
+  const acces = evaluerAcces(etat);
 
-  // Le nombre de cycles est calculé de nouveau côté serveur au moment du
-  // paiement : celui-ci n'est qu'un affichage, il ne fait pas foi.
-  const nombreCycles = Math.max(cyclesActifs.length, 1);
+  // Le nombre de cycles est recalculé côté serveur au moment du paiement :
+  // celui-ci n'est qu'un affichage, il ne fait pas foi.
+  const nombreCycles = Math.max(cycles.length, 1);
+  const formule = nomFormule(cycles);
 
   return (
     <AppLayout items={items} schoolName="ScolarGest" role={ctx.role} userName={ctx.email}>
@@ -76,9 +79,10 @@ export default async function SouscrirePage() {
         </div>
 
         <FormulaireSouscription
-          prixMensuel={PRIX_MENSUEL_PAR_CYCLE * nombreCycles}
-          prixAnnuel={PRIX_ANNUEL_PAR_CYCLE * nombreCycles}
-          nombreCycles={nombreCycles}
+          prixMensuel={prixPourCycles(nombreCycles, 'MOIS')}
+          prixAnnuel={prixPourCycles(nombreCycles, 'AN')}
+          nomFormule={formule}
+          paiementEnLigne={paiementEnLigneActif()}
           // `FEDAPAY_ENVIRONMENT` n'a pas de préfixe NEXT_PUBLIC_ : elle n'est
           // lisible que côté serveur, d'où la résolution ici plutôt que dans le
           // composant client. On envoie les opérateurs de tous les pays, le

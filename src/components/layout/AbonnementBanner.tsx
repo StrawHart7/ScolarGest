@@ -31,14 +31,21 @@ export async function AbonnementBanner() {
   if (acces.niveau === 'OK' || !acces.message) return null;
 
   const bloquant = acces.niveau === 'LECTURE_SEULE' || acces.niveau === 'BLOQUE';
-  const essai = acces.niveau === 'ESSAI';
+  // Un essai qui touche à sa fin n'est plus une information neutre : à une
+  // semaine de la lecture seule, le ton passe de l'accueil à l'avertissement.
+  // Garder le ton bleu jusqu'au dernier jour laisserait une école découvrir la
+  // coupure sans l'avoir vue venir.
+  const essaiFinissant =
+    acces.niveau === 'ESSAI' && acces.joursRestants !== null && acces.joursRestants <= 7;
+  const essai = acces.niveau === 'ESSAI' && !essaiFinissant;
+  const configuration = acces.niveau === 'AVANT_ESSAI';
 
   // Un décompte d'essai n'est pas une alerte : le teindre en ambre comme une
   // échéance manquée mettrait sous tension une école qui n'a encore rien à se
   // reprocher. Trois tons, pour trois situations distinctes.
   const ton = bloquant
     ? { cadre: 'border-error/20 bg-error/5', texte: 'text-error' }
-    : essai
+    : essai || configuration
       ? { cadre: 'border-primary-container/20 bg-primary-fixed/40', texte: 'text-primary-container' }
       : { cadre: 'border-amber-500/20 bg-amber-500/5', texte: 'text-amber-700' };
 
@@ -52,7 +59,7 @@ export async function AbonnementBanner() {
     >
       {bloquant ? (
         <Lock className="h-5 w-5 shrink-0 text-error" aria-hidden />
-      ) : essai ? (
+      ) : essai || configuration ? (
         <Sparkles className="h-5 w-5 shrink-0 text-primary-container" aria-hidden />
       ) : (
         <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden />
@@ -61,17 +68,33 @@ export async function AbonnementBanner() {
       <p className={`text-body-sm ${ton.texte}`}>{acces.message}</p>
 
       <div className="ml-auto flex flex-wrap items-center gap-4">
-        {peutPayer && (
+        {/* Une école en cours de configuration n'a rien à payer : lui proposer
+            de souscrire au milieu de son paramétrage serait hors sujet. */}
+        {configuration ? (
+          <Link
+            href="/demarrage"
+            className="rounded-lg bg-primary-container px-3 py-1.5 text-body-sm font-medium text-white transition-colors hover:bg-primary"
+          >
+            Reprendre la configuration
+          </Link>
+        ) : (
+          peutPayer && (
           <Link
             href="/abonnement/souscrire"
             className="rounded-lg bg-primary-container px-3 py-1.5 text-body-sm font-medium text-white transition-colors hover:bg-primary"
           >
             {bloquant ? 'Réactiver mon accès' : 'Souscrire maintenant'}
           </Link>
+          )
         )}
-        <Link href="/abonnement" className="text-body-sm font-medium text-primary hover:underline">
-          Voir mon abonnement
-        </Link>
+        {!configuration && (
+          <Link
+            href="/abonnement"
+            className="text-body-sm font-medium text-primary hover:underline"
+          >
+            Voir mon abonnement
+          </Link>
+        )}
       </div>
     </div>
   );

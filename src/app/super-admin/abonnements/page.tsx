@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { CreditCard, Plus } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
-import { listAbonnements, listPlans, expirerAbonnementsEchus } from '@/services/abonnement';
+import { listAbonnements, expirerAbonnementsEchus } from '@/services/abonnement';
 import { statutEffectif, joursAvantEcheance } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -12,6 +12,7 @@ import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui
 import { BoutonFlottant } from '@/components/ui/actions-mobile';
 import { getSidebarItems } from '@/lib/navigation';
 import { AbonnementRowActions } from './AbonnementRowActions';
+import { paiementEnLigneActif } from '@/services/activation-plateforme';
 
 const STATUT_BADGE = {
   ACTIF: 'success',
@@ -25,9 +26,15 @@ export default async function AbonnementsPage() {
   // Constate les échéances dépassées avant d'afficher : sans planificateur
   // dans le MVP, l'ouverture de la console est le point de passage naturel.
   // `expirerAbonnementsEchus` doit précéder la lecture des abonnements (elle en
-  // change le statut) ; les plans, eux, ne dépendent de rien.
-  const [, plans] = await Promise.all([expirerAbonnementsEchus(), listPlans()]);
+  // change le statut).
+  await expirerAbonnementsEchus();
   const abonnements = await listAbonnements();
+  // Tant que le paiement en ligne n'est pas ouvert, toute souscription passe
+  // par l'autorisation de la plateforme et n'encaisse rien. L'avertissement est
+  // affiché ici pour que ce mode ne s'oublie pas en production : un revenu qui
+  // reste plat alors que des ecoles souscrivent doit avoir une explication
+  // visible, pas a etre devine.
+  const paiementOuvert = paiementEnLigneActif();
 
   return (
     <AppLayout
@@ -53,6 +60,20 @@ export default async function AbonnementsPage() {
             }
           />
         </div>
+
+        {!paiementOuvert && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="text-body-sm font-medium text-amber-700">
+              Paiement en ligne desactive
+            </p>
+            <p className="mt-1 text-body-sm text-text-secondary">
+              Les ecoles qui souscrivent sont activees par autorisation de la plateforme, sans
+              reglement : leur periode est ouverte a un montant nul et le montant qui aurait ete
+              du figure dans le journal d&apos;audit. Poser PAIEMENT_EN_LIGNE=ACTIF retablit le
+              parcours FedaPay.
+            </p>
+          </div>
+        )}
 
         <EnteteListe
           titre="Abonnements"
@@ -113,12 +134,7 @@ export default async function AbonnementsPage() {
                                   Valider un paiement
                                 </Link>
                               </Button>
-                              <AbonnementRowActions
-                                abonnementId={a.id}
-                                statut={a.statut}
-                                planActuelId={a.planId}
-                                plans={plans.map((p) => ({ id: p.id, nom: p.nom }))}
-                              />
+                              <AbonnementRowActions etablissementId={a.etablissementId} />
                             </div>
                           </td>
                         </tr>
@@ -155,12 +171,7 @@ export default async function AbonnementsPage() {
                               Valider un paiement
                             </Link>
                           </Button>
-                          <AbonnementRowActions
-                            abonnementId={a.id}
-                            statut={a.statut}
-                            planActuelId={a.planId}
-                            plans={plans.map((p) => ({ id: p.id, nom: p.nom }))}
-                          />
+                          <AbonnementRowActions etablissementId={a.etablissementId} />
                         </div>
                       }
                     />

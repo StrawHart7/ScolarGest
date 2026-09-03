@@ -2,6 +2,10 @@
 
 import { z } from 'zod';
 import { creerIntentionPaiement } from '@/services/paiement-fedapay';
+import {
+  activerParAutorisationPlateforme,
+  paiementEnLigneActif,
+} from '@/services/activation-plateforme';
 import type { Operateur } from '@/lib/fedapay/operateurs';
 import { normaliserNumero, trouverPays } from '@/lib/fedapay/pays';
 
@@ -10,6 +14,13 @@ export interface ResultatSouscription {
   message: string;
   /** Page hébergée FedaPay, pour le parcours de repli. */
   url?: string;
+  /**
+   * L'abonnement a été ouvert par autorisation de la plateforme, sans
+   * règlement, parce que le paiement en ligne n'est pas encore opérationnel.
+   * L'écran doit le dire explicitement : une école qui croirait avoir payé
+   * s'étonnerait de la facture de régularisation.
+   */
+  autorisationPlateforme?: boolean;
 }
 
 const schema = z.object({
@@ -28,6 +39,24 @@ export async function souscrireAction(
     return { ok: false, message: 'Formulaire incomplet.' };
   }
   const { periodicite, moyen, operateur, telephone, codePays } = valide.data;
+
+  // Le paiement en ligne n'est pas encore ouvert (compte FedaPay en cours de
+  // validation). Plutôt que d'envoyer l'école vers un prestataire qui
+  // refuserait — un échec qu'elle lirait comme un défaut du produit — la
+  // plateforme autorise l'activation et le dit. Voir
+  // `services/activation-plateforme.ts` pour les garde-fous.
+  if (!paiementEnLigneActif()) {
+    try {
+      const resultat = await activerParAutorisationPlateforme(periodicite);
+      return { ok: true, message: resultat.message, autorisationPlateforme: true };
+    } catch (e) {
+      return {
+        ok: false,
+        message:
+          e instanceof Error ? e.message : "L'activation n'a pas pu être enregistrée.",
+      };
+    }
+  }
 
   let numero: string | null = null;
   let pays: string | null = null;

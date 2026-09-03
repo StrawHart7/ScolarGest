@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, PartyPopper } from 'lucide-react';
+import { CheckCircle2, PartyPopper, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { BilanOnboarding } from '@/services/onboarding';
+import type { FormuleProposee } from '@/lib/abonnement-formule';
 
 /**
  * Écran de fin : ce que la configuration a réellement produit.
@@ -18,10 +19,16 @@ export function EcranFinal({
   bilan,
   onTerminer,
   enCours,
+  essaiFinLe,
+  formules,
 }: {
   bilan: BilanOnboarding;
   onTerminer: () => void;
   enCours: boolean;
+  /** Fin de l'essai démarré à l'étape du code de confirmation. */
+  essaiFinLe: string | null;
+  /** Les deux formules réellement proposables, d'après les cycles activés. */
+  formules: FormuleProposee[];
 }) {
   const chiffres: { valeur: number; libelle: string }[] = [
     { valeur: bilan.cycles, libelle: bilan.cycles > 1 ? 'cycles activés' : 'cycle activé' },
@@ -83,13 +90,63 @@ export function EcranFinal({
         </dl>
       )}
 
+      {/* L'essai est annoncé ici, et pas plus tôt : c'est le moment où l'école
+          a fini de travailler et où l'information est utile plutôt
+          qu'anxiogène. Les tarifs suivent, sans obligation — proposer sans
+          bloquer, à un directeur qui vient de saisir toute son école, laisse
+          la décision là où elle doit être. */}
+      {essaiFinLe && (
+        <div className="w-full rounded-xl border border-tertiary/30 bg-tertiary-fixed/30 p-5 text-left">
+          <p className="flex items-center gap-2 text-body-md font-medium text-text-primary">
+            <Sparkles className="h-4 w-4 shrink-0 text-tertiary" aria-hidden />
+            Votre essai gratuit a commencé
+          </p>
+          <p className="mt-1 text-body-sm text-text-secondary">
+            Accès complet et sans restriction jusqu&apos;au{' '}
+            {new Date(essaiFinLe).toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+            . Vous pouvez souscrire dès maintenant, ou plus tard — souscrire ne fait perdre aucun
+            jour d&apos;essai.
+          </p>
+
+          {formules.length > 0 && (
+            <>
+              <p className="mt-4 text-label-md uppercase tracking-wide text-text-secondary">
+                Votre formule : {formules[0]!.nomFormule}
+              </p>
+              <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {formules.map((f) => (
+                  <div
+                    key={f.periodicite}
+                    className="rounded-lg border border-surface-border bg-surface-container-lowest p-3"
+                  >
+                    <dt className="text-body-sm text-text-secondary">
+                      {f.periodicite === 'AN' ? 'Engagement annuel' : 'Sans engagement'}
+                    </dt>
+                    <dd className="text-body-md font-semibold text-text-primary">
+                      {f.montantLibelle}
+                    </dd>
+                    {f.avantage && (
+                      <dd className="text-body-sm text-tertiary">{f.avantage}</dd>
+                    )}
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap justify-center gap-3">
         <Button onClick={onTerminer} disabled={enCours} className="gap-2">
           <CheckCircle2 className="h-4 w-4" aria-hidden />
           Aller au tableau de bord
         </Button>
         <Button asChild variant="secondary">
-          <Link href="/etablissement/eleves">Inscrire un élève</Link>
+          <Link href="/abonnement/souscrire">Choisir ma formule</Link>
         </Button>
       </div>
     </div>

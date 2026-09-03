@@ -1,5 +1,8 @@
 import { getTenantContext } from '@/services/tenant';
 import { getProgressionOnboarding, getBilanOnboarding } from '@/services/onboarding';
+import { getEtatEtablissement } from '@/services/abonnement';
+import { cyclesFactures } from '@/services/paiement-fedapay';
+import { formulesPour } from '@/lib/abonnement-formule';
 import { listCycles, listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
@@ -52,6 +55,12 @@ export default async function DemarragePage() {
 
   const progression = await getProgressionOnboarding();
   const bilan = await getBilanOnboarding();
+  // L'essai a demarre a l'etape du code de confirmation : l'ecran de fin
+  // l'annonce, avec la formule etablie d'apres les cycles reellement actives.
+  const [etat, cycles] = await Promise.all([
+    getEtatEtablissement(ctx.etablissementId),
+    cyclesFactures(),
+  ]);
   const donnees = await chargerDonnees(
     progression.etapes.some((e) => e.id === 'cycles'),
     ctx.etablissementId,
@@ -100,6 +109,8 @@ export default async function DemarragePage() {
           progression={progression}
           donnees={donnees}
           bilan={bilan}
+          essaiFinLe={etat.essaiFinLe}
+          formules={formulesPour(cycles)}
         />
       </div>
     </AppLayout>

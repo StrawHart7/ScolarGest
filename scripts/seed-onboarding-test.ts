@@ -187,35 +187,19 @@ async function creer() {
   }
   const etablissementId = (etab as { id: string }).id;
 
-  // Un abonnement ACTIF est indispensable, pas décoratif : sans lui,
-  // `evaluerAcces` renvoie AUCUN → LECTURE_SEULE, et *toute* écriture est
-  // refusée (403). L'onboarding entier serait bloqué. Dans le vrai parcours,
-  // c'est le SUPER_ADMIN qui saisit l'abonnement à la création de l'école ;
-  // ce script doit donc le reproduire pour être fidèle.
-  const { data: plan } = await db
-    .from('plan_abonnement')
-    .select('id')
-    .eq('nom', 'Annuel')
-    .maybeSingle();
-  if (!plan) {
-    console.log('ECHEC : aucun plan « Annuel » en base (migration 0003 appliquee ?).');
-    await db.from('etablissement').delete().eq('id', etablissementId);
-    return;
-  }
-  const dans1An = new Date();
-  dans1An.setFullYear(dans1An.getFullYear() + 1);
-  const { error: erreurAbo } = await db.from('abonnement_etablissement').insert({
-    etablissementId,
-    planId: (plan as { id: string }).id,
-    dateDebut: new Date().toISOString(),
-    dateFin: dans1An.toISOString(),
-    statut: 'ACTIF',
-  });
-  if (erreurAbo) {
-    console.log('ECHEC creation abonnement :', erreurAbo.message);
-    await db.from('etablissement').delete().eq('id', etablissementId);
-    return;
-  }
+  // **Aucun abonnement n'est créé, et c'est le sujet du test.**
+  //
+  // Ce script en fabriquait un, ACTIF, parce que sans lui `evaluerAcces`
+  // renvoyait LECTURE_SEULE et que toute écriture était refusée — l'onboarding
+  // entier était bloqué. C'était un contournement d'un défaut réel : l'essai
+  // démarre à la définition du code de confirmation, une écriture, que le
+  // verrou d'abonnement refusait avant même qu'elle s'exécute. Aucune école
+  // neuve ne pouvait donc démarrer son essai toute seule.
+  //
+  // Le middleware laisse désormais passer les écritures de `/demarrage` tant
+  // qu'aucune trace d'essai n'existe. Recréer un abonnement ici masquerait
+  // exactement le chemin qu'on veut éprouver : l'école doit naître nue, poser
+  // son code, et voir son essai de 30 jours démarrer.
 
   const { data: cree, error: erreurAuth } = await db.auth.admin.createUser({
     email: EMAIL_DIRECTEUR,

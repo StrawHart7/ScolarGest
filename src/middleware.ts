@@ -16,8 +16,12 @@ export const config = {
    * vers la page de connexion, que FedaPay compterait comme une livraison
    * réussie — et aucun abonnement ne serait jamais activé, sans qu'aucune
    * erreur n'apparaisse nulle part.
+   *
+   * `api/abonnements` porte le balayage quotidien des echeances, appele par
+   * un planificateur sans cookie : meme raisonnement, meme panne silencieuse
+   * si on l'oublie.
    */
   matcher: [
-    '/((?!api/fedapay|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)',
+    '/((?!api/fedapay|api/abonnements|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)',
   ],
 };

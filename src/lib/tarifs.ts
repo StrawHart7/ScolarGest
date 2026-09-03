@@ -14,16 +14,25 @@
  *
  * Toute modification ici doit donc être répercutée dans une migration touchant
  * `plan_abonnement`, et inversement. C'est le prix d'une page publique.
+ *
+ * Les prix eux-mêmes vivent dans `abonnement-formule.ts` et sont réexportés
+ * ici : deux déclarations du même montant finiraient par diverger, et c'est
+ * une page commerciale qui afficherait alors un prix faux.
  */
 
-/** Prix mensuel d'un cycle, en francs CFA. */
-export const PRIX_MENSUEL_PAR_CYCLE = 10_000;
+export {
+  PRIX_MENSUEL_PAR_CYCLE,
+  PRIX_ANNUEL_PAR_CYCLE,
+  MOIS_OFFERTS_ANNUEL,
+  prixPourCycles,
+  formaterFCFA,
+  type Periodicite,
+} from './abonnement-formule';
 
-/** Prix annuel d'un cycle, en francs CFA. */
-export const PRIX_ANNUEL_PAR_CYCLE = 100_000;
+import { PRIX_ANNUEL_PAR_CYCLE, PRIX_MENSUEL_PAR_CYCLE } from './abonnement-formule';
 
 /** Durée de l'essai gratuit, en jours. */
-export const JOURS_ESSAI_GRATUIT = 30;
+export { JOURS_ESSAI as JOURS_ESSAI_GRATUIT } from '@/services/abonnement-acces';
 
 /**
  * Économie de l'engagement annuel, en pourcentage entier.
@@ -35,21 +44,3 @@ export const JOURS_ESSAI_GRATUIT = 30;
 export const REMISE_ANNUELLE_POURCENT = Math.round(
   (1 - PRIX_ANNUEL_PAR_CYCLE / (PRIX_MENSUEL_PAR_CYCLE * 12)) * 100,
 );
-
-export type Periodicite = 'MOIS' | 'AN';
-
-/** Prix d'un nombre de cycles pour une périodicité donnée. */
-export function prixPourCycles(nombreCycles: number, periodicite: Periodicite): number {
-  const unitaire =
-    periodicite === 'AN' ? PRIX_ANNUEL_PAR_CYCLE : PRIX_MENSUEL_PAR_CYCLE;
-  return unitaire * nombreCycles;
-}
-
-/**
- * Montant en francs CFA, formaté à la française (espaces insécables fines).
- * `fr-FR` et non `fr-TG` : tous les navigateurs ne connaissent pas la locale
- * togolaise, et le repli silencieux donnerait un format anglo-saxon.
- */
-export function formaterFCFA(montant: number): string {
-  return `${new Intl.NumberFormat('fr-FR').format(montant)} FCFA`;
-}

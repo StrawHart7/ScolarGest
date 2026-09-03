@@ -10,6 +10,7 @@ import {
 } from '@/lib/fedapay/client';
 import { OPERATEURS, type Operateur } from '@/lib/fedapay/operateurs';
 import { urlApplication } from '@/lib/url-app';
+import { debutProchainePeriode, finDePeriode } from './abonnement-acces';
 
 /**
  * Paiement en ligne des abonnements (FedaPay, Mobile Money XOF).
@@ -54,18 +55,38 @@ export interface ResultatPaiement {
  * gardée par le PIN du Directeur — elle ne peut donc pas être gonflée ou
  * dégonflée d'un clic pour peser sur la facture.
  */
-async function compterCyclesFactures(etablissementId: string): Promise<number> {
+export async function cyclesFactures(): Promise<string[]> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const etablissementId = ctx.etablissementId;
   const supabase = createClient();
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from('cycle_etablissement')
-    .select('id', { count: 'exact', head: true })
+    .select('cycle:cycle(nom, disponible)')
     .eq('etablissementId', etablissementId)
     .eq('actif', true);
   if (error) throw error;
-  // Un établissement qui n'a encore activé aucun cycle paie une unité : il est
-  // en pleine configuration, et lui facturer zéro ouvrirait un abonnement
-  // gratuit à qui saute l'étape des cycles.
-  return Math.max(count ?? 0, 1);
+
+  // Seuls les cycles encore proposables sont facturés. Une école entrée avant
+  // le recentrage sur le secondaire (migration `0014`) garde ses classes de
+  // primaire — `listCyclesActifs` ne filtre délibérément pas — mais lui
+  // facturer un cycle qu'on ne vend plus serait indéfendable. Constaté sur
+  // « Les Victorieux » : trois cycles actifs dont PRIMAIRE, donc 300 000 F/an
+  // réclamés au lieu de 200 000.
+  return ((data ?? []) as unknown as { cycle: { nom: string; disponible: boolean } | null }[])
+    .map((ligne) => ligne.cycle)
+    .filter((cycle): cycle is { nom: string; disponible: boolean } => Boolean(cycle?.disponible))
+    .map((cycle) => cycle.nom);
+}
+
+/**
+ * Nombre de cycles facturables.
+ *
+ * Un établissement qui n'a encore activé aucun cycle paie une unité : il est
+ * en pleine configuration, et lui facturer zéro ouvrirait un abonnement
+ * gratuit à qui saute l'étape des cycles.
+ */
+async function compterCyclesFactures(): Promise<number> {
+  return Math.max((await cyclesFactures()).length, 1);
 }
 
 /**
@@ -92,7 +113,7 @@ export async function creerIntentionPaiement(
   if (erreurPlan) throw erreurPlan;
   if (!plan) throw new Error('Plan tarifaire introuvable.');
 
-  const nombreCycles = await compterCyclesFactures(ctx.etablissementId);
+  const nombreCycles = await compterCyclesFactures();
   const montant = Math.round(Number((plan as { prix: number }).prix) * nombreCycles);
 
   const { data: etab, error: erreurEtab } = await supabase
@@ -165,13 +186,7 @@ export async function creerIntentionPaiement(
   return { transactionId: creee.id, url: creee.url, montant, nombreCycles };
 }
 
-/** Fin de période à partir d'un début et d'une durée de plan. */
-function calculerFin(debut: Date, duree: string): Date {
-  const fin = new Date(debut);
-  if (duree === 'AN') fin.setFullYear(fin.getFullYear() + 1);
-  else fin.setMonth(fin.getMonth() + 1);
-  return fin;
-}
+
 
 /**
  * Traite un événement FedaPay déjà vérifié.
@@ -235,21 +250,30 @@ export async function traiterEvenementFedapay(evenement: {
     .single();
   if (erreurPlan) throw erreurPlan;
 
-  // La nouvelle période démarre à la fin de la précédente si celle-ci court
-  // encore — un renouvellement anticipé ne doit pas faire perdre de jours —
-  // sinon aujourd'hui, pour ne pas facturer une période déjà écoulée.
-  const { data: courant } = await admin
-    .from('abonnement_etablissement')
-    .select('"dateFin"')
-    .eq('etablissementId', ligne.etablissementId)
-    .order('dateFin', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // La nouvelle période enchaîne sur ce qui court encore : période en cours
+  // **et essai gratuit**. L'essai manquait, alors que la page de souscription
+  // promettait déjà que souscrire pendant l'essai n'en fait rien perdre —
+  // payer au troisième jour coûtait vingt-sept jours d'essai.
+  const [{ data: courant }, { data: etabEssai }] = await Promise.all([
+    admin
+      .from('abonnement_etablissement')
+      .select('"dateFin"')
+      .eq('etablissementId', ligne.etablissementId)
+      .order('dateFin', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from('etablissement')
+      .select('"essaiFinLe"')
+      .eq('id', ligne.etablissementId)
+      .maybeSingle(),
+  ]);
 
-  const maintenant = new Date();
-  const finPrecedente = courant ? new Date((courant as { dateFin: string }).dateFin) : null;
-  const debut = finPrecedente && finPrecedente > maintenant ? finPrecedente : maintenant;
-  const fin = calculerFin(debut, (plan as { duree: string }).duree);
+  const debut = debutProchainePeriode(
+    (etabEssai as { essaiFinLe: string | null } | null)?.essaiFinLe ?? null,
+    (courant as { dateFin: string } | null)?.dateFin ?? null,
+  );
+  const fin = finDePeriode(debut, (plan as { duree: 'MOIS' | 'AN' }).duree);
 
   const { data: abonnement, error: erreurAbo } = await admin
     .from('abonnement_etablissement')
