@@ -9,13 +9,17 @@ import {
   BookOpenCheck,
   FileText,
   ShieldCheck,
+  Mail,
+  MapPin,
+  Briefcase,
+  ClipboardList,
+  Calculator,
   Layers,
   Lock,
   KeyRound,
   History,
   CheckCircle2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/Reveal';
 import { DemandeDemoForm } from '@/components/marketing/DemandeDemoForm';
 import { SectionTarifs } from '@/components/marketing/SectionTarifs';
@@ -25,6 +29,37 @@ const LIENS_NAV = [
   { href: '#securite', label: 'Sécurité' },
   { href: '#roles', label: 'Rôles' },
   { href: '#tarifs', label: 'Tarifs' },
+];
+
+const LIENS_PIED = [
+  {
+    titre: 'Produit',
+    liens: [
+      { href: '#modules', label: 'Fonctionnalités', externe: true },
+      { href: '#securite', label: 'Sécurité', externe: true },
+      { href: '#roles', label: 'Rôles', externe: true },
+      { href: '#tarifs', label: 'Tarifs', externe: true },
+    ],
+  },
+  {
+    titre: 'Commencer',
+    liens: [
+      { href: '#demo', label: 'Demander une démo', externe: true },
+      { href: '/login', label: 'Se connecter', externe: false },
+      { href: '/login', label: 'Mot de passe oublié', externe: false },
+    ],
+  },
+  {
+    titre: 'Assistance',
+    liens: [
+      { href: 'mailto:hartkit.dev@gmail.com', label: 'Nous écrire', externe: true },
+      {
+        href: 'mailto:hartkit.dev@gmail.com?subject=Support%20ScolarGest',
+        label: 'Support technique',
+        externe: true,
+      },
+    ],
+  },
 ];
 
 const MODULES = [
@@ -106,10 +141,26 @@ const SECURITY_POINTS = [
 ];
 
 const ROLES = [
-  { name: 'Directeur', description: 'Vue d’ensemble de l’établissement, validation des décisions clés.' },
-  { name: 'Secrétaire', description: 'Inscriptions, dossiers élèves, gestion administrative au quotidien.' },
-  { name: 'Comptable', description: 'Facturation, paiements, suivi financier de l’établissement.' },
-  { name: 'Enseignant', description: 'Saisie des notes et suivi de ses classes et matières affectées.' },
+  {
+    icon: Briefcase,
+    name: 'Directeur',
+    description: 'Vue d’ensemble de l’établissement, validation des décisions clés.',
+  },
+  {
+    icon: ClipboardList,
+    name: 'Secrétaire',
+    description: 'Inscriptions, dossiers élèves, gestion administrative au quotidien.',
+  },
+  {
+    icon: Calculator,
+    name: 'Comptable',
+    description: 'Facturation, paiements, suivi financier de l’établissement.',
+  },
+  {
+    icon: BookOpenCheck,
+    name: 'Enseignant',
+    description: 'Saisie des notes et suivi de ses classes et matières affectées.',
+  },
 ];
 
 const ETAPES_DEMO = [
@@ -276,17 +327,27 @@ export default function LandingPage() {
 
         {/* Modules */}
         <section
-          className="border-t border-surface-border bg-surface px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24"
+          className="relative border-t border-surface-border bg-surface px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24"
           id="modules"
         >
-          <div className="mx-auto max-w-7xl">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary-fixed/25 to-transparent"
+          />
+          <div className="relative mx-auto max-w-7xl">
             <Reveal className="mx-auto mb-10 max-w-3xl text-center sm:mb-16">
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-primary sm:text-sm">
-                Une plateforme, un établissement
-              </h2>
-              <h3 className="mb-4 text-3xl font-extrabold tracking-tight text-text-primary sm:mb-6 sm:text-4xl md:text-5xl">
+              <span className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface-container-lowest px-3 py-1 shadow-subtle">
+                <span className="relative flex h-1.5 w-1.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-container opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary-container" />
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-container">
+                  Une plateforme, un établissement
+                </span>
+              </span>
+              <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-text-primary sm:mb-6 sm:text-4xl md:text-5xl">
                 Tout ce qu’une école gère, au même endroit
-              </h3>
+              </h2>
               <p className="text-base text-text-secondary sm:text-lg">
                 Pas de tableur, pas de cahier papier, pas de logiciel isolé pour chaque service.
                 ScolarGest couvre le parcours complet de l’élève et de l’établissement.
@@ -294,16 +355,35 @@ export default function LandingPage() {
             </Reveal>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
               {MODULES.map(({ icon: Icon, title, description }, i) => (
-                <Reveal key={title} delayMs={(i % 4) * 80}>
-                  <div className="group h-full rounded-xl border border-surface-border bg-surface-container-lowest p-6 shadow-subtle transition-all duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim hover:shadow-lg">
-                    <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 transition-colors duration-300 group-hover:bg-primary">
+                <Reveal key={title} delayMs={(i % 4) * 70}>
+                  {/*
+                    Tout est en transition CSS declenchee par `group-hover` et en
+                    apparition au scroll via `Reveal` (IntersectionObserver) :
+                    aucune bibliotheque d'animation n'est chargee pour la page
+                    publique, qui est justement celle qu'on veut la plus legere.
+                  */}
+                  <div className="group relative h-full overflow-hidden rounded-2xl border border-surface-border bg-surface-container-lowest p-6 shadow-subtle transition-all duration-300 hover:-translate-y-1.5 hover:border-primary-fixed-dim hover:shadow-[0_18px_40px_-18px_rgba(9,30,66,0.35)]">
+                    {/* Filet d'accent qui se deroule depuis la gauche au survol. */}
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-primary-container to-surface-tint transition-transform duration-500 ease-out group-hover:scale-x-100"
+                    />
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-primary-fixed/50 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
+                    />
+                    <div className="relative mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-fixed to-primary-fixed/40 transition-all duration-300 group-hover:-rotate-6 group-hover:scale-110 group-hover:from-primary-container group-hover:to-primary">
                       <Icon
-                        className="h-6 w-6 text-primary transition-colors duration-300 group-hover:text-white"
+                        className="h-6 w-6 text-primary-container transition-colors duration-300 group-hover:text-white"
                         aria-hidden
                       />
                     </div>
-                    <h4 className="mb-2 text-lg font-bold text-text-primary">{title}</h4>
-                    <p className="text-sm leading-relaxed text-text-secondary">{description}</p>
+                    <h3 className="relative mb-2 text-lg font-bold text-text-primary transition-colors duration-300 group-hover:text-primary-container">
+                      {title}
+                    </h3>
+                    <p className="relative text-sm leading-relaxed text-text-secondary">
+                      {description}
+                    </p>
                   </div>
                 </Reveal>
               ))}
@@ -327,15 +407,30 @@ export default function LandingPage() {
               </p>
             </Reveal>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
-              {ROLES.map(({ name, description }, i) => (
-                <Reveal key={name} delayMs={i * 80}>
-                  <div className="flex h-full flex-col items-center rounded-xl border border-surface-border bg-surface-container-lowest p-6 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md sm:p-8">
-                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-fixed sm:mb-6 sm:h-16 sm:w-16">
-                      <Users className="h-6 w-6 text-primary sm:h-7 sm:w-7" aria-hidden />
+              {ROLES.map(({ icon: Icon, name, description }, i) => (
+                <Reveal key={name} delayMs={i * 70}>
+                  <div className="group relative flex h-full flex-col items-center overflow-hidden rounded-2xl border border-surface-border bg-surface-container-lowest p-6 text-center shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-primary-fixed-dim hover:shadow-[0_18px_40px_-18px_rgba(9,30,66,0.35)] sm:p-8">
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-primary-container to-surface-tint transition-transform duration-500 ease-out group-hover:scale-x-100"
+                    />
+                    <div className="relative mb-4 flex h-14 w-14 items-center justify-center sm:mb-6 sm:h-16 sm:w-16">
+                      {/* Halo qui bat au survol seulement : une pulsation permanente
+                          sur quatre cartes a la fois deviendrait du bruit. */}
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 rounded-full bg-primary-fixed-dim opacity-0 transition-opacity duration-300 group-hover:animate-ring-pulse group-hover:opacity-100"
+                      />
+                      <span className="relative flex h-full w-full items-center justify-center rounded-full bg-primary-fixed transition-transform duration-300 group-hover:scale-105">
+                        <Icon
+                          className="h-6 w-6 text-primary-container transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7"
+                          aria-hidden
+                        />
+                      </span>
                     </div>
-                    <h4 className="mb-2 text-lg font-bold text-text-primary sm:mb-3 sm:text-xl">
+                    <h3 className="mb-2 text-lg font-bold text-text-primary transition-colors duration-300 group-hover:text-primary-container sm:mb-3 sm:text-xl">
                       {name}
-                    </h4>
+                    </h3>
                     <p className="text-sm leading-relaxed text-text-secondary">{description}</p>
                   </div>
                 </Reveal>
@@ -363,27 +458,80 @@ export default function LandingPage() {
                   {SECURITY_POINTS.map(({ icon: Icon, title, description }) => (
                     <div
                       key={title}
-                      className="rounded-xl border border-surface-border bg-surface-container-lowest p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      className="group relative h-full overflow-hidden rounded-2xl border border-surface-border bg-surface-container-lowest p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim hover:shadow-[0_16px_34px_-18px_rgba(9,30,66,0.35)]"
                     >
-                      <Icon className="mb-3 h-7 w-7 text-primary" aria-hidden />
-                      <h5 className="mb-1 font-bold text-text-primary">{title}</h5>
-                      <p className="text-xs text-text-secondary">{description}</p>
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-primary-container to-surface-tint transition-transform duration-500 ease-out group-hover:scale-x-100"
+                      />
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-fixed to-primary-fixed/40 transition-all duration-300 group-hover:-rotate-6 group-hover:scale-110 group-hover:from-primary-container group-hover:to-primary">
+                        <Icon
+                          className="h-5 w-5 text-primary-container transition-colors duration-300 group-hover:text-white"
+                          aria-hidden
+                        />
+                      </div>
+                      <h3 className="mb-1 font-bold text-text-primary transition-colors duration-300 group-hover:text-primary-container">
+                        {title}
+                      </h3>
+                      <p className="text-xs leading-relaxed text-text-secondary">{description}</p>
                     </div>
                   ))}
                 </div>
               </Reveal>
               <Reveal delayMs={150}>
-                <div className="animate-float relative flex h-[300px] flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-container p-6 text-center shadow-2xl sm:h-[400px] sm:p-8">
-                  <div className="relative z-10 mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md sm:h-24 sm:w-24">
-                    <ShieldCheck className="h-10 w-10 text-white sm:h-12 sm:w-12" aria-hidden />
+                {/*
+                  Le panneau etait un aplat bleu de 400px avec beaucoup de vide.
+                  Trois ajouts le remplissent sans le charger : des cercles
+                  concentriques qui donnent une profondeur, un halo qui bat
+                  lentement derriere l'icone, et les trois garanties reprises en
+                  pastilles — le panneau dit desormais quelque chose de precis.
+                */}
+                <div className="animate-float relative flex h-[320px] flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-container p-6 text-center shadow-2xl sm:h-[420px] sm:p-8">
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10"
+                  />
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10"
+                  />
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-[180px] w-[180px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10"
+                  />
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-3xl"
+                  />
+
+                  <div className="relative z-10 mb-6 flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24">
+                    <span
+                      aria-hidden
+                      className="animate-ring-pulse absolute inset-0 rounded-2xl bg-white/20"
+                    />
+                    <span className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md">
+                      <ShieldCheck className="h-10 w-10 text-white sm:h-12 sm:w-12" aria-hidden />
+                    </span>
                   </div>
                   <h3 className="relative z-10 mb-2 text-xl font-bold text-white sm:text-2xl">
                     Isolation par établissement
                   </h3>
-                  <p className="relative z-10 max-w-sm text-sm text-primary-fixed-dim">
+                  <p className="relative z-10 max-w-sm text-sm leading-relaxed text-primary-fixed-dim">
                     Appliquée directement au niveau de la base de données (Row Level Security),
                     pas seulement dans le code applicatif.
                   </p>
+                  <ul className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-2">
+                    {['Row Level Security', 'PIN d’approbation', 'Journal d’audit'].map(
+                      (garantie) => (
+                        <li
+                          key={garantie}
+                          className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+                        >
+                          {garantie}
+                        </li>
+                      ),
+                    )}
+                  </ul>
                 </div>
               </Reveal>
             </div>
@@ -396,6 +544,7 @@ export default function LandingPage() {
         {/* CTA banner */}
         <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-container px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24">
           <div className="pointer-events-none absolute right-0 top-0 h-[300px] w-[300px] rounded-full bg-white/5 blur-[60px] sm:h-[500px] sm:w-[500px] sm:blur-[80px]" />
+          <div className="pointer-events-none absolute -bottom-24 left-0 h-[260px] w-[260px] rounded-full bg-surface-tint/20 blur-[70px] sm:h-[420px] sm:w-[420px]" />
           <Reveal className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center">
             <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-white sm:mb-6 sm:text-4xl md:text-5xl">
               Prêt à moderniser la gestion de votre école ?
@@ -404,22 +553,26 @@ export default function LandingPage() {
               Chaque établissement est créé et configuré avec notre équipe — remplissez le
               formulaire ci-dessous pour une présentation adaptée à votre école.
             </p>
-            <div className="flex w-full flex-col justify-center gap-3 sm:flex-row sm:gap-4">
-              <Button
-                size="lg"
-                asChild
-                className="h-12 w-full bg-white px-10 text-base font-bold text-primary transition-transform duration-300 hover:-translate-y-1 hover:bg-surface-container sm:h-14 sm:w-auto"
+            {/*
+              Ancres nues plutot que `Button` : le variant `primary` force
+              `!text-white` y compris sur l'enfant slotte, donc un bouton a fond
+              blanc affichait un libelle blanc sur blanc — invisible. C'est le
+              meme piege que celui documente dans `button.tsx`, pris a l'envers.
+            */}
+            <div className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
+              <a
+                href="#demo"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-8 text-sm font-bold text-primary-container shadow-[0_12px_30px_rgba(0,24,72,0.35)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-fixed sm:h-14 sm:w-auto sm:px-10 sm:text-base"
               >
-                <a href="#demo">Demander une démo</a>
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                asChild
-                className="h-12 w-full border-2 border-white/30 bg-transparent px-10 text-base font-bold text-white transition-transform duration-300 hover:-translate-y-1 hover:bg-white/10 sm:h-14 sm:w-auto"
+                Demander une démo
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </a>
+              <Link
+                href="/login"
+                className="inline-flex h-12 w-full items-center justify-center rounded-full border-2 border-white/35 px-8 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:border-white/70 hover:bg-white/10 sm:h-14 sm:w-auto sm:px-10 sm:text-base"
               >
-                <Link href="/login">Se connecter</Link>
-              </Button>
+                Se connecter
+              </Link>
             </div>
             <p className="mt-6 flex items-center gap-2 text-center text-sm text-white/60">
               <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden /> Votre espace est mis en
@@ -506,23 +659,85 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-surface-border bg-surface-container-low px-4 py-10 sm:px-6 sm:py-12 lg:px-container-pad">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-primary">
-              <GraduationCap className="h-4 w-4 text-white" aria-hidden />
+      {/*
+        Pied de page en carte flottante (modele fourni par l'utilisateur) :
+        marque et signature a gauche, colonnes de liens a droite, filet de
+        separation, ligne basse pour la mention legale.
+
+        Aucune destination inventee. Le depot ne contient ni page de mentions
+        legales, ni page de confidentialite, ni compte social : y renvoyer
+        donnerait des liens morts, ce qui est pire qu'une colonne plus courte.
+        `LIENS_PIED` ne contient donc que des ancres et des routes qui existent
+        reellement — c'est aussi le seul endroit a modifier le jour ou ces
+        pages seront ecrites.
+      */}
+      <footer className="bg-surface px-4 pb-8 sm:px-6 lg:px-container-pad">
+        <div className="mx-auto max-w-7xl rounded-3xl border border-surface-border bg-surface-container-lowest px-6 py-10 shadow-subtle sm:px-10 sm:py-12">
+          <div className="grid gap-10 md:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))] md:gap-8">
+            <div className="max-w-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-container to-primary shadow-md">
+                  <GraduationCap className="h-4 w-4 text-white" aria-hidden />
+                </div>
+                <span className="text-lg font-bold tracking-tight text-text-primary">
+                  Scolar<span className="font-semibold text-primary-container">Gest</span>
+                </span>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-text-secondary">
+                La plateforme de gestion des écoles privées togolaises : élèves, notes,
+                finances et documents officiels, réunis et sécurisés.
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <a
+                  href="mailto:hartkit.dev@gmail.com"
+                  className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface-container-low px-3 py-1.5 text-xs font-medium text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-fixed-dim hover:text-primary-container"
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden />
+                  hartkit.dev@gmail.com
+                </a>
+                <span className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface-container-low px-3 py-1.5 text-xs font-medium text-text-secondary">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden />
+                  Lomé, Togo
+                </span>
+              </div>
             </div>
-            <span className="text-lg font-bold text-primary">ScolarGest</span>
+
+            {LIENS_PIED.map(({ titre, liens }) => (
+              <nav key={titre} aria-label={titre}>
+                <h2 className="mb-4 text-sm font-bold text-text-primary">{titre}</h2>
+                <ul className="flex flex-col gap-3">
+                  {liens.map(({ href, label, externe }) => (
+                    <li key={label}>
+                      {externe ? (
+                        <a
+                          href={href}
+                          className="text-sm text-text-secondary transition-colors duration-200 hover:text-primary-container"
+                        >
+                          {label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={href}
+                          className="text-sm text-text-secondary transition-colors duration-200 hover:text-primary-container"
+                        >
+                          {label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
           </div>
-          <p className="text-xs text-text-secondary">
-            © {new Date().getFullYear()} ScolarGest. Tous droits réservés.
-          </p>
-          <a
-            href="mailto:hartkit.dev@gmail.com"
-            className="text-xs text-text-secondary transition-colors hover:text-primary"
-          >
-            hartkit.dev@gmail.com
-          </a>
+
+          <div className="mt-10 flex flex-col items-center gap-3 border-t border-surface-border pt-6 sm:flex-row sm:justify-between">
+            <p className="text-xs text-text-secondary">
+              © {new Date().getFullYear()} ScolarGest. Tous droits réservés.
+            </p>
+            <p className="text-xs text-text-secondary">
+              Hébergé et isolé par établissement — vos données ne quittent jamais votre école.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
