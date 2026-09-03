@@ -186,6 +186,23 @@ export async function getDonneesBulletin(
   );
 
   for (const item of programme) {
+    // Une classe a filiere n'imprime que les matieres de sa filiere.
+    //
+    // `programme_etablissement` est unique sur (etablissement, niveau,
+    // matiere), sans serie : la ligne de programme est l'union des matieres de
+    // toutes les filieres du niveau. Sans ce filtre, un bulletin de Seconde C
+    // listait les matieres propres a la Seconde A4 — coefficient vide, exclues
+    // de la moyenne par `calcul-moyennes`, mais bien imprimees. Une matiere qui
+    // ne compte pour rien n'a rien a faire sur le document.
+    //
+    // Le test porte sur l'**absence de ligne** de coefficient, pas sur une
+    // valeur nulle : un coefficient explicitement mis a 0 est une decision de
+    // l'ecole (matiere suivie mais non evaluee), et celle-la reste affichee.
+    // Et il ne s'applique qu'aux classes a serie : au college, `serieId` est
+    // nul et une matiere sans coefficient signale une configuration inachevee,
+    // qu'il vaut mieux voir que masquer.
+    if (classe.serieId && !coefficients.has(item.id)) continue;
+
     const matiereEvaluations = evaluationRows.filter((e) => e.matiereId === item.matiereId);
 
     const coefficient = coefficients.get(item.id) ?? 0;
