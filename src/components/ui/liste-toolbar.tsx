@@ -16,7 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
  * sélection est partageable et survit à un rechargement.
  */
 
-function useMajParametres() {
+/**
+ * Ecriture des parametres de liste dans l'URL. Exporte parce que `BarreListe`
+ * en depend : dupliquer cette logique ferait diverger deux facons d'ecrire
+ * `page`, `tri` et `sens`.
+ */
+export function useParametresListe() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -51,7 +56,7 @@ export function RechercheListe({
   placeholder?: string;
   className?: string;
 }) {
-  const { majParametres, enAttente, searchParams } = useMajParametres();
+  const { majParametres, enAttente, searchParams } = useParametresListe();
   const termeUrl = searchParams.get('q') ?? '';
   const [valeur, setValeur] = React.useState(termeUrl);
 
@@ -124,7 +129,7 @@ export function FiltreListe({
   libelleTout?: string;
   className?: string;
 }) {
-  const { majParametres, searchParams } = useMajParametres();
+  const { majParametres, searchParams } = useParametresListe();
   // Radix Select n'accepte pas la chaîne vide comme valeur d'item : on encode
   // « pas de filtre » par un jeton explicite.
   const TOUT = '__tout__';
@@ -168,7 +173,7 @@ export function TriColonne({
   children: React.ReactNode;
   numerique?: boolean;
 }) {
-  const { majParametres, searchParams } = useMajParametres();
+  const { majParametres, searchParams } = useParametresListe();
   const triCourant = searchParams.get('tri');
   const sens = searchParams.get('sens') === 'desc' ? 'desc' : 'asc';
   const actif = triCourant === cle;

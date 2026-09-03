@@ -8,14 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
-import { BarreOutilsListe } from '@/components/ui/actions-mobile';
-import { FiltresMobile } from '@/components/ui/filtres-mobile';
-import {
-  FiltreListe,
-  PaginationListe,
-  RechercheListe,
-  TriColonne,
-} from '@/components/ui/liste-toolbar';
+import { BarreListe } from '@/components/ui/barre-liste';
+import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { MatiereForm } from './MatiereForm';
@@ -64,27 +58,28 @@ export default async function MatieresPage({
           />
         </div>
 
-        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-          <BarreOutilsListe>
-            <RechercheListe placeholder="Nom, code ou description…" />
-            <FiltresMobile nombreActifs={typeof statutFiltre === 'string' && statutFiltre ? 1 : 0}>
-              <FiltreListe
-                parametre="statut"
-                libelle="Statut"
-                options={[
-                  { valeur: 'ACTIF', libelle: 'Actif' },
-                  { valeur: 'INACTIF', libelle: 'Inactif' },
-                ]}
-                libelleTout="Tous les statuts"
-              />
-            </FiltresMobile>
-            {canWrite && (
-              <div className="md:ml-auto">
-                <MatiereForm />
-              </div>
-            )}
-          </BarreOutilsListe>
+        <BarreListe
+          placeholderRecherche="Nom, code ou description…"
+          filtres={[
+            {
+              parametre: 'statut',
+              libelle: 'Statut',
+              options: [
+                { valeur: 'ACTIF', libelle: 'Actif' },
+                { valeur: 'INACTIF', libelle: 'Inactif' },
+              ],
+              libelleTout: 'Tous les statuts',
+            },
+          ]}
+          tri={[
+            { cle: 'nom', libelle: 'Nom' },
+            { cle: 'code', libelle: 'Code' },
+            { cle: 'statut', libelle: 'Statut' },
+          ]}
+          actions={canWrite && <MatiereForm />}
+        />
 
+        <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <EnteteListe
             titre="Matières"
             compte={`${page.total} matière${page.total > 1 ? 's' : ''}`}

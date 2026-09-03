@@ -11,6 +11,12 @@ import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from './
  * regroupent derrière une icône « Filtres » qui ouvre une feuille ; le
  * badge affiche combien sont actifs pour ne pas les rendre invisibles.
  */
+/**
+ * Remplace par `BarreListe` (`src/components/ui/barre-liste.tsx`), qui porte
+ * desormais l'en-tete commune des listes : recherche, filtres, tri, actions.
+ * Conserve tant que des branches en cours l'importent — les supprimer ferait
+ * echouer leur merge, pas la compilation de celle-ci.
+ */
 export function FiltresMobile({
   nombreActifs = 0,
   children,
