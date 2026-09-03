@@ -77,14 +77,8 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Scrollbar aux couleurs de la plateforme, masquee au repos.
-   `ScrollbarAutoHide` (composant client monte dans le layout racine) pose la
-   classe `scrollbar-visible` sur <html> pendant le defilement et la retire
-   2s apres le dernier evenement scroll — c'est cette classe, pas un
-   selecteur CSS, qui pilote l'opacite : il n'existe pas d'equivalent CSS pur
-   a « visible pendant le scroll, puis disparait apres inactivite ».
-   Firefox via scrollbar-color (pas d'opacite animable, degradation
-   acceptable), Chromium/WebKit via ::-webkit-scrollbar avec transition.
+   Scrollbar aux couleurs de la plateforme.
+   Firefox via scrollbar-color, Chromium/WebKit via ::-webkit-scrollbar.
    --------------------------------------------------------------------------- */
 * {
   scrollbar-width: thin;
@@ -101,19 +95,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border: 2.5px solid transparent;
+  background-color: #c3c6d6;
+  border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
-  transition: background-color 0.3s ease;
-}
-
-html.scrollbar-visible ::-webkit-scrollbar-thumb {
-  background-color: #b2c5ff;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #003d9b !important;
+  background-color: #737685;
 }
 
 ::-webkit-scrollbar-corner {
