@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -14,7 +15,18 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-const CLE_REFUS = 'scolargest.pwa.invite-refusee';
+/**
+ * Refus valable pour la session seulement — `sessionStorage`, pas
+ * `localStorage`. « Plus tard » veut dire « pas maintenant » : on se tait
+ * jusqu'a la fermeture de l'onglet, sans condamner l'invite pour toujours.
+ */
+const CLE_REFUS_SESSION = 'scolargest.pwa.invite-refusee-session';
+
+/**
+ * Ancienne cle, en `localStorage` : un refus definitif enregistre par la
+ * version precedente reste honore. Lue, jamais ecrite.
+ */
+const CLE_REFUS_DEFINITIF = 'scolargest.pwa.invite-refusee';
 
 /**
  * Enregistre le service worker et propose l'installation de la PWA.
@@ -23,9 +35,20 @@ const CLE_REFUS = 'scolargest.pwa.invite-refusee';
  * `beforeinstallprompt`, on l'empêche de se perdre, et on affiche notre propre
  * bannière. iOS/Safari n'émet pas cet événement (installation manuelle via
  * « Partager > Sur l'écran d'accueil ») — on n'affiche donc rien là-bas.
+ *
+ * **Jamais sur la page d'accueil publique.** Un visiteur qui decouvre le
+ * produit n'a aucune raison d'installer une application dont il ne sait pas
+ * encore s'il la veut, et l'invite recouvrait le contenu de presentation.
+ *
+ * L'evenement est tout de meme capte sur cette page, et l'invite ressort si la
+ * navigation entre dans l'application : le navigateur n'emet
+ * `beforeinstallprompt` qu'une fois par chargement, ignorer l'evenement le
+ * perdrait pour de bon.
  */
 export function PwaInstaller() {
   const [invite, setInvite] = useState<BeforeInstallPromptEvent | null>(null);
+  const [refusee, setRefusee] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -43,7 +66,7 @@ export function PwaInstaller() {
       // Nettoyage : une session de dev antérieure à ce correctif a pu
       // enregistrer le service worker et remplir son cache de chunks
       // aujourd'hui obsolètes. Ne plus l'enregistrer ne suffit pas à
-      // désactiver celui déjà actif — il faut l'désinscrire explicitement et
+      // désactiver celui déjà actif — il faut le désinscrire explicitement et
       // vider son cache pour que le navigateur revienne à un fetch réseau
       // normal.
       if ('serviceWorker' in navigator) {
@@ -67,7 +90,19 @@ export function PwaInstaller() {
     }
 
     const dejaInstallee = window.matchMedia('(display-mode: standalone)').matches;
-    const dejaRefusee = window.localStorage.getItem(CLE_REFUS) === '1';
+
+    // Les acces au stockage sont gardes : un navigateur regle pour bloquer les
+    // donnees de site leve ici, et une invite d'installation ne doit jamais
+    // faire tomber la page qui la porte.
+    let dejaRefusee = false;
+    try {
+      dejaRefusee =
+        window.sessionStorage.getItem(CLE_REFUS_SESSION) === '1' ||
+        window.localStorage.getItem(CLE_REFUS_DEFINITIF) === '1';
+    } catch {
+      dejaRefusee = false;
+    }
+    if (dejaRefusee) setRefusee(true);
 
     const surInvite = (event: Event) => {
       event.preventDefault();
@@ -84,23 +119,32 @@ export function PwaInstaller() {
     };
   }, []);
 
-  if (!invite) return null;
+  const silencer = () => {
+    try {
+      window.sessionStorage.setItem(CLE_REFUS_SESSION, '1');
+    } catch {
+      // Stockage indisponible : l'invite reparaitra au prochain chargement,
+      // ce qui reste preferable a une erreur.
+    }
+    setRefusee(true);
+    setInvite(null);
+  };
+
+  if (!invite || refusee || pathname === '/') return null;
 
   const installer = async () => {
     await invite.prompt();
-    await invite.userChoice;
-    setInvite(null);
-  };
-
-  const refuser = () => {
-    window.localStorage.setItem(CLE_REFUS, '1');
-    setInvite(null);
+    const { outcome } = await invite.userChoice;
+    // Refuser l'invite native compte comme un refus : sans cela, la banniere
+    // revenait au chargement suivant alors que la personne venait de dire non.
+    if (outcome === 'dismissed') silencer();
+    else setInvite(null);
   };
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-lg border border-surface-border bg-surface-container-lowest p-4 shadow-floating md:inset-x-auto md:right-4 md:left-auto">
+    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-xl border border-surface-border bg-surface-container-lowest p-4 shadow-floating md:inset-x-auto md:left-auto md:right-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-primary-fixed text-primary-container">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary-container">
           <Download className="h-5 w-5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
@@ -112,14 +156,14 @@ export function PwaInstaller() {
             <Button size="sm" onClick={installer}>
               Installer
             </Button>
-            <Button size="sm" variant="ghost" onClick={refuser}>
+            <Button size="sm" variant="ghost" onClick={silencer}>
               Plus tard
             </Button>
           </div>
         </div>
         <button
           type="button"
-          onClick={refuser}
+          onClick={silencer}
           aria-label="Fermer"
           className="-mr-1 -mt-1 rounded p-1 text-text-secondary hover:bg-surface-container hover:text-text-primary"
         >

@@ -66,7 +66,12 @@ export default async function BulletinsGeneresPage({
               et leur date. Les élèves dont le bulletin manque y figurent aussi.
             </p>
           </div>
-          <Button asChild size="sm" variant="secondary" className="w-full md:w-auto">
+          {/* Meme poids visuel que « Voir les bulletins prets » sur l'ecran
+              d'en face : les deux ecrans sont les deux faces d'un meme aller-
+              retour, un bouton secondaire d'un cote laissait croire a une
+              action mineure. `whitespace-nowrap` parce que le libelle se
+              coupait sur deux lignes. */}
+          <Button asChild className="w-full whitespace-nowrap md:w-auto">
             <Link href={`/etablissement/notes/bulletins?${parametres.toString()}`}>
               <FileText className="h-4 w-4" aria-hidden />
               Générer des bulletins

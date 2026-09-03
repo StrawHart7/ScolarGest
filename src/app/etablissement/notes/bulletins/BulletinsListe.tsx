@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { RechercheLocale } from '@/components/ui/liste-toolbar';
 import { genererBulletinAction, genererBulletinsClasseAction } from './actions';
 
 export function BulletinsListe({
@@ -34,6 +35,17 @@ export function BulletinsListe({
   const [bulkPending, startBulkTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  // La classe entiere est deja chargee : filtrer localement evite un
+  // aller-retour serveur qui n'aurait rien de plus a filtrer. Sur une classe de
+  // soixante eleves, retrouver quelqu'un sans recherche demandait de parcourir
+  // toute la liste a la main.
+  const [recherche, setRecherche] = useState('');
+  const terme = recherche.trim().toLowerCase();
+  const elevesFiltres = terme
+    ? eleves.filter((eleve) =>
+        `${eleve.nom} ${eleve.prenoms} ${eleve.matricule}`.toLowerCase().includes(terme),
+      )
+    : eleves;
 
   function genererUn(eleveId: string) {
     setPendingId(eleveId);
@@ -105,9 +117,18 @@ export function BulletinsListe({
   return (
     <div>
       <div className="flex flex-col gap-3 border-b border-surface-border px-1 py-3 md:flex-row md:items-center md:justify-between md:p-4">
-        <p className="text-body-sm text-text-secondary">
-          {eleves.length} élève(s) inscrit(s) (statut ACTIF)
-        </p>
+        <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4">
+          <RechercheLocale
+            valeur={recherche}
+            onChange={setRecherche}
+            placeholder="Nom, prénoms ou matricule…"
+          />
+          <p className="text-body-sm text-text-secondary">
+            {terme
+              ? `${elevesFiltres.length} sur ${eleves.length} élève(s)`
+              : `${eleves.length} élève(s) inscrit(s) (statut ACTIF)`}
+          </p>
+        </div>
         <Button
           size="sm"
           onClick={genererTout}
@@ -132,7 +153,7 @@ export function BulletinsListe({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {eleves.map((eleve) => (
+            {elevesFiltres.map((eleve) => (
               <TableRow key={eleve.id}>
                 <TableCell data-mono>{eleve.matricule}</TableCell>
                 <TableCell className="font-medium">
@@ -173,7 +194,7 @@ export function BulletinsListe({
       </div>
 
       <CarteListeMobile>
-        {eleves.map((eleve) => (
+        {elevesFiltres.map((eleve) => (
           <LigneCarteMobile
             key={eleve.id}
             icone={GraduationCap}

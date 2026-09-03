@@ -111,6 +111,54 @@ export function RechercheListe({
   );
 }
 
+/**
+ * Champ de recherche a filtrage local.
+ *
+ * `RechercheListe` ecrit dans l'URL et fait refiltrer le serveur ; c'est le bon
+ * choix pour une liste paginee cote serveur. Certaines listes sont deja
+ * chargees entierement dans le navigateur — la classe entiere sur les ecrans de
+ * bulletins — et un aller-retour serveur n'y aurait rien a filtrer de plus.
+ * Meme apparence, etat local.
+ */
+export function RechercheLocale({
+  valeur,
+  onChange,
+  placeholder = 'Rechercher…',
+  className,
+}: {
+  valeur: string;
+  onChange: (valeur: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn('relative min-w-0 flex-1 md:w-72 md:flex-none', className)}>
+      <Search
+        className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-outline md:h-4 md:w-4 md:text-text-secondary"
+        aria-hidden
+      />
+      <input
+        type="search"
+        value={valeur}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="h-10 w-full rounded-lg border border-surface-border bg-surface-container-lowest pl-10 pr-9 text-body-md text-text-primary shadow-sm transition-colors placeholder:text-outline-variant hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 md:pl-9 md:shadow-none [&::-webkit-search-cancel-button]:hidden"
+      />
+      {valeur && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          aria-label="Effacer la recherche"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary transition-colors hover:text-text-primary"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export interface OptionFiltre {
   valeur: string;
   libelle: string;
