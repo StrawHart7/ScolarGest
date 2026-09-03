@@ -26,6 +26,7 @@ import { appelerAction } from './appel-action';
 import type { DefinitionEtape, IdEtape } from '@/lib/onboarding/etapes';
 import type { ProgressionOnboarding, BilanOnboarding } from '@/services/onboarding';
 import type { FormuleProposee } from '@/lib/abonnement-formule';
+import type { CombinaisonEnseignee } from '@/lib/filiere';
 import type { Cycle } from '@/services/structure';
 
 export interface DonneesDemarrage {
@@ -35,6 +36,10 @@ export interface DonneesDemarrage {
   niveaux: NiveauAvecCycle[];
   /** Niveaux portant au moins une classe : le périmètre réel de l'école. */
   niveauxUtilises: NiveauAvecCycle[];
+  /** Filières réellement ouvertes : « Seconde C » et non « Seconde ». */
+  combinaisons: CombinaisonEnseignee[];
+  /** Codes du barème national par filière, pour le pré-cochage du programme. */
+  codesParCombinaison: Record<string, string[]>;
   series: SerieCycle[];
   seriesParId: Record<string, string>;
   matieres: MatiereChoisissable[];
@@ -150,11 +155,12 @@ export function FilDemarrage({
           />
         );
       case 'programme':
-        return donnees.niveauxUtilises.length > 0 && donnees.anneeScolaireId ? (
+        return donnees.combinaisons.length > 0 && donnees.anneeScolaireId ? (
           <EtapeProgramme
             anneeScolaireId={donnees.anneeScolaireId}
-            niveaux={donnees.niveauxUtilises}
+            combinaisons={donnees.combinaisons}
             matieres={donnees.matieres}
+            codesParCombinaison={donnees.codesParCombinaison}
             onTermine={avancer}
           />
         ) : (

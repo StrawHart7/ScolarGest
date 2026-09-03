@@ -3,6 +3,7 @@ import { getProgressionOnboarding, getBilanOnboarding } from '@/services/onboard
 import { getEtatEtablissement } from '@/services/abonnement';
 import { cyclesFactures } from '@/services/paiement-fedapay';
 import { formulesPour } from '@/lib/abonnement-formule';
+import { combinaisonsEnseignees } from '@/lib/filiere';
 import { listCycles, listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
@@ -172,6 +173,8 @@ async function chargerDonnees(
     cyclesActifsNoms: [],
     niveaux: [],
     niveauxUtilises: [],
+    combinaisons: [],
+    codesParCombinaison: {},
     series: [],
     seriesParId: {},
     matieres: [],
@@ -210,6 +213,28 @@ async function chargerDonnees(
   // classe sont « enseignés ». Rien d'autre ne matérialise cette information
   // en base — c'est aussi ainsi qu'elle se retrouve à la reprise du parcours.
   const niveauxUtilises = niveaux.filter((n) => classes.some((c) => c.niveauId === n.id));
+
+  // Les filières réellement ouvertes, déduites des classes. « Seconde » ne
+  // désigne pas un programme : la Seconde A4, la Seconde C et la Seconde D
+  // n'enseignent ni les mêmes matières ni les mêmes coefficients. L'étape
+  // « programme » les confondait sous un intitulé unique.
+  const combinaisons = combinaisonsEnseignees(
+    classesBrutes.map((c) => ({
+      niveauId: c.niveauId,
+      serieId: c.serieId,
+      serieNom: c.serie?.nom ?? null,
+    })),
+    niveaux,
+  );
+
+  // Barème national de chaque filière, réduit aux codes : il sert à pré-cocher
+  // l'étape. Une carte vide signifie que la combinaison n'est pas couverte —
+  // série technique, niveau hors barème — et l'écran propose alors tout.
+  const codesParCombinaison: Record<string, string[]> = {};
+  for (const combinaison of combinaisons) {
+    const bareme = await baremeOfficiel(combinaison.niveauId, combinaison.serieId);
+    codesParCombinaison[combinaison.cle] = [...bareme.keys()];
+  }
 
   // Catalogue officiel des cycles activés. Remplace la liste en dur : les
   // matières proposées sont désormais celles du programme national, avec leur
@@ -308,9 +333,11 @@ async function chargerDonnees(
     cyclesActifsNoms: cyclesActifs.map((c) => c.cycle.nom),
     niveaux: [...niveaux].sort(parCursus),
     niveauxUtilises: [...niveauxUtilises].sort(parCursus),
+    combinaisons,
+    codesParCombinaison,
     series,
     seriesParId: Object.fromEntries(series.map((s) => [s.id, s.nom])),
-    matieres: matieres.map((m) => ({ id: m.id, nom: m.nom })),
+    matieres: matieres.map((m) => ({ id: m.id, nom: m.nom, code: m.code })),
     lignesProgramme,
     matieresOfficielles,
     programmeDefini,

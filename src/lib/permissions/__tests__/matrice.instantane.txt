@@ -48,6 +48,7 @@ coefficient.definirCoefficient = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 coefficient.definirCoefficients = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 coefficient.getCoefficient = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 coefficient.listCoefficients = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
+coefficient.retirerMatieresHorsFiliere = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 dashboard.getAnneeCourante = AUTHENTIFIE
 dashboard.getDashboardComptable = SUPER_ADMIN+COMPTABLE
 dashboard.getDashboardDirecteur = SUPER_ADMIN+DIRECTEUR

@@ -19,6 +19,7 @@ import { createTypeFrais } from '@/services/type-frais';
 import { createTarif } from '@/services/tarif';
 import { ignorerEtape, masquerOnboarding, terminerOnboarding } from '@/services/onboarding';
 import { demarrerEssaiSiNecessaire } from '@/services/abonnement';
+import { retirerMatieresHorsFiliere } from '@/services/coefficient';
 import type { IdEtape } from '@/lib/onboarding/etapes';
 
 /**
@@ -284,7 +285,16 @@ export async function creerMatieresAction(
 const programmeSchema = z.object({
   anneeScolaireId: z.string().uuid(),
   affectations: z
-    .array(z.object({ niveauId: z.string().uuid(), matiereIds: z.array(z.string().uuid()) }))
+    .array(
+      z.object({
+        niveauId: z.string().uuid(),
+        // La filière fait partie de la décision : « Seconde » n'est pas un
+        // programme, la Seconde A4 et la Seconde C n'enseignent pas la même
+        // chose. `null` pour un niveau sans série (tout le collège).
+        serieId: z.string().uuid().nullable(),
+        matiereIds: z.array(z.string().uuid()),
+      }),
+    )
     .min(1),
 });
 
@@ -295,9 +305,25 @@ export async function definirProgrammeAction(
   if (!valide.success) {
     return { ok: false, message: messageZod(valide.error) };
   }
+  // `programme_etablissement` est unique sur (établissement, niveau, matière),
+  // sans série : c'est le modèle, et il ne change pas ici. La ligne de
+  // programme est donc l'**union** des matières de toutes les filières du
+  // niveau, et la différenciation se joue sur `coefficient_matiere.serieId` —
+  // une matière sans coefficient pour une série en est absente (coefficient 0,
+  // exclu de la moyenne par `calcul-moyennes`).
+  const parNiveau = new Map<string, string[]>();
+  for (const affectation of valide.data.affectations) {
+    const cumul = parNiveau.get(affectation.niveauId) ?? [];
+    for (const matiereId of affectation.matiereIds) {
+      if (!cumul.includes(matiereId)) cumul.push(matiereId);
+    }
+    parNiveau.set(affectation.niveauId, cumul);
+  }
+
   let ajoutees = 0;
   try {
-    for (const affectation of valide.data.affectations) {
+    for (const [niveauId, matiereIds] of parNiveau) {
+      const affectation = { niveauId, matiereIds };
       // `ordreAffichage` suit l'ordre de la liste : c'est celui dans lequel
       // les matières apparaîtront sur les bulletins.
       let ordre = 0;
@@ -334,6 +360,25 @@ export async function definirProgrammeAction(
   } catch {
     coefficientsOfficiels = 0;
   }
+
+  // Le barème national vient d'être appliqué à toutes les combinaisons
+  // ouvertes. Il faut maintenant retirer ce que le Directeur a explicitement
+  // décoché pour une filière : sans cela, une matière écartée de la Seconde C
+  // y reviendrait par le barème, et le décochage n'aurait servi à rien.
+  //
+  // L'échec n'interrompt pas l'étape, pour la même raison que ci-dessus : le
+  // programme est enregistré, et une matière en trop se corrige sur l'écran
+  // des coefficients.
+  let retires = 0;
+  try {
+    retires = await retirerMatieresHorsFiliere(
+      valide.data.anneeScolaireId,
+      valide.data.affectations,
+    );
+  } catch {
+    retires = 0;
+  }
+  void retires;
 
   const complement =
     coefficientsOfficiels > 0

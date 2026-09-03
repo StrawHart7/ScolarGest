@@ -219,3 +219,82 @@ export async function listCoefficients(
     ]),
   );
 }
+
+/**
+ * Retire les coefficients des matières écartées d'une filière.
+ *
+ * L'étape « programme » du démarrage laisse le Directeur décider filière par
+ * filière : la Seconde A4 et la Seconde C n'enseignent pas les mêmes matières.
+ * Mais `programme_etablissement` est unique sur (établissement, niveau,
+ * matière), sans série — la ligne de programme est donc l'union de toutes les
+ * filières du niveau, et c'est l'absence de coefficient qui exclut une matière
+ * d'une filière donnée (coefficient 0, ignoré par `calcul-moyennes`).
+ *
+ * Sans ce retrait, le barème national réintroduirait la matière décochée :
+ * `appliquerCoefficientsOfficiels` écrit tout ce que le ministère prévoit pour
+ * la combinaison, sans savoir ce que l'école a écarté. Le décochage n'aurait
+ * alors aucun effet visible, ce qui est pire qu'une case absente.
+ *
+ * **Ne supprime que des coefficients, jamais une ligne de programme.** Le
+ * programme reste l'union : une matière retirée d'une filière continue
+ * d'exister pour les autres.
+ */
+export async function retirerMatieresHorsFiliere(
+  anneeScolaireId: string,
+  filieres: { niveauId: string; serieId: string | null; matiereIds: string[] }[],
+): Promise<number> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  if (filieres.length === 0) return 0;
+  const supabase = createClient();
+
+  const niveauIds = [...new Set(filieres.map((f) => f.niveauId))];
+  const { data: lignes, error } = await supabase
+    .from('programme_etablissement')
+    .select('id, "niveauId", "matiereId"')
+    .eq('etablissementId', ctx.etablissementId)
+    .in('niveauId', niveauIds);
+  if (error) throw error;
+
+  const programme = (lignes ?? []) as { id: string; niveauId: string; matiereId: string }[];
+  let retires = 0;
+
+  for (const filiere of filieres) {
+    const gardees = new Set(filiere.matiereIds);
+    const aRetirer = programme
+      .filter((l) => l.niveauId === filiere.niveauId && !gardees.has(l.matiereId))
+      .map((l) => l.id);
+    if (aRetirer.length === 0) continue;
+
+    // La contrainte unique inclut `serieId`, et deux NULL sont distincts en
+    // Postgres : le filtre doit distinguer `is null` de `eq`, sans quoi le
+    // collège ne serait jamais atteint.
+    let suppression = supabase
+      .from('coefficient_matiere')
+      .delete()
+      .eq('anneeScolaireId', anneeScolaireId)
+      .in('programmeEtablissementId', aRetirer);
+    suppression =
+      filiere.serieId === null
+        ? suppression.is('serieId', null)
+        : suppression.eq('serieId', filiere.serieId);
+
+    // `select()` apres un delete renvoie les lignes supprimees : c'est le seul
+    // moyen d'en connaitre le nombre reel, plutot que de supposer qu'elles
+    // existaient toutes.
+    const { data: supprimees, error: erreurSuppression } = await suppression.select('id');
+    if (erreurSuppression) throw erreurSuppression;
+    retires += (supprimees ?? []).length;
+  }
+
+  if (retires > 0) {
+    await auditLog({
+      action: 'RETIRER_COEFFICIENTS_HORS_FILIERE',
+      module: 'academique',
+      objetType: 'CoefficientMatiere',
+      objetId: anneeScolaireId,
+      nouvelleValeur: { retires, filieres: filieres.length },
+    });
+  }
+
+  return retires;
+}
