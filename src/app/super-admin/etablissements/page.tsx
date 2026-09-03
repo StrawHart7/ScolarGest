@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { BoutonFlottant } from '@/components/ui/actions-mobile';
+import { BarreListe } from '@/components/ui/barre-liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { formaterFCFA } from '@/lib/tarifs';
 
@@ -56,9 +57,29 @@ function echeance(jours: number | null): string {
   return `${jours} j`;
 }
 
-export default async function EtablissementsPage() {
+export default async function EtablissementsPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const ctx = await getTenantContext();
   const { ecoles } = await getMetriquesPlateforme();
+
+  // `getMetriquesPlateforme` ramene deja toutes les ecoles : le filtrage se
+  // fait ici plutot que dans le service, qui sert aussi le tableau de bord et
+  // ses compteurs par etat — les filtrer la fausserait ces compteurs.
+  const lireUnique = (cle: string): string | undefined => {
+    const brut = searchParams[cle];
+    const valeur = Array.isArray(brut) ? brut[0] : brut;
+    return valeur && valeur.length > 0 ? valeur : undefined;
+  };
+  const terme = (lireUnique('q') ?? '').trim().toLowerCase();
+  const etatFiltre = lireUnique('etat');
+  const ecolesFiltrees = ecoles.filter((ecole) => {
+    if (etatFiltre && ecole.etat !== etatFiltre) return false;
+    if (!terme) return true;
+    return `${ecole.nom} ${ecole.ville ?? ''}`.toLowerCase().includes(terme);
+  });
 
   return (
     <AppLayout
@@ -83,16 +104,37 @@ export default async function EtablissementsPage() {
           }
         />
 
+        <BarreListe
+          placeholderRecherche="Nom ou ville de l'école…"
+          filtres={[
+            {
+              parametre: 'etat',
+              libelle: 'État',
+              options: (Object.keys(LIBELLE_ETAT) as EtatEcole[]).map((etat) => ({
+                valeur: etat,
+                libelle: LIBELLE_ETAT[etat],
+              })),
+              libelleTout: 'Tous les états',
+            },
+          ]}
+        />
+
         <EnteteListe
           titre="Écoles"
-          compte={`${ecoles.length} école${ecoles.length > 1 ? 's' : ''}`}
+          compte={
+            terme || etatFiltre
+              ? `${ecolesFiltrees.length} sur ${ecoles.length} école${ecoles.length > 1 ? 's' : ''}`
+              : `${ecoles.length} école${ecoles.length > 1 ? 's' : ''}`
+          }
         />
 
         <Card className="overflow-hidden rounded-xl max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <CardContent className="p-0">
-            {ecoles.length === 0 ? (
+            {ecolesFiltrees.length === 0 ? (
               <p className="p-5 text-body-sm text-text-secondary">
-                Aucun établissement pour le moment.
+                {terme || etatFiltre
+                  ? 'Aucune école ne correspond à cette recherche.'
+                  : 'Aucun établissement pour le moment.'}
               </p>
             ) : (
               <>
@@ -111,7 +153,7 @@ export default async function EtablissementsPage() {
                       </tr>
                     </thead>
                     <tbody className="text-body-sm text-text-primary">
-                      {ecoles.map((e) => (
+                      {ecolesFiltrees.map((e) => (
                         <tr
                           key={e.id}
                           className="group h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
@@ -162,7 +204,7 @@ export default async function EtablissementsPage() {
                 </div>
 
                 <CarteListeMobile>
-                  {ecoles.map((e) => (
+                  {ecolesFiltrees.map((e) => (
                     <LigneCarteMobile
                       key={e.id}
                       href={`/super-admin/etablissements/${e.id}`}

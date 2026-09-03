@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { BoutonFlottant } from '@/components/ui/actions-mobile';
+import { BarreListe } from '@/components/ui/barre-liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { AbonnementRowActions } from './AbonnementRowActions';
 
@@ -20,7 +21,11 @@ const STATUT_BADGE = {
   AUCUN: 'neutral',
 } as const;
 
-export default async function AbonnementsPage() {
+export default async function AbonnementsPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const ctx = await getTenantContext();
   // Constate les échéances dépassées avant d'afficher : sans planificateur
   // dans le MVP, l'ouverture de la console est le point de passage naturel.
@@ -28,6 +33,21 @@ export default async function AbonnementsPage() {
   // change le statut) ; les plans, eux, ne dépendent de rien.
   const [, plans] = await Promise.all([expirerAbonnementsEchus(), listPlans()]);
   const abonnements = await listAbonnements();
+
+  // `listAbonnements` ramene tout : le filtrage vit ici, le service reste
+  // utilisable tel quel par les autres appelants.
+  const lireUnique = (cle: string): string | undefined => {
+    const brut = searchParams[cle];
+    const valeur = Array.isArray(brut) ? brut[0] : brut;
+    return valeur && valeur.length > 0 ? valeur : undefined;
+  };
+  const terme = (lireUnique('q') ?? '').trim().toLowerCase();
+  const statutFiltre = lireUnique('statutAbonnement');
+  const abonnementsFiltres = abonnements.filter((a) => {
+    if (statutFiltre && statutEffectif(a) !== statutFiltre) return false;
+    if (!terme) return true;
+    return `${a.etablissement.nom} ${a.plan.nom}`.toLowerCase().includes(terme);
+  });
 
   return (
     <AppLayout
@@ -54,9 +74,31 @@ export default async function AbonnementsPage() {
           />
         </div>
 
+        <BarreListe
+          placeholderRecherche="École ou plan…"
+          filtres={[
+            {
+              parametre: 'statutAbonnement',
+              libelle: 'Statut',
+              options: [
+                { valeur: 'ACTIF', libelle: 'Actif' },
+                { valeur: 'EXPIRE', libelle: 'Expiré' },
+                { valeur: 'SUSPENDU', libelle: 'Suspendu' },
+              ],
+              libelleTout: 'Tous les statuts',
+            },
+          ]}
+        />
+
         <EnteteListe
           titre="Abonnements"
-          compte={`${abonnements.length} abonnement${abonnements.length > 1 ? 's' : ''}`}
+          compte={
+            terme || statutFiltre
+              ? `${abonnementsFiltres.length} sur ${abonnements.length} abonnement${
+                  abonnements.length > 1 ? 's' : ''
+                }`
+              : `${abonnements.length} abonnement${abonnements.length > 1 ? 's' : ''}`
+          }
         />
 
         <Card className="overflow-hidden rounded-xl max-md:border-0 max-md:bg-transparent max-md:shadow-none">
@@ -64,10 +106,14 @@ export default async function AbonnementsPage() {
             <CardTitle>Liste des abonnements</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {abonnements.length === 0 ? (
+            {abonnementsFiltres.length === 0 ? (
               <div className="flex flex-col items-center gap-2 p-10 text-center">
                 <CreditCard className="h-8 w-8 text-text-secondary/50" aria-hidden />
-                <p className="text-body-sm text-text-secondary">Aucun abonnement enregistré.</p>
+                <p className="text-body-sm text-text-secondary">
+                  {terme || statutFiltre
+                    ? 'Aucun abonnement ne correspond à cette recherche.'
+                    : 'Aucun abonnement enregistré.'}
+                </p>
               </div>
             ) : (
               <>
@@ -84,7 +130,7 @@ export default async function AbonnementsPage() {
                       </tr>
                     </thead>
                     <tbody className="text-body-sm text-text-primary">
-                      {abonnements.map((a) => (
+                      {abonnementsFiltres.map((a) => (
                         <tr
                           key={a.id}
                           className="h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
@@ -128,7 +174,7 @@ export default async function AbonnementsPage() {
                 </div>
 
                 <CarteListeMobile>
-                  {abonnements.map((a) => (
+                  {abonnementsFiltres.map((a) => (
                     <LigneCarteMobile
                       key={a.id}
                       icone={CreditCard}
