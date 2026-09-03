@@ -48,8 +48,11 @@ npx tsx scripts/seed-onboarding-test.ts --purge    # supprime tout
 
 `scripts/seed-onboarding-test.ts` est le pendant *vide* de `seed-demo.ts` :
 celui-ci remplit l'établissement, ce qui le ferait apparaître comme déjà
-configuré et sauterait tout l'onboarding. Il crée un abonnement ACTIF —
-indispensable, voir « Onboarding : où vit la vérité » plus bas. Comptes de
+configuré et sauterait tout l'onboarding. Il ne crée **plus** d'abonnement
+depuis la branche `feat/soko-abonnements` : il en fabriquait un pour contourner
+le blocage circulaire de l'essai, désormais corrigé dans le middleware. Une
+école de test naît donc nue, pose son code de confirmation, et voit son essai
+de 30 jours démarrer — c'est le parcours réel. Comptes de
 test : `directeur.test.onboarding@scolargest.local` et
 `secretaire.test.onboarding@scolargest.local`, mot de passe
 `TestOnboarding2026!`. Les adresses en `.local` conviennent à
@@ -356,11 +359,24 @@ déjà été redirigé une fois.
   des bulletins, ce qui retire la matière de la moyenne de cette série.
 
 **Un établissement sans abonnement est en lecture seule** (`evaluerAcces` →
-`AUCUN` → toutes les écritures en 403). C'est intentionnel, mais ça bloque
-entièrement l'onboarding : un établissement de test doit avoir un abonnement
-ACTIF, sinon chaque étape échoue sans explication.
-`scripts/seed-onboarding-test.ts` en crée un (`--reset`, `--eleves`,
-`--secretaire`, `--purge`).
+`LECTURE_SEULE` → toutes les écritures en 403). C'est intentionnel.
+
+**Sauf une école qui n'a jamais rien eu.** Ni abonnement, ni trace d'essai :
+elle est en `AVANT_ESSAI`, et le middleware laisse passer ses écritures **sur
+`/demarrage` uniquement**. Sans cette exception, l'essai ne pouvait pas
+démarrer du tout : il s'ouvre à la définition du code de confirmation, qui est
+une écriture, refusée par le verrou avant même de s'exécuter. Toute école neuve
+naissait donc en lecture seule, et il fallait qu'un SUPER_ADMIN lui saisisse un
+abonnement à la main pour la débloquer.
+
+L'exception est **conditionnelle**, pas une entrée dans
+`PATHS_TOUJOURS_ACCESSIBLES` : ouvrir `/demarrage` en grand laisserait une
+école expirée continuer d'y créer cycles, années et classes. Elle se referme
+d'elle-même à la seconde où le code est posé, puisque l'essai démarre alors.
+
+Les deux conditions comptent — ni `essaiDebuteLe` ni `essaiFinLe`. Ne tester
+que le début ferait rebasculer en « configuration » une école dont l'essai est
+échu, ce qui lui rouvrirait `/demarrage` en écriture.
 
 ### Modèle économique : essai, facturation par cycle, paiement FedaPay
 
