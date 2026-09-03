@@ -2,44 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  BookOpenCheck,
-  CircleHelp,
-  LifeBuoy,
-  CreditCard,
-  GraduationCap,
-  LayoutDashboard,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Presentation,
-  Settings,
-  ShieldCheck,
-  Users,
-  UsersRound,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react';
+import { GraduationCap, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ITEMS_BAS_SIDEBAR, type NomIcone, type SidebarItem } from '@/lib/navigation';
+import { ITEMS_BAS_SIDEBAR, type SidebarItem } from '@/lib/navigation';
 import { useSidebarCollapse } from './sidebar-collapse';
+import { ICONES } from './icones-navigation';
+
+// Reexport : `BottomNav` importe la table depuis ce module de longue date.
+export { ICONES };
 
 export type { SidebarItem };
 
-export const ICONES: Record<NomIcone, LucideIcon> = {
-  'tableau-de-bord': LayoutDashboard,
-  eleves: GraduationCap,
-  enseignants: UsersRound,
-  notes: BookOpenCheck,
-  finances: Wallet,
-  etablissement: ShieldCheck,
-  rapports: Presentation,
-  'mes-classes': Users,
-  abonnements: CreditCard,
-  utilisateurs: Users,
-  parametres: Settings,
-  aide: CircleHelp,
-  support: LifeBuoy,
-};
 
 function LienSidebar({
   item,

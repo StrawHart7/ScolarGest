@@ -19,6 +19,8 @@ export type NomIcone =
   | 'finances'
   | 'etablissement'
   | 'rapports'
+  | 'statistiques'
+  | 'journal'
   | 'mes-classes'
   | 'abonnements'
   | 'utilisateurs'
@@ -233,7 +235,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Abonnements', href: '/super-admin/abonnements', icone: 'abonnements' },
         { label: 'Demandes de démo', labelCourt: 'Demandes', href: '/super-admin/demandes', icone: 'utilisateurs' },
         { label: 'Support', href: '/super-admin/support', icone: 'support' },
-        { label: 'Journal d’audit', labelCourt: 'Journal', href: '/super-admin/journal', icone: 'rapports' },
+        { label: 'Journal d’audit', labelCourt: 'Journal', href: '/super-admin/journal', icone: 'journal' },
       ];
     case 'DIRECTEUR':
       return [
@@ -244,7 +246,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         { label: 'Établissement', labelCourt: 'École', href: '/etablissement', icone: 'etablissement' },
         // Direction et secrétariat seulement : les rôles financiers n'ont
         // rien à faire des moyennes par classe.
-        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'rapports' },
+        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'statistiques' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'SECRETAIRE':
@@ -257,7 +259,7 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         // La Secrétaire saisit et suit déjà notes, bulletins et inscriptions :
         // lui refuser la lecture d'ensemble de ce qu'elle produit n'aurait pas
         // de sens.
-        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'rapports' },
+        { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'statistiques' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'COMPTABLE':
