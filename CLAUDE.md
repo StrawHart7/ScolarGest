@@ -211,6 +211,11 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-03) :
+- `design/verni-hero` — ✅ livrée (2026-09-03), agent VERNI : refonte visuelle
+  de la page d'accueil (hero plein écran indépendant du zoom, quatre sections
+  animées sans dépendance, pied de page en carte), écran de connexion en deux
+  volets, en-tête de liste unique sur onze pages, console plateforme rendue
+  cherchable. Aucune migration, aucun service touché. Voir `PLAN.md` § 8.
 - `feat/soko-programme-filieres` — ✅ livrée (2026-09-03) : le programme se
   décide par filière (Seconde A4 / C / D), pré-cochage d'après le barème
   national, et matières hors filière retirées du bulletin. Aucune migration.
@@ -266,6 +271,106 @@ saisie sont explicitement hors motif (voir la dernière section du document).
 
 **Never use native `<select>` or `<input type="date">` directly** — their dropdown/calendar popups are rendered by the OS/browser and cannot be styled, which breaks the design system. Use `src/components/ui/select.tsx` (Radix Select — still form-submits via a real hidden `<select>`, so it drops into existing `FormData`-based Server Actions unchanged) and `src/components/ui/date-picker.tsx` (Popover + `calendar.tsx`, submits an ISO `yyyy-MM-dd` via a hidden input) instead.
 
+### Listes : l'en-tête est un composant, pas une composition par page
+
+`BarreListe` (`src/components/ui/barre-liste.tsx`) porte l'en-tête de **toute**
+page de liste : recherche à gauche, « Filtres » et « Trier » à droite, actions
+de page à l'extrémité. Elle vit **au-dessus de la `Card`**, pas dedans : la
+barre et la liste ne sont pas le même objet.
+
+Avant, chaque page composait sa propre rangée — filtres en clair ici, repliés
+là, hauteur variable selon leur nombre. Trois `Select` étiquetés occupaient une
+bande entière avant d'atteindre la liste.
+
+Quatre règles qui en découlent :
+
+- **Les filtres se décrivent par des données**, pas par du JSX. C'est ce qui
+  permet au composant de compter lui-même les filtres actifs et d'en afficher
+  les pastilles ; passer des `<FiltreListe/>` déjà construits obligeait chaque
+  page à recompter de son côté (`lireUnique('statut') ? 1 : 0`, répété sur cinq
+  pages).
+- **Les filtres passent derrière un bouton y compris sur desktop.** C'est le
+  prix de l'en-tête constante. La contrepartie est la rangée de pastilles :
+  un filtre actif reste visible et se retire d'un clic.
+- **Les filtres métier gardent leur composant** (`filtresLibres`) : « année
+  scolaire » puis « classe », où changer d'année réinitialise la classe, ne
+  s'exprime pas par un descripteur. Ils sont rendus dans le même panneau, et la
+  page annonce combien sont actifs — le composant ne peut pas le deviner.
+- **Le menu « Trier » écrit les mêmes paramètres `tri`/`sens` que
+  `TriColonne`.** Les deux commandes restent donc d'accord. Sans lui, une liste
+  n'est triable que par son tableau, donc pas du tout sous `md`, où le tableau
+  devient des cartes.
+
+`RechercheListe` écrit dans l'URL et fait refiltrer le serveur ; `RechercheLocale`
+filtre un tableau déjà chargé côté client. Les écrans de bulletins et les listes
+du SUPER_ADMIN chargent la collection entière : un aller-retour serveur n'y
+aurait rien de plus à filtrer.
+
+`FiltresMobile` et `BarreOutilsListe` ne sont plus importés nulle part mais
+restent en place — d'autres branches les utilisent encore, les supprimer ferait
+échouer leur merge.
+
+### Le hero tient dans un écran, à tout niveau de zoom
+
+`min-h-svh` plutôt que `100vh` (la barre d'URL mobile ne recadre plus le bas) et
+des tailles en `clamp(rem, vw, rem)` plutôt qu'une échelle par paliers. Un zoom
+navigateur réduit la largeur du viewport en pixels CSS : les `vw` suivent.
+
+**La capture prend l'espace restant** (`flex-1`), et l'image le remplit
+(`h-full object-cover object-top`). Une hauteur fixe en `clamp()` laissait une
+bande vide entre le bas du cadre et le bas de l'écran dès que le viewport était
+plus haut que prévu — l'image semblait coupée au milieu de rien.
+
+**Reproduire un rendu « à 80 % de zoom » demande de tout réduire**, largeurs
+maximales des conteneurs et coefficients `vw`/`vh` compris. Ne réduire que la
+typographie ne suffit pas : les conteneurs restent à leur échelle.
+
+**Aucune bibliothèque d'animation sur la page publique** : `Reveal`
+(IntersectionObserver) pour l'apparition au scroll, transitions CSS sur
+`group-hover` pour le reste.
+
+### Un survol en verre a besoin de contraste
+
+Un `hover:bg-white/60` posé sur une barre déjà en `bg-white/75` ne se voit pas.
+La navbar publique est donc volontairement peu opaque (`bg-white/55`), et le
+survol est un dégradé blanc vers bleu clair avec liseret intérieur. Le premier
+jet a été livré « avec glassmorphisme » sans que rien ne change à l'écran.
+
+### `Button` variant `primary` force le texte en blanc
+
+`!text-white` y compris sur l'enfant slotté (`[&_*]:!text-white`) — voir le
+commentaire de `button.tsx`, écrit pour le cas inverse. Un bouton à **fond
+blanc** construit sur ce variant affiche donc un libellé invisible. C'est ce qui
+rendait illisible le « Demander une démo » de la bannière finale. Pour un bouton
+clair, utiliser une ancre nue.
+
+### Scrollbar et invite d'installation : le sens par défaut compte
+
+`ScrollbarAutoHide` pose `scrollbar-repos` sur `<html>` après 2 s sans
+défilement ; le style par défaut, **sans classe**, est la scrollbar visible. Le
+premier jet faisait l'inverse — pouce transparent par défaut, coloré pendant le
+scroll — et la scrollbar n'apparaissait donc jamais au chargement.
+
+`PwaInstaller` ne s'affiche **jamais** sur `/` : un visiteur qui découvre le
+produit n'a pas de raison d'installer l'application. L'événement
+`beforeinstallprompt` y est tout de même capté — le navigateur ne l'émet qu'une
+fois par chargement — et l'invite ressort si la navigation entre dans
+l'application. « Plus tard » vaut pour la session (`sessionStorage`), et **un
+refus de l'invite native compte comme un refus** : sans cela la bannière
+revenait au chargement suivant.
+
+### Une icône par destination
+
+`src/components/layout/icones-navigation.ts` porte la table unique, dans un
+module **sans `'use client'`** pour être importable du serveur comme du client.
+Elle existait en double — une copie dans `Sidebar.tsx`, une dans
+`SectionAccueil.tsx` — et les deux avaient divergé. Le typage
+`Record<NomIcone, LucideIcon>` fait échouer la compilation si un nom manque :
+c'est lui qui a révélé la copie.
+
+Rapports, Statistiques et Journal d'audit partageaient `Presentation` :
+indistinguables sidebar repliée, où il ne reste que l'icône.
+
 ### Titres de page : un seul token responsive
 
 Le titre `<h1>` d'une page utilise `text-display-sm` — token défini en
@@ -307,8 +412,9 @@ handler `fetch` qui rend l'app *installable* — sans lui, ce n'est qu'un raccou
 en cache de page authentifiée ni de donnée Supabase (RLS). Bumper `CACHE_VERSION`
 à tout changement de stratégie (l'ancien cache est purgé à l'activation). Les
 navigateurs n'ouvrant plus d'invite automatique, `PwaInstaller` capte
-`beforeinstallprompt` et affiche une bannière maison (refus mémorisé en
-`localStorage`, masquée en mode standalone) ; iOS n'émet pas l'événement.
+`beforeinstallprompt` et affiche une bannière maison (jamais sur `/`, refus
+mémorisé pour la session, masquée en mode standalone — voir « Scrollbar et
+invite d'installation » plus haut) ; iOS n'émet pas l'événement.
 
 **Hors-ligne : la donnée persistée EST la file d'attente.** Les brouillons de
 saisie de notes vivent en IndexedDB (`src/lib/offline/notes-brouillon-db.ts`,

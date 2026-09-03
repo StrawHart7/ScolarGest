@@ -2144,3 +2144,73 @@ blocs distincts à l'étape « programme », et un bulletin de Seconde C ne port
 aucune matière étrangère à la filière.
 
 ---
+
+### Fonctionnalité — Refonte visuelle : accueil, connexion, en-tête de liste
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-03) — branche
+`design/verni-hero`, agent VERNI. Aucune migration, aucun service touché
+(l'instantané de la matrice de permissions est resté inchangé, ce qui le
+confirme).
+
+**Objectif** : monter le niveau de finition de tout ce qui se voit — page
+publique, écran de connexion, en-tête des listes, navigation — sans ajouter
+la moindre dépendance au bundle.
+
+**Hero plein écran, indépendant du zoom.** `min-h-svh` plutôt que `100vh` (la
+barre d'URL mobile ne recadre plus le bas), et des tailles en
+`clamp(rem, vw, rem)` plutôt qu'une échelle par paliers `sm:`/`lg:`. Un zoom
+navigateur réduit la largeur du viewport en pixels CSS : les `vw` suivent, donc
+la composition se contracte au lieu de déborder sous la ligne de flottaison.
+
+**Le vide sous la capture** venait d'une hauteur fixe en `clamp()`, sans rapport
+avec la hauteur restante du hero : dès que l'écran était plus haut que prévu,
+une bande vide séparait le bas du cadre du bas de l'écran. Le cadre prend
+désormais l'espace restant (`flex-1`) et l'image le remplit
+(`h-full object-cover object-top`).
+
+**Toutes les mesures valent 80 % du premier jet** — largeurs maximales des
+conteneurs comprises, et coefficients `vw`/`vh`. Réduire la seule typographie
+ne reproduit pas un rendu à 80 % de zoom : les conteneurs restent à leur
+échelle.
+
+**Animations sans bibliothèque.** `Reveal` (IntersectionObserver, déjà dans le
+dépôt) pour l'apparition au scroll, transitions CSS sur `group-hover` pour le
+reste. La page publique est justement celle qu'on veut la plus légère.
+
+**Livrables** :
+
+- [x] Navbar en pilule flottante, survol en verre. Le fond de la barre est
+      volontairement peu opaque (`bg-white/55`) : à `bg-white/75`, un survol
+      `bg-white/60` ne se distinguait pas du fond et passait pour inexistant.
+- [x] Quatre sections finies (modules, rôles, sécurité, appel à l'action) et
+      pied de page en carte flottante. **Aucune destination inventée** : ni
+      mentions légales, ni confidentialité, ni compte social n'existent —
+      `LIENS_PIED` est le seul endroit à modifier le jour où ils existeront.
+- [x] `/login` en deux volets à partir de `lg`, avec bascule d'affichage du mot
+      de passe. Le panneau de marque est **masqué** sous `lg`, pas replié au
+      -dessus : il repousserait le formulaire sous le pli.
+- [x] `BarreListe` — en-tête unique de onze pages de liste, **séparée de la
+      Card**.
+- [x] `ScrollbarAutoHide` — scrollbar aux couleurs de la plateforme, effacée
+      après 2 s d'inactivité.
+- [x] `icones-navigation.ts` — table d'icônes unique.
+- [x] Recherche locale sur les deux écrans de bulletins, recherche et filtre
+      sur les trois listes de la console SUPER_ADMIN.
+
+**Quatre défauts réels trouvés en chemin** :
+
+- Le bouton blanc « Demander une démo » de la bannière finale écrivait **blanc
+  sur blanc** : le variant `primary` force `!text-white` jusque sur l'enfant
+  slotté. Ancres nues à la place.
+- Les quatre cartes de la section « rôles » portaient la même icône `Users`, ce
+  qui annulait l'idée de la section.
+- Rapports, Statistiques et Journal d'audit partageaient `Presentation` :
+  indistinguables sidebar repliée, où il ne reste que l'icône.
+- L'invite d'installation PWA revenait après un refus de l'invite **native** :
+  ce refus n'était enregistré nulle part.
+
+**DoD** : la page d'accueil tient dans un écran à tout niveau de zoom sans bande
+vide sous la capture ; les onze listes ont la même en-tête ; aucune dépendance
+ajoutée au `package.json`.
+
+---
