@@ -137,40 +137,50 @@ export default function LandingPage() {
         un bandeau plein. Elle reste `fixed` — le hero reserve la hauteur qu'il
         faut par son padding haut, plutot que le `pt-16` global d'avant, qui
         empechait toute section de remonter sous la barre.
+
+        Le fond de la pilule est volontairement peu opaque (`bg-white/55`) : a
+        `bg-white/75`, le survol en verre des liens ne se distinguait plus du
+        fond de la barre elle-meme, et l'effet passait pour inexistant.
       */}
-      <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-5">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 rounded-full border border-white/70 bg-white/75 pl-3 pr-2 shadow-[0_8px_30px_rgba(9,30,66,0.10)] backdrop-blur-xl sm:h-16 sm:pl-5 sm:pr-3">
-          <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-container to-primary shadow-md">
-              <GraduationCap className="h-5 w-5 text-white" aria-hidden />
+      <header className="fixed inset-x-0 top-0 z-50 px-2.5 pt-2.5 sm:px-5 sm:pt-4">
+        <div className="mx-auto flex h-11 w-full max-w-[51rem] items-center justify-between gap-3 rounded-full border border-white/70 bg-white/55 pl-2.5 pr-1.5 shadow-[0_8px_30px_rgba(9,30,66,0.10)] backdrop-blur-xl sm:h-[3.25rem] sm:pl-4 sm:pr-2">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary-container to-primary shadow-md">
+              <GraduationCap className="h-4 w-4 text-white" aria-hidden />
             </div>
-            <span className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+            <span className="text-[0.9rem] font-bold tracking-tight text-text-primary sm:text-base">
               Scolar<span className="font-semibold text-primary-container">Gest</span>
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-7 lg:flex">
+          {/*
+            Survol en verre : fond degrade blanc -> bleu clair, liseret interieur
+            lumineux et ombre portee courte. Un simple changement de couleur de
+            texte, ou un `bg-white/60` pose sur une barre deja blanche, ne se
+            voyait pas — c'est le contraste bleute qui rend l'effet lisible.
+          */}
+          <nav className="hidden items-center gap-0.5 lg:flex">
             {LIENS_NAV.map(({ href, label }) => (
               <a
                 key={href}
                 href={href}
-                className="text-sm font-medium text-text-secondary transition-colors hover:text-primary-container"
+                className="rounded-full px-3 py-1.5 text-xs font-medium text-text-secondary transition-all duration-200 hover:bg-gradient-to-b hover:from-white/95 hover:to-primary-fixed/70 hover:text-primary-container hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_rgba(0,61,155,0.16)] hover:ring-1 hover:ring-white/80"
               >
                 {label}
               </a>
             ))}
           </nav>
 
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1">
             <Link
               href="/login"
-              className="rounded-full px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:text-primary-container sm:text-sm"
+              className="rounded-full px-2.5 py-1.5 text-[0.7rem] font-medium text-text-secondary transition-all duration-200 hover:bg-gradient-to-b hover:from-white/95 hover:to-primary-fixed/70 hover:text-primary-container hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_rgba(0,61,155,0.16)] hover:ring-1 hover:ring-white/80 sm:text-xs"
             >
               Connexion
             </Link>
             <a
               href="#demo"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-primary-container px-4 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(0,82,204,0.30)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary sm:h-11 sm:px-5 sm:text-sm"
+              className="inline-flex h-8 items-center justify-center rounded-full bg-primary-container px-3 text-[0.7rem] font-semibold text-white shadow-[0_6px_16px_rgba(0,82,204,0.30)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary sm:h-9 sm:px-4 sm:text-xs"
             >
               <span className="sm:hidden">Démo</span>
               <span className="hidden sm:inline">Demander une démo</span>
@@ -184,11 +194,20 @@ export default function LandingPage() {
           Le hero tient dans une seule hauteur d'ecran, quel que soit le zoom.
           Deux choix y suffisent : `100svh` plutot que `100vh` (la barre d'URL
           mobile ne recadre plus le bas), et des tailles en `clamp(rem, vw, rem)`
-          plutot qu'une echelle par paliers `sm:`/`lg:`. Un zoom navigateur
-          reduit la largeur du viewport en pixels CSS : les `vw` suivent, donc la
-          composition se contracte au lieu de deborder sous la ligne de flottaison.
-          La capture est volontairement rognee en bas par `overflow-hidden` — elle
-          se poursuit sous le pli, ce qui indique qu'il y a une suite.
+          plutot qu'une echelle par paliers `sm:`/`lg:`.
+
+          Toutes les mesures — y compris les largeurs maximales des conteneurs et
+          les coefficients `vw`/`vh` — valent 80% du premier jet : a 100% de zoom
+          la composition etait trop genereuse, et c'est le rendu a 80% qui avait
+          la bonne densite. Reduire seulement la typographie n'aurait pas suffi,
+          les conteneurs seraient restes a leur echelle.
+
+          La capture occupe l'espace restant (`flex-1` + `min-h-0` implicite par
+          `min-h-[8rem]`) au lieu d'une hauteur fixe : une hauteur en `clamp()`
+          laissait un vide entre le bas du cadre et le bas de l'ecran des que le
+          viewport etait plus haut que prevu. L'image elle-meme est en
+          `h-full object-cover object-top`, donc elle remplit toujours le cadre
+          et se poursuit sous le pli, sans jamais laisser de bande vide.
         */}
         <section className="relative isolate flex min-h-svh flex-col overflow-hidden">
           <div
@@ -197,57 +216,58 @@ export default function LandingPage() {
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[55svh] bg-[radial-gradient(55%_100%_at_50%_0%,rgba(0,82,204,0.14),transparent_72%)]"
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44svh] bg-[radial-gradient(55%_100%_at_50%_0%,rgba(0,82,204,0.14),transparent_72%)]"
           />
 
-          <div className="flex flex-1 flex-col items-center px-4 pb-0 pt-[clamp(6rem,15vh,9.5rem)] text-center sm:px-6">
-            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 py-1 pl-1 pr-3 shadow-[0_4px_14px_rgba(9,30,66,0.08)] backdrop-blur-sm">
-              <span className="rounded-full bg-text-primary px-2.5 py-1 text-[11px] font-semibold text-white">
-                Nouveau
+          <div className="flex flex-1 flex-col items-center px-4 pt-[clamp(4.8rem,12vh,7.6rem)] text-center sm:px-6">
+            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-1 shadow-[0_4px_14px_rgba(9,30,66,0.08)] backdrop-blur-sm">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-container opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary-container" />
               </span>
-              <span className="text-[11px] font-medium text-text-secondary sm:text-xs">
+              <span className="text-[10px] font-medium text-text-secondary">
                 Conçu pour les écoles privées togolaises
               </span>
             </div>
 
-            <h1 className="mt-[clamp(1.25rem,3.5vh,2rem)] max-w-4xl text-[clamp(2.125rem,6.2vw,4.25rem)] font-extrabold leading-[1.05] tracking-tight text-text-primary">
+            <h1 className="mt-[clamp(1rem,2.8vh,1.6rem)] max-w-[51rem] text-[clamp(1.7rem,4.96vw,3.4rem)] font-extrabold leading-[1.05] tracking-tight text-text-primary">
               La gestion scolaire,
               <span className="block font-serif text-[1.04em] font-normal italic text-primary-container">
                 enfin unifiée.
               </span>
             </h1>
 
-            <p className="mt-[clamp(1rem,2.5vh,1.5rem)] max-w-xl text-[clamp(0.95rem,1.15vw,1.125rem)] leading-relaxed text-text-secondary">
+            <p className="mt-[clamp(0.8rem,2vh,1.2rem)] max-w-[29rem] text-[clamp(0.76rem,0.92vw,0.9rem)] leading-relaxed text-text-secondary">
               Élèves, enseignants, notes, finances et documents officiels dans une seule
               plateforme sécurisée — de l’inscription jusqu’au bulletin.
             </p>
 
-            <div className="mt-[clamp(1.5rem,3.5vh,2.25rem)] flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+            <div className="mt-[clamp(1.2rem,2.8vh,1.8rem)] flex w-full flex-col items-center gap-2.5 sm:w-auto sm:flex-row">
               <a
                 href="#demo"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-container px-8 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,82,204,0.32)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary sm:w-auto"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary-container px-6 text-xs font-semibold text-white shadow-[0_10px_28px_rgba(0,82,204,0.32)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary sm:w-auto"
               >
                 Demander une démo
-                <ArrowRight className="h-4 w-4" aria-hidden />
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </a>
               <Link
                 href="/login"
-                className="inline-flex h-12 w-full items-center justify-center rounded-full border border-surface-border bg-white px-8 text-sm font-semibold text-text-primary shadow-[0_4px_14px_rgba(9,30,66,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim sm:w-auto"
+                className="inline-flex h-10 w-full items-center justify-center rounded-full border border-surface-border bg-white px-6 text-xs font-semibold text-text-primary shadow-[0_4px_14px_rgba(9,30,66,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim sm:w-auto"
               >
                 Se connecter
               </Link>
             </div>
 
-            <div className="mt-[clamp(2rem,5vh,3.5rem)] w-full max-w-6xl">
-              <div className="relative mx-auto h-[clamp(180px,40svh,520px)] overflow-hidden rounded-t-2xl border border-white/90 bg-white shadow-[0_-2px_0_rgba(255,255,255,0.9),0_30px_70px_-20px_rgba(9,30,66,0.35)] sm:rounded-t-3xl">
+            <div className="mt-[clamp(1.6rem,4vh,2.8rem)] flex min-h-[8rem] w-full max-w-[57.5rem] flex-1">
+              <div className="relative h-full w-full overflow-hidden rounded-t-xl border border-white/90 bg-white shadow-[0_-2px_0_rgba(255,255,255,0.9),0_30px_70px_-20px_rgba(9,30,66,0.35)] sm:rounded-t-2xl">
                 <Image
                   src="/assets/images/illustrations/Dashboard_hero.png"
                   alt="Tableau de bord ScolarGest : effectifs, remplissage, encaissements de l’année et bulletins générés."
                   width={1672}
                   height={941}
                   priority
-                  sizes="(min-width: 1280px) 1152px, 100vw"
-                  className="w-full"
+                  sizes="(min-width: 960px) 920px, 100vw"
+                  className="h-full w-full object-cover object-top"
                 />
               </div>
             </div>

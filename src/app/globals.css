@@ -82,7 +82,7 @@ body {
    --------------------------------------------------------------------------- */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c3c6d6 transparent;
+  scrollbar-color: #b2c5ff transparent;
 }
 
 ::-webkit-scrollbar {
@@ -95,18 +95,40 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #c3c6d6;
-  border: 2px solid transparent;
+  background-color: #b2c5ff;
+  border: 3px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
+  transition: background-color 0.45s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #737685;
+  background-color: #0052cc;
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Au repos — 2s sans defilement — le pouce s'efface. La classe est posee par
+   `ScrollbarAutoHide` : il n'existe pas de selecteur CSS pour « inactif depuis
+   n secondes ». Le sens par defaut compte : la scrollbar est **visible** tant
+   que la classe est absente, sinon elle resterait invisible au chargement et
+   jusqu'au premier scroll — c'est l'erreur du premier essai.
+   Seule la couleur du pouce change : la gouttiere garde sa largeur, donc aucun
+   decalage de mise en page a l'apparition ou a la disparition. */
+html.scrollbar-repos::-webkit-scrollbar-thumb,
+html.scrollbar-repos ::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+html.scrollbar-repos,
+html.scrollbar-repos * {
+  scrollbar-color: transparent transparent;
+}
+
+html.scrollbar-repos ::-webkit-scrollbar-thumb:hover {
+  background-color: #0052cc;
 }
 
 /* Barre de progression de navigation : rend visible un changement de page
