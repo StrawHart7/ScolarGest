@@ -210,7 +210,16 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-02) :
+**Active branches** (2026-09-03) :
+- `feat/soko-programme-filieres` — ✅ livrée (2026-09-03) : le programme se
+  décide par filière (Seconde A4 / C / D), pré-cochage d'après le barème
+  national, et matières hors filière retirées du bulletin. Aucune migration.
+  Voir `PLAN.md` § 8.
+- `feat/soko-abonnements` — ✅ livrée (2026-09-03) : restructuration de l'essai
+  et de l'abonnement — déblocage circulaire de `/demarrage`, six niveaux
+  d'accès, suspension motivée sur l'établissement, formules suivant les cycles
+  activés, relances quotidiennes par cron, contournement du paiement en ligne.
+  Migrations `0026` et `0027`. Voir `PLAN.md` § 8.
 - `feat/bulletin-mise-en-page` — ✅ livrée (2026-09-02) : hauteurs de ligne
   égales sur le bulletin PDF, pied de page réorganisé, écran des bulletins
   prêts, téléchargement groupé dans un dossier. Migration `0025`. Voir
@@ -358,6 +367,39 @@ déjà été redirigé une fois.
   `coefficient_matiere.serieId` ; un coefficient absent vaut `0` dans le calcul
   des bulletins, ce qui retire la matière de la moyenne de cette série.
 
+### Le programme se décide par filière, pas par niveau
+
+Livré le 2026-09-03, **sans migration** : le modèle prévoyait déjà tout.
+
+« Seconde » n'est pas un programme. La Seconde A4, la Seconde C et la Seconde D
+n'enseignent ni les mêmes matières ni les mêmes coefficients — c'est
+précisément ce qui les distingue. L'étape « programme » de `/demarrage` les
+confondait sous un intitulé unique, et le Directeur cochait une liste pour
+trois filières.
+
+**Le périmètre se déduit des classes**, comme partout ailleurs : il n'existe ni
+`niveau_etablissement` ni `serie_etablissement`, une combinaison niveau/série
+est « enseignée » parce qu'une classe existe dessus.
+`src/lib/filiere.ts` — sans dépendance, donc importable côté client — porte
+`combinaisonsEnseignees()` et la clé `niveauId|serieId`.
+
+**La ligne de programme reste l'union des filières du niveau.**
+`programme_etablissement` est unique sur (établissement, niveau, matière),
+*sans* série, et ça ne change pas : la différenciation se joue sur
+`coefficient_matiere.serieId`, où une matière sans coefficient vaut 0 et sort de
+la moyenne (`calcul-moyennes:81`). D'où `retirerMatieresHorsFiliere()`, appelée
+**après** le barème national : sans elle, le barème réintroduirait la matière
+que le Directeur venait de décocher, et le décochage n'aurait aucun effet.
+
+**Le défaut avait une seconde face, sur le document imprimé.**
+`bulletin-donnees` poussait toutes les matières du programme du niveau, y
+compris à coefficient nul : un bulletin de Seconde C listait les matières
+propres à la A4, ligne vide, exclues du calcul mais bien présentes sur le
+document remis à la famille. Le filtre porte sur l'**absence** de ligne de
+coefficient et non sur une valeur nulle — un zéro explicite est une décision de
+l'école — et **seulement pour les classes à série** : au collège, une matière
+sans coefficient signale une configuration inachevée, qu'il vaut mieux voir.
+
 **Un établissement sans abonnement est en lecture seule** (`evaluerAcces` →
 `LECTURE_SEULE` → toutes les écritures en 403). C'est intentionnel.
 
@@ -380,7 +422,8 @@ que le début ferait rebasculer en « configuration » une école dont l'essai e
 
 ### Modèle économique : essai, facturation par cycle, paiement FedaPay
 
-Décidé et livré le 2026-08-31. Migrations `0015` à `0017`.
+Décidé et livré le 2026-08-31 (migrations `0015` à `0017`), **restructuré le
+2026-09-03** (migrations `0026` et `0027`). Voir `PLAN.md` § 8.
 
 **L'essai n'est pas un abonnement.** `abonnement_etablissement.planId` est
 `NOT NULL` : y loger un essai imposerait un plan fictif à prix nul, qui
@@ -388,25 +431,81 @@ remonterait ensuite dans l'historique de facturation et les relances. Il vit
 donc sur `etablissement` (`essaiDebuteLe`, `essaiFinLe`) et démarre à la
 définition du PIN de démarrage — première écriture réelle du Directeur.
 
-**Les dates d'essai ne sont pas écrivables par le tenant.** La policy
-`etablissement_tenant` est `for all` : un Directeur peut écrire sur sa propre
-ligne d'établissement, et prolongeait donc son propre essai. Le trigger
-`fn_proteger_dates_essai` **réécrit** les valeurs au démarrage — 30 jours
-imposés par le serveur, quoi qu'envoie l'appelant — et refuse toute
-modification ultérieure. La migration `0016` reconnaît en plus la clé
+**Ni les dates d'essai ni la suspension ne sont écrivables par le tenant.** La
+policy `etablissement_tenant` est `for all` : un Directeur peut écrire sur sa
+propre ligne d'établissement, et prolongeait donc son propre essai. Le trigger
+`fn_proteger_facturation` (`0026`, ex-`fn_proteger_dates_essai`) **réécrit** les
+dates au démarrage — 30 jours imposés par le serveur, quoi qu'envoie l'appelant
+— refuse toute modification ultérieure, et couvre désormais `suspenduLe` et
+`motifSuspension` : sans lui, la suspension déplacée sur `etablissement` serait
+levée par le suspendu lui-même. La migration `0016` reconnaît en plus la clé
 service-role, sans quoi le trigger bloquait les outils de la plateforme
 eux-mêmes (`seed-onboarding-test --reset`).
 
-**`evaluerAcces` prend un objet `EtatFacturation`** et porte cinq niveaux, dont
-`ESSAI` qui autorise l'écriture. L'ordre compte : `SUSPENDU` prime toujours,
-puis l'abonnement payé, puis l'essai. Une école qui souscrit pendant son essai
-est traitée comme cliente ; une école suspendue ne retrouve pas l'écriture via
-un essai encore ouvert.
+**La suspension vit sur `etablissement`, pas sur l'abonnement.** Elle survivait
+mal à un renouvellement — une nouvelle période ACTIF effaçait de fait une
+décision délibérée du SUPER_ADMIN. `motifSuspension` est **obligatoire**
+(contrainte de longueur ≥ 10) et **affiché au Directeur et à la Secrétaire** :
+une école coupée sans motif appelle le support sans savoir quoi dire.
+
+**`evaluerAcces` prend un objet `EtatFacturation`** et porte désormais **six**
+niveaux : `OK`, `AVERTISSEMENT` (échéance ≤ 30 jours, bandeau sans blocage),
+`ESSAI`, `AVANT_ESSAI`, `LECTURE_SEULE`, `BLOQUE`. L'ordre compte : la
+suspension prime toujours, puis l'abonnement payé, puis l'essai. Une école qui
+souscrit pendant son essai est traitée comme cliente ; une école suspendue ne
+retrouve pas l'écriture via un essai encore ouvert.
+
+**`AVANT_ESSAI` dénoue un blocage circulaire**, et c'était le défaut n° 1 : une
+école neuve n'a pas d'abonnement, donc était en lecture seule, donc ne pouvait
+pas franchir `/demarrage` — or l'essai démarre à la définition du PIN, **dans**
+`/demarrage`. Aucune école ne pouvait commencer son essai. Le middleware laisse
+donc passer les écritures de `/demarrage` **à cette seule condition** : aucune
+date d'essai, aucun abonnement, aucune suspension. La condition porte sur les
+**deux** dates — ne tester que `essaiDebuteLe` ferait repasser une école dont
+l'essai est terminé pour une école neuve, et lui rouvrirait l'écriture.
+
+**Les formules proposées suivent les cycles activés.** Une école qui n'enseigne
+qu'au collège ne voit que l'offre à un cycle ; un complexe ne voit que celle à
+deux. `src/lib/abonnement-formule.ts` (sans dépendance, donc importable côté
+client) porte ce vocabulaire, et `cyclesFactures()` filtre sur
+`cycle.disponible` — sans ce filtre, une école gardant des classes de primaire
+paierait un cycle qu'on ne lui vend plus.
+
+**Le réglement n'est pas la période.** `ouvrirPeriode` ouvre le droit d'écrire,
+`enregistrerReglement` constate l'argent reçu. Les confondre rendait
+impossibles le paiement partiel et le geste commercial. `debutProchainePeriode`
+part du plus tard entre maintenant, la fin d'essai et la fin de période
+courante : souscrire pendant son essai ne fait **perdre aucun jour**, ce que la
+page promettait sans que le code le tienne. `finDePeriode` ramène au dernier
+jour du mois cible — `setMonth` sur un 31 janvier donnait le 3 mars, soit un
+mois offert.
+
+**Les relances sont un balayage quotidien**, pas un calcul à l'affichage :
+`/api/abonnements/echeances` (cron Vercel à 07h00, protégé par `CRON_SECRET`,
+**exclu du `matcher`** sans quoi le planificateur reçoit un 307 vers `/login` et
+le compte comme un succès). Paliers J-7/3/1/0 pour l'essai, J-15/7/1/0 pour
+l'abonnement ; l'unicité `(établissement, sujet, palier, échéance)` de
+`relance_abonnement` fait qu'un rejeu n'envoie rien deux fois.
+
+**Le paiement en ligne est débrayable.** Tant que `PAIEMENT_EN_LIGNE` ne vaut
+pas `ACTIF`, souscrire ouvre la période par autorisation de la plateforme, avec
+un message qui le dit — `montantTotal: 0` et **aucune** ligne
+`paiement_abonnement`, pour que le revenu constaté ne comptabilise pas un
+encaissement qui n'a pas eu lieu. **Ne pas déclarer la variable en production**
+tant que FedaPay n'est pas validé : c'est son absence qui active le contournement.
 
 **Facturation par cycle.** Le prix du catalogue est celui d'**un** cycle
 (10 000/mois, 100 000/an) ; un complexe collège-lycée en porte deux.
 `nombreCycles` et `montantTotal` sont figés sur la période, comme les tarifs
 scolaires — changer le catalogue ne doit pas réécrire ce qu'une école a payé.
+
+**Une contrainte suit le code, elle ne le précède jamais.** La migration `0026`
+posait `montantTotal NOT NULL` alors que le `createAbonnement` déployé en
+production ne renseignait pas la colonne : la base étant partagée par tous les
+déploiements — une branche ne l'est pas — la création d'abonnement est tombée
+en `23502` sur le site réel, derrière un simple « Erreur lors de la création ».
+La contrainte a été reposée après le merge, par `0027`. Le risque avait été
+identifié avant, et sous-estimé.
 
 **`src/lib/tarifs.ts` n'est pas la source de vérité de la facturation.**
 `plan_abonnement` et `abonnement_etablissement.montantTotal` le sont. Ce

@@ -2035,3 +2035,112 @@ s'en voir attribuer une au hasard.
   reste le repli, et Chrome refuse les dossiers système.
 
 ---
+
+### Fonctionnalité — Abonnement et essai : restructuration
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-03) — branche
+`feat/soko-abonnements`. Migrations `0026` et `0027`.
+
+**Objectif** : rendre l'essai gratuit et l'abonnement réellement fonctionnels
+de bout en bout, du démarrage d'une école neuve à la relance avant échéance.
+
+**Le défaut n° 1 : aucune école ne pouvait commencer son essai.** Un
+établissement neuf n'a pas d'abonnement, donc `evaluerAcces` le mettait en
+lecture seule, donc le middleware refusait les écritures de `/demarrage` — or
+l'essai démarre à la définition du PIN, *dans* `/demarrage`. Blocage circulaire,
+masqué jusque-là parce que `seed-onboarding-test.ts` forçait un abonnement
+ACTIF. Le script ne le fait plus : une école de test naît nue, comme une vraie.
+
+**Livrables** :
+
+- [x] `evaluerAcces` à six niveaux — ajout d'`AVERTISSEMENT` (échéance ≤ 30
+      jours, bandeau sans blocage) et d'`AVANT_ESSAI` (école neuve).
+- [x] Dérogation `/demarrage` dans le middleware, conditionnée aux **deux**
+      dates d'essai absentes, sans abonnement ni suspension.
+- [x] Migration `0026` — suspension portée sur `etablissement` (`suspenduLe`,
+      `motifSuspension` ≥ 10 caractères), `fn_proteger_facturation` étendue aux
+      colonnes de suspension, table `relance_abonnement`.
+- [x] Migration `0027` — `montantTotal NOT NULL`, reposée après déploiement.
+- [x] `ouvrirPeriode` / `enregistrerReglement` / `suspendreEtablissement(motif)`
+      / `leverSuspension` / `prolongerEssai` remplacent les cinq fonctions
+      d'origine ; motif de suspension affiché au Directeur et à la Secrétaire.
+- [x] Formules d'abonnement suivant les cycles activés
+      (`src/lib/abonnement-formule.ts`, sans dépendance) ; `cyclesFactures()`
+      filtre `cycle.disponible`.
+- [x] Relances quotidiennes — `/api/abonnements/echeances`, cron Vercel 07h00,
+      `CRON_SECRET`, paliers J-7/3/1/0 (essai) et J-15/7/1/0 (abonnement),
+      unicité `(école, sujet, palier, échéance)` contre le rejeu.
+- [x] `src/lib/email.ts` — envoi applicatif via l'API Resend, qui ne levait
+      jamais d'exception jusqu'ici parce qu'il n'existait pas (Resend n'était
+      câblé que comme SMTP de Supabase Auth).
+- [x] Rappel de fin d'essai en J-7/J-3/J-1, refus mémorisé à la journée.
+- [x] Contournement du paiement en ligne tant que `PAIEMENT_EN_LIGNE` ≠ `ACTIF`
+      — période ouverte par autorisation de la plateforme, `montantTotal: 0`,
+      aucune ligne `paiement_abonnement`.
+
+**Pièges consignés** :
+
+- **Une contrainte suit le code, jamais l'inverse.** `montantTotal NOT NULL`
+  posée depuis une branche a cassé la création d'abonnement **en production** :
+  la base est partagée par tous les déploiements, une branche ne l'est pas.
+- **`setMonth` déborde** — un 31 janvier donnait le 3 mars, soit un mois offert.
+  `finDePeriode` ramène au dernier jour du mois cible, en UTC.
+- **`AVANT_ESSAI` sur une seule date** faisait repasser une école dont l'essai
+  était terminé pour une école neuve. Défaut trouvé par un test existant.
+- Un test de sécurité annoncé « FAILLE » l'avait été sur une école **non
+  suspendue** : `null → null` ne déclenche pas le trigger. Refait correctement,
+  toutes les gardes tiennent.
+
+**Reste ouvert** :
+
+- Trois variables Vercel en production : `CRON_SECRET` et `EMAIL_EXPEDITEUR` à
+  déclarer ; `PAIEMENT_EN_LIGNE` à **ne pas** déclarer tant que FedaPay n'est
+  pas validé.
+- Aucune réconciliation si un webhook FedaPay se perd — à traiter au passage
+  au réel.
+- Divergence constatée entre le JWT et la table `utilisateur`, non ouverte.
+
+---
+
+### Fonctionnalité — Programme par filière
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-03) — branche
+`feat/soko-programme-filieres`. Aucune migration.
+
+**Objectif** : cesser de confondre les filières d'un même niveau. « Seconde »
+n'est pas un programme : la Seconde A4, la Seconde C et la Seconde D
+n'enseignent ni les mêmes matières ni les mêmes coefficients.
+
+**Le défaut avait deux faces.** L'étape « programme » de `/demarrage` groupait
+par niveau, imposant une liste unique à trois filières ; et `bulletin-donnees`
+imprimait toutes les matières du programme du niveau, y compris à coefficient
+nul — un bulletin de Seconde C listait les matières propres à la A4, ligne
+vide, sur le document remis à la famille.
+
+**Aucune migration : le modèle prévoyait déjà tout.**
+`programme_etablissement` reste unique sur (établissement, niveau, matière) —
+la ligne est l'union des filières du niveau — et la différenciation se joue sur
+`coefficient_matiere.serieId`, où une matière sans coefficient vaut 0 et sort
+de la moyenne. Chaîne vérifiée dans le code plutôt que dans la documentation :
+`listCoefficients` filtre sur la série exacte, `bulletin-donnees` rabat
+l'absence sur `0`, `calcul-moyennes:81` fait `if (coefficient <= 0) continue`.
+
+**Livrables** :
+
+- [x] `src/lib/filiere.ts` — sans dépendance, donc importable côté client :
+      `combinaisonsEnseignees()`, clé `niveauId|serieId`, libellés. 11 tests.
+- [x] `EtapeProgramme` par filière, pré-coché d'après le barème national quand
+      il couvre la combinaison ; tout coché hors barème (série technique,
+      niveau non couvert), le tronc commun restant la règle.
+- [x] Validation bloquée si une filière se retrouve sans aucune matière.
+- [x] `retirerMatieresHorsFiliere()` — appelée **après** le barème, sans quoi
+      celui-ci réintroduirait la matière que le Directeur vient de décocher.
+- [x] Filtre du bulletin, sur l'**absence** de coefficient et pour les seules
+      classes à série : un zéro explicite est une décision de l'école, et au
+      collège une matière sans coefficient signale une configuration inachevée.
+
+**DoD** : deux séries de Seconde ouvertes à l'étape « classes » produisent deux
+blocs distincts à l'étape « programme », et un bulletin de Seconde C ne porte
+aucune matière étrangère à la filière.
+
+---
