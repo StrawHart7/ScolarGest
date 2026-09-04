@@ -211,6 +211,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-04) :
+- `feat/soko-modele-fondateur` — programme « ecoles fondatrices » : regime
+  tarifaire, plan forfaitaire non public, dix places verrouillees en base,
+  refonte de la troisieme offre publique. Migration `0030`. Voir `PLAN.md` § 8.
 - `feat/soko-conseils` — conseils contextuels deduits des donnees, panneau
   flottant et inventaire dans l'aide. Migration `0028`. Voir `PLAN.md` § 8.
 - `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
@@ -677,6 +680,75 @@ identifié avant, et sous-estimé.
 fichier existe parce que `listPlans()` exige une session alors que la page de
 tarifs s'adresse à des visiteurs anonymes. Toute modification doit être
 répercutée des deux côtés.
+
+### Programme fondateur : l'offre de lancement
+
+Migration `0030`, decision commerciale du 2026-09-04. Plutot que du volume avec
+un essai gratuit, une dizaine d'ecoles a tarif preferentiel, accompagnees, dont
+la reussite devient la preuve commerciale.
+
+**Ce n'etait pas une refonte de la facturation.** Tout ce qui compte existait :
+`plan_abonnement` est une table et non une constante, `ouvrirPeriode` recoit
+deja le montant de l'appelant au lieu de le relire dans le catalogue, et
+`montantTotal` est fige sur la periode depuis `0015`. Ce qui manquait etait du
+**vocabulaire**. Ne pas reconstruire ce qui existe : le relire d'abord.
+
+**Le regime vit sur l'etablissement** (`regimeTarifaire`), pas sur l'abonnement.
+Une fondatrice le reste au renouvellement ; porte par la periode, il faudrait le
+re-decider chaque mois et un renouvellement distrait ferait basculer un
+partenaire au tarif public sans que personne ne l'ait voulu. C'est une identite,
+pas une transaction.
+
+**Le tarif est fige sur l'ecole** (`tarifFondateurMensuel`), copie du catalogue
+a l'admission et **jamais relu**. L'engagement est « garanti a vie » : le relire
+dans `plan_abonnement` le rendrait revocable d'un `UPDATE` le jour ou le prix
+serait revu pour de nouveaux entrants. Meme raisonnement que l'historisation des
+tarifs scolaires.
+
+**`plan_abonnement.parCycle` distingue les deux grilles.** Le catalogue standard
+facture 10 000 F **par cycle** — un complexe college-lycee y paie 20 000. Le
+fondateur est un **forfait** de 15 000 quel que soit le nombre de cycles. Un
+complexe fondateur paie donc moins qu'un college seul au tarif public : c'est
+assume, c'est une offre de lancement, et un test le constate pour que ca reste
+un choix et non une surprise decouverte en facturant.
+
+**`code` est l'identifiant stable d'un plan**, pas `nom`. L'`on conflict (nom)`
+de `0015` porte sur un libelle, et un libelle finit reformule par le marketing —
+il creerait alors un doublon au lieu de mettre a jour.
+
+**Les dix places sont tenues par un declencheur, pas par l'ecran.** La rarete
+est tout l'argument du programme : deux admissions simultanees passeraient une
+verification applicative. `for update` sur la ligne du plan pour serialiser.
+Le declencheur ne se reveille que lorsqu'une ecole **devient** fondatrice —
+sans cette condition, renommer ou suspendre une fondatrice echouerait une fois
+les dix places prises. `placesMax` est une donnee : passer a douze ne demande
+pas de migration.
+
+**Le montant fondateur n'est pas affiche publiquement.** Le publier en ferait
+l'ancrage definitif du produit dans la tete du marche. La rarete le remplace, et
+`phrasePlaces` dit « complet » quand il l'est — allecher un visiteur qui ne
+pourra pas entrer detruirait la confiance avant le premier contact.
+
+**`getPlacesFondatrices` est la seule fonction sans garde de
+`src/services/plateforme.ts`**, nominativement justifiee dans `matrice.test.ts`.
+Elle s'adresse a des visiteurs anonymes et ne renvoie que deux entiers, jamais
+un nom d'ecole. Elle compte avec la cle service-role plutot que par une policy
+publique sur `etablissement`, qui echangerait l'isolation entre ecoles contre un
+chiffre marketing. La page d'accueil est revalidee toutes les cinq minutes.
+
+**L'essai n'a pas ete supprime, seulement depromu.** Les niveaux `ESSAI` et
+`AVANT_ESSAI` d'`evaluerAcces`, le declencheur `fn_proteger_facturation` et les
+paliers de relance restent entiers : c'est la **promesse commerciale** qui
+disparait du site public, pas l'outil, que le SUPER_ADMIN accorde encore au cas
+par cas et qu'une offre standard reprendra. Les arracher aurait touche
+`evaluerAcces`, trois composants de layout, les seeds et une trentaine
+d'assertions, pour une decision qui est commerciale.
+
+**Piege ouvert** : une ecole sans essai **et** sans abonnement tombe en
+`AVANT_ESSAI`, donc en lecture seule, onboarding compris — sans qu'aucun message
+ne l'explique. L'essai demarrait tout seul a la definition du PIN et masquait ce
+cas. Deux ecoles y sont deja (Ecole B, Zoka Legba). Une fondatrice doit donc
+**naitre avec sa premiere periode**, puisqu'elle est vendue avant d'exister.
 
 ### Paiement FedaPay : les pièges
 

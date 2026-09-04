@@ -2339,3 +2339,56 @@ et se tait entièrement sur une école entièrement configurée dont tous les
 conseils de découverte ont été vus.
 
 ---
+
+### Fonctionnalité — Modèle économique : programme fondateur
+
+**Statut** : socle et surface livrés (2026-09-04). Migration `0030` appliquée.
+
+**Objectif** : remplacer l'acquisition par essai gratuit par un programme
+commercial de lancement — une dizaine d'écoles à tarif préférentiel, accompagnées,
+dont la réussite devient la preuve commerciale. Document de cadrage :
+`Docs/ScolarGest_Evolution_Modele_Economique_Claude_Code.pdf`.
+
+**Livrables**
+
+- [x] `etablissement.regimeTarifaire` / `tarifFondateurMensuel` / `fondatriceDepuisLe`
+- [x] `plan_abonnement.code` / `parCycle` / `public` / `placesMax`
+- [x] Plan `FONDATEUR` : 15 000 F/mois, forfaitaire, non public, 10 places
+- [x] Déclencheur `fn_limiter_ecoles_fondatrices`, vérifié en le provoquant
+- [x] `definirRegimeTarifaire` (SUPER_ADMIN) et `getPlacesFondatrices` (public)
+- [x] Bloc de régime sur la fiche d'établissement de la console
+- [x] Troisième offre publique : « École fondatrice », prix masqué, mise en avant
+- [x] Retrait des trois promesses d'essai gratuit du site public
+- [x] `src/lib/fondateur.ts` sans dépendance + 8 tests
+
+**Décisions**
+
+- **Le prix fondateur est garanti à vie** : figé sur l'école, jamais relu dans le
+  catalogue. Le nombre d'écoles étant plafonné, l'engagement est tenable.
+- **Forfaitaire, contrairement à la grille standard** qui facture par cycle. Un
+  complexe fondateur paie donc moins qu'un collège seul au tarif public — assumé,
+  et verrouillé par un test pour que ça reste un choix constaté.
+- **Le tarif commercial standard ne bouge pas** : 10 000 F/mois et 100 000 F/an
+  par cycle, en attendant la première commercialisation.
+- **Le montant fondateur n'est pas publié** : le publier en ferait l'ancrage
+  définitif du produit. La rareté le remplace.
+- **L'essai est dépromu, pas supprimé.** La mécanique reste entière et testée ;
+  seule la promesse commerciale quitte le site public.
+
+**Reste ouvert**
+
+- **Créer une école et sa première période en un seul geste.** C'est le point le
+  plus important : une fondatrice est vendue avant d'exister, et une école sans
+  essai ni abonnement tombe en `AVANT_ESSAI` — lecture seule, onboarding compris,
+  sans aucun message. École B et Zoka Legba y sont déjà.
+- **Badge « École fondatrice » côté école.** Le programme les présente comme des
+  partenaires, pas des testeurs : le statut devrait se voir dans leur espace.
+- **Le tarif suggéré à l'ouverture d'une période** n'est pas encore pré-rempli
+  depuis le régime : le SUPER_ADMIN saisit toujours le montant à la main.
+- **La collecte structurée de retours** et les témoignages (sections 3 et 8 du
+  document de cadrage) n'ont aucun support produit.
+
+**DoD** : une école admise au programme voit son tarif figé survivre à un
+renouvellement, et la onzième admission est refusée par la base.
+
+---
