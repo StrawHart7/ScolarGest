@@ -11,6 +11,14 @@ import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { getSidebarItems } from '@/lib/navigation';
 import { formaterFCFA } from '@/lib/tarifs';
 import { InviterDirecteurForm } from './InviterDirecteurForm';
@@ -206,43 +214,38 @@ export default async function EtablissementDetailPage({ params }: { params: { id
             {abonnements.length === 0 ? (
               <p className="p-5 text-body-sm text-text-secondary">Aucun abonnement enregistré.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
-                      <th className="py-2 pl-5 pr-3 font-semibold">Plan</th>
-                      <th className="px-3 py-2 font-semibold">Statut</th>
-                      <th className="px-3 py-2 font-semibold">Échéance</th>
-                      <th className="py-2 pl-3 pr-5 text-right font-semibold">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-sm text-text-primary">
-                    {abonnements.map((a) => (
-                      <tr
-                        key={a.id}
-                        className="h-row-dense border-b border-surface-border/50 last:border-0 hover:bg-surface-container-low"
-                      >
-                        <td className="py-2 pl-5 pr-3 font-medium">{a.plan.nom}</td>
-                        <td className="px-3 py-2">
-                          <Badge shape="pill" variant={ABONNEMENT_STATUT_BADGE[a.statut]}>
-                            {a.statut}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2 text-text-secondary" data-mono>
-                          {new Date(a.dateFin).toLocaleDateString('fr-FR')}
-                        </td>
-                        <td className="py-2 pl-3 pr-5 text-right">
-                          <Button asChild variant="secondary" size="sm">
-                            <Link href={`/super-admin/abonnements/${a.id}/paiement`}>
-                              Valider un paiement
-                            </Link>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table dense>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Échéance</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {abonnements.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="text-body-sm font-medium">{a.plan.nom}</TableCell>
+                      <TableCell>
+                        <Badge shape="pill" variant={ABONNEMENT_STATUT_BADGE[a.statut]}>
+                          {a.statut}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-body-sm text-text-secondary" data-mono>
+                        {new Date(a.dateFin).toLocaleDateString('fr-FR')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild variant="secondary" size="sm">
+                          <Link href={`/super-admin/abonnements/${a.id}/paiement`}>
+                            Valider un paiement
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
@@ -258,39 +261,34 @@ export default async function EtablissementDetailPage({ params }: { params: { id
             {utilisateurs.length === 0 ? (
               <p className="p-5 text-body-sm text-text-secondary">Aucun utilisateur créé.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
-                      <th className="py-2 pl-5 pr-3 font-semibold">Nom</th>
-                      <th className="px-3 py-2 font-semibold">Email</th>
-                      <th className="px-3 py-2 font-semibold">Rôle</th>
-                      <th className="py-2 pl-3 pr-5 font-semibold">Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-body-sm text-text-primary">
-                    {utilisateurs.map((u) => (
-                      <tr
-                        key={u.id}
-                        className="h-row-dense border-b border-surface-border/50 last:border-0 hover:bg-surface-container-low"
-                      >
-                        <td className="py-2 pl-5 pr-3 font-medium">
-                          {u.prenom} {u.nom}
-                        </td>
-                        <td className="px-3 py-2 text-text-secondary">{u.email}</td>
-                        <td className="px-3 py-2">
-                          <Badge variant="primary">{u.role}</Badge>
-                        </td>
-                        <td className="py-2 pl-3 pr-5">
-                          <Badge shape="pill" variant={UTILISATEUR_STATUT_BADGE[u.statut]}>
-                            {u.statut}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table dense>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rôle</TableHead>
+                    <TableHead>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {utilisateurs.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell className="text-body-sm font-medium">
+                        {u.prenom} {u.nom}
+                      </TableCell>
+                      <TableCell className="text-body-sm text-text-secondary">{u.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="primary">{u.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge shape="pill" variant={UTILISATEUR_STATUT_BADGE[u.statut]}>
+                          {u.statut}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

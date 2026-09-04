@@ -47,7 +47,7 @@ export async function AbonnementBanner() {
     ? { cadre: 'border-error/20 bg-error/5', texte: 'text-error' }
     : essai || configuration
       ? { cadre: 'border-primary-container/20 bg-primary-fixed/40', texte: 'text-primary-container' }
-      : { cadre: 'border-amber-500/20 bg-amber-500/5', texte: 'text-amber-700' };
+      : { cadre: 'border-warning/30 bg-warning/10', texte: 'text-warning-on-container' };
 
   // Souscrire engage une dépense : même périmètre que la page elle-même.
   const peutPayer = role === 'DIRECTEUR' || role === 'COMPTABLE';
@@ -62,7 +62,7 @@ export async function AbonnementBanner() {
       ) : essai || configuration ? (
         <Sparkles className="h-5 w-5 shrink-0 text-primary-container" aria-hidden />
       ) : (
-        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden />
+        <AlertTriangle className="h-5 w-5 shrink-0 text-warning-on-container" aria-hidden />
       )}
 
       <p className={`text-body-sm ${ton.texte}`}>{acces.message}</p>

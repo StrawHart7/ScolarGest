@@ -154,7 +154,7 @@ export default async function AbonnementPage() {
               <p
                 className={`rounded-lg border p-3 text-body-sm ${
                   acces.niveau === 'AVERTISSEMENT'
-                    ? 'border-amber-500/20 bg-amber-500/5 text-amber-700'
+                    ? 'border-warning/30 bg-warning/10 text-warning-on-container'
                     : 'border-error/20 bg-error/5 text-error'
                 }`}
               >

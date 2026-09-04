@@ -123,7 +123,7 @@ export function CarteDemandeSupport({
     <article
       className={cn(
         'flex flex-col gap-4 rounded-xl border bg-surface-container-lowest p-5',
-        enRetard ? 'border-amber-500/40' : 'border-surface-border',
+        enRetard ? 'border-warning/30' : 'border-surface-border',
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

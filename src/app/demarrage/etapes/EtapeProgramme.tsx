@@ -136,7 +136,7 @@ export function EtapeProgramme({
       {/* Une filière sans aucune matière ne produirait que des bulletins vides :
           on le dit avant de laisser valider, pas après. */}
       {filiereVide && (
-        <p className="text-body-sm text-amber-700">
+        <p className="text-body-sm text-warning-on-container">
           Une filière au moins n&apos;a aucune matière : ses bulletins seraient vides.
         </p>
       )}

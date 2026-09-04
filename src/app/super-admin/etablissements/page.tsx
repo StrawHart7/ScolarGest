@@ -8,6 +8,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { BoutonFlottant } from '@/components/ui/actions-mobile';
 import { BarreListe } from '@/components/ui/barre-liste';
 import { getSidebarItems } from '@/lib/navigation';
@@ -138,33 +146,30 @@ export default async function EtablissementsPage({
               </p>
             ) : (
               <>
-                <div className="hidden overflow-x-auto md:block">
+                <div className="hidden md:block">
                   {/* `relative` sur les lignes : le recouvrement du lien s'y
                       ancre pour couvrir toute la largeur. */}
-                  <table className="w-full text-left [&_tbody_tr]:relative">
-                    <thead>
-                      <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
-                        <th className="py-2 pl-5 pr-3 font-semibold">Établissement</th>
-                        <th className="px-3 py-2 font-semibold">État</th>
-                        <th className="px-3 py-2 text-right font-semibold">Élèves</th>
-                        <th className="px-3 py-2 text-right font-semibold">Cycles</th>
-                        <th className="px-3 py-2 text-right font-semibold">Montant</th>
-                        <th className="py-2 pl-3 pr-5 text-right font-semibold">Échéance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-body-sm text-text-primary">
+                  <Table dense className="[&_tbody_tr]:relative">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Établissement</TableHead>
+                        <TableHead>État</TableHead>
+                        <TableHead className="text-right">Élèves</TableHead>
+                        <TableHead className="text-right">Cycles</TableHead>
+                        <TableHead className="text-right">Montant</TableHead>
+                        <TableHead className="text-right">Échéance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {ecolesFiltrees.map((e) => (
-                        <tr
-                          key={e.id}
-                          className="group h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
-                        >
+                        <TableRow key={e.id} className="group">
                           {/* Toute la ligne mene a la fiche, pas seulement le
                               nom : viser un mot de trois lettres dans une ligne
                               de mille pixels est une cible inutilement etroite.
                               Le lien couvre la premiere cellule et un
                               recouvrement absolu s'etend sur le reste de la
                               ligne — un <a> ne peut pas envelopper un <tr>. */}
-                          <td className="relative py-2 pl-5 pr-3">
+                          <TableCell className="relative">
                             <Link
                               href={`/super-admin/etablissements/${e.id}`}
                               className="font-medium text-text-primary after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container"
@@ -176,31 +181,28 @@ export default async function EtablissementsPage({
                                 {e.ville}
                               </span>
                             )}
-                          </td>
-                          <td className="px-3 py-2">
+                          </TableCell>
+                          <TableCell>
                             <Badge shape="pill" variant={TON_ETAT[e.etat]}>
                               {LIBELLE_ETAT[e.etat]}
                             </Badge>
-                          </td>
-                          <td className="px-3 py-2 text-right text-text-secondary" data-mono>
+                          </TableCell>
+                          <TableCell className="text-right text-text-secondary" data-mono>
                             {e.nombreEleves}
-                          </td>
-                          <td className="px-3 py-2 text-right text-text-secondary" data-mono>
+                          </TableCell>
+                          <TableCell className="text-right text-text-secondary" data-mono>
                             {e.nombreCycles}
-                          </td>
-                          <td className="px-3 py-2 text-right text-text-secondary" data-mono>
+                          </TableCell>
+                          <TableCell className="text-right text-text-secondary" data-mono>
                             {e.montantPeriode !== null ? formaterFCFA(e.montantPeriode) : '—'}
-                          </td>
-                          <td
-                            className="py-2 pl-3 pr-5 text-right text-text-secondary"
-                            data-mono
-                          >
+                          </TableCell>
+                          <TableCell className="text-right text-text-secondary" data-mono>
                             {echeance(e.joursRestants)}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
 
                 <CarteListeMobile>

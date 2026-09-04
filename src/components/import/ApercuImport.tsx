@@ -120,9 +120,9 @@ function BlocEntetes({
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-5">
+    <div className="space-y-4 rounded-lg border border-warning/30 bg-warning/10 p-5">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden />
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning-on-container" aria-hidden />
         <div>
           <p className="text-body-md font-semibold text-text-primary">
             Les colonnes du fichier ne correspondent pas

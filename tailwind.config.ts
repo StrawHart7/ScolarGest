@@ -62,6 +62,22 @@ const config: Config = {
           'on-fixed': '#002113',
           'on-fixed-variant': '#005236',
         },
+        /**
+         * Avertissement.
+         *
+         * La couleur existait deja, mais en `amber-*` brut dans quinze
+         * fichiers, avec trois opacites differentes pour le meme sens
+         * (`/5`, `/10`, `/15` en fond ; `/20`, `/30`, `/40` en bordure). Les
+         * valeurs reprennent exactement `amber-500` et `amber-700` deja
+         * employes : le rendu ne change pas, le vocabulaire est unifie.
+         *
+         * Ce n'est pas `error` : une echeance qui approche, un import a
+         * verifier ou une classe en surcapacite ne sont pas des fautes.
+         */
+        warning: {
+          DEFAULT: '#f59e0b',
+          'on-container': '#b45309',
+        },
         error: {
           DEFAULT: '#ba1a1a',
           container: '#ffdad6',
