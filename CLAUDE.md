@@ -1475,6 +1475,38 @@ l'a créée. Et préférer une fonction existante qui lit avant d'écrire
 - Pour un choix de conception dont le retour arrière coûte cher, poser la
   question **avant** d'écrire, avec les conséquences chiffrées de chaque option.
 
+### Le serveur de developpement ne tient pas sur cette machine
+
+Constate le 2026-09-04 en tentant un balayage de tous les ecrans par role :
+
+    <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack:
+        RangeError: Array buffer allocation failed
+    FATAL ERROR: NewSpace::EnsureCurrentCapacity
+        Allocation failed - JavaScript heap out of memory
+
+7,6 Go de RAM au total, **environ 2 Go libres** une fois Cursor, Defender et
+les sessions Claude en place. `next dev` demarre, annonce « Ready », puis meurt
+en compilant la premiere page. Borner le tas (`--max-old-space-size`) n'y
+change rien : la contrainte est la memoire physique, pas le plafond de V8.
+
+Symptomes trompeurs, a connaitre avant de chercher ailleurs :
+
+- le port reste **occupe par un processus mort** — `netstat` le montre en
+  LISTENING, `curl` reste sans reponse jusqu'au delai d'attente ;
+- `npx tsx` echoue en `spawn UNKNOWN` sous la meme pression memoire, ce qui
+  ressemble a un probleme de chemin ou de binaire ;
+- une premiere page peut repondre (le `/login` a mis **2 min 33**), ce qui
+  laisse croire que tout va bien avant que la suivante ne fasse tomber le
+  serveur.
+
+Consequence pratique : **ne pas promettre une verification par le serveur sur
+cette machine**. Ce qui reste possible et vaut le detour — le typecheck, les
+tests, les requetes SQL par le chemin reel, et l'audit statique des deux
+pieges de frontiere (un composant client qui importe une **valeur** depuis
+`src/services/`, une fonction passee en prop a un composant client). Le reste
+se verifie sur une preview Vercel, ce que l'utilisateur demande d'ailleurs :
+« juste push et je verrai les previews ».
+
 ### Ce qu'une capture d'écran ne prouve pas
 
 Une capture réduite ment sur les contrastes faibles : une pastille active a été

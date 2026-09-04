@@ -19,6 +19,16 @@ export interface PlanAbonnement {
   nom: string;
   duree: string;
   prix: number;
+  /**
+   * `true` : le prix se multiplie par le nombre de cycles exploites.
+   * `false` : forfait par etablissement (plan fondateur).
+   *
+   * Remonte jusqu'a l'ecran parce que la console demande un montant **saisi a
+   * la main** : sans cette indication, un plan forfaitaire y serait multiplie
+   * par deux pour un complexe college-lycee, et l'ecole paierait le double de
+   * ce qui lui a ete promis.
+   */
+  parCycle: boolean;
 }
 
 export interface Abonnement {
@@ -76,7 +86,7 @@ export async function listPlans(): Promise<PlanAbonnement[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('plan_abonnement')
-    .select('id, nom, duree, prix')
+    .select('id, nom, duree, prix, "parCycle"')
     .order('prix');
   if (error) throw error;
   return data ?? [];

@@ -22,7 +22,7 @@ export function AbonnementForm({
   plans,
 }: {
   etablissements: { id: string; nom: string }[];
-  plans: { id: string; nom: string; prix: number; duree: string }[];
+  plans: { id: string; nom: string; prix: number; duree: string; parCycle: boolean }[];
 }) {
   const [error, formAction] = useFormState(ouvrirPeriodeAction, null);
 
@@ -44,6 +44,13 @@ export function AbonnementForm({
         </Select>
       </div>
 
+      {/*
+        La nature du plan est dite dans le libelle, pas devinee. Le catalogue
+        public se multiplie par le nombre de cycles ; le plan fondateur est un
+        forfait par etablissement. Saisir « 2 cycles » sur un forfait doublerait
+        la facture d'une ecole a qui l'on a promis un prix garanti, et personne
+        ne s'en apercevrait avant le releve.
+      */}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="planId">Plan</Label>
         <Select name="planId" required>
@@ -54,6 +61,7 @@ export function AbonnementForm({
             {plans.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 {p.nom} — {Number(p.prix).toLocaleString('fr-FR')} FCFA / {p.duree}
+                {p.parCycle ? ' par cycle' : ' forfait'}
               </SelectItem>
             ))}
           </SelectContent>
@@ -66,6 +74,8 @@ export function AbonnementForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nombreCycles">Cycles facturés</Label>
+          {/* Un plan forfaitaire ne se multiplie pas : le rappeler ici evite
+              qu'un complexe fondateur soit facture deux fois son forfait. */}
           <Input
             id="nombreCycles"
             name="nombreCycles"
