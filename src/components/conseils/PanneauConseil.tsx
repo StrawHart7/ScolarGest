@@ -77,7 +77,6 @@ export function PanneauConseil({ role }: { role?: string }) {
   const pathname = usePathname();
   const [conseil, setConseil] = React.useState<ConseilAffichable | null>(null);
   const [deplie, setDeplie] = React.useState(false);
-  const [bandeauAbonnement, setBandeauAbonnement] = React.useState(false);
   const demande = React.useRef(false);
 
   const rolesEcole = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'];
@@ -94,7 +93,37 @@ export function PanneauConseil({ role }: { role?: string }) {
     if (pathname.startsWith('/demarrage')) return;
     if (demande.current) return;
 
+    // La bannière mobile est en `fixed` sous l'en-tête et recouvrirait le
+    // bandeau d'abonnement, qui annonce une perte d'écriture imminente. Elle
+    // lui cède donc le pas — mais la garde doit se poser **ici**, avant la
+    // demande, et non au rendu.
+    //
+    // Posée au rendu, elle produisait exactement la vue fantôme que ce
+    // composant cherche à éviter : `demanderConseil` marque `vuLe` côté
+    // serveur et arme le délai de 24 heures, si bien que le conseil était
+    // consommé sans avoir jamais été affiché. Et ce n'est pas un cas de bord —
+    // `AbonnementBanner` s'affiche pour tout niveau d'accès autre que `OK`,
+    // donc pendant les trente jours d'essai de chaque nouvelle école : un
+    // Directeur travaillant au téléphone pendant son essai n'aurait vu aucun
+    // conseil tout en en brûlant un par jour, au moment précis où ils lui
+    // servent le plus. Défaut signalé par SOKO le 2026-09-04.
+    //
+    // La condition de largeur est indispensable : seule la bannière cède le
+    // pas, la carte de bureau n'a jamais été masquée. Sans elle, un poste de
+    // bureau perdrait ses conseils pendant tout l'essai.
+    const petitEcran = window.matchMedia('(max-width: 767px)').matches;
+    if (petitEcran && document.querySelector('[data-bandeau="abonnement"]')) return;
+
     const minuteur = setTimeout(() => {
+      // La garde est relue **ici**, et pas seulement à l'entrée de l'effet.
+      // Elle y est posée avant le `setTimeout`, ce qui laisse passer deux
+      // minuteurs si deux effets se sont exécutés sans nettoyage entre eux :
+      // chacun rappellerait `demanderConseil`, donc `marquerConseilVu`, et le
+      // conseil serait compté vu deux fois. Une vérification observée le
+      // 2026-09-04 a relevé deux requêtes là où une seule était attendue,
+      // sans que la cause soit reproductible — la relire au déclenchement rend
+      // la question sans objet.
+      if (demande.current) return;
       demande.current = true;
       demanderConseil(pathname)
         .then((resultat) => setConseil(resultat ?? null))
@@ -105,17 +134,6 @@ export function PanneauConseil({ role }: { role?: string }) {
 
     return () => clearTimeout(minuteur);
   }, [actif, pathname]);
-
-  // La bannière mobile est en `fixed` sous l'en-tête et recouvrirait le
-  // bandeau d'abonnement, qui annonce une perte d'écriture imminente. On le
-  // cherche dans le document plutôt que de faire redescendre l'information
-  // par les props : `AbonnementBanner` est un composant serveur monté par
-  // `AppLayout`, et le faire remonter jusqu'ici imposerait de traverser tout
-  // le layout pour un cas de bord. Le repère est `data-bandeau="abonnement"`.
-  React.useEffect(() => {
-    if (!conseil) return;
-    setBandeauAbonnement(Boolean(document.querySelector('[data-bandeau="abonnement"]')));
-  }, [conseil]);
 
   if (!conseil) return null;
 
@@ -151,75 +169,73 @@ export function PanneauConseil({ role }: { role?: string }) {
         `z-20` la place sous l'en-tête (`z-30`), qui doit rester cliquable :
         une bannière de suggestion ne prend jamais le pas sur la navigation.
       */}
-      {!bandeauAbonnement && (
-        <div className="fixed inset-x-0 top-header z-20 px-gutter pt-2 md:hidden">
-          <div className="animate-banniere-in overflow-hidden rounded-xl border border-surface-border bg-surface-container-lowest shadow-floating">
-            <div className="flex items-center gap-1 pr-1">
-              <button
-                type="button"
-                onClick={() => setDeplie((v) => !v)}
-                aria-expanded={deplie}
-                className="flex min-h-row-standard min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-left"
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary-container">
-                  <Lightbulb className="size-4" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-touch-label text-text-primary">
-                  {conseil.titre}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'size-4 shrink-0 text-text-secondary transition-transform',
-                    deplie && 'rotate-180',
-                  )}
-                  aria-hidden
-                />
-              </button>
+      <div className="fixed inset-x-0 top-header z-20 px-gutter pt-2 md:hidden">
+        <div className="animate-banniere-in overflow-hidden rounded-xl border border-surface-border bg-surface-container-lowest shadow-floating">
+          <div className="flex items-center gap-1 pr-1">
+            <button
+              type="button"
+              onClick={() => setDeplie((v) => !v)}
+              aria-expanded={deplie}
+              className="flex min-h-row-standard min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-left"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary-container">
+                <Lightbulb className="size-4" aria-hidden />
+              </span>
+              <span className="text-touch-label min-w-0 flex-1 truncate text-text-primary">
+                {conseil.titre}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'size-4 shrink-0 text-text-secondary transition-transform',
+                  deplie && 'rotate-180',
+                )}
+                aria-hidden
+              />
+            </button>
 
-              {/*
+            {/*
                 Fermer vaut « Plus tard », jamais « Pas pour moi » : c'est le
                 geste réflexe, et il ne doit pas produire la sanction la plus
                 lourde. Le refus durable reste un choix explicite, dans le
                 panneau déplié.
               */}
-              <button
-                type="button"
-                onClick={reporter}
-                aria-label="Plus tard"
-                className="grid size-row-standard shrink-0 place-items-center rounded-lg text-text-secondary active:bg-surface-container"
-              >
-                <X className="size-4" aria-hidden />
-              </button>
-            </div>
-
-            {deplie && (
-              <div className="border-t border-surface-border px-3 pb-3 pt-2.5">
-                <p className="text-touch-meta text-text-secondary">{conseil.texte}</p>
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={releguer}
-                    className="h-row-standard shrink-0 rounded-lg px-2 text-touch-meta text-text-secondary active:bg-surface-container"
-                  >
-                    Pas pour moi
-                  </button>
-                  {conseil.actionHref ? (
-                    <Button asChild className="ml-auto h-row-standard">
-                      <Link href={conseil.actionHref} onClick={suivre}>
-                        {conseil.actionLabel ?? 'Y aller'}
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button className="ml-auto h-row-standard" onClick={suivre}>
-                      J&apos;ai compris
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={reporter}
+              aria-label="Plus tard"
+              className="grid size-row-standard shrink-0 place-items-center rounded-lg text-text-secondary active:bg-surface-container"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
           </div>
+
+          {deplie && (
+            <div className="border-t border-surface-border px-3 pb-3 pt-2.5">
+              <p className="text-touch-meta text-text-secondary">{conseil.texte}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={releguer}
+                  className="text-touch-meta h-row-standard shrink-0 rounded-lg px-2 text-text-secondary active:bg-surface-container"
+                >
+                  Pas pour moi
+                </button>
+                {conseil.actionHref ? (
+                  <Button asChild className="ml-auto h-row-standard">
+                    <Link href={conseil.actionHref} onClick={suivre}>
+                      {conseil.actionLabel ?? 'Y aller'}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button className="ml-auto h-row-standard" onClick={suivre}>
+                    J&apos;ai compris
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/*
         Carte de bureau, au-dessus de la bulle de support qui occupe
