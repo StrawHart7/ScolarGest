@@ -34,6 +34,12 @@ export function GrilleCompteurs({
         // Trois compteurs tiennent sur une ligne au large ; quatre aussi. Au
         // delà de quatre on reste à quatre par ligne plutôt que d'étirer.
         items.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-4',
+        // Nombre impair : la dernière tuile prend toute la largeur. Sans cela
+        // elle reste seule sur sa ligne à côté d'un vide de la même taille
+        // qu'elle, ce qui se lit comme une carte manquante plutôt que comme
+        // une fin de liste. Constaté sur le tableau de bord Enseignant, où la
+        // carte d'action retire le quatrième compteur de la grille.
+        items.length % 2 === 1 && 'max-md:[&>*:last-child]:col-span-2',
         className,
       )}
     >

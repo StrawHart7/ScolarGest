@@ -35,7 +35,7 @@ export function Header({ role, userName }: HeaderProps) {
     <header className="sticky top-0 z-30 border-b border-surface-border bg-surface-container-low/85 backdrop-blur-md">
       <div className="flex h-header items-center justify-between gap-2 px-gutter sm:gap-4 md:px-6">
         {/* Marque sur mobile uniquement : sur desktop elle est déjà dans la sidebar. */}
-        <Link href="/dashboard" className="flex min-w-0 items-center gap-3 md:hidden">
+        <Link href="/dashboard" className="flex min-h-row-standard min-w-0 items-center gap-3 md:hidden">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-container text-white">
             <GraduationCap className="h-5 w-5" aria-hidden />
           </span>
@@ -57,7 +57,7 @@ export function Header({ role, userName }: HeaderProps) {
               title={libelle}
               aria-label={libelle}
               className={cn(
-                'grid h-10 w-10 place-items-center rounded-full text-primary-container transition-colors hover:bg-surface-container-high active:bg-surface-container-high md:h-9 md:w-9 md:rounded md:text-text-secondary md:hover:text-text-primary',
+                'grid h-row-standard w-row-standard place-items-center rounded-full text-primary-container transition-colors hover:bg-surface-container-high active:bg-surface-container-high md:h-9 md:w-9 md:rounded md:text-text-secondary md:hover:text-text-primary',
                 masquerMobile && 'hidden md:grid',
               )}
             >
@@ -72,7 +72,7 @@ export function Header({ role, userName }: HeaderProps) {
             href="/profil"
             aria-label="Mon profil"
             title={userName}
-            className="ml-1 grid h-10 w-10 place-items-center rounded-full transition-colors md:ml-0 md:h-9 md:w-9 md:hover:bg-surface-container-high"
+            className="ml-1 grid h-row-standard w-row-standard place-items-center rounded-full transition-colors md:ml-0 md:h-9 md:w-9 md:hover:bg-surface-container-high"
           >
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-surface-border bg-secondary text-label-md text-white md:h-7 md:w-7 md:border-0">
               {(userName ?? 'U').slice(0, 1).toUpperCase()}
