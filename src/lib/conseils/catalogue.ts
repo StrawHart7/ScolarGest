@@ -115,6 +115,19 @@ export type NomSonde =
   | 'filigraneDefini'
   | 'equipeAdministrative';
 
+/**
+ * Intitules des familles, pour l'inventaire de l'aide. Ils decrivent ce que
+ * la famille fait pour l'ecole, pas son rang : « Fondation » seul ne dirait
+ * rien a un Directeur qui cherche ce qui lui reste a faire.
+ */
+export const LIBELLE_FAMILLE: Record<Famille, string> = {
+  FONDATION: 'Ce qui doit exister avant tout',
+  EXPLOITATION: "Faire tourner l'annee",
+  COMPLETION: 'Ce qui est commence et pas fini',
+  CONFORT: 'Confort et identite',
+  DECOUVERTE: 'Bon a savoir',
+};
+
 export interface Conseil {
   id: IdConseil;
   titre: string;

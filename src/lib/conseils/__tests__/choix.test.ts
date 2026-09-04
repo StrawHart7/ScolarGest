@@ -496,6 +496,16 @@ describe('cohérence du catalogue', () => {
     }
   });
 
+  it('ne laisse subsister aucun jeton une fois formaté', () => {
+    // Le meme texte est rendu par deux chemins — le panneau et l'inventaire de
+    // l'aide. Un chemin qui oublierait la substitution afficherait
+    // « {restant} eleves n'ont aucun responsable » en toutes lettres.
+    for (const conseil of CATALOGUE) {
+      const rendu = formaterTexte(conseil.texte, { fait: 4, total: 6 });
+      expect(/\{(fait|total|restant)\}/.test(rendu), conseil.id).toBe(false);
+    }
+  });
+
   it('n’emploie aucun emoji', () => {
     // Règle produit : aucun emoji nulle part dans le produit.
     const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;

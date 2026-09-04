@@ -5,6 +5,7 @@ import type { TenantContext } from './tenant';
 import { CATALOGUE, PAR_ID, type IdConseil } from '@/lib/conseils/catalogue';
 import {
   choisirConseil,
+  formaterTexte,
   reportJusquA,
   HEURES_ENTRE_CONSEILS,
   type ConseilAProposer,
@@ -483,7 +484,11 @@ export async function listerAide(): Promise<LigneAide[]> {
     return {
       id: conseil.id,
       titre: conseil.titre,
-      texte: conseil.texte,
+      // Le texte porte des jetons `{fait}` / `{total}` / `{restant}` : les
+      // laisser bruts afficherait « {restant} eleves n'ont aucun responsable »
+      // en toutes lettres. Le panneau les substitue, l'inventaire le doit
+      // aussi — c'est le meme texte, vu par un autre chemin.
+      texte: formaterTexte(conseil.texte, valeur),
       href: conseil.action?.href ?? null,
       famille: conseil.famille,
       fait: conseil.sonde
