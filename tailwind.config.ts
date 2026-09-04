@@ -156,6 +156,10 @@ const config: Config = {
           '0%': { backgroundPosition: '200% 0' },
           '100%': { backgroundPosition: '-200% 0' },
         },
+        'banniere-in': {
+          from: { opacity: '0', transform: 'translateY(-0.5rem)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
         'orbit-fade': {
           '0%, 100%': { opacity: '0.25' },
           '50%': { opacity: '1' },
@@ -171,6 +175,7 @@ const config: Config = {
         'ring-pulse': 'ring-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'mark-breathe': 'mark-breathe 2.2s ease-in-out infinite',
         'loader-sweep': 'loader-sweep 2.4s linear infinite',
+        'banniere-in': 'banniere-in 220ms cubic-bezier(0.16, 1, 0.3, 1)',
         'orbit-fade': 'orbit-fade 1.6s ease-in-out infinite',
       },
       boxShadow: {

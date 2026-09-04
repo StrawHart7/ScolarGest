@@ -2325,9 +2325,15 @@ manque réellement en base.
 
 **Reste ouvert**
 
-- **Mobile** : le panneau est desktop uniquement ; sous `md`, le coin est déjà
-  pris par le bouton d'action des listes et la barre d'onglets. Une bannière
-  fine sous l'en-tête reste à faire — ressort de VERNI.
+- ~~**Mobile** : le panneau est desktop uniquement.~~ Fait le 2026-09-04
+  (VERNI) : bannière repliable sous l'en-tête, `390x58` au repos et `390x209`
+  dépliée, mesurées sur iPhone 13. Les deux présentations partagent la logique
+  du même composant — deux composants séparés relanceraient chacun leur
+  minuteur, et un même conseil pourrait être reporté deux fois. Fermer vaut
+  « Plus tard » et jamais « Pas pour moi » : c'est le geste réflexe, il ne doit
+  pas produire la sanction la plus lourde. La bannière se tait quand
+  `AbonnementBanner` est présent — elle est en `fixed` sous l'en-tête et
+  recouvrirait un avertissement de perte d'écriture.
 - **Aucune sonde d'usage** : on mesure ce qui manque en base, pas ce que la
   personne a réellement ouvert. « Vous n'avez jamais consulté vos statistiques »
   exigerait une trace de navigation, donc une décision sur ce qu'on observe.
