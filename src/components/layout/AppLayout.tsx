@@ -4,6 +4,7 @@ import { AbonnementBanner } from './AbonnementBanner';
 import { RappelFinEssai } from './RappelFinEssai';
 import { BottomNav } from './BottomNav';
 import { BulleSupport } from './BulleSupport';
+import { PanneauConseil } from '@/components/conseils/PanneauConseil';
 import { SidebarCollapseProvider, ContenuDecale } from './sidebar-collapse';
 import { ToastProvider } from '@/components/ui/toast';
 
@@ -37,6 +38,12 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
           </ContenuDecale>
           <BottomNav items={items} />
           <BulleSupport role={role} />
+          {/*
+            Au-dessus de la bulle de support, et jamais en même temps qu'elle
+            au même endroit : le support est un recours, le conseil une
+            proposition.
+          */}
+          <PanneauConseil role={role} />
         </div>
       </SidebarCollapseProvider>
     </ToastProvider>
