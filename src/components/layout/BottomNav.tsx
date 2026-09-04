@@ -36,6 +36,13 @@ function Onglet({ actif, children }: { actif: boolean; children: React.ReactNode
     // Les onglets inactifs gardent la même boîte que la pilule active,
     // transparente : sans elle, les icônes ne s'alignent plus dès qu'un
     // onglet devient actif et toute la rangée se décale.
+    //
+    // Cette pilule fait 36px de haut, et c'est voulu : c'est un rendu, pas une
+    // cible. La zone cliquable est le `<Link>` qui l'entoure, porté à `h-full`
+    // — soit les 56px de la barre. Le relevé du 2026-09-04 mesurait 81×36 sur
+    // le lien lui-même, répété 141 fois : la navigation principale de toute
+    // l'application était sous la cible de 44px du design system, sur chaque
+    // page. Ne pas retirer `h-full` en croyant que la barre suffit.
     <span
       className={cn(
         'flex items-center justify-center rounded-full px-4 py-1.5 transition-colors',
@@ -86,7 +93,7 @@ export function BottomNav({ items }: { items: SidebarItem[] }) {
                 href={item.href}
                 aria-current={actif ? 'page' : undefined}
                 aria-label={item.label}
-                className="flex min-w-0 flex-1 items-center justify-center"
+                className="flex h-full min-w-0 flex-1 items-center justify-center"
               >
                 <Onglet actif={actif}>
                   <Icone
@@ -105,7 +112,7 @@ export function BottomNav({ items }: { items: SidebarItem[] }) {
               onClick={() => setPlusOuvert(true)}
               aria-haspopup="dialog"
               aria-label="Plus"
-              className="flex min-w-0 flex-1 items-center justify-center"
+              className="flex h-full min-w-0 flex-1 items-center justify-center"
             >
               {/* « Plus » ne prend jamais l'état actif : la pilule bleue ne
                   doit apparaître que sur l'onglet de la page courante. */}
