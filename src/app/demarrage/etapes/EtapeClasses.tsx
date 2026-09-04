@@ -168,7 +168,7 @@ export function EtapeClasses({
                       max={8}
                       value={divisions[niveau.id] ?? 0}
                       onChange={(e) => reglerDivisions(niveau.id, Number(e.target.value))}
-                      className="h-9 w-20 text-center"
+                      className="h-row-standard w-20 text-center"
                     />
                   </div>
                 </div>

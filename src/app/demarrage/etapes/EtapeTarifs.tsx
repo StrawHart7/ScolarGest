@@ -133,7 +133,7 @@ export function EtapeTarifs({
                       }))
                     }
                     placeholder="0"
-                    className="h-9 w-32 text-right"
+                    className="h-row-standard w-32 text-right"
                   />
                   <span className="text-body-sm text-text-secondary">F</span>
                 </div>

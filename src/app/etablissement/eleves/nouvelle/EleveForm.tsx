@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { BarreAction } from '@/components/tactile/barre-action';
 import { creerEleve } from './actions';
 
 interface ResponsableDraft {
@@ -35,10 +36,15 @@ function newResponsable(principal: boolean): ResponsableDraft {
   };
 }
 
-function SubmitButton() {
+function SubmitButton({ pleineLargeur }: { pleineLargeur?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" disabled={pending}>
+    <Button
+      type="submit"
+      size="lg"
+      disabled={pending}
+      className={pleineLargeur ? 'w-full' : undefined}
+    >
       {pending ? 'Enregistrement...' : "Enregistrer l'élève"}
     </Button>
   );
@@ -97,7 +103,7 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
   });
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6 pb-zone-action md:pb-0">
       <input type="hidden" name="payload" value={payload} />
 
       <section className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
@@ -271,9 +277,20 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
       </section>
 
       {error && <p className="text-body-sm text-error">{error}</p>}
-      <div className="flex justify-end gap-3 border-t border-surface-border pt-6">
+
+      {/*
+        Le bouton reste dans le flux — il est simplement masqué sous `md`, où la
+        barre collée prend le relais. On double la soumission, on ne la déplace
+        pas : un formulaire dont le bouton n'existe que dans une barre flottante
+        devient insoumettable si un clavier virtuel la recouvre.
+      */}
+      <div className="hidden justify-end gap-3 border-t border-surface-border pt-6 md:flex">
         <SubmitButton />
       </div>
+
+      <BarreAction aide="Vous pourrez modifier la fiche après l’enregistrement.">
+        <SubmitButton pleineLargeur />
+      </BarreAction>
     </form>
   );
 }

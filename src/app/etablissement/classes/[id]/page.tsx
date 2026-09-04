@@ -68,7 +68,7 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
                   <School className="h-7 w-7" aria-hidden />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-headline-sm text-text-primary">{classe.nom}</p>
+                  <h1 className="text-display-sm text-text-primary">{classe.nom}</h1>
                   <p className="text-body-sm text-text-secondary">
                     {classe.niveau.nom}
                     {classe.serie ? ` — Série ${classe.serie.nom}` : ''}

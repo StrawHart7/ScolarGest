@@ -19,7 +19,6 @@ import {
 } from '@/services/dashboard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { CarteMetrique } from '@/components/ui/carte-metrique';
 import { CarteAction } from '@/components/tactile/carte-action';
 import { GrilleCompteurs } from '@/components/tactile/grille-compteurs';
 import { getSidebarItems } from '@/lib/navigation';
@@ -167,49 +166,59 @@ export default async function DashboardPage() {
         {/* Une rangee de metriques expliquees plutot que huit compteurs nus.
             Chaque carte porte sa comparaison en clair : « 276 » ne dit rien,
             « 276 / 481 places » dit si l'ecole est pleine. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <CarteMetrique
-            label="Élèves inscrits"
-            valeur={nombre(stats.eleves.actifs)}
-            icone={Users2}
-            ton="primaire"
-            comparaison={
-              stats.eleves.nouveauxCeMois > 0
-                ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
-                : 'Aucune nouvelle inscription ce mois-ci'
-            }
-            href="/etablissement/eleves"
-          />
-          <CarteMetrique
-            label="Remplissage"
-            valeur={tauxRemplissage !== null ? `${tauxRemplissage} %` : '—'}
-            icone={School}
-            ton="neutre"
-            comparaison={`${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places, ${nombre(stats.classes.nombre)} classes`}
-            href="/etablissement/classes"
-          />
-          <CarteMetrique
-            label="Encaissé cette année"
-            valeur={fcfa(stats.finance.encaisse)}
+        {stats.finance.impaye > 0 && (
+          <CarteAction
+            intitule="Reste à recouvrer sur l’année"
+            valeur={fcfa(stats.finance.impaye)}
+            precision={`${nombre(stats.finance.facturesTotal - stats.finance.facturesSoldees)} facture${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} non soldée${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} sur ${nombre(stats.finance.facturesTotal)}.`}
+            action={{ libelle: 'Voir les impayés', href: '/etablissement/finances/factures' }}
             icone={Wallet}
-            ton="succes"
-            variation={encaissements.variation}
-            comparaison={`sur ${fcfa(stats.finance.attendu)} facturés`}
-            href="/etablissement/finances/paiements"
           />
-          <CarteMetrique
-            label="Notes à approuver"
-            valeur={nombre(stats.academique.notesEnAttente)}
-            icone={BookOpen}
-            ton={stats.academique.notesEnAttente > 0 ? 'alerte' : 'neutre'}
-            comparaison={
-              stats.academique.notesEnAttente > 0
-                ? 'En attente de votre validation'
-                : `${nombre(stats.academique.bulletinsGeneres)} bulletins générés`
-            }
-            href="/etablissement/notes/approbation"
-          />
-        </div>
+        )}
+
+        <GrilleCompteurs
+          items={[
+            {
+              label: 'Élèves inscrits',
+              valeur: nombre(stats.eleves.actifs),
+              icone: Users2,
+              ton: 'primaire',
+              comparaison:
+                stats.eleves.nouveauxCeMois > 0
+                  ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
+                  : 'Aucune nouvelle inscription ce mois-ci',
+              href: '/etablissement/eleves',
+            },
+            {
+              label: 'Remplissage',
+              valeur: tauxRemplissage !== null ? `${tauxRemplissage} %` : '—',
+              icone: School,
+              ton: 'neutre',
+              comparaison: `${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places, ${nombre(stats.classes.nombre)} classes`,
+              href: '/etablissement/classes',
+            },
+            {
+              label: 'Encaissé cette année',
+              valeur: fcfa(stats.finance.encaisse),
+              icone: Wallet,
+              ton: 'succes',
+              variation: encaissements.variation,
+              comparaison: `sur ${fcfa(stats.finance.attendu)} facturés`,
+              href: '/etablissement/finances/paiements',
+            },
+            {
+              label: 'Notes à approuver',
+              valeur: nombre(stats.academique.notesEnAttente),
+              icone: BookOpen,
+              ton: stats.academique.notesEnAttente > 0 ? 'alerte' : 'neutre',
+              comparaison:
+                stats.academique.notesEnAttente > 0
+                  ? 'En attente de votre validation'
+                  : `${nombre(stats.academique.bulletinsGeneres)} bulletins générés`,
+              href: '/etablissement/notes/approbation',
+            },
+          ]}
+        />
 
         <CarteEncaissements serie={encaissements} />
 
@@ -247,44 +256,47 @@ export default async function DashboardPage() {
     ]);
     return layout(
       <>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <CarteMetrique
-            label="Revenus attendus"
-            valeur={fcfa(finance.attendu)}
-            icone={Coins}
-            ton="neutre"
-            comparaison={`${nombre(finance.facturesTotal)} factures émises`}
-            href="/etablissement/finances/factures"
-          />
-          <CarteMetrique
-            label="Encaissé"
-            valeur={fcfa(finance.encaisse)}
-            icone={Wallet}
-            ton="succes"
-            variation={encaissements.variation}
-            comparaison="Paiements enregistrés sur l’année"
-            href="/etablissement/finances/paiements"
-          />
-          <CarteMetrique
-            label="Reste à recouvrer"
+        {finance.impaye > 0 && (
+          <CarteAction
+            intitule="Reste à recouvrer"
             valeur={fcfa(finance.impaye)}
+            precision={`${nombre(finance.facturesTotal - finance.facturesSoldees)} facture${finance.facturesTotal - finance.facturesSoldees > 1 ? 's' : ''} non soldée${finance.facturesTotal - finance.facturesSoldees > 1 ? 's' : ''} sur ${nombre(finance.facturesTotal)}.`}
+            action={{ libelle: 'Voir les factures', href: '/etablissement/finances/factures' }}
             icone={Coins}
-            ton={finance.impaye > 0 ? 'alerte' : 'succes'}
-            comparaison={`${nombre(finance.facturesTotal - finance.facturesSoldees)} factures non soldées`}
-            href="/etablissement/finances/factures"
           />
-          <CarteMetrique
-            label="Factures soldées"
-            valeur={`${nombre(finance.facturesSoldees)} / ${nombre(finance.facturesTotal)}`}
-            icone={FileText}
-            ton="primaire"
-            comparaison={
-              finance.facturesTotal > 0
-                ? `${Math.round((finance.facturesSoldees / finance.facturesTotal) * 100)} % du portefeuille`
-                : 'Aucune facture émise'
-            }
-          />
-        </div>
+        )}
+
+        <GrilleCompteurs
+          items={[
+            {
+              label: 'Revenus attendus',
+              valeur: fcfa(finance.attendu),
+              icone: Coins,
+              ton: 'neutre',
+              comparaison: `${nombre(finance.facturesTotal)} factures émises`,
+              href: '/etablissement/finances/factures',
+            },
+            {
+              label: 'Encaissé',
+              valeur: fcfa(finance.encaisse),
+              icone: Wallet,
+              ton: 'succes',
+              variation: encaissements.variation,
+              comparaison: 'Paiements enregistrés sur l’année',
+              href: '/etablissement/finances/paiements',
+            },
+            {
+              label: 'Factures soldées',
+              valeur: `${nombre(finance.facturesSoldees)} / ${nombre(finance.facturesTotal)}`,
+              icone: FileText,
+              ton: 'primaire',
+              comparaison:
+                finance.facturesTotal > 0
+                  ? `${Math.round((finance.facturesSoldees / finance.facturesTotal) * 100)} % du portefeuille`
+                  : 'Aucune facture émise',
+            },
+          ]}
+        />
 
         <CarteEncaissements serie={encaissements} />
 
@@ -315,46 +327,47 @@ export default async function DashboardPage() {
     ]);
     return layout(
       <>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <CarteMetrique
-            label="Élèves inscrits"
-            valeur={nombre(stats.eleves.actifs)}
-            icone={Users2}
-            ton="primaire"
-            comparaison={
-              stats.eleves.nouveauxCeMois > 0
-                ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
-                : 'Aucune nouvelle inscription ce mois-ci'
-            }
-            href="/etablissement/eleves"
-          />
-          <CarteMetrique
-            label="Classes"
-            valeur={nombre(stats.classes.nombre)}
-            icone={School}
-            ton="neutre"
-            comparaison={`${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places`}
-            href="/etablissement/classes"
-          />
-          <CarteMetrique
-            label="Notes à approuver"
-            valeur={nombre(stats.notesEnAttente)}
+        {stats.notesEnAttente > 0 && (
+          <CarteAction
+            intitule="Notes en attente de validation"
+            valeur={`${nombre(stats.notesEnAttente)} note${stats.notesEnAttente > 1 ? 's' : ''}`}
+            precision="Une note non validée n’apparaît sur aucun bulletin."
+            action={{ libelle: 'Traiter les demandes', href: '/etablissement/notes/approbation' }}
             icone={BookOpen}
-            ton={stats.notesEnAttente > 0 ? 'alerte' : 'neutre'}
-            comparaison={
-              stats.notesEnAttente > 0 ? 'En attente de validation' : 'Rien en attente'
-            }
-            href="/etablissement/notes/approbation"
           />
-          <CarteMetrique
-            label="Bulletins générés"
-            valeur={nombre(stats.bulletinsGeneres)}
-            icone={FileText}
-            ton="succes"
-            comparaison="Sur l’année scolaire en cours"
-            href="/etablissement/notes/bulletins"
-          />
-        </div>
+        )}
+
+        <GrilleCompteurs
+          items={[
+            {
+              label: 'Élèves inscrits',
+              valeur: nombre(stats.eleves.actifs),
+              icone: Users2,
+              ton: 'primaire',
+              comparaison:
+                stats.eleves.nouveauxCeMois > 0
+                  ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
+                  : 'Aucune nouvelle inscription ce mois-ci',
+              href: '/etablissement/eleves',
+            },
+            {
+              label: 'Classes',
+              valeur: nombre(stats.classes.nombre),
+              icone: School,
+              ton: 'neutre',
+              comparaison: `${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places`,
+              href: '/etablissement/classes',
+            },
+            {
+              label: 'Bulletins générés',
+              valeur: nombre(stats.bulletinsGeneres),
+              icone: FileText,
+              ton: 'succes',
+              comparaison: 'Sur l’année scolaire en cours',
+              href: '/etablissement/notes/bulletins',
+            },
+          ]}
+        />
 
         <CarteEffectifs classes={effectifs} />
 

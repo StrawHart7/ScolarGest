@@ -133,7 +133,7 @@ export function EtapeCoefficients({
                               [cle(ligne.programmeEtablissementId, serieId)]: Number(e.target.value),
                             }))
                           }
-                          className="h-9 w-16 text-center"
+                          className="h-row-standard w-16 text-center"
                         />
                       </div>
                     ))}

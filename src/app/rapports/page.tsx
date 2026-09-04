@@ -30,6 +30,15 @@ import { RapportsFiltres } from './RapportsFiltres';
 /** Au-delà, l'aperçu devient illisible et coûteux : l'export prend le relais. */
 const MAX_LIGNES_APERCU = 100;
 
+/**
+ * Sur téléphone, chaque ligne devient une carte de paires libellé/valeur : une
+ * ligne de tableau de 40px en occupe alors une douzaine. Le relevé du
+ * 2026-09-04 mesurait cette page à **25 105 px** — trente écrans à faire
+ * défiler pour un aperçu. Dix lignes suffisent à juger de la forme du rapport ;
+ * c'est l'export qui sert à le lire en entier, et il n'est pas tronqué.
+ */
+const MAX_LIGNES_APERCU_MOBILE = 10;
+
 export default async function RapportsPage({
   searchParams,
 }: {
@@ -240,7 +249,7 @@ export default async function RapportsPage({
                     reste en paires libellé/valeur. Générique, quel que soit le
                     rapport. */}
                   <ul className="flex flex-col divide-y divide-surface-border md:hidden">
-                    {rapport.lignes.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => {
+                    {rapport.lignes.slice(0, MAX_LIGNES_APERCU_MOBILE).map((ligne, index) => {
                       const [premiere, ...reste] = rapport!.colonnes;
                       if (!premiere) return null;
                       return (
@@ -314,8 +323,8 @@ export default async function RapportsPage({
 
                   <div className="border-t border-surface-border p-3 text-body-sm text-text-secondary">
                     {rapport.lignes.length} ligne(s)
-                    {rapport.lignes.length > MAX_LIGNES_APERCU
-                      ? ` — aperçu limité aux ${MAX_LIGNES_APERCU} premières, l’export contient tout.`
+                    {rapport.lignes.length > MAX_LIGNES_APERCU_MOBILE
+                      ? ` — aperçu limité aux ${MAX_LIGNES_APERCU_MOBILE} premières sur téléphone et aux ${MAX_LIGNES_APERCU} premières sur écran large, l’export contient tout.`
                       : ''}
                   </div>
                 </>

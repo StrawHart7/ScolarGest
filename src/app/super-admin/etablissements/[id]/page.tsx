@@ -87,7 +87,7 @@ export default async function EtablissementDetailPage({ params }: { params: { id
               <Building2 className="h-7 w-7" aria-hidden />
             </div>
             <div>
-              <p className="text-headline-sm text-text-primary">{etablissement.nom}</p>
+              <h1 className="text-display-sm text-text-primary">{etablissement.nom}</h1>
               <p className="text-body-sm text-text-secondary">
                 {etablissement.ville ?? '—'} · {etablissement.email ?? '—'}
               </p>
