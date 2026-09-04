@@ -22,7 +22,7 @@ with classes as (
   select id,
          row_number() over (
            partition by "etablissementId", "objetId", "classeId", periode
-           order by "dateGeneration" desc, "createdAt" desc, id
+           order by "dateGeneration" desc, reference desc, id
          ) as rang
   from document
   where type = 'BULLETIN'

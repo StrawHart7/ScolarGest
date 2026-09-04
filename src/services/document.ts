@@ -222,12 +222,17 @@ export async function listBulletinsClasse(
     .eq('type', 'BULLETIN')
     .eq('classeId', classeId)
     .eq('periode', periode)
-    // `createdAt` en second critere : deux bulletins generes dans la meme
+    // `reference` en second critere : deux bulletins generes dans la meme
     // seconde — ce que fait la generation groupee d'une classe — auraient
     // sinon un ordre indetermine, et « le plus recent » designerait tantot
     // l'un tantot l'autre d'un affichage a l'autre.
+    //
+    // C'est `reference` et non `createdAt` : **la table `document` n'a pas de
+    // colonne `createdAt`**, contrairement a la quasi-totalite des autres. La
+    // reference, elle, est un numero sequentiel (`generateNumeroDocument`),
+    // donc croissante avec le temps — un departage plus sur qu'un horodatage.
     .order('dateGeneration', { ascending: false })
-    .order('createdAt', { ascending: false });
+    .order('reference', { ascending: false });
   if (error) throw error;
 
   return (
