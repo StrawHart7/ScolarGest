@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { statutEffectif } from './abonnement-acces';
+import { CODE_PLAN_FONDATEUR, type PlacesFondatrices } from '@/lib/fondateur';
 
 /**
  * Métriques de la plateforme, pour la console SUPER_ADMIN.
@@ -574,5 +576,41 @@ export async function getEncaissementsPlateforme(nombreMois = 12): Promise<Serie
       moisPrecedent === 0
         ? null
         : Math.round(((moisCourant - moisPrecedent) / moisPrecedent) * 100),
+  };
+}
+
+/**
+ * Places restantes au programme fondateur, pour la page d'accueil publique.
+ *
+ * **Sans garde, deliberement, et c'est la seule de ce fichier.** Toutes les
+ * autres fonctions ici sont reservees au SUPER_ADMIN parce qu'elles agregent
+ * les chiffres de toutes les ecoles. Celle-ci s'adresse a des visiteurs
+ * anonymes : la rarete est l'argument du programme, et un compteur qui exige
+ * une session ne serait jamais lu par personne a convaincre.
+ *
+ * Ce qui la rend acceptable est ce qu'elle **ne** renvoie pas : deux entiers,
+ * jamais un nom d'ecole, jamais une date, jamais un montant. Le comptage passe
+ * par la cle service-role parce que `etablissement` n'est pas — et ne doit pas
+ * devenir — lisible sans session ; ouvrir une policy publique sur cette table
+ * pour un compteur marketing serait echanger l'isolation contre un chiffre.
+ */
+export async function getPlacesFondatrices(): Promise<PlacesFondatrices> {
+  const admin = createAdminClient();
+
+  const [{ data: plan }, { count }] = await Promise.all([
+    admin
+      .from('plan_abonnement')
+      .select('"placesMax"')
+      .eq('code', CODE_PLAN_FONDATEUR)
+      .maybeSingle(),
+    admin
+      .from('etablissement')
+      .select('id', { count: 'exact', head: true })
+      .eq('regimeTarifaire', 'FONDATRICE'),
+  ]);
+
+  return {
+    prises: count ?? 0,
+    max: (plan as { placesMax: number | null } | null)?.placesMax ?? null,
   };
 }

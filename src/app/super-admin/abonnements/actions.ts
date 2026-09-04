@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { definirRegimeTarifaire } from '@/services/etablissement';
 import { z } from 'zod';
 import {
   ouvrirPeriode,
@@ -149,6 +150,35 @@ export async function suspendre(
   }
 
   revalidatePath('/super-admin/abonnements');
+  return null;
+}
+
+/**
+ * Admet une ecole au programme fondateur, ou l'en retire.
+ *
+ * Le refus de la onzieme place vient de la base, pas d'ici : le message
+ * remonte tel quel pour que le SUPER_ADMIN lise « le programme est complet »
+ * plutot qu'une erreur Postgres. Les erreurs Supabase n'etant pas des `Error`,
+ * on lit `message` sur l'objet a defaut d'instance.
+ */
+export async function definirRegime(
+  etablissementId: string,
+  regime: 'STANDARD' | 'FONDATRICE',
+): Promise<string | null> {
+  try {
+    await definirRegimeTarifaire(etablissementId, regime);
+  } catch (e) {
+    return (
+      (e instanceof Error ? e.message : (e as { message?: string })?.message) ??
+      'Erreur lors du changement de régime'
+    );
+  }
+
+  revalidatePath('/super-admin/abonnements');
+  revalidatePath(`/super-admin/etablissements/${etablissementId}`);
+  // Le compteur de places de la page d'accueil est revalide toutes les cinq
+  // minutes : il suivra tout seul. On ne le force pas ici, la page publique
+  // n'a pas a etre reconstruite dans la transaction d'un geste d'admin.
   return null;
 }
 

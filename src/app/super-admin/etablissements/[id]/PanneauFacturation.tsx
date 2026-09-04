@@ -4,7 +4,9 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { suspendre, reactiver, prolonger } from '@/app/super-admin/abonnements/actions';
+import { suspendre, reactiver, prolonger, definirRegime } from '@/app/super-admin/abonnements/actions';
+import { formaterFCFA } from '@/lib/abonnement-formule';
+import { placesRestantes, type PlacesFondatrices, type RegimeTarifaire } from '@/lib/fondateur';
 
 /**
  * Gestes commerciaux de la plateforme sur une école : prolonger l'essai,
@@ -24,10 +26,17 @@ export function PanneauFacturation({
   etablissementId,
   essaiDemarre,
   suspension,
+  regime,
+  tarifFondateur,
+  places,
 }: {
   etablissementId: string;
   essaiDemarre: boolean;
   suspension: { le: string; motif: string } | null;
+  regime: RegimeTarifaire;
+  /** Fige a l'admission. `null` hors programme. */
+  tarifFondateur: number | null;
+  places: PlacesFondatrices;
 }) {
   const [enCours, demarrer] = React.useTransition();
   const [erreur, setErreur] = React.useState<string | null>(null);
@@ -49,8 +58,50 @@ export function PanneauFacturation({
     });
   }
 
+  const fondatrice = regime === 'FONDATRICE';
+  const restantes = placesRestantes(places);
+  const complet = !fondatrice && restantes === 0;
+
   return (
     <div className="flex flex-col gap-4">
+      {/*
+        Le regime tarifaire est le premier bloc : il conditionne le montant de
+        toutes les periodes ouvertes ensuite. Le decouvrir apres avoir saisi un
+        tarif obligerait a recommencer.
+      */}
+      <div className="rounded-lg border border-surface-border bg-surface-container-lowest p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-body-md font-medium text-text-primary">
+            {fondatrice ? 'École fondatrice' : 'Tarif standard'}
+          </p>
+          {fondatrice && tarifFondateur !== null && (
+            <p className="text-body-sm text-text-secondary">
+              {formaterFCFA(tarifFondateur)}/mois, forfait garanti à vie
+            </p>
+          )}
+        </div>
+        <p className="mt-1 text-body-sm text-text-secondary">
+          {fondatrice
+            ? 'Forfait par établissement, quel que soit le nombre de cycles. Le tarif est figé sur cette école : le catalogue peut évoluer sans la toucher.'
+            : `Grille publique, facturée par cycle. ${
+                restantes === null
+                  ? ''
+                  : complet
+                    ? 'Le programme fondateur est complet.'
+                    : `${restantes} place(s) encore ouverte(s) au programme fondateur.`
+              }`}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-3"
+          disabled={enCours || complet}
+          onClick={() => lancer(() => definirRegime(etablissementId, fondatrice ? 'STANDARD' : 'FONDATRICE'))}
+        >
+          {fondatrice ? 'Repasser au tarif standard' : 'Admettre au programme fondateur'}
+        </Button>
+      </div>
+
       {suspension ? (
         <div className="rounded-lg border border-error/20 bg-error/5 p-4">
           <p className="text-body-sm font-medium text-error">
