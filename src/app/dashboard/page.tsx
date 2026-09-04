@@ -216,7 +216,7 @@ export default async function DashboardPage() {
         {/* L'activite recente occupait toute la largeur pour une colonne de
             libelles courts. Elle passe a cote du recouvrement : c'est du
             contexte, pas le sujet de la page. */}
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
           <TauxRecouvrement finance={stats.finance} />
           <FluxActivite evenements={flux} />
         </div>

@@ -209,7 +209,17 @@ export default async function StatistiquesPage({
         </p>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      {/*
+        `grid-cols-1` n'est pas redondant avec l'absence de colonnes : sans
+        template explicite, la grille cree UNE colonne implicite dimensionnee
+        sur le contenu le plus large, et tous ses elements heritent de cette
+        largeur. Sur cette page, la barre de libelles `w-48` d'une carte
+        imposait 430px a toutes les autres, dans un ecran de 390 — soit 40px de
+        debordement horizontal, la seule page de l'application a en produire
+        (releve du 2026-09-04). `grid-cols-1` vaut `minmax(0,1fr)` et borne la
+        piste a son conteneur.
+      */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Matières à renforcer</CardTitle>
@@ -271,7 +281,7 @@ export default async function StatistiquesPage({
         </Card>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card>
           <CardHeader>
             <CardTitle>Résultats par classe</CardTitle>

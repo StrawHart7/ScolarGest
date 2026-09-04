@@ -108,6 +108,13 @@ export function ImportPaiementsForm({ anneeScolaireId }: { anneeScolaireId: stri
       </div>
 
       <form onSubmit={analyser} className="flex flex-col gap-4">
+        {/* Un champ de fichier natif porte le bouton du systeme et le nom du
+            fichier, donc une largeur minimale intrinseque que le navigateur
+            refuse de reduire : dans une rangee flex il ne retrecit pas, et il
+            poussait la page a 395px dans un ecran de 390 — les 5px de
+            debordement des trois ecrans d'import releves le 2026-09-04. C'est
+            le seul champ non stylable du produit ; faute de pouvoir le
+            remplacer, `min-w-0` l'autorise a se comprimer. */}
         <div className="flex items-center gap-3 rounded-lg border border-dashed border-surface-border p-4">
           <UploadCloud className="h-6 w-6 shrink-0 text-text-secondary" aria-hidden />
           <input
@@ -115,7 +122,7 @@ export function ImportPaiementsForm({ anneeScolaireId }: { anneeScolaireId: stri
             name="fichier"
             accept=".xlsx,.xls"
             required
-            className="text-body-sm text-text-primary"
+            className="min-w-0 flex-1 text-body-sm text-text-primary"
             onChange={(e) => {
               setFichier(e.target.files?.[0] ?? null);
               setAnalyse(null);
