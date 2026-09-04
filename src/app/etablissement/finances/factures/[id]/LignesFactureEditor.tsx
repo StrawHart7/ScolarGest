@@ -151,12 +151,12 @@ export function LignesFactureEditor({
           <div key={index} className="rounded-lg border border-surface-border bg-surface p-3">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Type de frais</Label>
+                <Label htmlFor={`typeFrais-${index}`}>Type de frais</Label>
                 <Select
                   value={ligne.typeFraisId}
                   onValueChange={(v) => majLigne(index, 'typeFraisId', v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`typeFrais-${index}`}>
                     <SelectValue placeholder="Type de frais" />
                   </SelectTrigger>
                   <SelectContent>
@@ -169,15 +169,17 @@ export function LignesFactureEditor({
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Désignation</Label>
+                <Label htmlFor={`designation-${index}`}>Désignation</Label>
                 <Input
+                  id={`designation-${index}`}
                   value={ligne.designation}
                   onChange={(e) => majLigne(index, 'designation', e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Montant (FCFA)</Label>
+                <Label htmlFor={`montant-${index}`}>Montant (FCFA)</Label>
                 <Input
+                  id={`montant-${index}`}
                   type="number"
                   inputMode="numeric"
                   min={0}

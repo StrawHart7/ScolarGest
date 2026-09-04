@@ -64,7 +64,7 @@ export function NouvelleEvaluationForm({
           <Input
             id="numero"
             name="numero"
-            type="number"
+            type="number" inputMode="numeric"
             min={1}
             max={type === 'INTERROGATION' ? 3 : undefined}
             value={numero}

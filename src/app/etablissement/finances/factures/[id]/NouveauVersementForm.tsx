@@ -48,7 +48,7 @@ export function NouveauVersementForm({
           <Input
             id="montant"
             name="montant"
-            type="number"
+            type="number" inputMode="numeric"
             min={1}
             max={solde}
             step={1}

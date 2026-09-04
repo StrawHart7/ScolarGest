@@ -158,36 +158,40 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
           {responsables.map((r, index) => (
             <div key={index} className="space-y-4 rounded-lg border border-surface-border bg-surface p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id={`principal-${index}`}
-                    checked={r.principal}
-                    onCheckedChange={(checked) => updateResponsable(index, { principal: checked === true })}
-                  />
-                  <Label htmlFor={`principal-${index}`} className="normal-case">
-                    Responsable principal
-                  </Label>
-                </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-label-md uppercase tracking-wide text-text-secondary">
+                  Responsable {index + 1}
+                </p>
                 {responsables.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeResponsable(index)}
-                    className="text-text-secondary hover:text-error"
-                    aria-label="Retirer ce responsable"
+                    className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-container hover:text-error"
+                    aria-label={`Retirer le responsable ${index + 1}`}
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
                 )}
               </div>
 
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`principal-${index}`}
+                  checked={r.principal}
+                  onCheckedChange={(checked) => updateResponsable(index, { principal: checked === true })}
+                />
+                <Label htmlFor={`principal-${index}`} className="normal-case">
+                  Responsable principal
+                </Label>
+              </div>
+
               <div className="flex flex-col gap-1.5">
-                <Label>Type</Label>
+                <Label htmlFor={`type-${index}`}>Type</Label>
                 <Select
                   value={r.type}
                   onValueChange={(v) => updateResponsable(index, { type: v as ResponsableDraft['type'] })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`type-${index}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -200,8 +204,9 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Lien de parenté</Label>
+                <Label htmlFor={`lienParente-${index}`}>Lien de parenté</Label>
                 <Input
+                  id={`lienParente-${index}`}
                   value={r.lienParente}
                   onChange={(e) => updateResponsable(index, { lienParente: e.target.value })}
                   placeholder="Ex: Père, Mère, Oncle..."
@@ -209,26 +214,33 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Nom complet</Label>
-                <Input
-                  value={r.nom}
-                  onChange={(e) => updateResponsable(index, { nom: e.target.value })}
-                  placeholder="Nom"
-                  required
-                />
-                <Input
-                  value={r.prenoms}
-                  onChange={(e) => updateResponsable(index, { prenoms: e.target.value })}
-                  placeholder="Prénoms"
-                  required
-                  className="mt-1.5"
-                />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor={`nomResponsable-${index}`}>Nom de famille</Label>
+                  <Input
+                    id={`nomResponsable-${index}`}
+                    value={r.nom}
+                    onChange={(e) => updateResponsable(index, { nom: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor={`prenomsResponsable-${index}`}>Prénoms</Label>
+                  <Input
+                    id={`prenomsResponsable-${index}`}
+                    value={r.prenoms}
+                    onChange={(e) => updateResponsable(index, { prenoms: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Téléphone</Label>
+                <Label htmlFor={`telephone-${index}`}>Téléphone</Label>
                 <Input
+                  id={`telephone-${index}`}
+                  type="tel"
+                  inputMode="tel"
                   value={r.telephone}
                   onChange={(e) => updateResponsable(index, { telephone: e.target.value })}
                   placeholder="+228 90 00 00 00"
@@ -236,8 +248,9 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Email</Label>
+                <Label htmlFor={`email-${index}`}>Email</Label>
                 <Input
+                  id={`email-${index}`}
                   type="email"
                   value={r.email}
                   onChange={(e) => updateResponsable(index, { email: e.target.value })}
@@ -245,8 +258,9 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Profession</Label>
+                <Label htmlFor={`profession-${index}`}>Profession</Label>
                 <Input
+                  id={`profession-${index}`}
                   value={r.profession}
                   onChange={(e) => updateResponsable(index, { profession: e.target.value })}
                 />
