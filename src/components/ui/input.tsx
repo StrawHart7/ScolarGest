@@ -9,7 +9,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ref={ref}
       type={type}
       className={cn(
-        'flex h-10 w-full rounded border border-surface-border bg-surface-container-lowest px-3 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 disabled:cursor-not-allowed disabled:opacity-50',
+        // Rayon `lg` et survol de bordure : un champ inerte au survol se lit
+        // comme un champ desactive. Meme chaine que `Textarea` et que
+        // `SelectTrigger`, pour qu'une ligne de formulaire melangeant les trois
+        // ne montre aucune difference de traitement.
+        'flex h-10 w-full rounded-lg border border-surface-border bg-surface-container-lowest px-3 text-body-md text-text-primary',
+        'placeholder:text-text-secondary/60',
+        'transition-colors hover:border-outline-variant',
+        'focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20',
+        'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}

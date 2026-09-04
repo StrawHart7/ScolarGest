@@ -1,10 +1,31 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
+export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  /**
+   * Rangees compactes. La console de plateforme affiche des inventaires longs
+   * que l'espacement par defaut etirait sur plusieurs ecrans — elle s'ecrivait
+   * donc en `<table>` brut, avec ses propres classes, et le produit avait deux
+   * styles de tableau. La densite est une option, pas un autre composant :
+   * l'en-tete, les etats de survol et les bordures restent communs.
+   */
+  dense?: boolean;
+}
+
+export const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, dense, ...props }, ref) => (
     <div className="overflow-x-auto">
-      <table ref={ref} className={cn('w-full border-collapse text-left', className)} {...props} />
+      <table
+        ref={ref}
+        className={cn(
+          'w-full border-collapse text-left',
+          // Cible les cellules depuis la table : la densite se declare a un
+          // seul endroit plutot que sur chaque `TableHead` et `TableCell`.
+          dense && '[&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2',
+          className,
+        )}
+        {...props}
+      />
     </div>
   ),
 );

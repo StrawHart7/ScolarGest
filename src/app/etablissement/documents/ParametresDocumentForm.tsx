@@ -202,7 +202,7 @@ export function ParametresDocumentForm({
             </p>
           )}
           {texte.trim() !== '' && !actif && (
-            <p className="text-body-sm text-amber-700">
+            <p className="text-body-sm text-warning-on-container">
               Le texte est enregistré mais n&apos;apparaîtra pas sur les documents tant que la case
               ci-dessus reste décochée.
             </p>

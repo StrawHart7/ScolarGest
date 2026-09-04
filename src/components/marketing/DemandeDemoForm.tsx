@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2 } from 'lucide-react';
 import { submitDemandeDemo, type DemandeDemoState } from '@/app/demande-demo-actions';
 
@@ -59,12 +60,11 @@ export function DemandeDemoForm() {
       </div>
       <div className="flex flex-col gap-1.5 sm:col-span-2">
         <Label htmlFor="message">Message (optionnel)</Label>
-        <textarea
+        <Textarea
           id="message"
           name="message"
           rows={4}
           placeholder="Combien d’élèves ? Quels cycles ? Ce que vous utilisez aujourd’hui."
-          className="flex w-full rounded border border-surface-border bg-surface-container-lowest px-3 py-2 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20"
         />
       </div>
 

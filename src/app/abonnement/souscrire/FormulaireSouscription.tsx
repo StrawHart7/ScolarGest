@@ -324,25 +324,58 @@ export function FormulaireSouscription({
           )}
           </>
         ) : (
-          <div className="flex flex-col gap-3 rounded-xl border border-tertiary/30 bg-tertiary-fixed/30 p-4">
-            <p className="text-body-md font-medium text-text-primary">
-              Paiement en ligne bientôt disponible
-            </p>
-            <p className="text-body-sm text-text-secondary">
-              Le règlement par Mobile Money est en cours d’ouverture. En attendant, ScolarGest
-              active votre abonnement sur simple demande : vous ne réglerez rien aujourd’hui, et
-              nous reviendrons vers vous pour la régularisation.
-            </p>
-          </div>
+          <>
+            <h2 className="text-lg font-bold text-text-primary">Activation</h2>
+
+            <div className="flex flex-col gap-3 rounded-xl border border-tertiary/30 bg-tertiary-fixed/30 p-4">
+              <p className="text-body-md font-medium text-text-primary">
+                Rien à régler aujourd’hui
+              </p>
+              <p className="text-body-sm text-text-secondary">
+                Le règlement par Mobile Money est en cours d’ouverture. En attendant, ScolarGest
+                active votre abonnement sur simple demande.
+              </p>
+              <ol className="mt-1 flex flex-col gap-2.5">
+                {[
+                  'Vous demandez l’activation depuis cette page.',
+                  'Votre espace reste en écriture, sans interruption.',
+                  'Nous revenons vers vous pour la régularisation.',
+                ].map((etape, i) => (
+                  <li key={etape} className="flex gap-2.5 text-body-sm text-text-secondary">
+                    <span
+                      aria-hidden
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-tertiary text-[11px] font-bold text-white"
+                    >
+                      {i + 1}
+                    </span>
+                    {etape}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </>
         )}
 
-        <div className="mt-2 flex items-baseline justify-between border-t border-surface-border pt-4">
-          <span className="text-body-md font-medium text-text-primary">
-            {paiementEnLigne ? 'Total à régler' : 'Valeur de la formule'}
-          </span>
-          <span className="text-2xl font-extrabold text-text-primary">
-            {formaterFCFA(total)}
-          </span>
+        <div className="mt-2 border-t border-surface-border pt-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-body-md font-medium text-text-primary">
+              {paiementEnLigne ? 'Total à régler' : 'Valeur de la formule'}
+            </span>
+            <span
+              className={
+                paiementEnLigne
+                  ? 'text-2xl font-extrabold text-text-primary'
+                  : 'text-xl font-bold text-text-secondary'
+              }
+            >
+              {formaterFCFA(total)}
+            </span>
+          </div>
+          {!paiementEnLigne && (
+            <p className="mt-1 text-body-sm text-text-secondary">
+              Montant non prélevé aujourd’hui.
+            </p>
+          )}
         </div>
 
         {erreur && <p className="text-body-sm text-error">{erreur}</p>}

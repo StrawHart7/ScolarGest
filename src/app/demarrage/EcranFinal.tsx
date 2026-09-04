@@ -97,6 +97,8 @@ export function EcranFinal({
           la décision là où elle doit être. */}
       {essaiFinLe && (
         <div className="w-full rounded-xl border border-tertiary/30 bg-tertiary-fixed/30 p-5 text-left">
+          {/* Filet de separation implicite : ce bloc n'est plus la suite des
+              felicitations, c'est une seconde section. */}
           <p className="flex items-center gap-2 text-body-md font-medium text-text-primary">
             <Sparkles className="h-4 w-4 shrink-0 text-tertiary" aria-hidden />
             Votre essai gratuit a commencé
@@ -121,7 +123,7 @@ export function EcranFinal({
                 {formules.map((f) => (
                   <div
                     key={f.periodicite}
-                    className="rounded-lg border border-surface-border bg-surface-container-lowest p-3"
+                    className="rounded-lg bg-surface-container-lowest/80 p-3"
                   >
                     <dt className="text-body-sm text-text-secondary">
                       {f.periodicite === 'AN' ? 'Engagement annuel' : 'Sans engagement'}
@@ -140,12 +142,12 @@ export function EcranFinal({
         </div>
       )}
 
-      <div className="flex flex-wrap justify-center gap-3">
-        <Button onClick={onTerminer} disabled={enCours} className="gap-2">
+      <div className="flex w-full flex-col items-center gap-3 border-t border-surface-border pt-6 sm:flex-row sm:justify-center">
+        <Button size="lg" onClick={onTerminer} disabled={enCours} className="w-full gap-2 sm:w-auto">
           <CheckCircle2 className="h-4 w-4" aria-hidden />
           Aller au tableau de bord
         </Button>
-        <Button asChild variant="secondary">
+        <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
           <Link href="/abonnement/souscrire">Choisir ma formule</Link>
         </Button>
       </div>

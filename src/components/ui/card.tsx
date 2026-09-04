@@ -6,7 +6,12 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
     <div
       ref={ref}
       className={cn(
-        'rounded-lg border border-surface-border bg-surface-container-lowest',
+        // `shadow-subtle` par defaut : une carte sans ombre ne se decolle pas
+        // du fond `background`, et les pages qui en juxtaposent plusieurs
+        // donnaient une grille de rectangles plats. Les pages qui la veulent
+        // sans ombre (listes mobiles, cartes imbriquees) passent
+        // `shadow-none` — `cn` fait gagner la classe de l'appelant.
+        'rounded-xl border border-surface-border bg-surface-container-lowest shadow-subtle',
         className,
       )}
       {...props}

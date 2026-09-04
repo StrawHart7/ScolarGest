@@ -12,6 +12,14 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CarteMetrique } from '@/components/ui/carte-metrique';
 import { BarresHorizontales } from '@/components/ui/barres-horizontales';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { getSidebarItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -191,7 +199,7 @@ export default async function StatistiquesPage({
           partiellement noté produit des moyennes qui bougeront, et une
           décision prise dessus serait prise sur du sable. */}
       {stats.effectifEvalue < stats.effectifTotal && (
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-body-sm text-text-secondary">
+        <p className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-body-sm text-text-secondary">
           {stats.effectifTotal - stats.effectifEvalue} élève
           {stats.effectifTotal - stats.effectifEvalue > 1 ? 's n’ont' : ' n’a'} aucune note sur
           cette période et {stats.effectifTotal - stats.effectifEvalue > 1 ? 'sont' : 'est'} exclu
@@ -269,25 +277,25 @@ export default async function StatistiquesPage({
             <CardTitle>Résultats par classe</CardTitle>
           </CardHeader>
           <CardContent className="max-h-96 overflow-y-auto p-0">
-            <table className="w-full text-left text-body-sm">
-              <thead className="sticky top-0 bg-surface-container-lowest">
-                <tr className="border-b border-surface-border text-label-md uppercase tracking-wide text-text-secondary">
-                  <th className="px-5 py-2 font-semibold">Classe</th>
-                  <th className="px-3 py-2 text-right font-semibold">Évalués</th>
-                  <th className="px-3 py-2 text-right font-semibold">Moyenne</th>
-                  <th className="px-5 py-2 text-right font-semibold">Réussite</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table dense>
+              <TableHeader className="sticky top-0 bg-surface-container-lowest">
+                <TableRow>
+                  <TableHead>Classe</TableHead>
+                  <TableHead className="text-right">Évalués</TableHead>
+                  <TableHead className="text-right">Moyenne</TableHead>
+                  <TableHead className="text-right">Réussite</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {stats.classes.map((c) => (
-                  <tr key={c.id} className="border-b border-surface-border/50 last:border-0">
-                    <td className="px-5 py-2 text-text-primary">{c.libelle}</td>
-                    <td className="px-3 py-2 text-right text-text-secondary" data-mono>
+                  <TableRow key={c.id}>
+                    <TableCell className="text-body-sm text-text-primary">{c.libelle}</TableCell>
+                    <TableCell className="text-right text-body-sm text-text-secondary" data-mono>
                       {c.effectif}
-                    </td>
-                    <td
+                    </TableCell>
+                    <TableCell
                       className={cn(
-                        'px-3 py-2 text-right font-medium',
+                        'text-right text-body-sm font-medium',
                         c.moyenne !== null && c.moyenne < SEUIL_REUSSITE
                           ? 'text-error'
                           : 'text-text-primary',
@@ -295,14 +303,14 @@ export default async function StatistiquesPage({
                       data-mono
                     >
                       {surVingt(c.moyenne)}
-                    </td>
-                    <td className="px-5 py-2 text-right text-text-secondary" data-mono>
+                    </TableCell>
+                    <TableCell className="text-right text-body-sm text-text-secondary" data-mono>
                       {pourcent(c.tauxReussite)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 

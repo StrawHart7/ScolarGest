@@ -9,6 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { BoutonFlottant } from '@/components/ui/actions-mobile';
 import { BarreListe } from '@/components/ui/barre-liste';
 import { getSidebarItems } from '@/lib/navigation';
@@ -82,8 +90,8 @@ export default async function AbonnementsPage({
         </div>
 
         {!paiementOuvert && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-            <p className="text-body-sm font-medium text-amber-700">
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+            <p className="text-body-sm font-medium text-warning-on-container">
               Paiement en ligne desactive
             </p>
             <p className="mt-1 text-body-sm text-text-secondary">
@@ -138,42 +146,39 @@ export default async function AbonnementsPage({
               </div>
             ) : (
               <>
-                <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="h-row-dense border-b border-surface-border bg-surface text-label-md text-text-secondary">
-                        <th className="py-2 pl-5 pr-3 font-semibold">Établissement</th>
-                        <th className="px-3 py-2 font-semibold">Plan</th>
-                        <th className="px-3 py-2 font-semibold">Statut</th>
-                        <th className="px-3 py-2 font-semibold">Échéance</th>
-                        <th className="px-3 py-2 font-semibold">Reste</th>
-                        <th className="py-2 pl-3 pr-5 text-right font-semibold">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-body-sm text-text-primary">
+                <div className="hidden md:block">
+                  <Table dense>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Établissement</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Échéance</TableHead>
+                        <TableHead>Reste</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {abonnementsFiltres.map((a) => (
-                        <tr
-                          key={a.id}
-                          className="h-row-dense border-b border-surface-border/50 transition-colors last:border-0 hover:bg-surface-container-low"
-                        >
-                          <td className="py-2 pl-5 pr-3 font-medium">{a.etablissement.nom}</td>
-                          <td className="px-3 py-2 text-text-secondary">
+                        <TableRow key={a.id}>
+                          <TableCell className="font-medium">{a.etablissement.nom}</TableCell>
+                          <TableCell className="text-text-secondary">
                             {a.plan.nom} ({Number(a.plan.prix).toLocaleString('fr-FR')} FCFA)
-                          </td>
-                          <td className="px-3 py-2">
+                          </TableCell>
+                          <TableCell>
                             <Badge shape="pill" variant={STATUT_BADGE[statutEffectif(a)]}>
                               {statutEffectif(a)}
                             </Badge>
-                          </td>
-                          <td className="px-3 py-2 text-text-secondary" data-mono>
+                          </TableCell>
+                          <TableCell className="text-text-secondary" data-mono>
                             {new Date(a.dateFin).toLocaleDateString('fr-FR')}
-                          </td>
-                          <td className="px-3 py-2 text-text-secondary">
+                          </TableCell>
+                          <TableCell className="text-text-secondary">
                             {joursAvantEcheance(a.dateFin) > 0
                               ? `${joursAvantEcheance(a.dateFin)} j`
                               : `échu depuis ${Math.abs(joursAvantEcheance(a.dateFin))} j`}
-                          </td>
-                          <td className="py-2 pl-3 pr-5">
+                          </TableCell>
+                          <TableCell>
                             <div className="flex flex-col items-end gap-2">
                               <Button asChild variant="secondary" size="sm">
                                 <Link href={`/super-admin/abonnements/${a.id}/paiement`}>
@@ -182,11 +187,11 @@ export default async function AbonnementsPage({
                               </Button>
                               <AbonnementRowActions etablissementId={a.etablissementId} />
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
 
                 <CarteListeMobile>

@@ -27,7 +27,7 @@ export function PaiementForm({ abonnementId }: { abonnementId: string }) {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="montant">Montant reçu (FCFA)</Label>
-        <Input id="montant" name="montant" type="number" min={0} required />
+        <Input id="montant" name="montant" type="number" inputMode="numeric" min={0} required />
       </div>
 
       <div className="flex flex-col gap-1.5">

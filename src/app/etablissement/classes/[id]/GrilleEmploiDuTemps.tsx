@@ -343,8 +343,8 @@ export function GrilleEmploiDuTemps({
                 </div>
 
                 {conflit && (
-                  <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-body-sm text-text-primary">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden />
+                  <p className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-body-sm text-text-primary">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
                     {conflit} L&apos;enregistrement sera refusé.
                   </p>
                 )}

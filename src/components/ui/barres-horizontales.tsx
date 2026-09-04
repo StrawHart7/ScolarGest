@@ -68,7 +68,7 @@ export function BarresHorizontales({
                   'block h-full rounded-full',
                   !aReference && 'bg-outline',
                   aReference && !deborde && 'bg-primary-container',
-                  deborde && 'bg-amber-500',
+                  deborde && 'bg-warning',
                 )}
                 // Une classe qui deborde ne doit pas faire deborder la barre :
                 // la teinte porte l'alerte, la longueur reste bornee.

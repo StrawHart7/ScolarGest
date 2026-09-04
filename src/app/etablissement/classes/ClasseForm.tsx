@@ -170,7 +170,7 @@ export function ClasseForm({
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="capacite">Capacité</Label>
-                <Input id="capacite" name="capacite" type="number" min={1} step={1} />
+                <Input id="capacite" name="capacite" type="number" inputMode="numeric" min={1} step={1} />
               </div>
             </div>
 

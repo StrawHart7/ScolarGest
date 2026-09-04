@@ -26,7 +26,7 @@ type Ton = 'primaire' | 'succes' | 'alerte' | 'neutre';
 const PASTILLE: Record<Ton, string> = {
   primaire: 'bg-primary-fixed text-primary-container',
   succes: 'bg-tertiary-fixed/60 text-tertiary',
-  alerte: 'bg-amber-100 text-amber-700',
+  alerte: 'bg-warning/15 text-warning-on-container',
   neutre: 'bg-surface-container text-text-secondary',
 };
 

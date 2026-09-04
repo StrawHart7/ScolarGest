@@ -2,8 +2,17 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { FormuleProposee } from '@/lib/abonnement-formule';
 
 /**
@@ -18,6 +27,19 @@ import type { FormuleProposee } from '@/lib/abonnement-formule';
  * Rendu après montage seulement : lire `localStorage` pendant le rendu serveur
  * produirait une hydratation incohérente, et le rappel clignoterait chez une
  * école qui l'a déjà refermé.
+ *
+ * **Monté sur le `Dialog` du projet, pas sur une boîte maison.** La première
+ * version était un `<div role="dialog">` en `fixed inset-0`, ce qui lui faisait
+ * perdre quatre choses que Radix et `dialog.tsx` apportent : la fermeture au
+ * clavier (`Escape`) et par clic sur l'arrière-plan, le piégeage du focus, la
+ * vraie mécanique de feuille sous `sm` (`85dvh`, donc un contenu qui défile au
+ * lieu de déborder), et le décalage clavier de `useKeyboardOffset`. C'est le
+ * seul écran de l'application qui s'impose sans avoir été demandé, à un moment
+ * de tension pour l'école : une fenêtre qu'on subit doit être irréprochable à
+ * fermer.
+ *
+ * Il n'y a pas de `DialogTrigger` : l'ouverture vient d'une décision serveur,
+ * pas d'un clic. L'état est donc piloté.
  */
 const CLE = 'sg_rappel_essai';
 
@@ -43,65 +65,58 @@ export function ModaleFinEssai({
     }
   }, [jourCourant]);
 
-  function fermer() {
+  const fermer = React.useCallback(() => {
     try {
       window.localStorage.setItem(CLE, jourCourant);
     } catch {
       // Sans mémoire du refus, le rappel réapparaîtra : gênant, pas grave.
     }
     setVisible(false);
-  }
-
-  if (!visible) return null;
+  }, [jourCourant]);
 
   const urgent = joursRestants <= 1;
   const annuelle = formules.find((f) => f.periodicite === 'AN');
   const mensuelle = formules.find((f) => f.periodicite === 'MOIS');
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="titre-rappel-essai"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-    >
-      <div className="relative w-full max-w-lg rounded-2xl border border-surface-border bg-surface-container-lowest p-6 shadow-elevated">
-        <button
-          type="button"
-          onClick={fermer}
-          aria-label="Fermer le rappel"
-          className="absolute right-4 top-4 rounded-lg p-1 text-text-secondary transition-colors hover:bg-surface-container hover:text-text-primary"
-        >
-          <X className="h-5 w-5" aria-hidden />
-        </button>
-
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-primary-fixed">
-          <Sparkles className="h-5 w-5 text-primary-container" aria-hidden />
-        </span>
-
-        <h2 id="titre-rappel-essai" className="mt-4 text-display-sm text-text-primary">
-          {urgent
-            ? joursRestants <= 0
-              ? 'Votre essai se termine aujourd’hui'
-              : 'Dernier jour d’essai'
-            : `Il vous reste ${joursRestants} jours d’essai`}
-        </h2>
-
-        {/* Décrit exactement ce que la lecture seule retire, et rien de plus.
-            Annoncer une perte de données serait faux, et la première école à
-            le constater aurait raison de se méfier du reste. */}
-        <p className="mt-2 text-body-md text-text-secondary">
-          À la fin de l’essai, votre espace passe en lecture seule : vos données restent
-          consultables et vos documents imprimables, mais la saisie des notes, des inscriptions et
-          des encaissements s’arrête.
-        </p>
+    // `onOpenChange` reçoit toutes les fermetures — croix, `Escape`, clic sur
+    // l'arrière-plan — et chacune doit mémoriser le refus du jour. Câbler
+    // seulement le bouton laisserait revenir le rappel après une fermeture au
+    // clavier.
+    <Dialog open={visible} onOpenChange={(ouvert) => !ouvert && fermer()}>
+      <DialogContent>
+        <DialogHeader>
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-fixed">
+              <Sparkles className="h-5 w-5 text-primary-container" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <DialogTitle>
+                {urgent
+                  ? joursRestants <= 0
+                    ? 'Votre essai se termine aujourd’hui'
+                    : 'Dernier jour d’essai'
+                  : `Il vous reste ${joursRestants} jours d’essai`}
+              </DialogTitle>
+              {/* Décrit exactement ce que la lecture seule retire, et rien de
+                  plus. Annoncer une perte de données serait faux, et la
+                  première école à le constater aurait raison de se méfier du
+                  reste. */}
+              <DialogDescription className="mt-1">
+                À la fin de l’essai, votre espace passe en lecture seule : vos données restent
+                consultables et vos documents imprimables, mais la saisie des notes, des
+                inscriptions et des encaissements s’arrête.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         {formules.length > 0 && (
-          <div className="mt-5">
+          <DialogBody>
             <p className="text-label-md uppercase tracking-wide text-text-secondary">
               Votre formule : {formules[0]!.nomFormule}
             </p>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {annuelle && (
                 <div className="rounded-lg border border-tertiary/30 bg-tertiary-fixed/30 p-3">
                   <p className="text-body-sm text-text-secondary">Engagement annuel</p>
@@ -120,24 +135,24 @@ export function ModaleFinEssai({
                 </div>
               )}
             </div>
-          </div>
+          </DialogBody>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button asChild size="lg">
+        <DialogFooter className="justify-between">
+          <button
+            type="button"
+            onClick={fermer}
+            className="rounded px-1 text-body-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Plus tard
+          </button>
+          <Button asChild>
             <Link href="/abonnement/souscrire" onClick={fermer}>
               Souscrire maintenant
             </Link>
           </Button>
-          <button
-            type="button"
-            onClick={fermer}
-            className="text-body-sm font-medium text-text-secondary hover:text-text-primary"
-          >
-            Plus tard
-          </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

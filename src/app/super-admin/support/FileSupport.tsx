@@ -72,7 +72,7 @@ const VISUEL: Record<CategorieSupport, { Icone: LucideIcon; classe: string }> = 
   COMPTE_ACCES: { Icone: KeyRound, classe: 'bg-primary-fixed text-primary-container' },
   NOTES_BULLETINS: { Icone: GraduationCap, classe: 'bg-secondary-container text-text-primary' },
   FINANCES: { Icone: Receipt, classe: 'bg-tertiary/10 text-tertiary' },
-  ABONNEMENT_PAIEMENT: { Icone: CreditCard, classe: 'bg-amber-500/10 text-amber-700' },
+  ABONNEMENT_PAIEMENT: { Icone: CreditCard, classe: 'bg-warning/10 text-warning-on-container' },
   ANOMALIE: { Icone: Bug, classe: 'bg-error/10 text-error' },
   AUTRE: { Icone: CircleHelp, classe: 'bg-surface-container text-text-secondary' },
 };
@@ -230,7 +230,7 @@ export function FileSupport({ demandes }: { demandes: DemandeSupportPlateforme[]
           actif={onglet === 'EN_COURS'}
           onClick={() => setOnglet('EN_COURS')}
           Icone={Loader}
-          classeIcone="bg-amber-500/10 text-amber-700"
+          classeIcone="bg-warning/10 text-warning-on-container"
           valeur={String(stats.enCours)}
           libelle="En cours"
           precision="prises en charge, pas encore closes"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, Clock, MapPin, Paperclip } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
   libelleCategorie,
@@ -122,7 +123,7 @@ export function CarteDemandeSupport({
     <article
       className={cn(
         'flex flex-col gap-4 rounded-xl border bg-surface-container-lowest p-5',
-        enRetard ? 'border-amber-500/40' : 'border-surface-border',
+        enRetard ? 'border-warning/30' : 'border-surface-border',
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -198,13 +199,12 @@ export function CarteDemandeSupport({
 
       {ouvert && (
         <div className="space-y-3">
-          <textarea
+          <Textarea
             rows={5}
             value={reponse}
             onChange={(e) => setReponse(e.target.value)}
             maxLength={4000}
             placeholder="Réponse visible par l’école sur sa page Support."
-            className="flex w-full rounded border border-surface-border bg-surface-container-lowest px-3 py-2 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20"
           />
           <div className="flex flex-wrap gap-2">
             <Button

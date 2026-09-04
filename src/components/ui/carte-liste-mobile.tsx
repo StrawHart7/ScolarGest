@@ -31,7 +31,7 @@ export function CarteListeMobile({ className, ...props }: React.HTMLAttributes<H
 const TONS_STATUT = {
   succes: 'bg-tertiary-container text-white',
   erreur: 'bg-error-container text-error-on-container',
-  alerte: 'bg-amber-500/15 text-amber-700',
+  alerte: 'bg-warning/10 text-warning-on-container',
   info: 'bg-secondary-container text-primary',
   neutre: 'bg-surface-variant text-on-surface-variant',
 } as const;

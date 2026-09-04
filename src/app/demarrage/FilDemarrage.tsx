@@ -262,7 +262,7 @@ export function FilDemarrage({
                 <p className="mt-2 text-body-md text-text-secondary">{definitionCourante.aide}</p>
               )}
               {definitionCourante.irreversible && (
-                <p className="mt-4 flex items-start gap-2 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-body-sm text-amber-700">
+                <p className="mt-4 flex items-start gap-2 rounded border border-warning/30 bg-warning/10 p-2 text-body-sm text-warning-on-container">
                   <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                   <span>{definitionCourante.irreversible}</span>
                 </p>

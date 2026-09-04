@@ -8,7 +8,7 @@ const badgeVariants = cva('inline-flex items-center font-semibold', {
       neutral: 'bg-surface-container text-text-secondary',
       primary: 'bg-primary-container/10 text-primary-container',
       success: 'bg-tertiary/10 text-tertiary',
-      warning: 'bg-amber-500/10 text-amber-700',
+      warning: 'bg-warning/10 text-warning-on-container',
       error: 'bg-error/10 text-error',
     },
     shape: {

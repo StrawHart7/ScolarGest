@@ -108,7 +108,7 @@ export function TarifForm({
               <Input
                 id="montant"
                 name="montant"
-                type="number"
+                type="number" inputMode="numeric"
                 min={0}
                 step={1}
                 placeholder="0"

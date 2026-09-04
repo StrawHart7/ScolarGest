@@ -5,6 +5,7 @@ import { ShieldCheck, X, CheckCircle2, XCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { EvaluationSoumise } from '@/services/note';
 import { validerSoumissionAction, rejeterSoumissionAction } from './actions';
 
@@ -131,12 +132,11 @@ export function SoumissionModal({
               {mode === 'REJETER' && (
                 <div className="space-y-1.5">
                   <Label htmlFor="motif">Motif du rejet</Label>
-                  <textarea
+                  <Textarea
                     id="motif"
                     value={motif}
                     onChange={(e) => setMotif(e.target.value)}
                     rows={2}
-                    className="w-full rounded border border-surface-border bg-surface-container-lowest px-3 py-2 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20"
                     placeholder="Expliquez pourquoi cette évaluation est renvoyée à l'enseignant"
                   />
                   <p className="text-body-sm text-text-secondary">
