@@ -1,5 +1,6 @@
 import { getTenantContext } from '@/services/tenant';
 import { getEtatFacturation } from '@/services/abonnement';
+import { getEtablissement } from '@/services/etablissement';
 import { cyclesFactures } from '@/services/paiement-fedapay';
 import { paiementEnLigneActif } from '@/services/activation-plateforme';
 import { evaluerAcces } from '@/services/abonnement-acces';
@@ -37,6 +38,31 @@ export default async function SouscrirePage() {
           <CardContent className="py-16 text-center">
             <p className="text-body-sm text-text-secondary">
               Seuls le Directeur et le Comptable peuvent souscrire un abonnement.
+            </p>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
+
+  // Une fondatrice ne passe pas par le libre-service : son forfait est fige et
+  // garanti, la page facturerait le catalogue public par cycle. Le service le
+  // refuse deja ; cet ecran evite d'y arriver pour lire une erreur brute.
+  const fiche = await getEtablissement(ctx.etablissementId);
+  if (fiche.regimeTarifaire === 'FONDATRICE') {
+    return (
+      <AppLayout items={items} schoolName="ScolarGest" role={ctx.role} userName={ctx.email}>
+        <LienRetour href="/abonnement" className="mb-4">
+          Retour à mon abonnement
+        </LienRetour>
+        <Card>
+          <CardContent className="space-y-3 py-16 text-center">
+            <p className="text-body-md text-text-primary">
+              Votre établissement bénéficie du tarif fondateur.
+            </p>
+            <p className="mx-auto max-w-md text-body-sm text-text-secondary">
+              Votre renouvellement est établi par notre équipe, au tarif qui vous est garanti.
+              Écrivez-nous depuis le support et nous nous en occupons.
             </p>
           </CardContent>
         </Card>

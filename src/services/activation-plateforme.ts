@@ -62,10 +62,15 @@ export async function activerParAutorisationPlateforme(
   }
 
   const supabase = createClient();
+  // `public = true` est indispensable depuis la migration `0030` : le plan
+  // fondateur porte lui aussi `duree = 'MOIS'`. Sans ce filtre, la periodicite
+  // mensuelle ramene **deux** lignes et `maybeSingle()` echoue — pour toutes
+  // les ecoles. Meme correction que dans `creerIntentionPaiement`.
   const { data: plan, error: erreurPlan } = await supabase
     .from('plan_abonnement')
     .select('id, prix, duree')
     .eq('duree', periodicite)
+    .eq('public', true)
     .maybeSingle();
   if (erreurPlan) throw erreurPlan;
   if (!plan) throw new Error('Plan tarifaire introuvable.');

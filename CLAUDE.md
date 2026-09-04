@@ -744,11 +744,18 @@ par cas et qu'une offre standard reprendra. Les arracher aurait touche
 `evaluerAcces`, trois composants de layout, les seeds et une trentaine
 d'assertions, pour une decision qui est commerciale.
 
-**Piege ouvert** : une ecole sans essai **et** sans abonnement tombe en
-`AVANT_ESSAI`, donc en lecture seule, onboarding compris — sans qu'aucun message
-ne l'explique. L'essai demarrait tout seul a la definition du PIN et masquait ce
-cas. Deux ecoles y sont deja (Ecole B, Zoka Legba). Une fondatrice doit donc
-**naitre avec sa premiere periode**, puisqu'elle est vendue avant d'exister.
+**Ce qui n'est PAS un piege, contrairement a ce que j'ai d'abord ecrit.** Une
+ecole sans essai ni abonnement tombe en `AVANT_ESSAI`, mais la derogation
+conditionnelle du middleware lui laisse ecrire sur `/demarrage` : son Directeur
+pose son PIN, l'essai demarre, la derogation se referme. Ecole B et Zoka Legba
+sont dans cet etat et sont parfaitement utilisables. Verifie dans
+`src/lib/supabase/middleware.ts` apres l'avoir affirme deux fois sans le lire —
+la lecon vaut d'etre gardee : **verifier qu'une condition de declenchement est
+reunie avant de chiffrer l'impact d'un defaut**.
+
+Une fondatrice naissant avec sa premiere periode n'est donc pas un correctif
+mais une **commodite** : elle est vendue avant d'exister, et lui faire traverser
+un essai qu'elle ne consommera jamais n'a pas de sens.
 
 ### Paiement FedaPay : les pièges
 

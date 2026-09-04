@@ -2377,10 +2377,12 @@ dont la réussite devient la preuve commerciale. Document de cadrage :
 
 **Reste ouvert**
 
-- **Créer une école et sa première période en un seul geste.** C'est le point le
-  plus important : une fondatrice est vendue avant d'exister, et une école sans
-  essai ni abonnement tombe en `AVANT_ESSAI` — lecture seule, onboarding compris,
-  sans aucun message. École B et Zoka Legba y sont déjà.
+- **Créer une école et sa première période en un seul geste.** Commodité, pas
+  correctif : j'avais annoncé qu'une école sans essai ni abonnement était bloquée,
+  c'est faux — la dérogation conditionnelle du middleware laisse écrire sur
+  `/demarrage`, le PIN démarre l'essai, et la dérogation se referme. École B et
+  Zoka Legba sont utilisables. Reste que faire traverser à une fondatrice un essai
+  qu'elle ne consommera jamais n'a pas de sens.
 - **Badge « École fondatrice » côté école.** Le programme les présente comme des
   partenaires, pas des testeurs : le statut devrait se voir dans leur espace.
 - **Le tarif suggéré à l'ouverture d'une période** n'est pas encore pré-rempli
