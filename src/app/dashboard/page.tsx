@@ -20,6 +20,8 @@ import {
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { CarteMetrique } from '@/components/ui/carte-metrique';
+import { CarteAction } from '@/components/tactile/carte-action';
+import { GrilleCompteurs } from '@/components/tactile/grille-compteurs';
 import { getSidebarItems } from '@/lib/navigation';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
@@ -370,44 +372,74 @@ export default async function DashboardPage() {
   }
 
   const stats = await getDashboardEnseignant(annee.id);
+  const aSoumettre = stats.notesBrouillon > 0;
+
+  // Écran étalon du jalon T0 de la refonte tactile.
+  //
+  // Le relevé du 2026-09-04 mesurait cet écran à 3 879px, dont les quatre
+  // premiers cinquièmes occupés par quatre compteurs empilés pleine largeur —
+  // deux d'entre eux affichant un nombre à un seul caractère. La seule chose
+  // actionnable, « 38 notes en brouillon à soumettre », était le quatrième et
+  // tombait hors du premier écran d'un téléphone de 844px.
+  //
+  // L'enseignant ouvre cet écran entre deux cours, debout, d'une main. Il
+  // s'ouvre donc sur ce qu'il y a à faire, et les compteurs passent dessous.
   return layout(
     <>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <CarteMetrique
-          label="Mes classes"
-          valeur={nombre(stats.classes)}
-          icone={School}
-          ton="primaire"
-          comparaison={`${nombre(stats.matieres)} matière${stats.matieres > 1 ? 's' : ''} enseignée${stats.matieres > 1 ? 's' : ''}`}
-          href="/etablissement/mes-classes"
-        />
-        <CarteMetrique
-          label="Mes matières"
-          valeur={nombre(stats.matieres)}
-          icone={BookOpen}
-          ton="neutre"
-          comparaison="Sur l’année scolaire en cours"
-        />
-        <CarteMetrique
-          label="Mes évaluations"
-          valeur={nombre(stats.evaluations)}
-          icone={ClipboardList}
-          ton="neutre"
-          comparaison="Créées sur l’année"
-        />
-        <CarteMetrique
-          label="Notes en brouillon"
-          valeur={nombre(stats.notesBrouillon)}
+      {aSoumettre && (
+        <CarteAction
+          intitule="À soumettre pour approbation"
+          valeur={`${nombre(stats.notesBrouillon)} note${stats.notesBrouillon > 1 ? 's' : ''}`}
+          precision="Une note en brouillon n’entre dans aucune moyenne tant qu’elle n’est pas soumise."
+          action={{ libelle: 'Saisir mes notes', href: '/etablissement/notes/saisie' }}
           icone={FileText}
-          ton={stats.notesBrouillon > 0 ? 'alerte' : 'succes'}
-          comparaison={
-            stats.notesBrouillon > 0
-              ? 'À soumettre pour approbation'
-              : 'Tout est soumis'
-          }
-          href="/etablissement/notes/saisie"
         />
-      </div>
+      )}
+
+      {/*
+        Le compteur des brouillons ne figure dans la grille que lorsqu'il n'y a
+        rien à soumettre. Le répéter sous la carte d'action dirait deux fois la
+        même chose au même endroit, et deux appels à l'attention n'en font
+        aucun.
+      */}
+      <GrilleCompteurs
+        items={[
+          {
+            label: 'Mes classes',
+            valeur: nombre(stats.classes),
+            icone: School,
+            ton: 'primaire',
+            comparaison: `${nombre(stats.matieres)} matière${stats.matieres > 1 ? 's' : ''} enseignée${stats.matieres > 1 ? 's' : ''}`,
+            href: '/etablissement/mes-classes',
+          },
+          {
+            label: 'Mes matières',
+            valeur: nombre(stats.matieres),
+            icone: BookOpen,
+            ton: 'neutre',
+            comparaison: 'Sur l’année scolaire en cours',
+          },
+          {
+            label: 'Mes évaluations',
+            valeur: nombre(stats.evaluations),
+            icone: ClipboardList,
+            ton: 'neutre',
+            comparaison: 'Créées sur l’année',
+          },
+          ...(aSoumettre
+            ? []
+            : [
+                {
+                  label: 'Notes en brouillon',
+                  valeur: nombre(stats.notesBrouillon),
+                  icone: FileText,
+                  ton: 'succes' as const,
+                  comparaison: 'Tout est soumis',
+                  href: '/etablissement/notes/saisie',
+                },
+              ]),
+        ]}
+      />
 
       <Raccourcis
         raccourcis={[RACCOURCIS.mesClasses!, RACCOURCIS.saisieNotes!, RACCOURCIS.rapports!]}
