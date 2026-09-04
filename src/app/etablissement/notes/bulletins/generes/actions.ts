@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { getUrlTelechargementDocument, listBulletinsClasse } from '@/services/document';
 import { listElevesInscritsClasse } from '@/services/eleve';
+import { bulletinsATelecharger, nomFichierBulletin } from '@/lib/bulletins';
 
 const uuidSchema = z.string().uuid();
 
@@ -41,7 +42,7 @@ export async function telechargerBulletinAction(documentId: string): Promise<Tel
 }
 
 export interface FichierBulletin {
-  /** Nom de fichier lisible, pas la référence seule : « KOFFI Yao - BUL-...pdf ». */
+  /** « KOFFI Yao - MAT-2026-0031 - Trimestre 1.pdf » — voir `lib/bulletins`. */
   nomFichier: string;
   url: string;
 }
@@ -54,8 +55,14 @@ export interface FichierBulletin {
  * d'échouer à mi-parcours sur une connexion instable, et l'utilisateur se
  * retrouverait avec un dossier à moitié rempli sans savoir lesquels manquent.
  *
- * Les documents OBSOLETE sont exclus : on télécharge ce qui fait foi, pas les
- * versions qu'une régénération a remplacées.
+ * **Un seul bulletin par élève : le plus récent.** Filtrer sur le statut ne
+ * suffisait pas. La génération groupée empilait des documents tous en `GENERE`
+ * pour un même élève, et le dossier se remplissait de toutes les versions sans
+ * qu'aucun nom de fichier ne dise laquelle faisait foi. La source est
+ * corrigée, mais les documents déjà empilés existent : le regroupement par
+ * élève reste donc la règle, et il est partagé avec l'écran par
+ * `src/lib/bulletins.ts` — le décider ici une seconde fois ferait diverger les
+ * deux affichages.
  *
  * Les URL sont signées 5 minutes. C'est court, mais l'appelant les consomme
  * immédiatement ; les poser dans le HTML de la page les rendrait périmées
@@ -78,15 +85,25 @@ export async function urlsBulletinsClasseAction(
       listElevesInscritsClasse(classe.data, annee.data),
       listBulletinsClasse(classe.data, periodeAnalysee.data),
     ]);
-    const nomParEleve = new Map(eleves.map((e) => [e.id, `${e.nom} ${e.prenoms}`]));
+    const parEleve = new Map(eleves.map((e) => [e.id, e]));
 
-    const enVigueur = documents.filter((d) => d.statut === 'GENERE');
     const fichiers: FichierBulletin[] = [];
-    for (const document of enVigueur) {
+    for (const document of bulletinsATelecharger(documents)) {
       const url = await getUrlTelechargementDocument(document.documentId);
-      const nom = nomParEleve.get(document.eleveId) ?? 'Eleve';
-      fichiers.push({ nomFichier: `${nom} - ${document.reference}.pdf`, url });
+      const eleve = parEleve.get(document.eleveId);
+      fichiers.push({
+        nomFichier: nomFichierBulletin(
+          eleve ? `${eleve.nom} ${eleve.prenoms}` : 'Eleve',
+          eleve?.matricule ?? null,
+          periodeAnalysee.data,
+        ),
+        url,
+      });
     }
+
+    // Tri alphabetique : une secretaire distribue les bulletins dans l'ordre
+    // de sa liste de classe, pas dans l'ordre de generation.
+    fichiers.sort((a, b) => a.nomFichier.localeCompare(b.nomFichier, 'fr'));
 
     return { error: null, fichiers };
   } catch (e) {

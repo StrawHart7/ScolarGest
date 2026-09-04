@@ -9,7 +9,13 @@ import { getAnneeScolaire } from './annee-scolaire';
 import { getEtablissement } from './etablissement';
 import { getParametresDocument, chargerLogoDataUri } from './parametres-document';
 import { generateNumeroDocument } from './document-numero';
-import { enregistrerDocument, marquerObsolete, getDocument, type Document } from './document';
+import {
+  enregistrerDocument,
+  marquerObsolete,
+  marquerBulletinsPrecedentsObsoletes,
+  getDocument,
+  type Document,
+} from './document';
 import { renderHtmlToPdf } from '@/lib/pdf/render';
 import { renderBulletinHtml, periodeLabel } from '@/lib/pdf/templates/bulletin';
 import { renderBulletinSecondaireHtml } from '@/lib/pdf/templates/bulletin-secondaire';
@@ -140,12 +146,30 @@ export async function genererBulletin(
     anneeScolaireId,
   });
 
+  // Perime les bulletins precedents du meme eleve pour la meme periode.
+  //
+  // C'est le defaut corrige : `regenererBulletin` marquait bien l'ancien, mais
+  // la generation groupee — qui traite toute la classe — n'en marquait aucun.
+  // Rien ne disait donc lequel des documents faisait foi, et le
+  // telechargement groupe les sortait tous : jusqu'a cinq bulletins pour le
+  // meme eleve, constate en base.
+  //
+  // **Apres l'insertion, jamais avant.** Perimer d'abord laisserait un eleve
+  // sans aucun bulletin en vigueur si le rendu PDF ou l'envoi au stockage
+  // echouait — l'ordre est le meme que dans `regenererBulletin`.
+  const perimes = await marquerBulletinsPrecedentsObsoletes(
+    eleveId,
+    classeId,
+    periode,
+    document.id,
+  );
+
   await auditLog({
     action: 'GENERER_BULLETIN',
     module: 'documents',
     objetType: 'Document',
     objetId: document.id,
-    nouvelleValeur: { reference, eleveId, classeId, periode, anneeScolaireId },
+    nouvelleValeur: { reference, eleveId, classeId, periode, anneeScolaireId, perimes },
   });
 
   return document;

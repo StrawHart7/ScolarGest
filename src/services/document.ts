@@ -94,6 +94,45 @@ export async function marquerObsolete(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Marque obsoletes tous les bulletins deja en vigueur d'un eleve pour une
+ * classe et une periode.
+ *
+ * `marquerObsolete` ne traite qu'un document designe : elle convient a la
+ * regeneration individuelle, ou l'on sait lequel on remplace. La generation
+ * groupee, elle, ne designe rien — elle produit un nouveau bulletin pour toute
+ * la classe — et empilait donc les documents en `GENERE`, jusqu'a cinq pour un
+ * meme eleve.
+ *
+ * Porte sur (eleve, classe, periode) et non sur l'eleve seul : le bulletin du
+ * 1er trimestre ne doit pas etre perime par la generation du 2eme.
+ *
+ * Renvoie le nombre de documents perimes, pour l'audit.
+ */
+export async function marquerBulletinsPrecedentsObsoletes(
+  eleveId: string,
+  classeId: string,
+  periode: string,
+  sauf: string,
+): Promise<number> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('document')
+    .update({ statut: 'OBSOLETE' })
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('type', 'BULLETIN')
+    .eq('objetId', eleveId)
+    .eq('classeId', classeId)
+    .eq('periode', periode)
+    .eq('statut', 'GENERE')
+    // Le document qui vient d'etre cree ne doit pas se perimer lui-meme.
+    .neq('id', sauf)
+    .select('id');
+  if (error) throw error;
+  return (data ?? []).length;
+}
+
 export async function getDocument(id: string): Promise<Document> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
@@ -183,7 +222,12 @@ export async function listBulletinsClasse(
     .eq('type', 'BULLETIN')
     .eq('classeId', classeId)
     .eq('periode', periode)
-    .order('dateGeneration', { ascending: false });
+    // `createdAt` en second critere : deux bulletins generes dans la meme
+    // seconde — ce que fait la generation groupee d'une classe — auraient
+    // sinon un ordre indetermine, et « le plus recent » designerait tantot
+    // l'un tantot l'autre d'un affichage a l'autre.
+    .order('dateGeneration', { ascending: false })
+    .order('createdAt', { ascending: false });
   if (error) throw error;
 
   return (
