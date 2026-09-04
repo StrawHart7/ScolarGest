@@ -59,7 +59,7 @@ test('login page renders the email/password form and Google option', async ({ pa
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'ScolarGest' })).toBeVisible();
   await expect(page.getByLabel('Adresse e-mail')).toBeVisible();
-  await expect(page.getByLabel('Mot de passe')).toBeVisible();
+  await expect(page.getByLabel('Mot de passe', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continuer avec Google' })).toBeVisible();
 });
@@ -67,7 +67,7 @@ test('login page renders the email/password form and Google option', async ({ pa
 test('login with invalid credentials shows an error and stays on /login', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Adresse e-mail').fill('inexistant@scolargest.test');
-  await page.getByLabel('Mot de passe').fill('mot-de-passe-invalide');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('mot-de-passe-invalide');
   const submit = page.getByRole('button', { name: 'Se connecter' });
   await submit.click();
 
