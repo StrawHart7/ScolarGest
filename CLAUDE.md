@@ -210,7 +210,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-03) :
+**Active branches** (2026-09-04) :
+- `feat/soko-conseils` — conseils contextuels deduits des donnees, panneau
+  flottant et inventaire dans l'aide. Migration `0028`. Voir `PLAN.md` § 8.
 - `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
   harmonisation des formulaires et des tableaux, token `warning`, `Textarea`,
   option `dense` sur `Table`, plus trois défauts d'accessibilité corrigés
@@ -794,6 +796,78 @@ vérifier que cet écran suit.
 **Le SUPER_ADMIN est redirigé de `/dashboard` vers `/super-admin`.** La route
 `/dashboard` reste la destination commune après connexion pour les quatre autres
 rôles — ne pas la supprimer.
+
+### Conseils : proposer une chose a la fois, au bon moment
+
+Migration `0028`. Un utilisateur a acces a la plateforme sans savoir ce qu'elle
+sait faire. `/demarrage` couvre la configuration initiale et s'arrete la ; tout
+ce qui vient apres — emploi du temps, import, filigrane, statistiques — reste a
+decouvrir seul.
+
+**La pertinence se deduit des donnees, elle ne se stocke pas.** Meme doctrine
+que `src/services/onboarding.ts` : un conseil ne se marque jamais « fait », il
+cesse d'avoir un sens parce que la donnee qu'il reclamait existe. Une sonde
+compte des lignes. `conseil_utilisateur` ne porte que la **decision** de
+l'utilisateur — reporte, ecarte, suivi.
+
+**`total: 0` veut dire « ne concerne pas cette ecole », pas « rien n'est
+fait ».** Confondre les deux ferait lire « 0 classes sur 0 ont leur emploi du
+temps » a une ecole qui n'a pas encore de classe. Un prerequis non applicable
+compte comme satisfait, sans quoi il figerait definitivement toute la chaine
+qui en depend.
+
+**Aucun statut terminal, delibere.** « Ne revient plus jamais » punit quelqu'un
+qui a seulement voulu dire « pas maintenant ». Un conseil ecarte est `RELEGUE`
+— range en fin de file, servi quand tout le reste est epuise — avec un plancher
+de 30, 90 puis 180 jours. **Sans ce plancher**, une ecole bien configuree qui
+relegue son dernier conseil le reverrait le lendemain, la file principale etant
+vide. Ne pas reintroduire de `REJETE` : un test le garde.
+
+**Cinq familles, et l'ordre compte.** `FONDATION`, `EXPLOITATION`,
+`COMPLETION`, `CONFORT`, `DECOUVERTE`. On ne descend jamais dans une famille
+tant que la precedente a un candidat. `DECOUVERTE` est en dernier parce qu'un
+conseil de decouverte **n'a aucune sonde** : rien ne le retire tant qu'il n'a
+pas ete suivi. Range plus haut, « saviez-vous que vous pouvez importer vos
+eleves ? » masquait indefiniment « il manque l'emploi du temps de deux
+classes ». Un manque constate passe avant une fonctionnalite a faire connaitre.
+
+**Le contexte de page ne departage qu'a famille egale.** Un conseil de
+fondation reste prioritaire sur un conseil de confort, fut-il affiche sur sa
+propre page.
+
+**Une fonctionnalite livree sans son conseil est une fonctionnalite que
+personne ne trouvera.** Ajouter une entree a `src/lib/conseils/catalogue.ts`
+fait partie de la livraison, au meme titre que la migration et les tests. Le
+champ `nouveaute` (date ISO) la fait remonter chez les comptes anterieurs, et
+seulement chez eux : pour un compte cree apres, la fonctionnalite a toujours
+existe.
+
+**Trois pieges deja payes ici** :
+
+- `src/lib/conseils/` **ne depend de rien** et `choix.ts` est pur. Le panneau
+  est un composant client : importer un service y ferait entrer `next/headers`
+  dans le bundle. Le texte porte des jetons `{fait}` / `{total}` / `{restant}`
+  substitues par `formaterTexte`, **jamais** une fonction de formatage — celle-
+  ci ne franchit pas la frontiere client.
+- **`evaluation` ne porte pas d'`etablissementId`**, comme `note` et
+  `paiement`. Filtrer dessus ne renvoie pas zero, la requete echoue. La sonde
+  passe par l'annee.
+- **Les gardes ecrivent leurs quatre roles en toutes lettres.** Un
+  `requireRole(...ROLES)` fait inscrire `DYNAMIQUE` dans la matrice, et les
+  sept gardes du service sortent de l'instantane versionne — donc du test qui
+  les surveille.
+
+**Le rythme est la fonctionnalite.** Un conseil par 24 h au maximum, jamais au
+premier ecran d'une session, jamais sur `/demarrage`. La garde de frequence est
+lue **avant** le diagnostic : les vingt comptages ne tournent que si l'on a le
+droit de parler. Le compteur d'affichage est arme a l'envoi, pas a la decision
+— ignorer le panneau ne doit pas en faire surgir un autre a la page suivante.
+
+**Desktop uniquement pour l'instant.** Sous `md`, ce coin porte deja le bouton
+d'action des listes et la barre d'onglets. L'inventaire complet vit dans
+`/profil/aide`, sans aucun rythme : c'est la reponse a « qu'est-ce que je peux
+faire ici ? », que le panneau ne peut pas donner en proposant une chose a la
+fois.
 
 ### Contact support : un recours, pas une destination
 
