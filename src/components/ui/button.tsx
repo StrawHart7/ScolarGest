@@ -9,7 +9,7 @@ import { Spinner } from './spinner';
 
 const buttonVariants = cva(
   [
-    'inline-flex items-center justify-center gap-2 rounded font-medium',
+    'inline-flex items-center justify-center gap-2 rounded-lg font-medium',
     'transition-[background-color,border-color,color,box-shadow,transform] duration-150',
     'active:scale-[0.98]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/50 focus-visible:ring-offset-1',

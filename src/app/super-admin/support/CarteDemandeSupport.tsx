@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, Clock, MapPin, Paperclip } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
   libelleCategorie,
@@ -198,13 +199,12 @@ export function CarteDemandeSupport({
 
       {ouvert && (
         <div className="space-y-3">
-          <textarea
+          <Textarea
             rows={5}
             value={reponse}
             onChange={(e) => setReponse(e.target.value)}
             maxLength={4000}
             placeholder="Réponse visible par l’école sur sa page Support."
-            className="flex w-full rounded border border-surface-border bg-surface-container-lowest px-3 py-2 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20"
           />
           <div className="flex flex-wrap gap-2">
             <Button

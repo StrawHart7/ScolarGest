@@ -6,6 +6,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -79,14 +80,13 @@ export function FormulaireSupport({ pageOrigine }: { pageOrigine: string | null 
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="message">Description</Label>
-        <textarea
+        <Textarea
           id="message"
           name="message"
           rows={6}
           required
           maxLength={4000}
           placeholder="Ce que vous faisiez, ce que vous attendiez, ce qui s’est passé. Indiquez la classe, l’élève ou la facture concernée si cela s’y prête."
-          className="flex w-full rounded border border-surface-border bg-surface-container-lowest px-3 py-2 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20"
         />
       </div>
 
