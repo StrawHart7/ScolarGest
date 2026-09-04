@@ -211,6 +211,11 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-03) :
+- `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
+  harmonisation des formulaires et des tableaux, token `warning`, `Textarea`,
+  option `dense` sur `Table`, plus trois défauts d'accessibilité corrigés
+  (étiquettes non reliées, claviers numériques). Aucune migration. Voir
+  `PLAN.md` § 8.
 - `design/verni-hero` — ✅ livrée (2026-09-03), agent VERNI : refonte visuelle
   de la page d'accueil (hero plein écran indépendant du zoom, quatre sections
   animées sans dépendance, pied de page en carte), écran de connexion en deux
@@ -370,6 +375,58 @@ c'est lui qui a révélé la copie.
 
 Rapports, Statistiques et Journal d'audit partageaient `Presentation` :
 indistinguables sidebar repliée, où il ne reste que l'icône.
+
+### Champs de formulaire : un seul traitement
+
+`Input`, `SelectTrigger` et `Textarea` partagent rayon, bordure, survol et
+anneau de focus. Une rangée mêlant les trois ne doit montrer aucune différence
+de traitement, et le survol n'est pas décoratif : un champ totalement inerte au
+survol se lit comme un champ désactivé.
+
+**`Textarea` (`src/components/ui/textarea.tsx`) est un composant.** Il n'existait
+pas : cinq écrans recopiaient la même chaîne de classes à la main, et elle avait
+déjà divergé. Ne jamais réécrire un `<textarea>` nu.
+
+**Toute étiquette porte `htmlFor`, tout champ porte `id`.** Neuf champs en
+étaient dépourvus — six dans le bloc « responsables légaux », trois dans
+l'éditeur de lignes de facture. Cliquer l'étiquette ne faisait rien, et un
+lecteur d'écran annonçait des champs sans nom. Dans un bloc répété, suffixer
+par l'index (`nom-${index}`).
+
+**Tout `<Input type="number">` porte `inputMode="numeric"`.** La règle existait
+déjà plus bas dans ce fichier ; elle n'était appliquée que sur la moitié des
+écrans.
+
+Le rayon des champs **et des boutons** est `rounded-lg`. À 4px contre 8px, un
+bouton collé à un champ dans la même rangée se lit comme un élément étranger.
+
+### `warning` est un token, `amber` n'en est pas un
+
+La couleur d'avertissement existait déjà, mais en `amber-*` brut dans quinze
+fichiers, avec trois opacités de fond (`/5`, `/10`, `/15`) et trois de bordure
+(`/20`, `/30`, `/40`) pour le même sens. Elle est désormais dans
+`tailwind.config.ts` : `bg-warning/10`, `border-warning/30`,
+`text-warning-on-container`, `text-warning`.
+
+**Ce n'est pas `error`.** Une échéance qui approche, un import à vérifier ou une
+classe en surcapacité ne sont pas des fautes. Aucune couleur Tailwind brute hors
+palette ne doit réapparaître dans `src/`.
+
+### Un seul style de tableau, deux densités
+
+Deux styles coexistaient : celui de l'application, monté sur
+`components/ui/table.tsx`, et celui de la console de plateforme, écrit en
+`<table>` brut avec ses propres classes. La console avait l'air d'un autre
+produit.
+
+`Table` prend une option **`dense`** — pas un second composant : l'en-tête, le
+survol et les bordures restent communs, seules les cellules se resserrent. La
+densité se déclare **sur la table**, par sélecteurs de descendants ; l'annoncer
+sur chaque `TableHead` et `TableCell` reproduirait le problème qu'on retire.
+
+Restent en `<table>` brut, délibérément : la grille d'emploi du temps et les
+deux tableaux de saisie de notes — colonnes dynamiques, explicitement hors motif
+de liste.
 
 ### Titres de page : un seul token responsive
 

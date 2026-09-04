@@ -2214,3 +2214,66 @@ vide sous la capture ; les onze listes ont la même en-tête ; aucune dépendanc
 ajoutée au `package.json`.
 
 ---
+
+### Fonctionnalité — Harmonisation : formulaires, tableaux, couleur d'avertissement
+
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-03) — branche
+`design/verni-formulaires`, agent VERNI. Aucune migration, aucun service touché.
+
+**Objectif** : rendre les écrans homogènes et corriger ce que l'harmonisation a
+mis au jour. Les formulaires étaient corrects mais chacun reprenait les mêmes
+décisions à la main, avec les dérives qui vont avec.
+
+**Trois défauts d'accessibilité, pas de la cosmétique** :
+
+- **Neuf champs n'étaient reliés à aucune étiquette** — six dans le bloc
+  « responsables légaux » de la création d'élève, trois dans l'éditeur de lignes
+  de facture : `<Label>` sans `htmlFor`, champ sans `id`. Cliquer l'étiquette ne
+  faisait rien et un lecteur d'écran annonçait des champs sans nom. Il n'en
+  reste aucun dans le dépôt.
+- **Cinq écrans ouvraient le clavier alphanumérique** sur un champ de nombre.
+  La règle existe dans `CLAUDE.md` ; elle n'était appliquée qu'à moitié.
+- **« Nom complet » couvrait deux champs** distingués par leurs seuls
+  marque-page, avec un `mt-1.5` posé à la main, alors que la section juste
+  au-dessus sépare proprement « Nom de famille » et « Prénoms ».
+
+**Livrables** :
+
+- [x] `Textarea` — le composant n'existait pas : cinq écrans recopiaient la même
+      chaîne de classes, et elle avait déjà divergé (`flex w-full` / `w-full`).
+- [x] `Input`, `SelectTrigger` et `Textarea` au même traitement : rayon,
+      bordure, **survol** et anneau de focus. Un champ inerte au survol se lit
+      comme un champ désactivé.
+- [x] Rayon `4px → 8px`, boutons compris — un bouton à 4px collé à un champ à
+      8px se lit comme un élément étranger à la rangée.
+- [x] `Card` porte `shadow-subtle` par défaut. Les `max-md:shadow-none` déjà
+      présents sur les listes annulent correctement l'ombre sous `md` : ils
+      avaient été écrits en prévision d'une ombre qui n'existait pas.
+- [x] Token `warning` — `amber` était une couleur du système sans en être une :
+      quinze fichiers, même sens, **trois opacités de fond et trois de bordure**.
+      Valeurs reprises à l'identique, donc aucun changement de rendu.
+- [x] `Table` prend une option `dense`, déclarée à un seul endroit par
+      sélecteurs de descendants. Quatre tableaux convertis (inventaire des
+      écoles, abonnements, résultats par classe, les deux de la fiche d'école) :
+      la console de plateforme avait l'air d'un autre produit.
+- [x] `ModaleFinEssai` montée sur le `Dialog` du projet (demande de SOKO).
+- [x] Écran de souscription « paiement fermé » et écran final de `/demarrage`
+      repris.
+
+**Deux décisions** :
+
+- `warning` n'est **pas** `error`. Une échéance qui approche, un import à
+  vérifier ou une classe en surcapacité ne sont pas des fautes.
+- La densité d'un tableau est une **option**, pas un second composant :
+  l'en-tête, le survol et les bordures restent communs. L'annoncer sur chaque
+  `TableHead` et `TableCell` aurait reproduit le problème qu'on retire.
+
+**Hors périmètre, volontairement** : la grille d'emploi du temps et les deux
+tableaux de saisie de notes restent en `<table>` brut — colonnes dynamiques,
+explicitement hors motif de liste.
+
+**DoD** : aucun `<Label>` sans `htmlFor` et aucun `type="number"` sans
+`inputMode` dans le dépôt ; aucune couleur Tailwind brute hors palette ; un seul
+style de tableau hors grilles de saisie.
+
+---
