@@ -210,12 +210,21 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-04) :
-- `feat/soko-modele-fondateur` — programme « ecoles fondatrices » : regime
-  tarifaire, plan forfaitaire non public, dix places verrouillees en base,
-  refonte de la troisieme offre publique. Migration `0030`. Voir `PLAN.md` § 8.
-- `feat/soko-conseils` — conseils contextuels deduits des donnees, panneau
-  flottant et inventaire dans l'aide. Migration `0028`. Voir `PLAN.md` § 8.
+**Active branches** (2026-09-05) :
+- `feat/soko-modele-fondateur` — ✅ terminée et mergée sur `main` (2026-09-05) :
+  programme « ecoles fondatrices » — regime tarifaire, plan forfaitaire non
+  public, dix places verrouillees en base, refonte de la troisieme offre
+  publique. Migration `0030`. Voir `PLAN.md` § 8.
+- `feat/soko-conseils` — ✅ terminée et mergée sur `main` (2026-09-05) :
+  conseils contextuels deduits des donnees, panneau flottant et inventaire
+  dans l'aide, plus un seul bulletin en vigueur par eleve. Migrations `0028`
+  et `0029`. Voir `PLAN.md` § 8.
+- `design/verni-conseils-mobile` — ✅ terminée et mergée sur `main`
+  (2026-09-05), agent VERNI : le conseil devient une banniere repliable sous
+  `md`, plus deux correctifs invisibles au build — la verification de place
+  posee **apres** l'appel serveur, qui consommait le conseil sans jamais
+  l'afficher, et un garde-fou de double appel place avant le `setTimeout`.
+  Aucune migration, aucun service. Voir `PLAN.md` § 8.
 - `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
   harmonisation des formulaires et des tableaux, token `warning`, `Textarea`,
   option `dense` sur `Table`, plus trois défauts d'accessibilité corrigés
@@ -1364,6 +1373,19 @@ Chaque agent pousse **sa** branche et ne fusionne que la sienne, après
 vérifier `git branch --show-current` avant la première écriture, y compris
 juste après un merge, moment où l'on s'y retrouve sans y penser.
 
+**`main` est la branche de production, pas une preview.** Un `git push origin
+main` déploie sur `scolargest.com` et le donne aux écoles ; il n'y a pas
+d'étape de relecture entre les deux. Cela a été annoncé trois fois de suite
+comme « une preview Vercel » le 2026-09-05, ce qui aurait fait valider en
+production des écrans que personne n'avait ouverts. Pour regarder sans
+exposer : `git push origin main:preview-<sujet>`, qui construit une preview
+depuis le même contenu.
+
+**Ne jamais fusionner dans le worktree d'une autre session.** `main` peut être
+sorti ailleurs (`git worktree list` le dit, et `git branch` le préfixe d'un
+`+`) : y fusionner réécrit le disque d'une session en plein travail. Vérifier
+que ce worktree est propre, ou en monter un autre.
+
 ## Méthode de travail
 
 Cette section vaut pour **toute session sur ce dépôt**, y compris plusieurs en
@@ -1465,6 +1487,49 @@ Donc : avant tout `upsert`, **relire la contrainte réelle** dans la migration q
 l'a créée. Et préférer une fonction existante qui lit avant d'écrire
 (`definirCoefficients`) à un `upsert` écrit sur place.
 
+### Nommer une migration : l'horodatage, et les deux ères
+
+**Le nom du fichier est une clé, pas une étiquette.** Le CLI enregistre dans
+`supabase_migrations.schema_migrations` les chiffres de tête du nom, et c'est
+cette clé qui décide si une migration se rejoue. Deux dépôts dont les fichiers
+portent des préfixes différents produisent donc deux journaux différents pour
+le même schéma.
+
+C'est ce qui était arrivé. `supabase migration new` horodate ; les six fichiers
+créés à partir du 2026-09-02 ont été renommés à la main en `0025` à `0030`
+**après** avoir été appliqués. Sur la base réelle, sans effet : les six sont
+appliquées sous leur horodatage et ne se rejoueront pas. Le piège attendait un
+**environnement neuf provisionné par `db push`**, dont le journal vide les
+aurait appliquées sous `0025`-`0030` : deux environnements, même schéma, deux
+jeux de clés — et à partir de là tout diagnostic d'écart entre journaux ment.
+Même famille que `supabase/seed.sql`, qui ne tourne qu'au `db reset` : ce qui
+n'existe que dans un chemin de provisionnement finit par diverger de l'autre.
+
+Constaté par VERNI le 2026-09-05, mesuré, puis réglé **en alignant les fichiers
+sur le journal** — un renommage ne touche pas la production, alors que
+réécrire `schema_migrations` sur la base réelle est une opération à sens
+unique pour un gain nul.
+
+**Donc : ne jamais renommer une migration, et laisser
+`npx supabase migration new <nom>` produire le préfixe.** L'ordre reste correct
+au mélange des deux ères, `0` précédant `2` : les vingt-quatre premières
+gardent leur numéro et s'appliquent avant les horodatées.
+
+Correspondance, pour lire la documentation antérieure au renommage :
+
+| Ancien | Fichier réel |
+|---|---|
+| `0025` | `20260902130110_document_contexte_bulletin.sql` |
+| `0026` | `20260903163427_suspension_etablissement_et_montants.sql` |
+| `0027` | `20260903220104_montant_total_obligatoire.sql` |
+| `0028` | `20260904115108_conseils_utilisateur.sql` |
+| `0029` | `20260904164455_bulletin_unique_en_vigueur.sql` |
+| `0030` | `20260904164923_ecoles_fondatrices.sql` |
+
+**Ce qui n'a pas été vérifié** : qu'un `db push` sur une base vierge passe
+réellement de bout en bout. Ça se tranche sur un projet Supabase jetable, pas
+au raisonnement.
+
 ### Demander avant
 
 - **Le moteur de calcul** (`src/modules/academics/services/calcul-moyennes.ts`)
@@ -1535,9 +1600,10 @@ fichiers. Ce ne sont pas des conflits Git ordinaires : ils produisent du code qu
 compile et qui est faux.
 
 1. **La numérotation des migrations.** Deux sessions créant chacune un `0023_`
-   produisent deux fichiers différents portant le même numéro. Avant d'en créer
-   une, faire `ls supabase/migrations/ | tail -3` **et** annoncer le numéro pris
-   dans le compte rendu, pour que l'utilisateur arbitre.
+   produisaient deux fichiers différents portant le même numéro. C'est réglé
+   par le passage à l'horodatage (voir « Nommer une migration » plus bas) : la
+   collision devient structurellement impossible, il n'y a plus de numéro à
+   arbitrer.
 2. **`src/lib/permissions/__tests__/matrice.instantane.txt`.** Chaque session le
    régénère intégralement, et un merge naïf efface les gardes de l'autre. Après
    tout merge touchant ce fichier, **régénérer et relire le diff** plutôt que de

@@ -2280,7 +2280,15 @@ style de tableau hors grilles de saisie.
 
 ### Fonctionnalité — Conseils contextuels
 
-**Statut** : ✅ livrée (2026-09-04). Migration `0028`.
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-05) — branches
+`feat/soko-conseils` puis `design/verni-conseils-mobile`. Migration `0028`.
+
+La finition mobile de VERNI a révélé deux défauts qu'aucun test ne voyait :
+la vérification de place était posée **après** `demanderConseil`, qui marque
+`vuLe` et arme le délai de 24 heures — un utilisateur sur téléphone avec le
+bandeau d'abonnement n'aurait vu aucun conseil de tout son essai, soit
+exactement la période où ils servent. Et le garde-fou de double appel était
+placé avant le `setTimeout`, laissant passer deux minuteurs.
 
 **Objectif** : un utilisateur a accès à la plateforme sans savoir ce qu'elle
 sait faire. `/demarrage` couvre la configuration initiale et s'arrête là.
@@ -2348,7 +2356,12 @@ conseils de découverte ont été vus.
 
 ### Fonctionnalité — Modèle économique : programme fondateur
 
-**Statut** : socle et surface livrés (2026-09-04). Migration `0030` appliquée.
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-05) — branche
+`feat/soko-modele-fondateur`. Migration `0030`, appliquée.
+
+Aucun de ces écrans n'a été ouvert : le balayage par rôle reste à faire, la
+machine de développement ne tenant pas un serveur Next. C'est la seule partie
+de la définition de fini qui n'est pas honorée.
 
 **Objectif** : remplacer l'acquisition par essai gratuit par un programme
 commercial de lancement — une dizaine d'écoles à tarif préférentiel, accompagnées,
@@ -2403,7 +2416,8 @@ renouvellement, et la onzième admission est refusée par la base.
 
 ### Fonctionnalité — Bulletins : un seul document fait foi
 
-**Statut** : ✅ livrée (2026-09-04). Migration `0029`, appliquée.
+**Statut** : ✅ terminée et mergée sur `main` (2026-09-05), avec
+`feat/soko-conseils`. Migration `0029`, appliquée.
 
 **Objectif** : le téléchargement groupé sortait toutes les versions du bulletin
 d'un même élève, avec des noms de fichiers qui ne permettaient pas de les
