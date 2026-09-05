@@ -105,10 +105,38 @@ export async function creerIntentionPaiement(
   }
 
   const supabase = createClient();
+
+  // Une ecole fondatrice ne paie pas ici.
+  //
+  // Son tarif est un forfait fige a l'admission et garanti a vie ; le
+  // libre-service, lui, facture le catalogue public **par cycle**. Un complexe
+  // college-lycee fondateur y serait donc preleve de 20 000 F au lieu des
+  // 15 000 F promis — la garantie se romprait au premier renouvellement, sans
+  // que personne ne s'en apercoive avant de lire le releve.
+  //
+  // Le refus est ici, dans le service, et pas seulement dans l'ecran : l'ecran
+  // informe, l'ecriture decide.
+  const { data: etabRegime, error: erreurRegime } = await supabase
+    .from('etablissement')
+    .select('"regimeTarifaire"')
+    .eq('id', ctx.etablissementId)
+    .maybeSingle();
+  if (erreurRegime) throw erreurRegime;
+  if ((etabRegime as { regimeTarifaire: string } | null)?.regimeTarifaire === 'FONDATRICE') {
+    throw new Error(
+      'Votre etablissement beneficie du tarif fondateur : votre renouvellement est etabli par notre equipe, pas en libre-service.',
+    );
+  }
+
+  // `public = true` est indispensable depuis la migration `0030` : le plan
+  // fondateur porte lui aussi `duree = 'MOIS'`, si bien qu'un filtre sur la
+  // seule periodicite ramenait **deux** lignes et faisait echouer
+  // `maybeSingle()` — pour toutes les ecoles, pas seulement les fondatrices.
   const { data: plan, error: erreurPlan } = await supabase
     .from('plan_abonnement')
     .select('id, nom, prix, duree')
     .eq('duree', demande.periodicite)
+    .eq('public', true)
     .maybeSingle();
   if (erreurPlan) throw erreurPlan;
   if (!plan) throw new Error('Plan tarifaire introuvable.');

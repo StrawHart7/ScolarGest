@@ -31,8 +31,19 @@ export {
 
 import { PRIX_ANNUEL_PAR_CYCLE, PRIX_MENSUEL_PAR_CYCLE } from './abonnement-formule';
 
-/** Durée de l'essai gratuit, en jours. */
-export { JOURS_ESSAI as JOURS_ESSAI_GRATUIT } from '@/services/abonnement-acces';
+/*
+ * `JOURS_ESSAI_GRATUIT` a ete retire le 2026-09-04.
+ *
+ * Le site public ne promet plus d'essai gratuit : les premieres ecoles entrent
+ * par le programme fondateur, a tarif preferentiel et avec accompagnement. La
+ * mecanique d'essai reste **entiere** cote produit (`abonnement-acces.ts`,
+ * niveaux ESSAI et AVANT_ESSAI) — c'est la promesse commerciale qui disparait,
+ * pas l'outil, que le SUPER_ADMIN peut encore accorder au cas par cas et
+ * qu'une offre standard pourra reprendre.
+ *
+ * Cette reexportation faisait en outre traverser la frontiere serveur a une
+ * constante de service depuis un composant client.
+ */
 
 /**
  * Économie de l'engagement annuel, en pourcentage entier.

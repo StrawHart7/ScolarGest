@@ -211,6 +211,9 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-04) :
+- `feat/soko-modele-fondateur` — programme « ecoles fondatrices » : regime
+  tarifaire, plan forfaitaire non public, dix places verrouillees en base,
+  refonte de la troisieme offre publique. Migration `0030`. Voir `PLAN.md` § 8.
 - `feat/soko-conseils` — conseils contextuels deduits des donnees, panneau
   flottant et inventaire dans l'aide. Migration `0028`. Voir `PLAN.md` § 8.
 - `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
@@ -677,6 +680,82 @@ identifié avant, et sous-estimé.
 fichier existe parce que `listPlans()` exige une session alors que la page de
 tarifs s'adresse à des visiteurs anonymes. Toute modification doit être
 répercutée des deux côtés.
+
+### Programme fondateur : l'offre de lancement
+
+Migration `0030`, decision commerciale du 2026-09-04. Plutot que du volume avec
+un essai gratuit, une dizaine d'ecoles a tarif preferentiel, accompagnees, dont
+la reussite devient la preuve commerciale.
+
+**Ce n'etait pas une refonte de la facturation.** Tout ce qui compte existait :
+`plan_abonnement` est une table et non une constante, `ouvrirPeriode` recoit
+deja le montant de l'appelant au lieu de le relire dans le catalogue, et
+`montantTotal` est fige sur la periode depuis `0015`. Ce qui manquait etait du
+**vocabulaire**. Ne pas reconstruire ce qui existe : le relire d'abord.
+
+**Le regime vit sur l'etablissement** (`regimeTarifaire`), pas sur l'abonnement.
+Une fondatrice le reste au renouvellement ; porte par la periode, il faudrait le
+re-decider chaque mois et un renouvellement distrait ferait basculer un
+partenaire au tarif public sans que personne ne l'ait voulu. C'est une identite,
+pas une transaction.
+
+**Le tarif est fige sur l'ecole** (`tarifFondateurMensuel`), copie du catalogue
+a l'admission et **jamais relu**. L'engagement est « garanti a vie » : le relire
+dans `plan_abonnement` le rendrait revocable d'un `UPDATE` le jour ou le prix
+serait revu pour de nouveaux entrants. Meme raisonnement que l'historisation des
+tarifs scolaires.
+
+**`plan_abonnement.parCycle` distingue les deux grilles.** Le catalogue standard
+facture 10 000 F **par cycle** — un complexe college-lycee y paie 20 000. Le
+fondateur est un **forfait** de 15 000 quel que soit le nombre de cycles. Un
+complexe fondateur paie donc moins qu'un college seul au tarif public : c'est
+assume, c'est une offre de lancement, et un test le constate pour que ca reste
+un choix et non une surprise decouverte en facturant.
+
+**`code` est l'identifiant stable d'un plan**, pas `nom`. L'`on conflict (nom)`
+de `0015` porte sur un libelle, et un libelle finit reformule par le marketing —
+il creerait alors un doublon au lieu de mettre a jour.
+
+**Les dix places sont tenues par un declencheur, pas par l'ecran.** La rarete
+est tout l'argument du programme : deux admissions simultanees passeraient une
+verification applicative. `for update` sur la ligne du plan pour serialiser.
+Le declencheur ne se reveille que lorsqu'une ecole **devient** fondatrice —
+sans cette condition, renommer ou suspendre une fondatrice echouerait une fois
+les dix places prises. `placesMax` est une donnee : passer a douze ne demande
+pas de migration.
+
+**Le montant fondateur n'est pas affiche publiquement.** Le publier en ferait
+l'ancrage definitif du produit dans la tete du marche. La rarete le remplace, et
+`phrasePlaces` dit « complet » quand il l'est — allecher un visiteur qui ne
+pourra pas entrer detruirait la confiance avant le premier contact.
+
+**`getPlacesFondatrices` est la seule fonction sans garde de
+`src/services/plateforme.ts`**, nominativement justifiee dans `matrice.test.ts`.
+Elle s'adresse a des visiteurs anonymes et ne renvoie que deux entiers, jamais
+un nom d'ecole. Elle compte avec la cle service-role plutot que par une policy
+publique sur `etablissement`, qui echangerait l'isolation entre ecoles contre un
+chiffre marketing. La page d'accueil est revalidee toutes les cinq minutes.
+
+**L'essai n'a pas ete supprime, seulement depromu.** Les niveaux `ESSAI` et
+`AVANT_ESSAI` d'`evaluerAcces`, le declencheur `fn_proteger_facturation` et les
+paliers de relance restent entiers : c'est la **promesse commerciale** qui
+disparait du site public, pas l'outil, que le SUPER_ADMIN accorde encore au cas
+par cas et qu'une offre standard reprendra. Les arracher aurait touche
+`evaluerAcces`, trois composants de layout, les seeds et une trentaine
+d'assertions, pour une decision qui est commerciale.
+
+**Ce qui n'est PAS un piege, contrairement a ce que j'ai d'abord ecrit.** Une
+ecole sans essai ni abonnement tombe en `AVANT_ESSAI`, mais la derogation
+conditionnelle du middleware lui laisse ecrire sur `/demarrage` : son Directeur
+pose son PIN, l'essai demarre, la derogation se referme. Ecole B et Zoka Legba
+sont dans cet etat et sont parfaitement utilisables. Verifie dans
+`src/lib/supabase/middleware.ts` apres l'avoir affirme deux fois sans le lire —
+la lecon vaut d'etre gardee : **verifier qu'une condition de declenchement est
+reunie avant de chiffrer l'impact d'un defaut**.
+
+Une fondatrice naissant avec sa premiere periode n'est donc pas un correctif
+mais une **commodite** : elle est vendue avant d'exister, et lui faire traverser
+un essai qu'elle ne consommera jamais n'a pas de sens.
 
 ### Paiement FedaPay : les pièges
 
@@ -1396,6 +1475,53 @@ l'a créée. Et préférer une fonction existante qui lit avant d'écrire
 - Pour un choix de conception dont le retour arrière coûte cher, poser la
   question **avant** d'écrire, avec les conséquences chiffrées de chaque option.
 
+### Le serveur de developpement ne tient pas sur cette machine
+
+Constate le 2026-09-04 en tentant un balayage de tous les ecrans par role :
+
+    <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack:
+        RangeError: Array buffer allocation failed
+    FATAL ERROR: NewSpace::EnsureCurrentCapacity
+        Allocation failed - JavaScript heap out of memory
+
+7,6 Go de RAM au total, **environ 2 Go libres** une fois Cursor, Defender et
+les sessions Claude en place. `next dev` demarre, annonce « Ready », puis meurt
+en compilant la premiere page. Borner le tas (`--max-old-space-size`) n'y
+change rien : la contrainte n'est pas le plafond de V8.
+
+**Et ce n'est pas seulement la RAM.** `C:` etait a **0,64 Go libre sur 116**.
+Windows ne peut alors plus etendre son fichier d'echange, si bien qu'une
+allocation echoue bien avant que la memoire physique ne soit reellement
+saturee. J'avais d'abord accuse la seule RAM ; le disque plein est au moins
+aussi coupable, et c'est le premier chiffre a regarder devant un « heap out of
+memory » inexplicable.
+
+Le poste dominant sur `C:` est
+`AppData/Local/Packages/Claude_*/LocalCache/Roaming/Claude/vm_bundles`
+(8,9 Go, dont `rootfs.vhdx` a 8,3 Go) — l'image du bac a sable, sans donnee
+utilisateur, mais qui se re-telecharge si on l'efface. Les caches surs a vider
+en premier : les dossiers `*-updater` d'`AppData/Local`, les anciennes
+sessions de `Temp/claude`, le cache pip. `npm cache clean --force` ne rend
+rien : npm reconstruit son index aussitot.
+
+Symptomes trompeurs, a connaitre avant de chercher ailleurs :
+
+- le port reste **occupe par un processus mort** — `netstat` le montre en
+  LISTENING, `curl` reste sans reponse jusqu'au delai d'attente ;
+- `npx tsx` echoue en `spawn UNKNOWN` sous la meme pression memoire, ce qui
+  ressemble a un probleme de chemin ou de binaire ;
+- une premiere page peut repondre (le `/login` a mis **2 min 33**), ce qui
+  laisse croire que tout va bien avant que la suivante ne fasse tomber le
+  serveur.
+
+Consequence pratique : **ne pas promettre une verification par le serveur sur
+cette machine**. Ce qui reste possible et vaut le detour — le typecheck, les
+tests, les requetes SQL par le chemin reel, et l'audit statique des deux
+pieges de frontiere (un composant client qui importe une **valeur** depuis
+`src/services/`, une fonction passee en prop a un composant client). Le reste
+se verifie sur une preview Vercel, ce que l'utilisateur demande d'ailleurs :
+« juste push et je verrai les previews ».
+
 ### Ce qu'une capture d'écran ne prouve pas
 
 Une capture réduite ment sur les contrastes faibles : une pastille active a été
@@ -1433,6 +1559,30 @@ rien ne dit lequel fait foi.
 `statut_document` porte une valeur `OBSOLETE` prevue pour ca : marquer les
 anciens avant de regenerer, ne pas les supprimer — le fichier reste en stockage
 et l'operation est reversible.
+
+**Corrige le 2026-09-04, migration `0029`.** La valeur `OBSOLETE` etait bien
+ecrite — mais par `regenererBulletin` seule, qui ne traite que le document
+qu'on lui designe. La **generation groupee** n'en marquait aucun, si bien que
+les bulletins s'empilaient tous en `GENERE` : jusqu'a **cinq** pour un meme
+eleve sur un meme trimestre, constate en base. Le telechargement groupe les
+sortait donc tous, et le filtre `statut === 'GENERE'`, commente « les documents
+OBSOLETE sont exclus », n'excluait rien.
+
+Trois consequences a garder :
+
+- `genererBulletin` perime desormais les precedents **apres** avoir insere le
+  nouveau, jamais avant : perimer d'abord laisserait un eleve sans aucun
+  bulletin en vigueur si le rendu PDF echouait. C'est aussi pourquoi il n'y a
+  **pas** d'index unique partiel — il forcerait l'ordre inverse, echangeant un
+  defaut d'affichage contre une perte de document.
+- La regle « quel bulletin fait foi » vit dans `src/lib/bulletins.ts`, partagee
+  par l'ecran et par le telechargement. Elle etait ecrite deux fois et les deux
+  versions divergeaient. Elle ne se fie **pas** au seul statut : les documents
+  deja empiles existent, et un correctif doit valoir sur les donnees d'hier.
+- Le departage a date egale se fait sur `reference`, **pas** sur `createdAt` :
+  la table `document` n'a pas cette colonne, contrairement a presque toutes les
+  autres. La reference est un numero sequentiel, donc croissante — un meilleur
+  critere qu'un horodatage de toute facon.
 
 Deux pieges constates le 2026-09-02 :
 

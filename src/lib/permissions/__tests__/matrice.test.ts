@@ -131,6 +131,8 @@ describe('matrice des permissions réelle', () => {
       "appelée par le webhook FedaPay, qui arrive sans session ni cookie. L'authentification est la signature X-FEDAPAY-SIGNATURE, vérifiée avant tout traitement : un requireRole y serait toujours en échec et rendrait le paiement impossible.",
     'relances-abonnement.traiterEcheances':
       "appelée par le balayage quotidien des échéances, déclenché par un planificateur sans session ni cookie. L'authentification est le secret partagé CRON_SECRET, vérifié dans la route avant tout appel ; un requireRole y serait toujours en échec et aucune relance ne partirait jamais.",
+    'plateforme.getPlacesFondatrices':
+      "compteur du programme fondateur, lu par la page d'accueil publique — qui s'adresse par definition a des visiteurs anonymes. Ne renvoie que deux entiers : places prises et plafond, jamais un nom d'ecole ni un montant. Le comptage passe par la cle service-role plutot que par une policy publique sur `etablissement`, qui echangerait l'isolation entre ecoles contre un chiffre marketing.",
     'paiement-fedapay.traiterEvenementFedapay':
       "traite un événement dont la signature a déjà été vérifiée par recevoirWebhookFedapay. Aucun appelant utilisateur : l'unique chemin est la route de webhook.",
   };

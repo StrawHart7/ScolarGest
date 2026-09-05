@@ -4,7 +4,11 @@ import { getTenantContext } from '@/services/tenant';
 import { getEtablissement } from '@/services/etablissement';
 import { listAbonnementsParEtablissement } from '@/services/abonnement';
 import { listUtilisateursParEtablissement } from '@/services/utilisateur';
-import { getFicheEtablissement, type EtatEcole } from '@/services/plateforme';
+import {
+  getFicheEtablissement,
+  getPlacesFondatrices,
+  type EtatEcole,
+} from '@/services/plateforme';
 import { PanneauFacturation } from './PanneauFacturation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
@@ -59,11 +63,12 @@ const UTILISATEUR_STATUT_BADGE = {
 
 export default async function EtablissementDetailPage({ params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
-  const [etablissement, abonnements, utilisateurs, fiche] = await Promise.all([
+  const [etablissement, abonnements, utilisateurs, fiche, places] = await Promise.all([
     getEtablissement(params.id),
     listAbonnementsParEtablissement(params.id),
     listUtilisateursParEtablissement(params.id),
     getFicheEtablissement(params.id),
+    getPlacesFondatrices(),
   ]);
 
   const joursInactif =
@@ -162,6 +167,13 @@ export default async function EtablissementDetailPage({ params }: { params: { id
               etablissementId={params.id}
               essaiDemarre={fiche.essaiDebuteLe !== null}
               suspension={fiche.suspension}
+              regime={etablissement.regimeTarifaire}
+              tarifFondateur={
+                etablissement.tarifFondateurMensuel === null
+                  ? null
+                  : Number(etablissement.tarifFondateurMensuel)
+              }
+              places={places}
             />
           </CardContent>
         </Card>

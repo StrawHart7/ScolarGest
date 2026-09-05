@@ -2339,3 +2339,100 @@ et se tait entièrement sur une école entièrement configurée dont tous les
 conseils de découverte ont été vus.
 
 ---
+
+### Fonctionnalité — Modèle économique : programme fondateur
+
+**Statut** : socle et surface livrés (2026-09-04). Migration `0030` appliquée.
+
+**Objectif** : remplacer l'acquisition par essai gratuit par un programme
+commercial de lancement — une dizaine d'écoles à tarif préférentiel, accompagnées,
+dont la réussite devient la preuve commerciale. Document de cadrage :
+`Docs/ScolarGest_Evolution_Modele_Economique_Claude_Code.pdf`.
+
+**Livrables**
+
+- [x] `etablissement.regimeTarifaire` / `tarifFondateurMensuel` / `fondatriceDepuisLe`
+- [x] `plan_abonnement.code` / `parCycle` / `public` / `placesMax`
+- [x] Plan `FONDATEUR` : 15 000 F/mois, forfaitaire, non public, 10 places
+- [x] Déclencheur `fn_limiter_ecoles_fondatrices`, vérifié en le provoquant
+- [x] `definirRegimeTarifaire` (SUPER_ADMIN) et `getPlacesFondatrices` (public)
+- [x] Bloc de régime sur la fiche d'établissement de la console
+- [x] Troisième offre publique : « École fondatrice », prix masqué, mise en avant
+- [x] Retrait des trois promesses d'essai gratuit du site public
+- [x] `src/lib/fondateur.ts` sans dépendance + 8 tests
+
+**Décisions**
+
+- **Le prix fondateur est garanti à vie** : figé sur l'école, jamais relu dans le
+  catalogue. Le nombre d'écoles étant plafonné, l'engagement est tenable.
+- **Forfaitaire, contrairement à la grille standard** qui facture par cycle. Un
+  complexe fondateur paie donc moins qu'un collège seul au tarif public — assumé,
+  et verrouillé par un test pour que ça reste un choix constaté.
+- **Le tarif commercial standard ne bouge pas** : 10 000 F/mois et 100 000 F/an
+  par cycle, en attendant la première commercialisation.
+- **Le montant fondateur n'est pas publié** : le publier en ferait l'ancrage
+  définitif du produit. La rareté le remplace.
+- **L'essai est dépromu, pas supprimé.** La mécanique reste entière et testée ;
+  seule la promesse commerciale quitte le site public.
+
+**Reste ouvert**
+
+- **Créer une école et sa première période en un seul geste.** Commodité, pas
+  correctif : j'avais annoncé qu'une école sans essai ni abonnement était bloquée,
+  c'est faux — la dérogation conditionnelle du middleware laisse écrire sur
+  `/demarrage`, le PIN démarre l'essai, et la dérogation se referme. École B et
+  Zoka Legba sont utilisables. Reste que faire traverser à une fondatrice un essai
+  qu'elle ne consommera jamais n'a pas de sens.
+- **Badge « École fondatrice » côté école.** Le programme les présente comme des
+  partenaires, pas des testeurs : le statut devrait se voir dans leur espace.
+- **Le tarif suggéré à l'ouverture d'une période** n'est pas encore pré-rempli
+  depuis le régime : le SUPER_ADMIN saisit toujours le montant à la main.
+- **La collecte structurée de retours** et les témoignages (sections 3 et 8 du
+  document de cadrage) n'ont aucun support produit.
+
+**DoD** : une école admise au programme voit son tarif figé survivre à un
+renouvellement, et la onzième admission est refusée par la base.
+
+---
+
+### Fonctionnalité — Bulletins : un seul document fait foi
+
+**Statut** : ✅ livrée (2026-09-04). Migration `0029`, appliquée.
+
+**Objectif** : le téléchargement groupé sortait toutes les versions du bulletin
+d'un même élève, avec des noms de fichiers qui ne permettaient pas de les
+départager.
+
+**La cause n'était pas dans le téléchargement.** `regenererBulletin` marquait
+bien l'ancien document `OBSOLETE`, mais la génération groupée — celle qui traite
+toute une classe — n'en marquait aucun. Les bulletins s'empilaient donc tous en
+`GENERE` : jusqu'à **cinq** pour un même élève sur un même trimestre, constaté en
+base. Le filtre `statut === 'GENERE'`, commenté « les documents OBSOLETE sont
+exclus », n'excluait rien.
+
+**Livrables**
+
+- [x] `genererBulletin` périme les précédents, **après** insertion du nouveau
+- [x] `src/lib/bulletins.ts` — la règle « quel bulletin fait foi », partagée
+- [x] Nom de fichier lisible : `KOFFI Yao - MAT-2026-0031 - Trimestre 1.pdf`
+- [x] Tri alphabétique des fichiers, et `reference` comme départage à date égale
+- [x] Migration `0029` — rattrapage des documents déjà empilés
+- [x] 10 tests, dont l'accord entre l'écran et le téléchargement
+
+**Pièges consignés**
+
+- Pas d'index unique partiel : il forcerait à périmer **avant** d'insérer, et
+  échangerait un défaut d'affichage contre une perte de document si le rendu PDF
+  échouait.
+- La lecture ne se fie pas au statut seul — les documents déjà empilés existent,
+  et un correctif doit valoir sur les données d'hier.
+- `document` n'a **pas** de colonne `createdAt`, contrairement à presque toutes
+  les autres tables. C'est la base qui l'a dit, en refusant la migration : ni
+  `tsc` ni les tests ne voient une colonne absente dans une requête PostgREST.
+- Le matricule dans le nom de fichier n'est pas décoratif : deux homonymes d'une
+  même classe s'écraseraient silencieusement dans le dossier choisi.
+
+**DoD** : aucun élève n'a deux bulletins en vigueur pour une même période — 0 en
+base après rattrapage.
+
+---

@@ -23,6 +23,7 @@ import {
 import { Reveal } from '@/components/motion/Reveal';
 import { DemandeDemoForm } from '@/components/marketing/DemandeDemoForm';
 import { SectionTarifs } from '@/components/marketing/SectionTarifs';
+import { getPlacesFondatrices } from '@/services/plateforme';
 
 const LIENS_NAV = [
   { href: '#modules', label: 'Fonctionnalités' },
@@ -176,11 +177,31 @@ const ETAPES_DEMO = [
   {
     titre: 'Votre espace est ouvert et configuré',
     detail:
-      'Vos classes, vos matières et vos frais sont en place. Vous disposez ensuite de 30 jours d’essai gratuit.',
+      'Vos classes, vos matières et vos frais sont en place, et vos équipes formées. Vous démarrez sur une école déjà prête.',
   },
 ];
 
-export default function LandingPage() {
+/*
+ * Revalidation toutes les cinq minutes.
+ *
+ * La page lit le nombre de places fondatrices restantes, donc la base. Sans
+ * cette borne, chaque visiteur d'une page purement commerciale declencherait
+ * une requete ; avec elle, le compteur reste juste a quelques minutes pres —
+ * une precision largement suffisante pour un programme qui admet une ecole par
+ * semaine au mieux.
+ */
+export const revalidate = 300;
+
+export default async function LandingPage() {
+  // Ne doit jamais empecher la page d'accueil de s'afficher : sans compteur,
+  // l'offre reste lisible ; sans page, il n'y a plus de site.
+  let places = { prises: 0, max: null as number | null };
+  try {
+    places = await getPlacesFondatrices();
+  } catch {
+    /* compteur muet plutot que page en erreur */
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-on-surface antialiased">
       {/*
@@ -539,7 +560,7 @@ export default function LandingPage() {
         </section>
 
         {/* Tarifs */}
-        <SectionTarifs />
+        <SectionTarifs places={places} />
 
         {/* CTA banner */}
         <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-container px-4 py-16 sm:px-6 sm:py-20 lg:px-container-pad lg:py-24">
@@ -576,7 +597,7 @@ export default function LandingPage() {
             </div>
             <p className="mt-6 flex items-center gap-2 text-center text-sm text-white/60">
               <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden /> Votre espace est mis en
-              place avec notre équipe, puis 30 jours d’essai gratuit pour décider.
+              place avec notre équipe, et vos équipes formées avant la première saisie.
             </p>
           </Reveal>
         </section>

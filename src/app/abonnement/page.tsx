@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
+import { getEtablissement } from '@/services/etablissement';
 import {
   getAbonnementCourant,
   getEtatEtablissement,
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
 import { getSidebarItems } from '@/lib/navigation';
+import { LIBELLE_REGIME } from '@/lib/fondateur';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} FCFA`;
 
@@ -53,6 +55,24 @@ export default async function AbonnementPage() {
     abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
   );
   const etat = await getEtatEtablissement(ctx.etablissementId);
+
+  // Le regime tarifaire de l'ecole. Une fondatrice doit le voir : le programme
+  // se vend comme un partenariat, pas comme une remise silencieuse, et une
+  // ecole qui ignore qu'elle en fait partie ne peut ni s'en prevaloir ni
+  // s'etonner si son tarif changeait.
+  let fondatrice: { depuis: string | null; tarif: number | null } | null = null;
+  try {
+    const fiche = await getEtablissement(ctx.etablissementId);
+    if (fiche.regimeTarifaire === 'FONDATRICE') {
+      fondatrice = {
+        depuis: fiche.fondatriceDepuisLe,
+        tarif: fiche.tarifFondateurMensuel,
+      };
+    }
+  } catch {
+    // Un badge manquant est sans consequence ; une page d'abonnement
+    // inaccessible en a, puisque c'est elle qui explique un acces bloque.
+  }
   const acces = evaluerAcces({
     abonnement: abonnement ? { statut: abonnement.statut, dateFin: abonnement.dateFin } : null,
     essaiFinLe: etat.essaiFinLe,
@@ -78,7 +98,16 @@ export default async function AbonnementPage() {
           </div>
           {/* Souscrire engage une dépense : réservé au Directeur et au
               Comptable, comme la page elle-même. */}
-          {(ctx.role === 'DIRECTEUR' || ctx.role === 'COMPTABLE') && (
+          {/*
+            Une fondatrice ne souscrit pas en libre-service : son tarif est un
+            forfait fige, tandis que la page de paiement facture le catalogue
+            public **par cycle**. Un complexe college-lycee y serait preleve de
+            20 000 F au lieu des 15 000 F garantis — la promesse se romprait au
+            premier renouvellement. Le refus est aussi pose dans le service
+            (`creerIntentionPaiement`) : masquer le bouton informe, il ne
+            protege pas.
+          */}
+          {(ctx.role === 'DIRECTEUR' || ctx.role === 'COMPTABLE') && !fondatrice && (
             <Button asChild>
               <Link href="/abonnement/souscrire">
                 <CreditCard className="h-4 w-4" aria-hidden />
@@ -87,6 +116,38 @@ export default async function AbonnementPage() {
             </Button>
           )}
         </div>
+
+        {fondatrice && (
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>{LIBELLE_REGIME.FONDATRICE}</CardTitle>
+              <Badge variant="success" shape="pill">
+                Tarif garanti
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-body-sm text-text-secondary">
+                Votre établissement fait partie des premières écoles partenaires de ScolarGest.
+                Votre tarif préférentiel vous est acquis, sans limite de durée.
+              </p>
+              {fondatrice.tarif !== null && (
+                <div className="flex justify-between">
+                  <span className="text-body-sm text-text-secondary">Tarif mensuel</span>
+                  <span className="text-body-md font-medium text-text-primary">
+                    {fcfa(fondatrice.tarif)}
+                  </span>
+                </div>
+              )}
+              <p className="text-body-sm text-text-secondary">
+                Votre renouvellement est établi par notre équipe. Écrivez-nous depuis{' '}
+                <Link href="/profil/support" className="font-medium text-primary-container hover:underline">
+                  le support
+                </Link>{' '}
+                et nous nous en occupons.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="flex-row items-center justify-between">
