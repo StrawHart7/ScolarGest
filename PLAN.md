@@ -2277,3 +2277,150 @@ explicitement hors motif de liste.
 style de tableau hors grilles de saisie.
 
 ---
+
+### Fonctionnalité — Refonte tactile (jalon T0, en cours)
+
+**Statut** : 🟡 en cours (2026-09-04). Branche `design/verni-tactile-socle`.
+Aucune migration. Plan complet et prompts de maquettes : artefact « Refonte
+tactile », validé le 2026-09-04.
+
+**Objectif** : le responsive tient — 55 pages sur 59 sans le moindre
+débordement. Ce qui ne tient pas est la **densité** : un système conçu pour un
+tableau de bord de bureau, servi sur un téléphone de 390px. On reste dans
+l'arbre existant, on ne crée aucune route.
+
+**Le cadre, décidé avec l'utilisateur**
+
+- **On reste responsive.** Pas de réécriture par user-agent, pas de segment
+  `/mobile`, pas de second arbre de routes. `Docs/16` est donc écarté sur ce
+  point précis.
+- **`src/app/mobile/` et `src/components/mobile/` sont des noms réservés** à la
+  future application. Vérifié : ils n'existent sur **aucune** branche, seulement
+  comme intention dans `Docs/16`. Le calque tactile vit dans
+  `src/components/tactile/`.
+- **Rien hors du périmètre VERNI** : ni service, ni migration, ni garde de rôle.
+  `matrice.instantane.txt` ne bouge pas.
+
+**Le relevé qui fonde tout** — 59 routes, 5 rôles, iPhone 13 (390×844), build de
+production, 74 captures. Sept principes en sont tirés, chacun rattaché à un
+défaut mesuré : 44px plancher, action principale au pouce, étiquettes qui ne
+crient pas, rien sous 12px, trois écrans maximum, chaque fiche dit son nom, le
+premier écran porte une décision.
+
+**Livrables**
+
+- [x] Échelle tactile dans `tailwind.config.ts` — `touch-body`, `touch-label`,
+      `touch-meta`, `touch-figure`, `zone-action`. Elle s'**ajoute** à l'échelle
+      dense, elle ne la remplace pas.
+- [x] `src/components/tactile/` — `CarteAction`, `GrilleCompteurs`,
+      `BarreAction`.
+- [x] Barre d'onglets : la zone cliquable passe de 81×36 à la hauteur pleine de
+      la barre. Relevée 141 fois sous la cible de 44px.
+- [x] Fin des débordements horizontaux — `/statistiques` (40px, piste de grille
+      implicite) et les trois écrans d'import (5px, champ de fichier natif).
+- [x] Tableau de bord Enseignant, écran étalon : 3 879px → **1 157px**.
+- [x] Les quatre autres tableaux de bord sur `GrilleCompteurs` + `CarteAction`.
+- [x] Les sept fiches détail reçoivent un `<h1>`.
+- [x] `Label` en casse normale.
+- [x] `/rapports` : aperçu mobile de 100 à 10 lignes (25 105px mesurés).
+- [x] Cibles à 44px : en-tête, cloche, saisie de notes, 9 champs de `/demarrage`.
+- [ ] Bouton flottant sur les listes qui l'ont perdu — **non fait, à arbitrer**.
+
+**Décisions**
+
+- **Le premier écran porte une décision, pas un inventaire.** Le tableau de bord
+  Enseignant consacrait 40 % de son premier écran à quatre nombres d'un
+  caractère. `CarteAction` ne se répète pas : deux cartes de marque sur un
+  écran, et plus aucune ne dit « regarde ici ». Le compteur repris par la carte
+  sort de la grille.
+- **La console plateforme garde sa grille.** Elle compte, elle ne travaille pas :
+  une carte d'action y serait un ordre sans destinataire.
+- **On double la soumission, on ne la déplace pas.** Le bouton d'origine reste
+  dans le flux, masqué sous `md`. Un formulaire dont le bouton n'existe que dans
+  une barre flottante devient insoumettable si un clavier virtuel la recouvre.
+
+**Pièges consignés**
+
+- **Une pilule n'est pas une cible.** Les onglets mesuraient 81×36 alors que la
+  barre fait 56px de haut : la zone cliquable était le rendu, pas le conteneur.
+- **`grid` sans `grid-cols-*` n'est pas « pas de colonnes »** : c'est une colonne
+  implicite dimensionnée sur le contenu le plus large, dont **tous** les éléments
+  héritent. Une carte à `w-48` imposait 430px à ses voisines dans un écran de
+  390.
+- **`label-md uppercase` vient des en-têtes de colonnes**, pas des étiquettes de
+  champ. Appliqué aux formulaires, il crie et coûte 16px par champ.
+- **Trois compteurs dans une grille à deux colonnes** laissent la dernière tuile
+  seule à côté d'un vide de sa taille — ça se lit comme une carte manquante.
+
+**Ce qui est constaté, et ce qui ne l'est pas** — le tableau de bord Enseignant a
+été ouvert et mesuré. Le reste (titres, quatre tableaux de bord, étiquettes,
+barre d'action, `/rapports`) est vert au `typecheck`, au `lint` et aux 328 tests,
+mais **n'a pas été observé** : la machine n'a plus assez de mémoire pour tenir un
+serveur, `next dev` et `next build` tombent en « heap out of memory ». La
+vérification visuelle reste due.
+
+**Reste ouvert**
+
+- Le bouton flottant ne subsiste que sur 5 listes alors que 21 pages ont des
+  cartes mobiles. Classé sur la foi de `Docs/15`, **pas d'une mesure** — et ce
+  document exclut explicitement du bouton flottant les créations par modale, ce
+  qui est le cas de la plupart de ces listes.
+- **`Docs/15` ne décrit plus le code** : `BarreOutilsListe` et `FiltresMobile`
+  ont été remplacés par `BarreListe`. À réécrire ou à archiver.
+- **`/dashboard` répond en 7,6 s**, les listes en 3-4 s, sur un build de
+  production chaud en local. C'est du temps serveur — hors périmètre VERNI.
+
+**DoD** : sur les écrans repris, aucune cible sous 44px, aucun texte sous 12px,
+aucun débordement horizontal, un `<h1>` par page, et l'action du moment visible
+sans défiler.
+
+---
+
+### Fonctionnalité — Conseils : la présentation mobile
+
+**Statut** : ✅ livrée (2026-09-05). Branche `design/verni-conseils-mobile`,
+assise sur `feat/soko-conseils` — **à fusionner après elle**. Aucune migration.
+
+**Objectif** : lever le « Reste ouvert » de la fiche Conseils contextuels — le
+panneau était desktop uniquement, le coin bas-droit étant déjà pris sous `md`
+par le bouton d'action des listes et la barre d'onglets.
+
+**Livrables**
+
+- [x] Bannière fine sous l'en-tête, repliée au repos (390×58), dépliée sur
+      toucher (390×209), les trois issues préservées.
+- [x] Une seule logique, deux présentations, dans `PanneauConseil`.
+- [x] `data-bandeau="abonnement"` sur `AbonnementBanner`, lu par la garde.
+
+**Décisions**
+
+- **Le X vaut « Plus tard », jamais « Pas pour moi ».** C'est le geste réflexe
+  sur téléphone : il ne doit pas produire la sanction la plus lourde.
+- **Un seul composant, deux rendus.** Deux composants relanceraient chacun leur
+  minuteur et leur compteur de pages, et le même conseil pourrait être marqué vu
+  deux fois.
+- **La bannière cède le pas au bandeau d'abonnement.** Entre une suggestion et
+  une perte d'écriture imminente, c'est l'échéance qui passe.
+
+**Pièges consignés**
+
+- **La garde se pose avant la demande, pas au rendu.** Posée au rendu, elle
+  laissait `demanderConseil` marquer `vuLe` et armer les 24 h : le conseil était
+  consommé sans être affiché. `AbonnementBanner` s'affichant pour tout niveau
+  autre que `OK`, le cas couvrait les trente jours d'essai de chaque école.
+  Signalé par SOKO.
+- **La condition de largeur est indispensable.** Sortir de l'effet sans elle
+  supprimait la requête pour tout le monde, y compris sur un poste de bureau où
+  la carte n'a jamais été masquée.
+- **Une garde de type « déjà demandé » se relit dans le minuteur**, pas
+  seulement à l'entrée de l'effet : deux minuteurs survivants appelleraient deux
+  fois.
+
+**Reste ouvert** — une exécution a relevé deux requêtes là où une seule était
+attendue, non reproductible ensuite. La garde du minuteur rend la question sans
+objet, mais **la cause n'est pas identifiée**.
+
+**DoD** : trois cas vérifiés par le chemin réel — mobile avec bandeau 0 requête,
+mobile sans bandeau 1, bureau avec bandeau 1.
+
+---
