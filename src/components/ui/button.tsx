@@ -34,10 +34,18 @@ const buttonVariants = cva(
           '!text-white bg-tertiary-container hover:bg-tertiary active:bg-tertiary shadow-subtle [&_*]:!text-white',
       },
       size: {
-        sm: 'h-8 px-3 text-body-sm',
-        md: 'h-10 px-4 text-body-md',
+        // `sm` est la taille des actions de rangee — « Modifier »,
+        // « Desactiver », « Retirer ». A 32px elle est sous la cible tactile de
+        // 44px, et le releve du 2026-09-04 en comptait 28 sur la seule page des
+        // matieres, 17 sur le programme : ce sont les deux pires ecrans du
+        // produit, et c'est ce bouton qui les fait.
+        //
+        // Elle tient donc 44px sous `md` et retrouve sa densite au-dela. Le
+        // desktop garde des rangees compactes, le doigt garde sa cible.
+        sm: 'h-row-standard px-3 text-body-sm md:h-8',
+        md: 'h-row-standard px-4 text-body-md md:h-10',
         lg: 'h-11 px-6 text-body-md',
-        icon: 'h-9 w-9',
+        icon: 'size-row-standard md:h-9 md:w-9',
       },
     },
     defaultVariants: {
