@@ -2394,3 +2394,45 @@ dont la réussite devient la preuve commerciale. Document de cadrage :
 renouvellement, et la onzième admission est refusée par la base.
 
 ---
+
+### Fonctionnalité — Bulletins : un seul document fait foi
+
+**Statut** : ✅ livrée (2026-09-04). Migration `0029`, appliquée.
+
+**Objectif** : le téléchargement groupé sortait toutes les versions du bulletin
+d'un même élève, avec des noms de fichiers qui ne permettaient pas de les
+départager.
+
+**La cause n'était pas dans le téléchargement.** `regenererBulletin` marquait
+bien l'ancien document `OBSOLETE`, mais la génération groupée — celle qui traite
+toute une classe — n'en marquait aucun. Les bulletins s'empilaient donc tous en
+`GENERE` : jusqu'à **cinq** pour un même élève sur un même trimestre, constaté en
+base. Le filtre `statut === 'GENERE'`, commenté « les documents OBSOLETE sont
+exclus », n'excluait rien.
+
+**Livrables**
+
+- [x] `genererBulletin` périme les précédents, **après** insertion du nouveau
+- [x] `src/lib/bulletins.ts` — la règle « quel bulletin fait foi », partagée
+- [x] Nom de fichier lisible : `KOFFI Yao - MAT-2026-0031 - Trimestre 1.pdf`
+- [x] Tri alphabétique des fichiers, et `reference` comme départage à date égale
+- [x] Migration `0029` — rattrapage des documents déjà empilés
+- [x] 10 tests, dont l'accord entre l'écran et le téléchargement
+
+**Pièges consignés**
+
+- Pas d'index unique partiel : il forcerait à périmer **avant** d'insérer, et
+  échangerait un défaut d'affichage contre une perte de document si le rendu PDF
+  échouait.
+- La lecture ne se fie pas au statut seul — les documents déjà empilés existent,
+  et un correctif doit valoir sur les données d'hier.
+- `document` n'a **pas** de colonne `createdAt`, contrairement à presque toutes
+  les autres tables. C'est la base qui l'a dit, en refusant la migration : ni
+  `tsc` ni les tests ne voient une colonne absente dans une requête PostgREST.
+- Le matricule dans le nom de fichier n'est pas décoratif : deux homonymes d'une
+  même classe s'écraseraient silencieusement dans le dossier choisi.
+
+**DoD** : aucun élève n'a deux bulletins en vigueur pour une même période — 0 en
+base après rattrapage.
+
+---

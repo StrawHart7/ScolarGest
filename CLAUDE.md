@@ -1487,7 +1487,22 @@ Constate le 2026-09-04 en tentant un balayage de tous les ecrans par role :
 7,6 Go de RAM au total, **environ 2 Go libres** une fois Cursor, Defender et
 les sessions Claude en place. `next dev` demarre, annonce « Ready », puis meurt
 en compilant la premiere page. Borner le tas (`--max-old-space-size`) n'y
-change rien : la contrainte est la memoire physique, pas le plafond de V8.
+change rien : la contrainte n'est pas le plafond de V8.
+
+**Et ce n'est pas seulement la RAM.** `C:` etait a **0,64 Go libre sur 116**.
+Windows ne peut alors plus etendre son fichier d'echange, si bien qu'une
+allocation echoue bien avant que la memoire physique ne soit reellement
+saturee. J'avais d'abord accuse la seule RAM ; le disque plein est au moins
+aussi coupable, et c'est le premier chiffre a regarder devant un « heap out of
+memory » inexplicable.
+
+Le poste dominant sur `C:` est
+`AppData/Local/Packages/Claude_*/LocalCache/Roaming/Claude/vm_bundles`
+(8,9 Go, dont `rootfs.vhdx` a 8,3 Go) — l'image du bac a sable, sans donnee
+utilisateur, mais qui se re-telecharge si on l'efface. Les caches surs a vider
+en premier : les dossiers `*-updater` d'`AppData/Local`, les anciennes
+sessions de `Temp/claude`, le cache pip. `npm cache clean --force` ne rend
+rien : npm reconstruit son index aussitot.
 
 Symptomes trompeurs, a connaitre avant de chercher ailleurs :
 
@@ -1544,6 +1559,30 @@ rien ne dit lequel fait foi.
 `statut_document` porte une valeur `OBSOLETE` prevue pour ca : marquer les
 anciens avant de regenerer, ne pas les supprimer — le fichier reste en stockage
 et l'operation est reversible.
+
+**Corrige le 2026-09-04, migration `0029`.** La valeur `OBSOLETE` etait bien
+ecrite — mais par `regenererBulletin` seule, qui ne traite que le document
+qu'on lui designe. La **generation groupee** n'en marquait aucun, si bien que
+les bulletins s'empilaient tous en `GENERE` : jusqu'a **cinq** pour un meme
+eleve sur un meme trimestre, constate en base. Le telechargement groupe les
+sortait donc tous, et le filtre `statut === 'GENERE'`, commente « les documents
+OBSOLETE sont exclus », n'excluait rien.
+
+Trois consequences a garder :
+
+- `genererBulletin` perime desormais les precedents **apres** avoir insere le
+  nouveau, jamais avant : perimer d'abord laisserait un eleve sans aucun
+  bulletin en vigueur si le rendu PDF echouait. C'est aussi pourquoi il n'y a
+  **pas** d'index unique partiel — il forcerait l'ordre inverse, echangeant un
+  defaut d'affichage contre une perte de document.
+- La regle « quel bulletin fait foi » vit dans `src/lib/bulletins.ts`, partagee
+  par l'ecran et par le telechargement. Elle etait ecrite deux fois et les deux
+  versions divergeaient. Elle ne se fie **pas** au seul statut : les documents
+  deja empiles existent, et un correctif doit valoir sur les donnees d'hier.
+- Le departage a date egale se fait sur `reference`, **pas** sur `createdAt` :
+  la table `document` n'a pas cette colonne, contrairement a presque toutes les
+  autres. La reference est un numero sequentiel, donc croissante — un meilleur
+  critere qu'un horodatage de toute facon.
 
 Deux pieges constates le 2026-09-02 :
 
