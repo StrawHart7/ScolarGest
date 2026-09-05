@@ -101,7 +101,10 @@ const config: Config = {
           'clamp(1.25rem, 5vw, 1.5rem)',
           { lineHeight: '1.3', letterSpacing: '-0.02em', fontWeight: '600' },
         ],
-        'headline-md': ['18px', { lineHeight: '24px', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'headline-md': [
+          '18px',
+          { lineHeight: '24px', letterSpacing: '-0.01em', fontWeight: '600' },
+        ],
         'headline-sm': ['16px', { lineHeight: '24px', fontWeight: '600' }],
         'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],
         'body-sm': ['13px', { lineHeight: '18px', fontWeight: '400' }],
@@ -182,6 +185,21 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(-0.5rem)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        // Sortie du panneau de conseil. Une disparition instantanée se lit
+        // comme un défaut d'affichage : on ne sait plus si on a fermé ou si
+        // l'écran a sauté. Le mouvement rend le geste sien.
+        'banniere-out': {
+          from: { opacity: '1', transform: 'translateY(0)' },
+          to: { opacity: '0', transform: 'translateY(-0.5rem)' },
+        },
+        'conseil-in': {
+          from: { opacity: '0', transform: 'translateY(0.75rem) scale(0.98)' },
+          to: { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'conseil-out': {
+          from: { opacity: '1', transform: 'translateY(0) scale(1)' },
+          to: { opacity: '0', transform: 'translateY(0.75rem) scale(0.98)' },
+        },
         'orbit-fade': {
           '0%, 100%': { opacity: '0.25' },
           '50%': { opacity: '1' },
@@ -198,6 +216,9 @@ const config: Config = {
         'mark-breathe': 'mark-breathe 2.2s ease-in-out infinite',
         'loader-sweep': 'loader-sweep 2.4s linear infinite',
         'banniere-in': 'banniere-in 220ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'banniere-out': 'banniere-out 180ms ease-in forwards',
+        'conseil-in': 'conseil-in 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'conseil-out': 'conseil-out 180ms ease-in forwards',
         'orbit-fade': 'orbit-fade 1.6s ease-in-out infinite',
       },
       boxShadow: {

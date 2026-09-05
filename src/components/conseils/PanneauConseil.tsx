@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, Lightbulb, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import {
   demanderConseil,
   reporterConseilAction,
@@ -42,6 +41,17 @@ import {
  * écran de 390px recouvre ce que la personne était venue lire ; replié, il
  * occupe une ligne et reste refusable d'un seul geste.
  *
+ * **Le panneau est bleu, le texte blanc.** L'inverse — une carte claire
+ * bordée de gris — se confond avec les cartes de contenu de la page, et un
+ * conseil qui ressemble au décor n'est pas lu. La couleur est ici le seul
+ * moyen de dire « ceci n'est pas la page, c'est une proposition ».
+ *
+ * **Il entre et sort en mouvement.** Une disparition instantanée se lit comme
+ * un défaut d'affichage plutôt que comme le résultat du geste : on ne sait
+ * plus si on a fermé ou si l'écran a sauté. L'état `sortant` joue l'animation
+ * avant de démonter — les trois issues écrivent en base immédiatement, seul
+ * le démontage attend.
+ *
  * **Un avertissement d'abonnement la fait taire.** La bannière est en `fixed`
  * sous l'en-tête et recouvrirait `AbonnementBanner`, qui annonce une perte
  * d'écriture imminente. Entre une suggestion et une échéance, c'est
@@ -53,6 +63,17 @@ const CLE_PAGES = 'scolargest.conseils.pages';
 
 /** Délai avant apparition, une fois la page posée. */
 const DELAI_MS = 6000;
+
+/** Durée de l'animation de sortie. Doit valoir `animate-conseil-out`. */
+const DUREE_SORTIE_MS = 180;
+
+/**
+ * L'action principale, inversée : fond blanc sur la carte bleue. Partagée par
+ * les deux présentations pour qu'elles ne divergent pas — c'est la seule chose
+ * cliquable des deux côtés, elle doit se ressembler.
+ */
+const ACTION_INVERSEE =
+  'inline-flex h-row-standard shrink-0 items-center justify-center rounded-lg bg-white px-4 text-touch-label text-primary transition-colors hover:bg-primary-fixed';
 
 function pagesVues(): number {
   try {
@@ -77,6 +98,7 @@ export function PanneauConseil({ role }: { role?: string }) {
   const pathname = usePathname();
   const [conseil, setConseil] = React.useState<ConseilAffichable | null>(null);
   const [deplie, setDeplie] = React.useState(false);
+  const [sortant, setSortant] = React.useState(false);
   const demande = React.useRef(false);
 
   const rolesEcole = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'];
@@ -138,10 +160,16 @@ export function PanneauConseil({ role }: { role?: string }) {
   if (!conseil) return null;
 
   function fermer() {
-    setConseil(null);
-    // Le prochain conseil de la session repart replie : deplie une fois ne
-    // veut pas dire deplie toujours.
-    setDeplie(false);
+    // L'écriture en base a déjà eu lieu chez l'appelant : on ne retarde que
+    // le démontage, le temps que l'animation de sortie se joue.
+    setSortant(true);
+    window.setTimeout(() => {
+      setConseil(null);
+      setSortant(false);
+      // Le prochain conseil de la session repart replie : deplie une fois ne
+      // veut pas dire deplie toujours.
+      setDeplie(false);
+    }, DUREE_SORTIE_MS);
   }
 
   function reporter() {
@@ -170,7 +198,12 @@ export function PanneauConseil({ role }: { role?: string }) {
         une bannière de suggestion ne prend jamais le pas sur la navigation.
       */}
       <div className="fixed inset-x-0 top-header z-20 px-gutter pt-2 md:hidden">
-        <div className="animate-banniere-in overflow-hidden rounded-xl border border-surface-border bg-surface-container-lowest shadow-floating">
+        <div
+          className={cn(
+            'overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container shadow-floating',
+            sortant ? 'animate-banniere-out' : 'animate-banniere-in',
+          )}
+        >
           <div className="flex items-center gap-1 pr-1">
             <button
               type="button"
@@ -178,15 +211,15 @@ export function PanneauConseil({ role }: { role?: string }) {
               aria-expanded={deplie}
               className="flex min-h-row-standard min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-left"
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary-container">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
                 <Lightbulb className="size-4" aria-hidden />
               </span>
-              <span className="text-touch-label min-w-0 flex-1 truncate text-text-primary">
+              <span className="min-w-0 flex-1 truncate text-touch-label text-white">
                 {conseil.titre}
               </span>
               <ChevronDown
                 className={cn(
-                  'size-4 shrink-0 text-text-secondary transition-transform',
+                  'size-4 shrink-0 text-white/70 transition-transform',
                   deplie && 'rotate-180',
                 )}
                 aria-hidden
@@ -203,33 +236,41 @@ export function PanneauConseil({ role }: { role?: string }) {
               type="button"
               onClick={reporter}
               aria-label="Plus tard"
-              className="grid size-row-standard shrink-0 place-items-center rounded-lg text-text-secondary active:bg-surface-container"
+              className="grid size-row-standard shrink-0 place-items-center rounded-lg text-white/70 active:bg-white/10"
             >
               <X className="size-4" aria-hidden />
             </button>
           </div>
 
           {deplie && (
-            <div className="border-t border-surface-border px-3 pb-3 pt-2.5">
-              <p className="text-touch-meta text-text-secondary">{conseil.texte}</p>
+            <div className="border-t border-white/15 px-3 pb-3 pt-2.5">
+              <p className="text-touch-meta text-white/80">{conseil.texte}</p>
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={releguer}
-                  className="text-touch-meta h-row-standard shrink-0 rounded-lg px-2 text-text-secondary active:bg-surface-container"
+                  className="h-row-standard shrink-0 rounded-lg px-2 text-touch-meta text-white/75 active:bg-white/10"
                 >
                   Pas pour moi
                 </button>
+                {/*
+                  Sur fond bleu, le bouton primaire du système disparaîtrait :
+                  il est bleu lui aussi. L'action s'inverse — fond blanc, texte
+                  primaire — ce qui lui rend le contraste que la carte vient de
+                  prendre au reste de la page.
+                */}
                 {conseil.actionHref ? (
-                  <Button asChild className="ml-auto h-row-standard">
-                    <Link href={conseil.actionHref} onClick={suivre}>
-                      {conseil.actionLabel ?? 'Y aller'}
-                    </Link>
-                  </Button>
+                  <Link
+                    href={conseil.actionHref}
+                    onClick={suivre}
+                    className={cn(ACTION_INVERSEE, 'ml-auto')}
+                  >
+                    {conseil.actionLabel ?? 'Y aller'}
+                  </Link>
                 ) : (
-                  <Button className="ml-auto h-row-standard" onClick={suivre}>
+                  <button type="button" onClick={suivre} className={cn(ACTION_INVERSEE, 'ml-auto')}>
                     J&apos;ai compris
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
@@ -243,31 +284,36 @@ export function PanneauConseil({ role }: { role?: string }) {
         le conseil une proposition.
       */}
       <div className="fixed bottom-24 right-6 z-30 hidden w-80 md:block">
-        <div className="rounded-lg border border-surface-border bg-surface-container-lowest shadow-floating">
+        <div
+          className={cn(
+            'rounded-lg bg-gradient-to-br from-primary to-primary-container shadow-premium',
+            sortant ? 'animate-conseil-out' : 'animate-conseil-in',
+          )}
+        >
           <div className="flex items-start gap-3 p-4">
-            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary-on-fixed">
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
               <Lightbulb className="size-4" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
-                <p className="text-body-md font-medium text-text-primary">{conseil.titre}</p>
+                <p className="text-body-md font-medium text-white">{conseil.titre}</p>
                 {conseil.nouveaute && (
-                  <span className="shrink-0 text-body-sm text-text-secondary">Nouveau</span>
+                  <span className="shrink-0 text-body-sm text-white/70">Nouveau</span>
                 )}
               </div>
-              <p className="mt-1 text-body-sm text-text-secondary">{conseil.texte}</p>
+              <p className="mt-1 text-body-sm text-white/80">{conseil.texte}</p>
             </div>
             <button
               type="button"
               onClick={fermer}
               aria-label="Fermer"
-              className="-m-1 rounded p-1 text-text-secondary hover:text-text-primary"
+              className="-m-1 rounded p-1 text-white/70 transition-colors hover:text-white"
             >
               <X className="size-4" aria-hidden />
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-surface-border px-4 py-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/15 px-4 py-3">
             {/*
               « Pas pour moi » dit ce qu'il fait : le conseil est rangé, pas
               supprimé. Un libellé « Ne plus afficher » promettrait un définitif
@@ -276,27 +322,25 @@ export function PanneauConseil({ role }: { role?: string }) {
             <button
               type="button"
               onClick={releguer}
-              className="text-body-sm text-text-secondary hover:text-text-primary"
+              className="text-body-sm text-white/75 transition-colors hover:text-white"
             >
               Pas pour moi
             </button>
             <button
               type="button"
               onClick={reporter}
-              className="text-body-sm text-text-secondary hover:text-text-primary"
+              className="text-body-sm text-white/75 transition-colors hover:text-white"
             >
               Plus tard
             </button>
             {conseil.actionHref ? (
-              <Button asChild size="sm">
-                <Link href={conseil.actionHref} onClick={suivre}>
-                  {conseil.actionLabel ?? 'Y aller'}
-                </Link>
-              </Button>
+              <Link href={conseil.actionHref} onClick={suivre} className={ACTION_INVERSEE}>
+                {conseil.actionLabel ?? 'Y aller'}
+              </Link>
             ) : (
-              <Button size="sm" onClick={suivre}>
+              <button type="button" onClick={suivre} className={ACTION_INVERSEE}>
                 J&apos;ai compris
-              </Button>
+              </button>
             )}
           </div>
         </div>
