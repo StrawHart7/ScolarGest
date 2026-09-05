@@ -210,12 +210,21 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-04) :
-- `feat/soko-modele-fondateur` — programme « ecoles fondatrices » : regime
-  tarifaire, plan forfaitaire non public, dix places verrouillees en base,
-  refonte de la troisieme offre publique. Migration `0030`. Voir `PLAN.md` § 8.
-- `feat/soko-conseils` — conseils contextuels deduits des donnees, panneau
-  flottant et inventaire dans l'aide. Migration `0028`. Voir `PLAN.md` § 8.
+**Active branches** (2026-09-05) :
+- `feat/soko-modele-fondateur` — ✅ terminée et mergée sur `main` (2026-09-05) :
+  programme « ecoles fondatrices » — regime tarifaire, plan forfaitaire non
+  public, dix places verrouillees en base, refonte de la troisieme offre
+  publique. Migration `0030`. Voir `PLAN.md` § 8.
+- `feat/soko-conseils` — ✅ terminée et mergée sur `main` (2026-09-05) :
+  conseils contextuels deduits des donnees, panneau flottant et inventaire
+  dans l'aide, plus un seul bulletin en vigueur par eleve. Migrations `0028`
+  et `0029`. Voir `PLAN.md` § 8.
+- `design/verni-conseils-mobile` — ✅ terminée et mergée sur `main`
+  (2026-09-05), agent VERNI : le conseil devient une banniere repliable sous
+  `md`, plus deux correctifs invisibles au build — la verification de place
+  posee **apres** l'appel serveur, qui consommait le conseil sans jamais
+  l'afficher, et un garde-fou de double appel place avant le `setTimeout`.
+  Aucune migration, aucun service. Voir `PLAN.md` § 8.
 - `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
   harmonisation des formulaires et des tableaux, token `warning`, `Textarea`,
   option `dense` sur `Table`, plus trois défauts d'accessibilité corrigés
@@ -1363,6 +1372,19 @@ Chaque agent pousse **sa** branche et ne fusionne que la sienne, après
 `lint`, `typecheck` et `test` verts. Personne ne travaille sur `main` :
 vérifier `git branch --show-current` avant la première écriture, y compris
 juste après un merge, moment où l'on s'y retrouve sans y penser.
+
+**`main` est la branche de production, pas une preview.** Un `git push origin
+main` déploie sur `scolargest.com` et le donne aux écoles ; il n'y a pas
+d'étape de relecture entre les deux. Cela a été annoncé trois fois de suite
+comme « une preview Vercel » le 2026-09-05, ce qui aurait fait valider en
+production des écrans que personne n'avait ouverts. Pour regarder sans
+exposer : `git push origin main:preview-<sujet>`, qui construit une preview
+depuis le même contenu.
+
+**Ne jamais fusionner dans le worktree d'une autre session.** `main` peut être
+sorti ailleurs (`git worktree list` le dit, et `git branch` le préfixe d'un
+`+`) : y fusionner réécrit le disque d'une session en plein travail. Vérifier
+que ce worktree est propre, ou en monter un autre.
 
 ## Méthode de travail
 
