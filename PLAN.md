@@ -2280,7 +2280,9 @@ style de tableau hors grilles de saisie.
 
 ### Fonctionnalité — Refonte tactile (jalon T0, en cours)
 
-**Statut** : 🟡 en cours (2026-09-04). Branche `design/verni-tactile-socle`.
+**Statut** : 🟢 jalon T0 terminé, T1 à T5 traités par leurs défauts mesurés
+(2026-09-05). Branche `design/verni-tactile-socle`. Vérification visuelle à la
+charge de l'utilisateur.
 Aucune migration. Plan complet et prompts de maquettes : artefact « Refonte
 tactile », validé le 2026-09-04.
 
@@ -2324,7 +2326,20 @@ premier écran porte une décision.
 - [x] `Label` en casse normale.
 - [x] `/rapports` : aperçu mobile de 100 à 10 lignes (25 105px mesurés).
 - [x] Cibles à 44px : en-tête, cloche, saisie de notes, 9 champs de `/demarrage`.
-- [ ] Bouton flottant sur les listes qui l'ont perdu — **non fait, à arbitrer**.
+- [x] **Cibles corrigées à la source** : `Button` (`sm`, `md`, `icon`),
+      `LienRetour`, les boutons et les champs de recherche de `BarreListe`
+      tiennent 44px sous `md` et retrouvent leur densité au-delà.
+- [x] Les trois pages de section en rangées sous `md` (`/etablissement` mesurait
+      2 157px pour neuf blocs).
+- [x] `BarreAction` sur les trois formulaires longs : nouvel élève, nouvel
+      enseignant, support.
+- [x] `Docs/15` réécrit — il décrivait des composants retirés et prescrivait un
+      bouton flottant partout.
+- [x] **Bouton flottant : question tranchée**, pas reportée. Il ne vaut que si
+      l'action ouvre une **page**. Quand elle ouvre une modale, elle reste dans
+      le flux : un bouton flottant vit hors de l'arbre de la page et ne peut pas
+      porter son déclencheur. Cinq listes sur quatorze en portent un, et
+      `Docs/15` dit désormais pourquoi.
 
 **Décisions**
 
@@ -2361,14 +2376,21 @@ vérification visuelle reste due.
 
 **Reste ouvert**
 
-- Le bouton flottant ne subsiste que sur 5 listes alors que 21 pages ont des
-  cartes mobiles. Classé sur la foi de `Docs/15`, **pas d'une mesure** — et ce
-  document exclut explicitement du bouton flottant les créations par modale, ce
-  qui est le cas de la plupart de ces listes.
-- **`Docs/15` ne décrit plus le code** : `BarreOutilsListe` et `FiltresMobile`
-  ont été remplacés par `BarreListe`. À réécrire ou à archiver.
+- **La vérification visuelle.** Seul le tableau de bord Enseignant a été ouvert
+  et mesuré. Tout le reste est vert au `typecheck`, au `lint` et aux 328 tests
+  mais **n'a pas été observé** : la machine n'a plus assez de mémoire pour tenir
+  un serveur (`next dev` et `next build` tombent en « heap out of memory »).
+  L'utilisateur a pris la vérification à sa charge.
+- **Deux changements portent loin et méritent le premier regard** : `Label` en
+  casse normale touche tous les formulaires, et la taille `sm` de `Button`
+  touche tous les boutons d'action de rangée.
 - **`/dashboard` répond en 7,6 s**, les listes en 3-4 s, sur un build de
-  production chaud en local. C'est du temps serveur — hors périmètre VERNI.
+  production chaud en local. C'est du temps serveur — hors périmètre VERNI,
+  signalé à SOKO.
+- **Non repris, et assumé** : les grilles à colonnes dynamiques
+  (`notes/resultats`), les tableaux de saisie et la grille d'emploi du temps.
+  `Docs/15` les liste comme hors motif. Les formulaires courts (inscription,
+  invitation) n'ont pas de barre collée : la règle est « formulaire long ».
 
 **DoD** : sur les écrans repris, aucune cible sous 44px, aucun texte sous 12px,
 aucun débordement horizontal, un `<h1>` par page, et l'action du moment visible
