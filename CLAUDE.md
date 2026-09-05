@@ -271,19 +271,20 @@ Before creating any new page, check the `/design-maquette` directory for a subfo
 
 ### Mobile : le motif de liste fait foi
 
-> **Attention (2026-09-04) : `Docs/15` ne décrit plus le code.** Les en-têtes de
-> liste ont été unifiées sur `BarreListe`, qui remplace fonctionnellement
-> `BarreOutilsListe` et `FiltresMobile` — ces deux-là ne sont plus importés nulle
-> part. Et le **bouton flottant ne subsiste que sur 5 listes** alors que 21 pages
-> ont des cartes mobiles : ailleurs, l'action principale est remontée dans la
-> barre du haut. Le document reste utile pour les mesures et les tons de statut ;
-> il ment sur les composants. À réécrire ou à archiver.
+`Docs/15-Motif-liste-mobile.md` (réécrit le 2026-09-05) fait foi pour **toute**
+page de liste, desktop compris : `BarreListe` en en-tête d'outils — recherche,
+filtres repliés derrière un bouton, tri, actions — puis `EnteteListe`,
+`CarteListeMobile` et `PaginationListe`. Une nouvelle liste la reprend telle
+quelle, mesures comprises, plutôt que d'improviser page par page.
 
-`Docs/15-Motif-liste-mobile.md` décrit la structure **de référence** de toute
-page de liste sous `md` : barre d'outils (recherche + filtres repliés +
-action), ligne de densité, carte de liste, bouton flottant, barre d'onglets
-flottante. Une nouvelle liste la reprend telle quelle — mesures comprises —
-plutôt que d'improviser un rendu mobile page par page.
+**`BarreListe` se place en dehors de la `Card`** : c'est ce qui la détache de la
+liste et la rend identique partout. Elle remplace `BarreOutilsListe` et
+`FiltresMobile`, qui ne sont plus importés nulle part — ne pas les reprendre.
+
+**Le bouton flottant ne vaut que si l'action ouvre une page.** Quand elle ouvre
+une modale (`FormulaireModal`), elle reste dans le flux, dans `actions` : un
+bouton flottant vit hors de l'arbre de la page et ne peut pas porter son propre
+déclencheur. Cinq listes seulement en portent un, et ce n'est pas un oubli.
 
 Le desktop n'est pas concerné : le tableau et le `PageHeader` restent en
 place à partir de `md`. Les grilles à colonnes dynamiques et les tableaux de
