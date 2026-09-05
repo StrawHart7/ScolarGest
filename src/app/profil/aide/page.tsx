@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { LifeBuoy } from 'lucide-react';
+import { LifeBuoy, Check, ArrowRight } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
+import { listerAide } from '@/services/conseils';
+import { ORDRE_FAMILLES, LIBELLE_FAMILLE, type Famille } from '@/lib/conseils/catalogue';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { getSidebarItems, SECTIONS } from '@/lib/navigation';
 import type { Role } from '@/services/tenant';
@@ -63,6 +65,26 @@ export default async function AidePage() {
   const rubriques = RUBRIQUES.filter((rubrique) => rubrique.roles.includes(ctx.role));
   const sections = Object.entries(SECTIONS);
 
+  // Inventaire de tout ce que la plateforme sait faire pour ce rôle, avec ce
+  // qui est déjà en place. Le panneau de conseils n'en propose qu'un à la
+  // fois — bon pour ne pas lasser, mauvais pour qui veut simplement savoir ce
+  // qui existe. C'est la réponse à cette seconde question.
+  //
+  // Le diagnostic coûte une vingtaine de comptages ; c'est assumé sur un écran
+  // qu'on ouvre quelques fois par trimestre, et c'est précisément pourquoi il
+  // ne tourne pas au rendu de chaque page.
+  let inventaire: Awaited<ReturnType<typeof listerAide>> = [];
+  try {
+    inventaire = await listerAide();
+  } catch {
+    // Une aide amputée vaut mieux qu'une page d'aide inaccessible.
+  }
+  const parFamille = ORDRE_FAMILLES.map((famille) => ({
+    famille,
+    lignes: inventaire.filter((ligne) => ligne.famille === famille),
+  })).filter((groupe) => groupe.lignes.length > 0);
+  const restant = inventaire.filter((ligne) => !ligne.fait).length;
+
   return (
     <AppLayout
       items={getSidebarItems(ctx.role)}
@@ -77,6 +99,61 @@ export default async function AidePage() {
             Réponses aux questions les plus fréquentes pour votre rôle ({ctx.role}).
           </p>
         </div>
+
+        {parFamille.length > 0 && (
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-headline-sm text-text-primary">
+                Tout ce que vous pouvez faire
+              </h2>
+              <p className="text-body-sm text-text-secondary">
+                {restant === 0
+                  ? 'Tout est en place pour votre rôle.'
+                  : `${inventaire.length - restant} sur ${inventaire.length} déjà en place.`}
+              </p>
+            </div>
+            {parFamille.map((groupe) => (
+              <div key={groupe.famille} className="space-y-2">
+                <h3 className="text-body-sm font-medium text-text-secondary">
+                  {LIBELLE_FAMILLE[groupe.famille as Famille]}
+                </h3>
+                <ul className="divide-y divide-surface-border overflow-hidden rounded-lg border border-surface-border bg-surface-container-lowest">
+                  {groupe.lignes.map((ligne) => (
+                    <li key={ligne.id} className="flex items-start gap-3 px-5 py-3">
+                      {/*
+                        La pastille dit l'état, jamais un reproche : ce qui
+                        reste n'est pas un retard, c'est ce qui est encore
+                        possible.
+                      */}
+                      <span
+                        className={
+                          ligne.fait
+                            ? 'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary-on-fixed'
+                            : 'mt-0.5 size-5 shrink-0 rounded-full border border-surface-border'
+                        }
+                      >
+                        {ligne.fait && <Check className="size-3" aria-hidden />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-md text-text-primary">{ligne.titre}</p>
+                        <p className="text-body-sm text-text-secondary">{ligne.texte}</p>
+                      </div>
+                      {ligne.href && (
+                        <Link
+                          href={ligne.href}
+                          className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-body-sm font-medium text-primary-container hover:underline"
+                        >
+                          Ouvrir
+                          <ArrowRight className="size-3.5" aria-hidden />
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
 
         <section className="space-y-3">
           <h2 className="text-headline-sm text-text-primary">Questions fréquentes</h2>

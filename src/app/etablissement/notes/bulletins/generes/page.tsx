@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
 import { BulletinsFiltres } from '../BulletinsFiltres';
 import { BulletinsGeneresListe, type LigneBulletin } from './BulletinsGeneresListe';
+import { bulletinsCourantsParEleve } from '@/lib/bulletins';
 
 /**
  * Bulletins prêts d'une classe, pour une période.
@@ -141,20 +142,12 @@ async function Liste({
     );
   }
 
-  // Les documents arrivent triés du plus récent au plus ancien. Le bulletin en
-  // vigueur est celui en statut GENERE ; les autres sont les versions qu'une
-  // régénération a remplacées, conservées en stockage (jamais de suppression
-  // dure) et comptées ici pour que la régénération reste visible.
-  const parEleve = new Map<string, { courant: (typeof documents)[number] | null; remplacees: number }>();
-  for (const doc of documents) {
-    const entree = parEleve.get(doc.eleveId) ?? { courant: null, remplacees: 0 };
-    if (doc.statut === 'GENERE' && entree.courant === null) {
-      entree.courant = doc;
-    } else {
-      entree.remplacees += 1;
-    }
-    parEleve.set(doc.eleveId, entree);
-  }
+  // La regle « quel bulletin fait foi » est partagee avec le telechargement
+  // groupe (`src/lib/bulletins.ts`). Elle etait ecrite deux fois, et les deux
+  // versions ne disaient pas la meme chose : l'ecran groupait par eleve, le
+  // telechargement non — d'ou un dossier rempli de toutes les versions alors
+  // que l'ecran en annoncait une seule.
+  const parEleve = bulletinsCourantsParEleve(documents);
 
   const lignes: LigneBulletin[] = eleves.map((eleve) => {
     const entree = parEleve.get(eleve.id);

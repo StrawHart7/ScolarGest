@@ -2277,3 +2277,65 @@ explicitement hors motif de liste.
 style de tableau hors grilles de saisie.
 
 ---
+
+### Fonctionnalité — Conseils contextuels
+
+**Statut** : ✅ livrée (2026-09-04). Migration `0028`.
+
+**Objectif** : un utilisateur a accès à la plateforme sans savoir ce qu'elle
+sait faire. `/demarrage` couvre la configuration initiale et s'arrête là.
+Proposer, au fil de l'usage, **une chose à la fois**, choisie d'après ce qui
+manque réellement en base.
+
+**Livrables**
+
+- [x] `src/lib/conseils/catalogue.ts` — 24 conseils, 5 familles, sans dépendance
+- [x] `src/lib/conseils/choix.ts` — classement, rythme, relégation ; fonction pure
+- [x] `src/services/conseils.ts` — 20 sondes, 7 gardes, diagnostic à la demande
+- [x] `src/components/conseils/` — panneau flottant et Server Actions
+- [x] Inventaire complet dans `/profil/aide`, groupé par famille
+- [x] Migration `0028` — `conseil_utilisateur`, policy personnelle
+- [x] 37 tests à l'oracle + cohérence du catalogue
+- [x] Test croisant les rôles d'un conseil avec ceux de sa destination
+
+**Décisions**
+
+- **Par utilisateur, pas par établissement** : chacun apprend à son rythme, et
+  un conseil traité par le Directeur ne doit pas disparaître chez la Secrétaire
+  sans qu'elle l'ait vu.
+- **L'ENSEIGNANT est inclus**, bien qu'il n'ait pas d'onboarding : c'est le rôle
+  qui ignore le plus ce qu'il peut faire.
+- **Aucun état terminal.** « Pas pour moi » relègue en fin de file avec un
+  plancher de 30/90/180 jours. Une fermeture définitive punirait quelqu'un qui a
+  seulement voulu dire « pas maintenant ».
+
+**Pièges consignés**
+
+- Un conseil de découverte n'a pas de sonde : rien ne le retire tant qu'il n'a
+  pas été suivi. Rangé en `EXPLOITATION`, il masquait indéfiniment les conseils
+  de complétion — d'où la famille `DECOUVERTE`, placée en dernier.
+- Un conseil menant à un écran interdit à son rôle apprend à l'utilisateur que
+  la plateforme ment. Le test croisé l'a attrapé sur `/etablissement/notes/saisie`.
+- `evaluation` ne porte pas d'`etablissementId` : filtrer dessus fait échouer la
+  requête au lieu de renvoyer zéro.
+- `requireRole(...ROLES)` inscrit `DYNAMIQUE` dans la matrice et sort les gardes
+  de l'instantané versionné.
+- `listerAide` renvoyait le texte brut : `{restant}` s'affichait en toutes
+  lettres sur l'inventaire. Un test le verrouille désormais pour les deux chemins.
+
+**Reste ouvert**
+
+- **Mobile** : le panneau est desktop uniquement ; sous `md`, le coin est déjà
+  pris par le bouton d'action des listes et la barre d'onglets. Une bannière
+  fine sous l'en-tête reste à faire — ressort de VERNI.
+- **Aucune sonde d'usage** : on mesure ce qui manque en base, pas ce que la
+  personne a réellement ouvert. « Vous n'avez jamais consulté vos statistiques »
+  exigerait une trace de navigation, donc une décision sur ce qu'on observe.
+- Le seuil de trois refus mettant une famille en sourdine 30 jours est décrit
+  mais **non implémenté** : le plancher de relégation couvre déjà le cas courant.
+
+**DoD** : le panneau ne parle jamais deux fois en 24 h, jamais au premier écran,
+et se tait entièrement sur une école entièrement configurée dont tous les
+conseils de découverte ont été vus.
+
+---
