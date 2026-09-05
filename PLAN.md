@@ -2335,6 +2335,11 @@ premier écran porte une décision.
       enseignant, support.
 - [x] `Docs/15` réécrit — il décrivait des composants retirés et prescrivait un
       bouton flottant partout.
+- [x] `/rapports` : champ de recherche — il n'y en avait aucun. Le filtre porte
+      sur l'aperçu, jamais sur l'export ; les totaux disparaissent pendant une
+      recherche ; l'état vide distingue « aucune donnée » de « aucun résultat ».
+- [x] Tableau de bord Directeur : « Reste à recouvrer » descend sous
+      « Recouvrement », dans la colonne que l'anneau laissait à moitié vide.
 - [x] **Bouton flottant : question tranchée**, pas reportée. Il ne vaut que si
       l'action ouvre une **page**. Quand elle ouvre une modale, elle reste dans
       le flux : un bouton flottant vit hors de l'arbre de la page et ne peut pas
@@ -2343,6 +2348,10 @@ premier écran porte une décision.
 
 **Décisions**
 
+- **Filtrer un aperçu ne filtre jamais son export.** Un export tronqué par une
+  recherche oubliée dans l'URL est un piège : on ne s'aperçoit de rien, le
+  fichier a l'air normal. Et pendant une recherche les **totaux disparaissent**,
+  parce qu'un total qui ne correspond pas aux lignes affichées ment.
 - **Le premier écran porte une décision, pas un inventaire.** Le tableau de bord
   Enseignant consacrait 40 % de son premier écran à quatre nombres d'un
   caractère. `CarteAction` ne se répète pas : deux cartes de marque sur un

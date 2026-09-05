@@ -1438,6 +1438,39 @@ C'est un élément d'**identité visuelle**, pas une protection : un filigrane s
 copie. Pour l'authentification d'un document, la piste est un QR code adossé à
 `generateNumeroDocument`.
 
+### Un aperçu se filtre, un export jamais
+
+Toute recherche posée sur une page qui porte aussi des boutons d'export ne doit
+toucher que l'**aperçu**. Un export tronqué par une recherche restée dans l'URL
+est un piège silencieux : le fichier a l'air normal, et l'écart ne se découvre
+qu'au moment où quelqu'un s'appuie dessus.
+
+Deux corollaires, tenus sur `/rapports` :
+
+- **Les totaux disparaissent pendant une recherche.** Un total qui ne correspond
+  pas aux lignes affichées ment ; le masquer vaut mieux que le recalculer, parce
+  qu'un total partiel n'a pas de sens métier.
+- **L'état vide distingue « aucune donnée » de « aucun résultat ».** Les deux ne
+  se réparent pas du même geste, et le second doit rappeler combien de lignes
+  attendent derrière le filtre.
+
+Quand les colonnes sont **dynamiques** — c'est le cas d'un rapport, dont les
+colonnes changent avec le type — la recherche compare la valeur de *chaque*
+cellule. Parier sur une colonne « nom » casse au premier rapport financier, et
+retrouver une ligne par sa classe ou son montant est de toute façon aussi
+légitime.
+
+### Une carte étirée doit savoir se remplir
+
+`CarteAction` sert aussi de colonne dans une grille à deux colonnes de hauteurs
+inégales. Une carte posée en `flex-1` sans disposition interne garde son contenu
+collé en haut : l'étirement recrée le vide qu'on voulait combler, un cran plus
+bas. D'où `flex flex-col` sur la carte et `md:mt-auto` sur son action.
+
+Corollaire pour toute grille de ce genre : **pas d'`items-start`** si l'on veut
+que les colonnes s'égalisent — c'est lui qui laisse la colonne courte flotter en
+haut.
+
 ### Deux échelles typographiques, pas une
 
 `tailwind.config.ts` porte l'échelle dense de `DESIGN.md` (`body-md` à 14px,
