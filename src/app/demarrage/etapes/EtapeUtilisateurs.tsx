@@ -74,14 +74,14 @@ export function EtapeUtilisateurs({
             onChange={(e) => modifier(index, 'nom', e.target.value)}
             placeholder="Nom"
             aria-label={`Nom de la personne ${index + 1}`}
-            className="h-9 w-32"
+            className="h-row-standard w-32"
           />
           <Input
             value={ligne.prenom}
             onChange={(e) => modifier(index, 'prenom', e.target.value)}
             placeholder="Prénom"
             aria-label={`Prénom de la personne ${index + 1}`}
-            className="h-9 w-32"
+            className="h-row-standard w-32"
           />
           <Input
             type="email"
@@ -89,7 +89,7 @@ export function EtapeUtilisateurs({
             onChange={(e) => modifier(index, 'email', e.target.value)}
             placeholder="email@ecole.tg"
             aria-label={`Email de la personne ${index + 1}`}
-            className="h-9 min-w-[11rem] flex-1"
+            className="h-row-standard min-w-[11rem] flex-1"
           />
           <div role="group" aria-label={`Rôle de la personne ${index + 1}`} className="flex gap-1">
             {(['SECRETAIRE', 'COMPTABLE'] as const).map((role) => (

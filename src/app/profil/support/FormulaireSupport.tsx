@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BarreAction } from '@/components/tactile/barre-action';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,10 +20,14 @@ import { envoyerDemandeSupportAction, type ResultatSupport } from './actions';
 
 const initial: ResultatSupport = { ok: false, message: '' };
 
-function BoutonEnvoyer() {
+function BoutonEnvoyer({ pleineLargeur }: { pleineLargeur?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button
+      type="submit"
+      disabled={pending}
+      className={pleineLargeur ? 'w-full' : undefined}
+    >
       {pending ? 'Envoi en cours…' : 'Envoyer au support'}
     </Button>
   );
@@ -48,7 +53,7 @@ export function FormulaireSupport({ pageOrigine }: { pageOrigine: string | null 
   }, [etat.ok]);
 
   return (
-    <form key={cle} action={action} className="space-y-4">
+    <form key={cle} action={action} className="space-y-4 pb-zone-action md:pb-0">
       {pageOrigine && <input type="hidden" name="pageOrigine" value={pageOrigine} />}
 
       <div className="flex flex-col gap-1.5">
@@ -100,7 +105,15 @@ export function FormulaireSupport({ pageOrigine }: { pageOrigine: string | null 
           <p className="text-body-sm text-error">{etat.message}</p>
         ))}
 
-      <BoutonEnvoyer />
+      {/* Masqué sous `md`, où la barre collée prend le relais. Voir
+          `BarreAction` : on double la soumission, on ne la déplace pas. */}
+      <div className="hidden md:block">
+        <BoutonEnvoyer />
+      </div>
+
+      <BarreAction aide="Une réponse arrive par e-mail, en général sous 24 h ouvrées.">
+        <BoutonEnvoyer pleineLargeur />
+      </BarreAction>
     </form>
   );
 }

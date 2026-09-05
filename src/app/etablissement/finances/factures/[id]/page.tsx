@@ -91,7 +91,7 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
           </Badge>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
           {/* min-w-0 : sans lui, une grid track ne rétrécit jamais sous la
               largeur intrinsèque de son contenu (ici le tableau des lignes) —
               c'est toute la page qui s'élargissait et se dézoomait sur

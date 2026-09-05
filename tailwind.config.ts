@@ -107,6 +107,23 @@ const config: Config = {
         'body-sm': ['13px', { lineHeight: '18px', fontWeight: '400' }],
         'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.02em', fontWeight: '600' }],
         'data-mono': ['12px', { lineHeight: '16px', fontWeight: '400' }],
+
+        // Échelle tactile. Elle s'ajoute à l'échelle dense ci-dessus, elle ne
+        // la remplace pas : le desktop reste un outil de bureau à haute
+        // densité, le téléphone est tenu à bout de bras. Les deux cohabitent
+        // parce qu'elles ne portent pas les mêmes noms — une page qui n'a pas
+        // été reprise garde exactement le rendu qu'elle avait.
+        //
+        // Le plancher est 12px. Le relevé du 2026-09-04 a trouvé du texte à
+        // 10px sur 14 pages et à 11px sur 28, sous le plus petit token de
+        // l'échelle : ces valeurs étaient écrites en dur, hors système.
+        'touch-body': ['15px', { lineHeight: '22px', fontWeight: '400' }],
+        'touch-label': ['13px', { lineHeight: '18px', fontWeight: '600' }],
+        'touch-meta': ['12px', { lineHeight: '16px', fontWeight: '400' }],
+        'touch-figure': [
+          '28px',
+          { lineHeight: '30px', letterSpacing: '-0.02em', fontWeight: '700' },
+        ],
       },
       borderRadius: {
         sm: '0.125rem',
@@ -125,6 +142,11 @@ const config: Config = {
         gutter: '16px',
         'row-dense': '32px',
         'row-standard': '44px',
+        // Dégagement sous une page qui porte une barre d'action collée en bas :
+        // 56px de barre d'onglets, 24px de décalage, la barre d'action et
+        // l'encoche. `row-standard` reste la hauteur de cible tactile — pas de
+        // token `h-touch` en doublon, la valeur existe déjà et vaut 44px.
+        'zone-action': 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

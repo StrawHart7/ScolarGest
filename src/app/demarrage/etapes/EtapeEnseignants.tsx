@@ -68,14 +68,14 @@ export function EtapeEnseignants({
             onChange={(e) => modifier(index, 'nom', e.target.value)}
             placeholder="Nom"
             aria-label={`Nom de l'enseignant ${index + 1}`}
-            className="h-9 w-32"
+            className="h-row-standard w-32"
           />
           <Input
             value={ligne.prenoms}
             onChange={(e) => modifier(index, 'prenoms', e.target.value)}
             placeholder="Prénoms"
             aria-label={`Prénoms de l'enseignant ${index + 1}`}
-            className="h-9 w-36"
+            className="h-row-standard w-36"
           />
           <div
             role="group"
@@ -98,7 +98,7 @@ export function EtapeEnseignants({
             onChange={(e) => modifier(index, 'email', e.target.value)}
             placeholder="email@ecole.tg"
             aria-label={`Email de l'enseignant ${index + 1}`}
-            className="h-9 min-w-[12rem] flex-1"
+            className="h-row-standard min-w-[12rem] flex-1"
           />
           {lignes.length > 1 && (
             <Button

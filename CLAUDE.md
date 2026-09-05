@@ -210,12 +210,21 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-04) :
+**Active branches** (2026-09-05) :
 - `feat/soko-modele-fondateur` — programme « ecoles fondatrices » : regime
   tarifaire, plan forfaitaire non public, dix places verrouillees en base,
   refonte de la troisieme offre publique. Migration `0030`. Voir `PLAN.md` § 8.
-- `feat/soko-conseils` — conseils contextuels deduits des donnees, panneau
-  flottant et inventaire dans l'aide. Migration `0028`. Voir `PLAN.md` § 8.
+- `feat/soko-conseils` — ✅ fusionnée (2026-09-05) : conseils contextuels deduits
+  des donnees, panneau flottant et inventaire dans l'aide. Migration `0028`.
+  Voir `PLAN.md` § 8.
+- `design/verni-tactile-socle` — ✅ livrée (2026-09-05), agent VERNI : refonte
+  tactile. Échelle tactile, `src/components/tactile/`, cibles à 44px corrigées à
+  la source, fin des débordements, les cinq tableaux de bord, les titres de
+  fiche, les étiquettes en casse normale, les sections en rangées, la recherche
+  dans les rapports. Aucune migration. **Vérification visuelle à la charge de
+  l'utilisateur.** Voir `PLAN.md` § 8.
+- `design/verni-conseils-mobile` — ✅ fusionnée (2026-09-05), agent VERNI :
+  bannière mobile des conseils. Voir `PLAN.md` § 8.
 - `design/verni-formulaires` — ✅ livrée (2026-09-03), agent VERNI :
   harmonisation des formulaires et des tableaux, token `warning`, `Textarea`,
   option `dense` sur `Table`, plus trois défauts d'accessibilité corrigés
@@ -269,11 +278,20 @@ Before creating any new page, check the `/design-maquette` directory for a subfo
 
 ### Mobile : le motif de liste fait foi
 
-`Docs/15-Motif-liste-mobile.md` décrit la structure **de référence** de toute
-page de liste sous `md` : barre d'outils (recherche + filtres repliés +
-action), ligne de densité, carte de liste, bouton flottant, barre d'onglets
-flottante. Une nouvelle liste la reprend telle quelle — mesures comprises —
-plutôt que d'improviser un rendu mobile page par page.
+`Docs/15-Motif-liste-mobile.md` (réécrit le 2026-09-05) fait foi pour **toute**
+page de liste, desktop compris : `BarreListe` en en-tête d'outils — recherche,
+filtres repliés derrière un bouton, tri, actions — puis `EnteteListe`,
+`CarteListeMobile` et `PaginationListe`. Une nouvelle liste la reprend telle
+quelle, mesures comprises, plutôt que d'improviser page par page.
+
+**`BarreListe` se place en dehors de la `Card`** : c'est ce qui la détache de la
+liste et la rend identique partout. Elle remplace `BarreOutilsListe` et
+`FiltresMobile`, qui ne sont plus importés nulle part — ne pas les reprendre.
+
+**Le bouton flottant ne vaut que si l'action ouvre une page.** Quand elle ouvre
+une modale (`FormulaireModal`), elle reste dans le flux, dans `actions` : un
+bouton flottant vit hors de l'arbre de la page et ne peut pas porter son propre
+déclencheur. Cinq listes seulement en portent un, et ce n'est pas un oubli.
 
 Le desktop n'est pas concerné : le tableau et le `PageHeader` restent en
 place à partir de `md`. Les grilles à colonnes dynamiques et les tableaux de
@@ -1645,6 +1663,131 @@ n'apparaîtrait que sur la première. Module partagé par les trois gabarits.
 C'est un élément d'**identité visuelle**, pas une protection : un filigrane se
 copie. Pour l'authentification d'un document, la piste est un QR code adossé à
 `generateNumeroDocument`.
+
+### Un aperçu se filtre, un export jamais
+
+Toute recherche posée sur une page qui porte aussi des boutons d'export ne doit
+toucher que l'**aperçu**. Un export tronqué par une recherche restée dans l'URL
+est un piège silencieux : le fichier a l'air normal, et l'écart ne se découvre
+qu'au moment où quelqu'un s'appuie dessus.
+
+Deux corollaires, tenus sur `/rapports` :
+
+- **Les totaux disparaissent pendant une recherche.** Un total qui ne correspond
+  pas aux lignes affichées ment ; le masquer vaut mieux que le recalculer, parce
+  qu'un total partiel n'a pas de sens métier.
+- **L'état vide distingue « aucune donnée » de « aucun résultat ».** Les deux ne
+  se réparent pas du même geste, et le second doit rappeler combien de lignes
+  attendent derrière le filtre.
+
+Quand les colonnes sont **dynamiques** — c'est le cas d'un rapport, dont les
+colonnes changent avec le type — la recherche compare la valeur de *chaque*
+cellule. Parier sur une colonne « nom » casse au premier rapport financier, et
+retrouver une ligne par sa classe ou son montant est de toute façon aussi
+légitime.
+
+### Une carte étirée doit savoir se remplir
+
+`CarteAction` sert aussi de colonne dans une grille à deux colonnes de hauteurs
+inégales. Une carte posée en `flex-1` sans disposition interne garde son contenu
+collé en haut : l'étirement recrée le vide qu'on voulait combler, un cran plus
+bas. D'où `flex flex-col` sur la carte et `md:mt-auto` sur son action.
+
+Corollaire pour toute grille de ce genre : **pas d'`items-start`** si l'on veut
+que les colonnes s'égalisent — c'est lui qui laisse la colonne courte flotter en
+haut.
+
+### Deux échelles typographiques, pas une
+
+`tailwind.config.ts` porte l'échelle dense de `DESIGN.md` (`body-md` à 14px,
+`label-md` à 12px) **et** une échelle tactile qui s'y ajoute : `touch-body` 15,
+`touch-label` 13 semi-gras, `touch-meta` 12, `touch-figure` 28.
+
+Elles cohabitent parce qu'elles ne portent pas les mêmes noms : une page non
+reprise garde exactement le rendu qu'elle avait. Le plancher est **12px** — le
+relevé du 2026-09-04 a trouvé du texte à 10px sur 14 pages et à 11px sur 28,
+écrit en dur, hors système.
+
+**Pas de token `h-touch`** : `row-standard` vaut déjà 44px. Un synonyme aurait
+fait diverger les deux au premier ajustement.
+
+### `src/components/tactile/`, jamais `mobile/`
+
+`src/app/mobile/` et `src/components/mobile/` sont **réservés** à la future
+application native (`Docs/16`). Ils n'existent sur aucune branche — vérifié — et
+on n'en crée aucun. Le calque de présentation tactile vit dans
+`src/components/tactile/` : `CarteAction` (la décision du moment, en tête
+d'écran), `GrilleCompteurs` (deux colonnes sous `md`), `BarreAction` (l'action
+principale collée en bas).
+
+Le nom dit aussi mieux ce que c'est : ces composants ne servent pas « les petits
+écrans », ils servent **le doigt**.
+
+### Une pilule n'est pas une cible
+
+La barre d'onglets fait 56px de haut, mais sa zone cliquable mesurait **81×36** —
+relevée 141 fois, sur la navigation principale de toute l'application. Le lien
+prenait la taille de la pilule qu'il contient au lieu de la hauteur de la barre.
+
+Règle qui en découle : **la cible se mesure sur l'élément cliquable**, jamais sur
+le conteneur qui l'entoure ni sur le rendu qu'il porte. `row-standard` (44px) est
+un plancher. Les boutons `size="sm"` (32px) et les liens de 24px n'y satisfont
+pas : sous `md`, forcer `h-row-standard`.
+
+### `grid` sans `grid-cols-*` n'est pas « pas de colonnes »
+
+C'est **une** colonne implicite, dimensionnée sur le contenu le plus large, et
+tous les éléments de la grille en héritent. Sur `/statistiques`, une barre de
+libellés `w-48` imposait 430px à toutes les cartes voisines, dans un écran de
+390 — le seul débordement franc du produit.
+
+`grid-cols-1` vaut `minmax(0,1fr)` et borne la piste à son conteneur. Toute
+grille dont les colonnes n'apparaissent qu'à partir d'un point d'arrêt doit
+déclarer `grid-cols-1` en base. Une grille qui ne déborde que selon son contenu
+est une panne en attente.
+
+### Une étiquette de formulaire n'est pas un en-tête de tableau
+
+`label-md uppercase tracking-wide` vient de `DESIGN.md`, où il désigne les
+**en-têtes de colonnes**. Appliqué aux étiquettes de champ, il crie — « PRÉNOMS »
+avait presque le poids visuel de la valeur qu'il annonce — et coûte 16px de
+hauteur par champ. `Label` est donc en casse normale (`touch-label`). Les
+en-têtes de tableau gardent `label-md uppercase`, qui est leur usage d'origine.
+
+### L'action d'un formulaire se double, elle ne se déplace pas
+
+`BarreAction` reprend l'action principale et la colle en bas sous `md`. Le bouton
+d'origine **reste dans le flux**, simplement masqué : un formulaire dont le
+bouton n'existe que dans une barre flottante devient insoumettable si un clavier
+virtuel la recouvre.
+
+Deux contraintes qui vont avec : la barre se pose au-dessus de la barre
+d'onglets (qui flotte à 24px du bas et fait 56px), et la page dégage la hauteur
+correspondante avec `pb-zone-action` — un élément `fixed` ne peut pas le faire
+lui-même.
+
+### Une garde qui masque doit se poser avant l'appel qui consomme
+
+`PanneauConseil` appelait `demanderConseil` — qui marque `vuLe` et arme un délai
+de 24 heures — **puis** décidait de masquer la bannière. Le conseil était donc
+consommé sans avoir été vu. Ce n'était pas un cas de bord : `AbonnementBanner`
+s'affiche pour tout niveau d'accès autre que `OK`, donc pendant les trente jours
+d'essai de chaque nouvelle école.
+
+Deux règles en sortent :
+
+- **La garde se pose avant l'effet de bord**, pas au rendu. Le bandeau est rendu
+  par le serveur, donc déjà dans le DOM au montage : il se teste avant le
+  minuteur.
+- **Une garde qui ne vaut que pour une présentation doit le dire.** Ici seule la
+  bannière cède le pas ; la carte de bureau n'a jamais été masquée. Sans
+  `window.matchMedia('(max-width: 767px)')`, la correction supprimait la requête
+  pour tout le monde et faisait perdre ses conseils à un poste de bureau pendant
+  tout l'essai.
+
+Et une garde de type « déjà demandé » se relit **dans** le minuteur, pas
+seulement à l'entrée de l'effet : deux minuteurs survivants appelleraient deux
+fois.
 
 ### Composants UI mobile — règles d'usage
 

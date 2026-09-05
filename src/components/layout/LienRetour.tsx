@@ -28,7 +28,11 @@ export function LienRetour({
     <Link
       href={href}
       className={cn(
-        'inline-flex items-center gap-1.5 text-body-sm text-text-secondary transition-colors hover:text-text-primary',
+        // `min-h-row-standard` sous `md` : le lien mesurait 24px de haut,
+        // et c'est la premiere chose qu'on cherche a toucher en arrivant sur
+        // une sous-page. `-ml-1 px-1` compense le rembourrage pour que le
+        // texte reste aligne sur le contenu de la page.
+        'inline-flex min-h-row-standard items-center gap-1.5 -ml-1 px-1 text-body-sm text-text-secondary transition-colors hover:text-text-primary md:min-h-0 md:ml-0 md:px-0',
         className,
       )}
     >

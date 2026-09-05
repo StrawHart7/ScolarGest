@@ -93,8 +93,9 @@ export default async function SuperAdminPage() {
           }
         />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <CarteMetrique
+            compact
             label="Revenu mensuel récurrent"
             valeur={formaterFCFA(m.revenuMensuel)}
             icone={TrendingUp}
@@ -102,6 +103,7 @@ export default async function SuperAdminPage() {
             comparaison="Abonnements actifs, annuels ramenés au douzième"
           />
           <CarteMetrique
+            compact
             label="Encaissé ce mois"
             valeur={formaterFCFA(m.encaisseCeMois)}
             icone={Wallet}
@@ -110,6 +112,7 @@ export default async function SuperAdminPage() {
             comparaison={`contre ${formaterFCFA(encaissements.moisPrecedent)} le mois dernier`}
           />
           <CarteMetrique
+            compact
             label="Écoles"
             valeur={String(m.ecoles.length)}
             icone={Building2}
@@ -118,6 +121,7 @@ export default async function SuperAdminPage() {
             href="/super-admin/etablissements"
           />
           <CarteMetrique
+            compact
             label="Demandes en attente"
             valeur={String(m.demandesNouvelles)}
             icone={Inbox}
