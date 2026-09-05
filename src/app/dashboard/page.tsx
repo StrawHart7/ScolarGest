@@ -21,7 +21,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { CarteAction } from '@/components/tactile/carte-action';
 import { GrilleCompteurs } from '@/components/tactile/grille-compteurs';
-import { getSidebarItems } from '@/lib/navigation';
+import { cheminAutorise, getSidebarItems } from '@/lib/navigation';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
 import { encaissementsAnnee, effectifsParClasse } from '@/services/series-ecole';
@@ -135,6 +135,21 @@ export default async function DashboardPage() {
     redirect('/super-admin');
   }
 
+  /**
+   * Filet : un tableau de bord ne propose jamais une destination que la garde
+   * de la page refusera.
+   *
+   * Les tuiles sont construites à la main, rôle par rôle, et rien ne reliait
+   * leur `href` aux `requireRole` des pages visées. Le 2026-09-05, la tuile
+   * « Notes à approuver » du Directeur pointait vers une page réservée à la
+   * Secrétaire : sa propre page d'accueil lui servait un écran d'erreur.
+   *
+   * Sans `href`, `CarteMetrique` se rend en simple compteur — le chiffre reste
+   * lisible, seul le lien disparaît. C'est le bon compromis : le Directeur a
+   * besoin de savoir combien de notes attendent, pas de les valider lui-même.
+   */
+  const lien = (href: string) => (cheminAutorise(href, ctx.role) ? href : undefined);
+
   const annee = await getAnneeCourante();
   if (!annee) {
     return layout(
@@ -177,7 +192,7 @@ export default async function DashboardPage() {
                 stats.eleves.nouveauxCeMois > 0
                   ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
                   : 'Aucune nouvelle inscription ce mois-ci',
-              href: '/etablissement/eleves',
+              href: lien('/etablissement/eleves'),
             },
             {
               label: 'Remplissage',
@@ -185,7 +200,7 @@ export default async function DashboardPage() {
               icone: School,
               ton: 'neutre',
               comparaison: `${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places, ${nombre(stats.classes.nombre)} classes`,
-              href: '/etablissement/classes',
+              href: lien('/etablissement/classes'),
             },
             {
               label: 'Encaissé cette année',
@@ -194,7 +209,7 @@ export default async function DashboardPage() {
               ton: 'succes',
               variation: encaissements.variation,
               comparaison: `sur ${fcfa(stats.finance.attendu)} facturés`,
-              href: '/etablissement/finances/paiements',
+              href: lien('/etablissement/finances/paiements'),
             },
             {
               label: 'Notes à approuver',
@@ -203,9 +218,9 @@ export default async function DashboardPage() {
               ton: stats.academique.notesEnAttente > 0 ? 'alerte' : 'neutre',
               comparaison:
                 stats.academique.notesEnAttente > 0
-                  ? 'En attente de votre validation'
+                  ? 'En attente de validation par la Secrétaire'
                   : `${nombre(stats.academique.bulletinsGeneres)} bulletins générés`,
-              href: '/etablissement/notes/approbation',
+              href: lien('/etablissement/notes/approbation'),
             },
           ]}
         />
@@ -231,7 +246,11 @@ export default async function DashboardPage() {
                 intitule="Reste à recouvrer sur l’année"
                 valeur={fcfa(stats.finance.impaye)}
                 precision={`${nombre(stats.finance.facturesTotal - stats.finance.facturesSoldees)} facture${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} non soldée${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} sur ${nombre(stats.finance.facturesTotal)}.`}
-                action={{ libelle: 'Voir les impayés', href: '/etablissement/finances/factures' }}
+                action={
+              cheminAutorise('/etablissement/finances/factures', ctx.role)
+                ? { libelle: 'Voir les impayés', href: '/etablissement/finances/factures' }
+                : undefined
+            }
                 icone={Wallet}
               />
             )}
@@ -270,7 +289,11 @@ export default async function DashboardPage() {
             intitule="Reste à recouvrer"
             valeur={fcfa(finance.impaye)}
             precision={`${nombre(finance.facturesTotal - finance.facturesSoldees)} facture${finance.facturesTotal - finance.facturesSoldees > 1 ? 's' : ''} non soldée${finance.facturesTotal - finance.facturesSoldees > 1 ? 's' : ''} sur ${nombre(finance.facturesTotal)}.`}
-            action={{ libelle: 'Voir les factures', href: '/etablissement/finances/factures' }}
+            action={
+              cheminAutorise('/etablissement/finances/factures', ctx.role)
+                ? { libelle: 'Voir les factures', href: '/etablissement/finances/factures' }
+                : undefined
+            }
             icone={Coins}
           />
         )}
@@ -283,7 +306,7 @@ export default async function DashboardPage() {
               icone: Coins,
               ton: 'neutre',
               comparaison: `${nombre(finance.facturesTotal)} factures émises`,
-              href: '/etablissement/finances/factures',
+              href: lien('/etablissement/finances/factures'),
             },
             {
               label: 'Encaissé',
@@ -292,7 +315,7 @@ export default async function DashboardPage() {
               ton: 'succes',
               variation: encaissements.variation,
               comparaison: 'Paiements enregistrés sur l’année',
-              href: '/etablissement/finances/paiements',
+              href: lien('/etablissement/finances/paiements'),
             },
             {
               label: 'Factures soldées',
@@ -341,7 +364,11 @@ export default async function DashboardPage() {
             intitule="Notes en attente de validation"
             valeur={`${nombre(stats.notesEnAttente)} note${stats.notesEnAttente > 1 ? 's' : ''}`}
             precision="Une note non validée n’apparaît sur aucun bulletin."
-            action={{ libelle: 'Traiter les demandes', href: '/etablissement/notes/approbation' }}
+            action={
+              cheminAutorise('/etablissement/notes/approbation', ctx.role)
+                ? { libelle: 'Traiter les demandes', href: '/etablissement/notes/approbation' }
+                : undefined
+            }
             icone={BookOpen}
           />
         )}
@@ -357,7 +384,7 @@ export default async function DashboardPage() {
                 stats.eleves.nouveauxCeMois > 0
                   ? `${nombre(stats.eleves.nouveauxCeMois)} nouveau${stats.eleves.nouveauxCeMois > 1 ? 'x' : ''} ce mois-ci`
                   : 'Aucune nouvelle inscription ce mois-ci',
-              href: '/etablissement/eleves',
+              href: lien('/etablissement/eleves'),
             },
             {
               label: 'Classes',
@@ -365,7 +392,7 @@ export default async function DashboardPage() {
               icone: School,
               ton: 'neutre',
               comparaison: `${nombre(stats.classes.effectifTotal)} élèves sur ${nombre(stats.classes.capaciteTotale)} places`,
-              href: '/etablissement/classes',
+              href: lien('/etablissement/classes'),
             },
             {
               label: 'Bulletins générés',
@@ -373,7 +400,7 @@ export default async function DashboardPage() {
               icone: FileText,
               ton: 'succes',
               comparaison: 'Sur l’année scolaire en cours',
-              href: '/etablissement/notes/bulletins',
+              href: lien('/etablissement/notes/bulletins'),
             },
           ]}
         />
@@ -413,7 +440,11 @@ export default async function DashboardPage() {
           intitule="À soumettre pour approbation"
           valeur={`${nombre(stats.notesBrouillon)} note${stats.notesBrouillon > 1 ? 's' : ''}`}
           precision="Une note en brouillon n’entre dans aucune moyenne tant qu’elle n’est pas soumise."
-          action={{ libelle: 'Saisir mes notes', href: '/etablissement/notes/saisie' }}
+          action={
+              cheminAutorise('/etablissement/notes/saisie', ctx.role)
+                ? { libelle: 'Saisir mes notes', href: '/etablissement/notes/saisie' }
+                : undefined
+            }
           icone={FileText}
         />
       )}
@@ -432,7 +463,7 @@ export default async function DashboardPage() {
             icone: School,
             ton: 'primaire',
             comparaison: `${nombre(stats.matieres)} matière${stats.matieres > 1 ? 's' : ''} enseignée${stats.matieres > 1 ? 's' : ''}`,
-            href: '/etablissement/mes-classes',
+            href: lien('/etablissement/mes-classes'),
           },
           {
             label: 'Mes matières',
@@ -457,7 +488,7 @@ export default async function DashboardPage() {
                   icone: FileText,
                   ton: 'succes' as const,
                   comparaison: 'Tout est soumis',
-                  href: '/etablissement/notes/saisie',
+                  href: lien('/etablissement/notes/saisie'),
                 },
               ]),
         ]}
