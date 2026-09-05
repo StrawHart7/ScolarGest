@@ -48,7 +48,11 @@ export function CarteAction({
   return (
     <section
       className={cn(
-        'relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-container p-5 text-white shadow-subtle',
+        // `flex flex-col` : la carte sert aussi de colonne etiree, posee sous
+        // « Recouvrement » a cote d'une colonne d'activite plus haute. Sans
+        // elle, le contenu resterait colle en haut et l'etirement produirait
+        // exactement le vide qu'on cherchait a combler.
+        'relative flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-container p-5 text-white shadow-subtle',
         className,
       )}
     >
@@ -77,7 +81,10 @@ export function CarteAction({
         // 44px, que les boutons `size="sm"` (32px) ne tenaient pas.
         <Link
           href={action.href}
-          className="relative mt-4 inline-flex h-row-standard items-center gap-2 rounded-full bg-white px-5 text-touch-label text-primary transition-colors hover:bg-primary-fixed"
+          // `mt-auto` plutot que `mt-4` : quand la carte est etiree, l'action
+          // descend au bas plutot que de laisser le blanc sous elle. Le
+          // `mt-4` reste le minimum quand la carte tient sa hauteur naturelle.
+          className="relative mt-4 inline-flex h-row-standard items-center gap-2 self-start rounded-full bg-white px-5 text-touch-label text-primary transition-colors hover:bg-primary-fixed md:mt-auto"
         >
           {action.libelle}
           <ArrowRight className="h-4 w-4" aria-hidden />

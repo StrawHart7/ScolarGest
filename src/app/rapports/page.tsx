@@ -47,6 +47,7 @@ export default async function RapportsPage({
     anneeScolaireId?: string;
     classeId?: string;
     periode?: string;
+    q?: string;
   };
 }) {
   const [ctx, annees] = await Promise.all([getTenantContext(), listAnneesScolaires()]);
@@ -72,6 +73,7 @@ export default async function RapportsPage({
         ]
       : await listClasses(anneeScolaireId);
 
+  const recherche = (searchParams.q ?? '').trim().toLowerCase();
   const typeDemande = searchParams.type as TypeRapport | undefined;
   const type: TypeRapport | undefined =
     typeDemande && disponibles.some((r) => r.type === typeDemande)
@@ -97,6 +99,29 @@ export default async function RapportsPage({
       erreur = e instanceof Error ? e.message : 'Erreur lors de la construction du rapport';
     }
   }
+
+  /**
+   * Recherche libre dans l'aperçu.
+   *
+   * Un rapport n'a pas de colonne « nom » garantie : ses colonnes changent avec
+   * son type. On compare donc la valeur de **chaque** cellule, sans supposer
+   * laquelle porte l'identité. C'est plus large qu'une recherche par nom, et
+   * c'est ce qu'on veut ici — retrouver une ligne par sa classe, son matricule
+   * ou son montant est aussi légitime que par son nom.
+   *
+   * Le filtre porte sur l'aperçu, **pas sur l'export** : celui-ci reste complet.
+   * Un export tronqué par une recherche oubliée dans l'URL serait un piège.
+   */
+  const lignesAffichees =
+    rapport && recherche
+      ? rapport.lignes.filter((ligne) =>
+          rapport!.colonnes.some((colonne) =>
+            String(ligne[colonne.cle] ?? '')
+              .toLowerCase()
+              .includes(recherche),
+          ),
+        )
+      : (rapport?.lignes ?? []);
 
   const parametresExport = new URLSearchParams();
   if (type) parametresExport.set('type', type);
@@ -133,6 +158,7 @@ export default async function RapportsPage({
         ) : (
           <>
             <BarreListe
+              placeholderRecherche="Rechercher dans le rapport…"
               filtresLibres={
                 <RapportsFiltres
                   rapports={disponibles}
@@ -184,11 +210,22 @@ export default async function RapportsPage({
                     Complétez les filtres pour afficher le rapport.
                   </p>
                 </CardContent>
-              ) : rapport.lignes.length === 0 ? (
+              ) : lignesAffichees.length === 0 ? (
                 <CardContent className="py-16 text-center">
+                  {/* « Aucune donnée » et « aucun résultat » ne demandent pas le
+                      même geste : le second se répare en effaçant la recherche. */}
                   <p className="text-body-md text-text-primary">
-                    Aucune donnée pour cette sélection.
+                    {rapport.lignes.length === 0
+                      ? 'Aucune donnée pour cette sélection.'
+                      : `Aucune ligne ne contient « ${searchParams.q} ».`}
                   </p>
+                  {rapport.lignes.length > 0 && (
+                    <p className="mt-1 text-body-sm text-text-secondary">
+                      Le rapport compte {rapport.lignes.length} ligne
+                      {rapport.lignes.length > 1 ? 's' : ''} : effacez la recherche pour toutes les
+                      voir.
+                    </p>
+                  )}
                 </CardContent>
               ) : (
                 <>
@@ -209,7 +246,7 @@ export default async function RapportsPage({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rapport.lignes.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => (
+                        {lignesAffichees.slice(0, MAX_LIGNES_APERCU).map((ligne, index) => (
                           // eslint-disable-next-line react/no-array-index-key -- lignes de rapport sans identifiant propre
                           <TableRow key={index}>
                             {rapport!.colonnes.map((colonne) => (
@@ -223,7 +260,7 @@ export default async function RapportsPage({
                             ))}
                           </TableRow>
                         ))}
-                        {rapport.totaux && (
+                        {rapport.totaux && !recherche && (
                           <TableRow>
                             {rapport.colonnes.map((colonne) => (
                               <TableCell
@@ -249,7 +286,7 @@ export default async function RapportsPage({
                     reste en paires libellé/valeur. Générique, quel que soit le
                     rapport. */}
                   <ul className="flex flex-col divide-y divide-surface-border md:hidden">
-                    {rapport.lignes.slice(0, MAX_LIGNES_APERCU_MOBILE).map((ligne, index) => {
+                    {lignesAffichees.slice(0, MAX_LIGNES_APERCU_MOBILE).map((ligne, index) => {
                       const [premiere, ...reste] = rapport!.colonnes;
                       if (!premiere) return null;
                       return (
@@ -288,7 +325,7 @@ export default async function RapportsPage({
                         </li>
                       );
                     })}
-                    {rapport.totaux && (
+                    {rapport.totaux && !recherche && (
                       <li className="bg-surface-container-low px-1 py-3">
                         <dl className="flex flex-col gap-1">
                           {rapport.colonnes.map((colonne) => {
@@ -322,8 +359,10 @@ export default async function RapportsPage({
                   </ul>
 
                   <div className="border-t border-surface-border p-3 text-body-sm text-text-secondary">
-                    {rapport.lignes.length} ligne(s)
-                    {rapport.lignes.length > MAX_LIGNES_APERCU_MOBILE
+                    {recherche
+                      ? `${lignesAffichees.length} ligne(s) sur ${rapport.lignes.length}`
+                      : `${rapport.lignes.length} ligne(s)`}
+                    {lignesAffichees.length > MAX_LIGNES_APERCU_MOBILE
                       ? ` — aperçu limité aux ${MAX_LIGNES_APERCU_MOBILE} premières sur téléphone et aux ${MAX_LIGNES_APERCU} premières sur écran large, l’export contient tout.`
                       : ''}
                   </div>

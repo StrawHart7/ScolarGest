@@ -166,16 +166,6 @@ export default async function DashboardPage() {
         {/* Une rangee de metriques expliquees plutot que huit compteurs nus.
             Chaque carte porte sa comparaison en clair : « 276 » ne dit rien,
             « 276 / 481 places » dit si l'ecole est pleine. */}
-        {stats.finance.impaye > 0 && (
-          <CarteAction
-            intitule="Reste à recouvrer sur l’année"
-            valeur={fcfa(stats.finance.impaye)}
-            precision={`${nombre(stats.finance.facturesTotal - stats.finance.facturesSoldees)} facture${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} non soldée${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} sur ${nombre(stats.finance.facturesTotal)}.`}
-            action={{ libelle: 'Voir les impayés', href: '/etablissement/finances/factures' }}
-            icone={Wallet}
-          />
-        )}
-
         <GrilleCompteurs
           items={[
             {
@@ -224,9 +214,28 @@ export default async function DashboardPage() {
 
         {/* L'activite recente occupait toute la largeur pour une colonne de
             libelles courts. Elle passe a cote du recouvrement : c'est du
-            contexte, pas le sujet de la page. */}
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-          <TauxRecouvrement finance={stats.finance} />
+            contexte, pas le sujet de la page.
+            
+            La carte « Reste a recouvrer » vit dans cette colonne et non en tete
+            d'ecran : elle y est a cote du chiffre qu'elle commente, et elle
+            comble le vide que laissait l'anneau sous une colonne d'activite
+            deux fois plus haute. Pas d'`items-start` ici — les deux colonnes
+            s'etirent a la meme hauteur, et `flex-1` sur la carte absorbe
+            l'ecart plutot que de le laisser en blanc. */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-6">
+            <TauxRecouvrement finance={stats.finance} />
+            {stats.finance.impaye > 0 && (
+              <CarteAction
+                className="flex-1"
+                intitule="Reste à recouvrer sur l’année"
+                valeur={fcfa(stats.finance.impaye)}
+                precision={`${nombre(stats.finance.facturesTotal - stats.finance.facturesSoldees)} facture${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} non soldée${stats.finance.facturesTotal - stats.finance.facturesSoldees > 1 ? 's' : ''} sur ${nombre(stats.finance.facturesTotal)}.`}
+                action={{ libelle: 'Voir les impayés', href: '/etablissement/finances/factures' }}
+                icone={Wallet}
+              />
+            )}
+          </div>
           <FluxActivite evenements={flux} />
         </div>
 
