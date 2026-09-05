@@ -53,8 +53,13 @@ export async function AbonnementBanner() {
   const peutPayer = role === 'DIRECTEUR' || role === 'COMPTABLE';
 
   return (
+    // `data-bandeau` est lu par la banniere de conseil, qui se pose en `fixed`
+    // sous l'en-tete sur telephone et recouvrirait ce bandeau. Un avertissement
+    // d'abonnement prime sur une suggestion : la banniere se tait quand ce
+    // repere est present. Ne pas le retirer sans corriger `PanneauConseil`.
     <div
       role="status"
+      data-bandeau="abonnement"
       className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-container-pad py-3 ${ton.cadre}`}
     >
       {bloquant ? (
