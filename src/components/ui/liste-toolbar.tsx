@@ -91,7 +91,7 @@ export function RechercheListe({
         onChange={(e) => setValeur(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-10 w-full rounded-lg border border-surface-border bg-surface-container-lowest pl-10 pr-9 text-body-md text-text-primary shadow-sm transition-colors placeholder:text-outline-variant hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 md:pl-9 md:shadow-none [&::-webkit-search-cancel-button]:hidden"
+        className="h-row-standard w-full rounded-lg border border-surface-border bg-surface-container-lowest pl-10 pr-9 text-body-md md:h-10 text-text-primary shadow-sm transition-colors placeholder:text-outline-variant hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 md:pl-9 md:shadow-none [&::-webkit-search-cancel-button]:hidden"
       />
       <span className="absolute right-3 top-1/2 -translate-y-1/2">
         {enAttente ? (
@@ -143,7 +143,7 @@ export function RechercheLocale({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-10 w-full rounded-lg border border-surface-border bg-surface-container-lowest pl-10 pr-9 text-body-md text-text-primary shadow-sm transition-colors placeholder:text-outline-variant hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 md:pl-9 md:shadow-none [&::-webkit-search-cancel-button]:hidden"
+        className="h-row-standard w-full rounded-lg border border-surface-border bg-surface-container-lowest pl-10 pr-9 text-body-md md:h-10 text-text-primary shadow-sm transition-colors placeholder:text-outline-variant hover:border-primary-container/40 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20 md:pl-9 md:shadow-none [&::-webkit-search-cancel-button]:hidden"
       />
       {valeur && (
         <button

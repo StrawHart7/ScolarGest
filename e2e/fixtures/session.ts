@@ -49,7 +49,7 @@ export async function seConnecter(page: Page, role: RoleTest): Promise<void> {
 
   await page.goto('/login');
   await page.getByLabel('Adresse e-mail').fill(compte.email);
-  await page.getByLabel('Mot de passe').fill(compte.motDePasse);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(compte.motDePasse);
   // Nom exact : la page porte aussi un bouton Google, qu'un motif large
   // attraperait au passage.
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();

@@ -41,11 +41,22 @@ export default async function BulletinsElevePage({ params }: { params: { id: str
       <div className="mx-auto max-w-4xl space-y-6">
         <LienRetour href={`/etablissement/eleves/${eleve.id}`}>Retour à la fiche élève</LienRetour>
 
+        {/*
+          Le nom de l'eleve tenait dans un `CardTitle`, donc la page n'avait
+          aucun `<h1>`. Sur telephone il n'y a pas de barre laterale pour
+          situer : l'en-tete affiche « ScolarGest » et rien d'autre ne nomme
+          l'ecran.
+        */}
+        <div>
+          <h1 className="text-display-sm text-text-primary">Bulletins</h1>
+          <p className="mt-1 text-body-md text-text-secondary">
+            {eleve.nom} {eleve.prenoms} — <span data-mono>{eleve.matricule}</span>
+          </p>
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>
-              Bulletins — {eleve.nom} {eleve.prenoms}
-            </CardTitle>
+            <CardTitle>Bulletins édités</CardTitle>
           </CardHeader>
           <CardContent>
             {!canWrite ? null : !inscriptionActive ? (

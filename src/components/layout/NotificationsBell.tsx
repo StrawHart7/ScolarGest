@@ -36,12 +36,12 @@ export async function NotificationsBell() {
       href="/profil/notifications"
       title="Notifications"
       aria-label={count > 0 ? `Notifications, ${count} en attente` : 'Notifications'}
-      className="relative grid h-10 w-10 place-items-center rounded-full text-primary-container transition-colors hover:bg-surface-container-high active:bg-surface-container-high md:h-9 md:w-9 md:rounded md:text-text-secondary md:hover:text-text-primary"
+      className="relative grid h-row-standard w-row-standard place-items-center rounded-full text-primary-container transition-colors hover:bg-surface-container-high active:bg-surface-container-high md:h-9 md:w-9 md:rounded md:text-text-secondary md:hover:text-text-primary"
     >
       <Bell className="h-[20px] w-[20px] md:h-[18px] md:w-[18px]" aria-hidden />
       {count > 0 && (
         <span
-          className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error md:right-1.5 md:top-1.5"
+          className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-error md:right-1.5 md:top-1.5"
           aria-hidden
         />
       )}

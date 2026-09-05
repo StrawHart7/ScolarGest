@@ -36,9 +36,9 @@ export default async function FicheElevePage({ params }: { params: { id: string 
                 <UserCircle2 className="h-8 w-8" aria-hidden />
               </div>
               <div>
-                <p className="text-headline-sm text-text-primary">
+                <h1 className="text-display-sm text-text-primary">
                   {eleve.nom} {eleve.prenoms}
-                </p>
+                </h1>
                 <p className="text-body-sm text-text-secondary" data-mono>
                   Matricule : {eleve.matricule}
                 </p>

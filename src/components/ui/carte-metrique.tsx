@@ -40,6 +40,13 @@ export interface CarteMetriqueProps {
   /** Ligne de comparaison, en clair. */
   comparaison?: string;
   href?: string;
+  /**
+   * Rendu resserre pour une grille a deux colonnes sur telephone : padding
+   * reduit, echelle tactile, comparaison bornee a deux lignes. Au-dela de
+   * `md` le rendu est identique au rendu normal — la densite ne change que
+   * la ou l'espace manque. Pose par `GrilleCompteurs`, pas a la main.
+   */
+  compact?: boolean;
 }
 
 export function CarteMetrique({
@@ -50,19 +57,38 @@ export function CarteMetrique({
   variation,
   comparaison,
   href,
+  compact,
 }: CarteMetriqueProps) {
   const contenu = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-body-sm font-medium text-text-secondary">{label}</p>
-        <span className={cn('shrink-0 rounded-xl p-2', PASTILLE[ton])}>
+      <div className="flex items-start justify-between gap-2 md:gap-3">
+        <p
+          className={cn(
+            'font-medium text-text-secondary',
+            compact ? 'text-touch-meta md:text-body-sm' : 'text-body-sm',
+          )}
+        >
+          {label}
+        </p>
+        <span
+          className={cn(
+            'shrink-0 rounded-xl',
+            PASTILLE[ton],
+            compact ? 'p-1.5 md:p-2' : 'p-2',
+          )}
+        >
           <Icone className="h-4 w-4" aria-hidden />
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-baseline gap-2">
+      <div
+        className={cn('flex flex-wrap items-baseline gap-2', compact ? 'mt-2 md:mt-3' : 'mt-3')}
+      >
         <span
-          className="text-[26px] font-semibold leading-none tracking-tight text-text-primary"
+          className={cn(
+            'font-semibold leading-none tracking-tight text-text-primary',
+            compact ? 'text-touch-figure md:text-[26px]' : 'text-[26px]',
+          )}
           data-mono
         >
           {valeur}
@@ -73,13 +99,27 @@ export function CarteMetrique({
       </div>
 
       {comparaison && (
-        <p className="mt-2 text-body-sm text-text-secondary">{comparaison}</p>
+        // Bornee a deux lignes en mode resserre : « 286 eleves sur 481 places,
+        // 14 classes » tient sur une ligne a 390px de large, sur trois dans
+        // une colonne de 170px, et la carte voisine ne suit pas cette hauteur.
+        <p
+          className={cn(
+            'text-text-secondary',
+            compact
+              ? 'mt-1.5 line-clamp-2 text-touch-meta md:mt-2 md:line-clamp-none md:text-body-sm'
+              : 'mt-2 text-body-sm',
+          )}
+        >
+          {comparaison}
+        </p>
       )}
     </>
   );
 
-  const classes =
-    'block rounded-2xl border border-surface-border bg-surface-container-lowest p-5 transition-shadow';
+  const classes = cn(
+    'block rounded-2xl border border-surface-border bg-surface-container-lowest transition-shadow',
+    compact ? 'p-3.5 md:p-5' : 'p-5',
+  );
 
   if (href) {
     return (

@@ -8,12 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Button } from '@/components/ui/button';
+import { BarreAction } from '@/components/tactile/barre-action';
 import { creerEnseignant } from './actions';
 
-function SubmitButton() {
+function SubmitButton({ pleineLargeur }: { pleineLargeur?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" disabled={pending}>
+    <Button
+      type="submit"
+      size="lg"
+      disabled={pending}
+      className={pleineLargeur ? 'w-full' : undefined}
+    >
       {pending ? 'Enregistrement...' : "Enregistrer l'enseignant"}
     </Button>
   );
@@ -47,7 +53,7 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
   });
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6 pb-zone-action md:pb-0">
       <input type="hidden" name="payload" value={payload} />
 
       <section className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
@@ -134,9 +140,15 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
       </section>
 
       {error && <p className="text-body-sm text-error">{error}</p>}
-      <div className="flex justify-end gap-3 border-t border-surface-border pt-6">
+      {/* Masqué sous `md`, où la barre collée prend le relais. Voir
+          `BarreAction` : on double la soumission, on ne la déplace pas. */}
+      <div className="hidden justify-end gap-3 border-t border-surface-border pt-6 md:flex">
         <SubmitButton />
       </div>
+
+      <BarreAction aide="Vous pourrez affecter des classes après l’enregistrement.">
+        <SubmitButton pleineLargeur />
+      </BarreAction>
     </form>
   );
 }

@@ -39,7 +39,7 @@ export default async function AnneeScolaireDetailPage({ params }: { params: { id
                 <CalendarRange className="h-7 w-7" aria-hidden />
               </div>
               <div>
-                <p className="text-headline-sm text-text-primary">{annee.libelle}</p>
+                <h1 className="text-display-sm text-text-primary">{annee.libelle}</h1>
                 <p className="text-body-sm text-text-secondary">
                   {new Date(annee.dateDebut).toLocaleDateString('fr-FR')} —{' '}
                   {new Date(annee.dateFin).toLocaleDateString('fr-FR')}

@@ -159,7 +159,7 @@ function BoutonBarre({
       onClick={onClick}
       aria-label={badge ? `${libelle} (${badge} actif${badge > 1 ? 's' : ''})` : libelle}
       className={cn(
-        'relative inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-body-md transition-colors',
+        'relative inline-flex h-row-standard shrink-0 items-center gap-2 rounded-lg border px-3 text-body-md transition-colors md:h-10',
         actif
           ? 'border-primary-container bg-primary-fixed text-primary-container'
           : 'border-surface-border bg-surface-container-lowest text-text-secondary hover:border-primary-container/40 hover:text-text-primary',

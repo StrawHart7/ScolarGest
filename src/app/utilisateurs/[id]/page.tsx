@@ -35,9 +35,9 @@ export default async function UtilisateurDetailPage({ params }: { params: { id: 
                 <UserRound className="h-7 w-7" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-headline-sm text-text-primary">
+                <h1 className="truncate text-display-sm text-text-primary">
                   {utilisateur.prenom} {utilisateur.nom}
-                </p>
+                </h1>
                 <p className="truncate text-body-sm text-text-secondary">{utilisateur.email}</p>
               </div>
               <div className="ml-auto flex flex-wrap gap-2">

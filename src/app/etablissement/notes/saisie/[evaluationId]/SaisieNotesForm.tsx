@@ -521,7 +521,7 @@ export function SaisieNotesForm({
           const row = rows[eleve.id] ?? { valeur: '', observation: '', dirty: false };
           return (
             <div key={eleve.id} className="flex flex-col gap-2 p-3">
-              <span className="font-medium text-text-primary">
+              <span className="text-touch-label text-text-primary">
                 {eleve.nom} {eleve.prenoms}
               </span>
               <div className="flex items-center gap-2">
@@ -534,14 +534,14 @@ export function SaisieNotesForm({
                   value={row.valeur}
                   onChange={(e) => updateValeur(eleve.id, e.target.value)}
                   placeholder="--/20"
-                  className="h-9 w-20 shrink-0 rounded border border-surface-border bg-surface px-2 text-center font-mono text-data-mono text-text-primary focus:border-primary-container focus:outline-none"
+                  className="h-row-standard w-20 shrink-0 rounded-lg border border-surface-border bg-surface px-2 text-center font-mono text-touch-body text-text-primary focus:border-primary-container focus:outline-none"
                 />
                 <input
                   type="text"
                   value={row.observation}
                   onChange={(e) => updateObservation(eleve.id, e.target.value)}
                   placeholder="Observation (facultatif)"
-                  className="h-9 flex-1 rounded border border-surface-border bg-surface px-2 text-body-sm text-text-primary focus:border-primary-container focus:outline-none"
+                  className="h-row-standard flex-1 rounded-lg border border-surface-border bg-surface px-2 text-touch-body text-text-primary focus:border-primary-container focus:outline-none"
                 />
               </div>
             </div>
