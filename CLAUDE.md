@@ -591,6 +591,34 @@ gestionnaire de file qui se contenterait de les appeler tiendrait tout echec
 pour un succes et **viderait la file en perdant son contenu** : d'ou la
 conversion explicite en exception (`exigerSucces`).
 
+**Precharger le HTML d'une page sans ses fichiers ne sert a rien.** Panne
+constatee en production le 2026-09-07 : la page arrivait bien du cache, puis
+React reclamait `page-<empreinte>.js`, absent, et l'hydratation tombait sur
+l'ecran d'erreur de l'application. **Une page a moitie disponible est pire
+qu'une page absente** — elle promet puis echoue, et l'utilisateur ne sait pas
+si c'est lui, le reseau ou le produit. `mettreEnCacheRessources` extrait donc
+les chemins `/_next/static/` du HTML et les met en cache avec lui.
+
+L'extraction est une expression reguliere : **`DOMParser` n'existe pas dans un
+service worker**. Elle capture large puis retire les caracteres finaux qui ne
+peuvent pas appartenir a un chemin — dans les donnees RSC les guillemets sont
+echappes, et sans ce nettoyage l'URL emporte le caractere d'echappement. Une
+URL ainsi salie n'existe pas : son telechargement echouerait a **chaque**
+prechargement sans que rien ne le signale.
+
+**Toute ressource publique servie hors `/_next` doit etre interceptee
+explicitement.** Le manifeste etait precache mais ne tombait dans aucune
+branche du handler — ni `/_next/static/`, ni `/assets/` — il partait donc au
+reseau et echouait alors que sa copie etait a portee de main. Meme famille que
+l'exclusion du `matcher` de `src/middleware.ts` : une ressource publique se
+declare a deux endroits, pas un.
+
+**`public/sw.js` n'est ni compile, ni type, ni couvert par le build.** Il a
+pourtant le dernier mot sur ce qu'une ecole voit pendant six heures de coupure.
+`src/lib/offline/__tests__/service-worker.test.ts` lit le fichier reel et
+eprouve ses expressions telles qu'elles y sont ecrites — les recopier dans le
+test les ferait diverger en silence.
+
 **La deconnexion efface cache, file et brouillons.** Contrepartie assumee de la
 consultation hors ligne sur poste partage. D'ou l'avertissement chiffre de
 `DeconnexionButton` : sans lui, le balayage detruirait sans un mot une saisie

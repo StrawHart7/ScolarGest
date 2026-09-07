@@ -2785,11 +2785,30 @@ sur l'école de démonstration « Les Victorieux » :
 Build de production vert (exit 0) : c'est lui qui prouve l'absence d'erreur de
 frontière serveur/client, invisible en `typecheck`.
 
+#### Deux défauts corrigés après mise en production (2026-09-07)
+
+Signalés par l'utilisateur, capture de l'onglet Réseau à l'appui. Aucun des deux
+n'était visible en test unitaire.
+
+1. **`respondWith(undefined)`** — `caches.match('/offline')` peut résoudre sur
+   `undefined`, et le navigateur traduit ça en erreur réseau : l'écran gris de
+   Chrome à la place de la page de secours. Cause en amont : `cache.addAll` est
+   **atomique**, donc le manifeste en 401 sur une preview Vercel protégée
+   faisait échouer tout le précache, `/offline` compris. Le repli rend désormais
+   toujours une réponse, jusqu'à une page fabriquée dans le service worker.
+2. **Le préchargement rangeait le HTML sans les fichiers JavaScript.** La page
+   arrivait du cache, puis l'hydratation échouait faute de `page-<empreinte>.js`
+   — l'utilisateur lisait « Une erreur est survenue » sur une page qu'on croyait
+   préparée. Une page à moitié disponible est pire qu'une page absente.
+
+`public/sw.js` n'était couvert par aucun test — ni compilé, ni typé, ni touché
+par le build. Sept tests lisent maintenant le fichier réel.
+
 #### Reste à faire
 
 - [ ] Cache de **données** structuré (magasin `cache` d'IndexedDB) : la
       consultation repose aujourd'hui sur les pages mises en cache par le
-      service worker, ce qui couvre les écrans déjà visités et rien d'autre.
+      service worker, ce qui couvre les écrans préchargés et déjà visités.
 - [ ] Background Sync API quand elle est disponible, en plus du retry
       événementiel actuel.
 - [ ] Protection du double-clic **en ligne** : la clé d'idempotence n'est posée
@@ -2798,6 +2817,11 @@ frontière serveur/client, invisible en `typecheck`.
 
 **DoD** : lint, typecheck, 402 tests unitaires, build de production et deux
 parcours Playwright de coupure — tous verts.
+
+**Non vérifié en exécution** : les deux correctifs ci-dessus n'ont été observés
+ni par un build ni par Playwright — le disque de la machine était plein, puis le
+temps de compilation a fait renoncer. Les tests couvrent l'extraction des
+chemins, pas le comportement du navigateur.
 
 **Trace laissée** : trois versements de 1 000 F sur la facture de démonstration
 `947bd788` (« Les Victorieux »), un par exécution du test. Volontairement non
