@@ -2634,8 +2634,8 @@ mobile sans bandeau 1, bureau avec bandeau 1.
 
 ### Fonctionnalité — Hors-ligne complet et synchronisation
 
-**Statut** : socle livré le 2026-09-07 (`feat/soko-offline-sync`). Écrans non
-encore branchés — voir « Reste à faire ».
+**Statut** : socle livré et migration appliquée le 2026-09-07
+(`feat/soko-offline-sync`). Écrans non encore branchés — voir « Reste à faire ».
 
 **Objectif** : qu'une école continue de travailler pendant une coupure. Le
 contexte, donné par l'utilisateur le 2026-09-07 : au Togo le courant est coupé
@@ -2700,7 +2700,8 @@ un poste partagé.
 
 #### Reste à faire
 
-- [ ] Appliquer la migration sur la base réelle (**non appliquée**).
+- [x] Migration **appliquée** sur la base réelle le 2026-09-07. Vérifiée par
+      requête : table, index unique, quatre fonctions, deux policies, RLS active.
 - [ ] Brancher `soumettreNotesAction` et `demanderModificationAction` sur la
       file — aujourd'hui synchrones.
 - [ ] Brancher l'encaissement d'un versement. C'est ce qui a motivé

@@ -513,6 +513,58 @@ serait restaurable sous un autre compte sur un poste partagé ; et le retry
 est idempotent parce que `saisirNoteAction` est un upsert sur
 `(evaluationId, eleveId)`.
 
+### Hors-ligne : rejouer est la regle, pas l'exception
+
+Migration `20260907160725_operation_client.sql`, appliquee le 2026-09-07.
+Contexte : au Togo le courant est coupe de trois a six heures, parfois tous les
+jours. L'appareil tient sur batterie, c'est le reseau qui disparait.
+
+**Une file hors ligne rejoue.** Elle rejoue quand la reponse se perd, quand
+l'utilisateur recharge, quand deux onglets reviennent en ligne ensemble. Les
+brouillons de notes s'en accommodaient parce que `saisirNoteAction` est un
+upsert sur `(evaluationId, eleveId)`. **C'etait une chance, pas une regle** : un
+versement rejoue encaisse deux fois. Aucun ecran ne se met en file sans passer
+par `executerUneSeuleFois` (`src/services/synchronisation.ts`).
+
+**C'est l'insertion qui verrouille.** « Lire, puis executer si absent, puis
+inserer » est faux : deux onglets concurrents lisent tous les deux « absent ».
+`fn_reclamer_operation` insere d'abord ; l'index unique tranche, et le perdant
+apprend qu'il rejoue.
+
+**Trois etats, pas deux.** `resultat` nul distingue « reclamee, en cours
+ailleurs » de « achevee ». Sans cette distinction, un second onglet conclurait
+« deja faite » et retirerait l'operation de sa file avant qu'elle n'aboutisse.
+Et le serveur **rend le resultat de la premiere application** : repondre
+seulement « deja fait » laisserait le client sans le numero du recu emis.
+
+**L'unicite porte sur `(etablissementId, cle)`**, jamais sur la cle seule : un
+tenant pourrait pre-inserer des cles pour faire passer les ecritures d'une
+autre ecole pour deja appliquees.
+
+**Ni `update` ni `delete` en RLS.** Une ligne effacable ne protege plus de rien.
+Les trois transitions passent par des fonctions `security definer` — dont
+`fn_abandonner_operation`, sans laquelle une panne au milieu d'un encaissement
+laisserait la cle reclamee pour toujours : l'idempotence se retournerait contre
+l'utilisateur.
+
+**La cle est fabriquee par le client**, avant d'agir, et gardee a travers la
+coupure. Une cle attribuee par le serveur exigerait le reseau qu'on n'a pas.
+
+**Une seule ouverture d'IndexedDB** (`src/lib/offline/db.ts`). Deux modules
+ouvrant `scolargest-offline` a deux versions differentes font echouer le
+second, et le formulaire de saisie perd sa persistance **sans le moindre
+message**.
+
+**Une operation epuisee reste visible**, jamais supprimee : perdre
+silencieusement un encaissement serait pire que de le laisser en attente. Et un
+echec n'arrete pas la file — bloquer sur la premiere ligne fautive ferait
+perdre une journee de saisie.
+
+**La deconnexion efface cache, file et brouillons.** Contrepartie assumee de la
+consultation hors ligne sur poste partage. D'ou l'avertissement chiffre de
+`DeconnexionButton` : sans lui, le balayage detruirait sans un mot une saisie
+faite pendant une coupure.
+
 ### Server Actions : ne jamais supposer qu'un appel aboutit
 
 Une Server Action interrompue — coupure réseau, redémarrage du serveur de
