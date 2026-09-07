@@ -208,6 +208,7 @@ support.getLienPieceJointe = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNA
 support.listDemandesSupport = SUPER_ADMIN
 support.listDemandesSupportEtablissement = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 support.repondreDemandeSupport = SUPER_ADMIN
+synchronisation.executerUneSeuleFois = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 tarif.createTarif = SUPER_ADMIN+SECRETAIRE+COMPTABLE
 tarif.listTarifs = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 tarif.totalTarifs = AUCUNE

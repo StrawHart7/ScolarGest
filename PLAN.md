@@ -2679,3 +2679,130 @@ objet, mais **la cause n'est pas identifiée**.
 mobile sans bandeau 1, bureau avec bandeau 1.
 
 ---
+
+### Fonctionnalité — Hors-ligne complet et synchronisation
+
+**Statut** : socle livré et migration appliquée le 2026-09-07
+(`feat/soko-offline-sync`). Écrans non encore branchés — voir « Reste à faire ».
+
+**Objectif** : qu'une école continue de travailler pendant une coupure. Le
+contexte, donné par l'utilisateur le 2026-09-07 : au Togo le courant est coupé
+de trois à six heures, parfois tous les jours de la semaine. L'appareil tient
+sur batterie, c'est le réseau qui disparaît — donc la **consultation** compte
+autant que la saisie.
+
+Le premier incrément (fiche « PWA ») avait explicitement écarté quatre choses :
+cache de lecture, moteur de synchronisation générique, Background Sync, et mise
+en file des transitions d'état. C'est exactement le périmètre repris ici.
+
+#### Ce qui est livré
+
+- [x] **Migration `20260907160725_operation_client.sql`** — journal
+      d'idempotence. Le client fabrique une clé **avant** d'agir et la garde à
+      travers la coupure ; le serveur n'applique l'opération que pour la
+      première tentative et rend aux suivantes le résultat de celle-là.
+- [x] **`fn_reclamer_operation` / `fn_achever_operation` /
+      `fn_abandonner_operation`** — trois transitions, aucune écrivable
+      directement par le tenant (ni `update` ni `delete` en RLS : une ligne
+      effaçable ne protège plus de rien).
+- [x] **`src/services/synchronisation.ts`** — `executerUneSeuleFois(clé, type,
+      travail)`, gardée sur les quatre rôles école.
+- [x] **`src/lib/offline/db.ts`** — ouverture unique de la base locale, v2,
+      trois magasins (brouillons, file, cache).
+- [x] **`src/lib/offline/file-attente.ts`** — file générique : ordre d'arrivée,
+      recul exponentiel plafonné à 30 min, un échec n'arrête pas la file, une
+      opération épuisée n'est jamais supprimée. 9 tests.
+- [x] **`src/lib/offline/operations.ts`** — vocabulaire sans dépendance,
+      importable des deux côtés de la frontière serveur/client.
+- [x] **Avertissement à la déconnexion** quand des écritures sont en attente :
+      le balayage local les détruirait sans un mot.
+
+#### Décisions
+
+**L'insertion fait office de verrou.** Le premier réflexe — « lire, puis
+exécuter si absent, puis insérer » — est faux : deux onglets revenus en ligne
+ensemble lisent tous les deux « absent » et encaissent deux fois. C'est l'index
+unique qui tranche, et le perdant apprend qu'il rejoue.
+
+**Trois états, pas deux.** `resultat` nul distingue « réclamée, en cours
+ailleurs » de « achevée ». Sans cette distinction, un second onglet conclurait
+« déjà faite » et retirerait l'opération de sa file avant qu'elle n'aboutisse.
+
+**L'unicité porte sur `(etablissementId, cle)`.** Sur la clé seule, un tenant
+pourrait pré-insérer des clés pour faire passer les écritures d'une autre école
+pour déjà appliquées.
+
+**La clé est fabriquée par le client.** Une clé attribuée par le serveur
+exigerait le réseau qu'on n'a précisément pas.
+
+**Une opération épuisée reste visible.** Perdre silencieusement un encaissement
+serait pire que de le laisser en attente.
+
+**Purge à un an, pas trente jours.** La fenêtre doit couvrir un appareil resté
+éteint toute une période de vacances avec des écritures en attente.
+
+**Le cache est effacé à la déconnexion.** Contrepartie assumée de la
+consultation hors ligne : depuis que des données d'établissement vivent sur
+l'appareil, n'en effacer qu'une partie exposerait l'école au compte suivant sur
+un poste partagé.
+
+#### Écrans branchés (2026-09-07, second incrément)
+
+- [x] Migration **appliquée** sur la base réelle. Vérifiée par requête : table,
+      index unique, quatre fonctions, deux policies, RLS active.
+- [x] **Encaissement d'un versement hors ligne.** Le formulaire intercepte la
+      soumission avant d'appeler la Server Action, met en file, et le libellé du
+      bouton devient « Mettre l'encaissement en attente » — écrire « Valider »
+      ferait croire l'argent encaissé.
+- [x] **Soumission des notes et demande de correction** sur la file. Les lignes
+      encore `dirty` sont déposées **avant** la soumission : l'ordre d'arrivée
+      empêche de verrouiller l'évaluation sur une saisie incomplète.
+- [x] **Moteur monté une fois pour toute l'application** (`AppLayout`), via une
+      enveloppe serveur qui lit le contexte tenant — passer `userId` en props
+      depuis chaque page aurait exigé une quarantaine de fichiers, et la
+      première page oubliée aurait perdu sa file en silence.
+- [x] **Bandeau « N écritures en attente »**, avec le détail par opération, le
+      motif du dernier échec, et un envoi manuel.
+- [x] **Le service worker met enfin les pages en cache.** Il prévoyait le repli
+      `caches.match` mais rien n'y déposait jamais de navigation : toute coupure
+      menait à `/offline`, même sur une page vue une minute plus tôt.
+- [x] **Purge du cache de pages à la déconnexion**, par message au service
+      worker — lui seul sait sous quel nom il range ses caches.
+
+#### Vérifié par le chemin réel
+
+Deux parcours Playwright (`e2e/hors-ligne.spec.ts`), joués contre la base réelle
+sur l'école de démonstration « Les Victorieux » :
+
+- **Encaissement hors ligne** : coupure, mise en file, retour du réseau, envoi
+  automatique. Contrôlé en base — **un versement par exécution, jamais deux**,
+  et une ligne `operation_client` achevée par versement.
+- **Consultation hors ligne** : une page déjà visitée se recharge sans réseau,
+  et ce n'est pas `/offline`.
+- **Le verrou d'unicité** : deux insertions de la même clé, la seconde refusée
+  (`unique_violation`). Testé en SQL, ligne de test retirée.
+
+Build de production vert (exit 0) : c'est lui qui prouve l'absence d'erreur de
+frontière serveur/client, invisible en `typecheck`.
+
+#### Reste à faire
+
+- [ ] Cache de **données** structuré (magasin `cache` d'IndexedDB) : la
+      consultation repose aujourd'hui sur les pages mises en cache par le
+      service worker, ce qui couvre les écrans déjà visités et rien d'autre.
+- [ ] Background Sync API quand elle est disponible, en plus du retry
+      événementiel actuel.
+- [ ] Protection du double-clic **en ligne** : la clé d'idempotence n'est posée
+      que pour les écritures mises en file. En attacher une à une saisie en
+      ligne ferait prendre le versement suivant pour un rejeu du précédent.
+
+**DoD** : lint, typecheck, 402 tests unitaires, build de production et deux
+parcours Playwright de coupure — tous verts.
+
+**Trace laissée** : trois versements de 1 000 F sur la facture de démonstration
+`947bd788` (« Les Victorieux »), un par exécution du test. Volontairement non
+supprimés : `paiement` est une donnée financière, et forcer `statut` en SQL
+contournerait le service et son journal d'audit tout en risquant de désaccorder
+le statut de la facture.
+
+---

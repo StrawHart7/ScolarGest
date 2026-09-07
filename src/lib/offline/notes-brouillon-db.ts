@@ -1,69 +1,32 @@
 'use client';
 
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { ouvrirBase, effacerToutLeLocal, type RowStateBrouillon } from './db';
 
 /**
- * Persistance locale (IndexedDB) des brouillons de saisie de notes non
- * encore enregistrés côté serveur. Protège contre la perte de saisie lors
- * d'un rechargement ou d'une coupure réseau (voir `SaisieNotesForm.tsx`).
+ * Brouillons de saisie de notes non encore enregistres cote serveur.
+ * Protege contre la perte de saisie lors d'un rechargement ou d'une coupure
+ * (voir `SaisieNotesForm.tsx`).
  *
- * La donnée persistée EST la file d'attente de synchronisation : une ligne
- * `dirty: true` est une ligne restant à envoyer via `saisirNoteAction`, il
- * n'y a pas de structure de file séparée à maintenir en double.
+ * La donnee persistee EST la file d'attente pour ce cas precis : une ligne
+ * `dirty` est une ligne restant a envoyer via `saisirNoteAction`, qui est un
+ * upsert sur `(evaluationId, eleveId)` — donc rejouable sans consequence. Il
+ * n'y a pas de structure de file separee a maintenir en double.
  *
- * Clé composite `${userId}:${evaluationId}` — namespacée par utilisateur
- * pour qu'un brouillon ne soit jamais restauré sous un autre compte sur un
- * poste partagé (voir `effacerTousBrouillons`, appelée à la déconnexion).
+ * Cette equivalence ne s'etend pas aux operations qui ne sont pas des upserts
+ * (soumission d'evaluation, versement) : celles-la passent par
+ * `file-attente.ts` et une cle d'idempotence.
  *
- * Toutes les fonctions avalent leurs erreurs (quota dépassé, navigation
- * privée stricte, IndexedDB indisponible) : l'absence de brouillon local ne
- * doit jamais faire planter le formulaire, seulement dégrader la
- * récupération en cas de coupure — même posture défensive que
- * `src/components/pwa/pwa-installer.tsx` pour l'enregistrement du SW.
+ * Cle composite `${userId}:${evaluationId}` — namespacee par utilisateur pour
+ * qu'un brouillon ne soit jamais restaure sous un autre compte sur un poste
+ * partage (voir `effacerTousBrouillons`, appelee a la deconnexion).
+ *
+ * L'ouverture de la base vit desormais dans `db.ts` : deux modules ouvrant la
+ * meme base a deux versions differentes, le second echoue.
  */
 
-export interface RowStateBrouillon {
-  valeur: string;
-  observation: string;
-  dirty: boolean;
-}
+export type { RowStateBrouillon };
 
-interface BrouillonRecord {
-  cle: string;
-  userId: string;
-  evaluationId: string;
-  rows: Record<string, RowStateBrouillon>;
-  misAJourLe: number;
-}
-
-interface NotesBrouillonDB extends DBSchema {
-  'notes-brouillon': {
-    key: string;
-    value: BrouillonRecord;
-  };
-}
-
-const DB_NAME = 'scolargest-offline';
-const STORE_NAME = 'notes-brouillon';
-const DB_VERSION = 1;
-
-let dbPromise: Promise<IDBPDatabase<NotesBrouillonDB>> | null = null;
-
-function getDb(): Promise<IDBPDatabase<NotesBrouillonDB>> {
-  if (typeof indexedDB === 'undefined') {
-    return Promise.reject(new Error('IndexedDB indisponible'));
-  }
-  if (!dbPromise) {
-    dbPromise = openDB<NotesBrouillonDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'cle' });
-        }
-      },
-    });
-  }
-  return dbPromise;
-}
+const MAGASIN = 'notes-brouillon' as const;
 
 function cle(userId: string, evaluationId: string): string {
   return `${userId}:${evaluationId}`;
@@ -74,8 +37,8 @@ export async function lireBrouillon(
   evaluationId: string,
 ): Promise<Record<string, RowStateBrouillon> | null> {
   try {
-    const db = await getDb();
-    const record = await db.get(STORE_NAME, cle(userId, evaluationId));
+    const db = await ouvrirBase();
+    const record = await db.get(MAGASIN, cle(userId, evaluationId));
     return record?.rows ?? null;
   } catch {
     return null;
@@ -88,8 +51,8 @@ export async function ecrireBrouillon(
   rows: Record<string, RowStateBrouillon>,
 ): Promise<void> {
   try {
-    const db = await getDb();
-    await db.put(STORE_NAME, {
+    const db = await ouvrirBase();
+    await db.put(MAGASIN, {
       cle: cle(userId, evaluationId),
       userId,
       evaluationId,
@@ -97,27 +60,29 @@ export async function ecrireBrouillon(
       misAJourLe: Date.now(),
     });
   } catch {
-    // Pas de brouillon local persisté cette fois-ci — la saisie continue
-    // normalement en mémoire, seule la récupération après coupure est perdue.
+    // Pas de brouillon local persiste cette fois-ci — la saisie continue
+    // normalement en memoire, seule la reprise apres coupure est perdue.
   }
 }
 
 export async function effacerBrouillon(userId: string, evaluationId: string): Promise<void> {
   try {
-    const db = await getDb();
-    await db.delete(STORE_NAME, cle(userId, evaluationId));
+    const db = await ouvrirBase();
+    await db.delete(MAGASIN, cle(userId, evaluationId));
   } catch {
-    // Rien à faire : au pire un brouillon obsolète reste en cache local,
-    // sans conséquence puisqu'il ne sera relu que si dirty pour cet évaluation.
+    // Au pire un brouillon obsolete reste en cache local, sans consequence :
+    // il n'est relu que pour cette evaluation, et ses lignes non dirty sont
+    // ignorees.
   }
 }
 
-/** Balayage complet, appelé à la déconnexion (poste partagé). */
+/**
+ * Balayage complet a la deconnexion (poste partage).
+ *
+ * Efface desormais le cache de consultation et la file en plus des
+ * brouillons : depuis que des donnees d'etablissement sont stockees
+ * localement, n'en effacer qu'une partie exposerait l'ecole au compte suivant.
+ */
 export async function effacerTousBrouillons(): Promise<void> {
-  try {
-    const db = await getDb();
-    await db.clear(STORE_NAME);
-  } catch {
-    // Idem : dégrade silencieusement, ne bloque jamais la déconnexion.
-  }
+  await effacerToutLeLocal();
 }

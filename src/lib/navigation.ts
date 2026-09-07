@@ -358,3 +358,36 @@ export function cheminAutorise(chemin: string, role: Role): boolean {
   const roles = ROLES_PAR_CHEMIN.get(chemin);
   return roles ? roles.has(role) : true;
 }
+
+/**
+ * Toutes les destinations statiques qu'un role peut atteindre.
+ *
+ * Sert au prechargement hors ligne : a la premiere connexion, l'application
+ * demande au service worker de mettre ces pages en cache pendant qu'il y a du
+ * reseau. Sans cela, seules les pages **deja ouvertes** survivent a une
+ * coupure, et personne ne visite chaque ecran « au cas ou » avant une panne de
+ * courant qui ne previent pas.
+ *
+ * Deux sources, dedupliquees : les entrees de barre laterale, et les blocs de
+ * `SECTIONS` que le role est autorise a voir. La premiere donne les points
+ * d'entree, la seconde les ecrans reels — une section n'est qu'un sommaire, et
+ * precharger le sommaire sans les pages qu'il liste ne servirait a rien.
+ *
+ * **Les routes dynamiques en sont absentes**, faute d'identifiant : la fiche
+ * d'un eleve ou d'une facture ne se precharge pas. Elles restent disponibles
+ * hors ligne si elles ont ete ouvertes, comme avant.
+ */
+export function cheminsAccessibles(role: Role): string[] {
+  const chemins = new Set<string>();
+  for (const item of getSidebarItems(role)) chemins.add(item.href);
+  for (const section of Object.values(SECTIONS)) {
+    for (const bloc of section.blocs) {
+      if (bloc.roles.includes(role)) chemins.add(bloc.href);
+    }
+  }
+  // Toujours utiles, et absentes des deux sources : le profil porte les
+  // reglages de compte et le support reste joignable en lecture seule.
+  chemins.add('/profil');
+  chemins.add('/profil/support');
+  return [...chemins];
+}
