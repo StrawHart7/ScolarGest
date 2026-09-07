@@ -2631,3 +2631,91 @@ objet, mais **la cause n'est pas identifiée**.
 mobile sans bandeau 1, bureau avec bandeau 1.
 
 ---
+
+### Fonctionnalité — Hors-ligne complet et synchronisation
+
+**Statut** : socle livré le 2026-09-07 (`feat/soko-offline-sync`). Écrans non
+encore branchés — voir « Reste à faire ».
+
+**Objectif** : qu'une école continue de travailler pendant une coupure. Le
+contexte, donné par l'utilisateur le 2026-09-07 : au Togo le courant est coupé
+de trois à six heures, parfois tous les jours de la semaine. L'appareil tient
+sur batterie, c'est le réseau qui disparaît — donc la **consultation** compte
+autant que la saisie.
+
+Le premier incrément (fiche « PWA ») avait explicitement écarté quatre choses :
+cache de lecture, moteur de synchronisation générique, Background Sync, et mise
+en file des transitions d'état. C'est exactement le périmètre repris ici.
+
+#### Ce qui est livré
+
+- [x] **Migration `20260907160725_operation_client.sql`** — journal
+      d'idempotence. Le client fabrique une clé **avant** d'agir et la garde à
+      travers la coupure ; le serveur n'applique l'opération que pour la
+      première tentative et rend aux suivantes le résultat de celle-là.
+- [x] **`fn_reclamer_operation` / `fn_achever_operation` /
+      `fn_abandonner_operation`** — trois transitions, aucune écrivable
+      directement par le tenant (ni `update` ni `delete` en RLS : une ligne
+      effaçable ne protège plus de rien).
+- [x] **`src/services/synchronisation.ts`** — `executerUneSeuleFois(clé, type,
+      travail)`, gardée sur les quatre rôles école.
+- [x] **`src/lib/offline/db.ts`** — ouverture unique de la base locale, v2,
+      trois magasins (brouillons, file, cache).
+- [x] **`src/lib/offline/file-attente.ts`** — file générique : ordre d'arrivée,
+      recul exponentiel plafonné à 30 min, un échec n'arrête pas la file, une
+      opération épuisée n'est jamais supprimée. 9 tests.
+- [x] **`src/lib/offline/operations.ts`** — vocabulaire sans dépendance,
+      importable des deux côtés de la frontière serveur/client.
+- [x] **Avertissement à la déconnexion** quand des écritures sont en attente :
+      le balayage local les détruirait sans un mot.
+
+#### Décisions
+
+**L'insertion fait office de verrou.** Le premier réflexe — « lire, puis
+exécuter si absent, puis insérer » — est faux : deux onglets revenus en ligne
+ensemble lisent tous les deux « absent » et encaissent deux fois. C'est l'index
+unique qui tranche, et le perdant apprend qu'il rejoue.
+
+**Trois états, pas deux.** `resultat` nul distingue « réclamée, en cours
+ailleurs » de « achevée ». Sans cette distinction, un second onglet conclurait
+« déjà faite » et retirerait l'opération de sa file avant qu'elle n'aboutisse.
+
+**L'unicité porte sur `(etablissementId, cle)`.** Sur la clé seule, un tenant
+pourrait pré-insérer des clés pour faire passer les écritures d'une autre école
+pour déjà appliquées.
+
+**La clé est fabriquée par le client.** Une clé attribuée par le serveur
+exigerait le réseau qu'on n'a précisément pas.
+
+**Une opération épuisée reste visible.** Perdre silencieusement un encaissement
+serait pire que de le laisser en attente.
+
+**Purge à un an, pas trente jours.** La fenêtre doit couvrir un appareil resté
+éteint toute une période de vacances avec des écritures en attente.
+
+**Le cache est effacé à la déconnexion.** Contrepartie assumée de la
+consultation hors ligne : depuis que des données d'établissement vivent sur
+l'appareil, n'en effacer qu'une partie exposerait l'école au compte suivant sur
+un poste partagé.
+
+#### Reste à faire
+
+- [ ] Appliquer la migration sur la base réelle (**non appliquée**).
+- [ ] Brancher `soumettreNotesAction` et `demanderModificationAction` sur la
+      file — aujourd'hui synchrones.
+- [ ] Brancher l'encaissement d'un versement. C'est ce qui a motivé
+      l'idempotence : numérotation du reçu, solde de facture, journal d'audit.
+      Le reçu n'existe qu'après synchronisation.
+- [ ] Cache de consultation (élèves, classes, factures) et alimentation depuis
+      les écrans.
+- [ ] Indicateur global « N écritures en attente » et écran de reprise
+      manuelle pour les opérations épuisées.
+- [ ] Background Sync API quand elle est disponible, en plus du retry
+      événementiel actuel.
+
+**DoD** : lint, typecheck et tests verts. **Non vérifié** : le comportement réel
+en coupure — la machine de développement ne fait pas tourner le serveur. Aucun
+écran n'est encore branché sur la file, donc rien n'a changé pour l'utilisateur
+à ce stade.
+
+---
