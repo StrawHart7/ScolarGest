@@ -2815,13 +2815,20 @@ par le build. Sept tests lisent maintenant le fichier réel.
       que pour les écritures mises en file. En attacher une à une saisie en
       ligne ferait prendre le versement suivant pour un rejeu du précédent.
 
-**DoD** : lint, typecheck, 402 tests unitaires, build de production et deux
-parcours Playwright de coupure — tous verts.
+**DoD** : lint, typecheck, 413 tests unitaires, build de production et deux
+parcours Playwright de coupure — tous verts. (Le build et les parcours datent du
+socle ; les deux correctifs du service worker livrés ensuite n'ont eu que lint,
+typecheck et les tests unitaires.)
 
-**Non vérifié en exécution** : les deux correctifs ci-dessus n'ont été observés
-ni par un build ni par Playwright — le disque de la machine était plein, puis le
-temps de compilation a fait renoncer. Les tests couvrent l'extraction des
-chemins, pas le comportement du navigateur.
+**Vérifié en production par l'utilisateur** le 2026-09-07 : le comportement
+hors ligne est conforme. C'est une vérification humaine sur le déploiement réel,
+pas un parcours automatisé — les correctifs du service worker n'ont toujours pas
+de test de bout en bout, et `e2e/hors-ligne.spec.ts` n'a pas été rejoué depuis
+(disque saturé, puis temps de compilation). Les tests unitaires couvrent
+l'extraction des chemins, pas le navigateur.
+
+Autrement dit : **on sait que ça marche, on n'a pas encore de quoi le
+re-prouver** au prochain changement. Rejouer la suite Playwright reste à faire.
 
 **Trace laissée** : trois versements de 1 000 F sur la facture de démonstration
 `947bd788` (« Les Victorieux »), un par exécution du test. Volontairement non
