@@ -13,7 +13,13 @@ import { SynchronisationProvider } from './synchronisation-context';
  * Montee dans `AppLayout`, donc sur toute l'application authentifiee — jamais
  * sur `/login` ni sur la landing, qui n'ont rien a synchroniser.
  */
-export async function Synchronisation({ children }: { children: React.ReactNode }) {
+export async function Synchronisation({
+  cheminsAPrecharger,
+  children,
+}: {
+  cheminsAPrecharger?: string[];
+  children: React.ReactNode;
+}) {
   let userId = '';
   let etablissementId = '';
   try {
@@ -29,7 +35,11 @@ export async function Synchronisation({ children }: { children: React.ReactNode 
   if (!userId) return <>{children}</>;
 
   return (
-    <SynchronisationProvider userId={userId} etablissementId={etablissementId}>
+    <SynchronisationProvider
+      userId={userId}
+      etablissementId={etablissementId}
+      cheminsAPrecharger={cheminsAPrecharger}
+    >
       {children}
     </SynchronisationProvider>
   );

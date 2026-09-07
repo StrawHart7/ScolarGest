@@ -78,10 +78,13 @@ const GESTIONNAIRES: Gestionnaires = {
 export function SynchronisationProvider({
   userId,
   etablissementId,
+  cheminsAPrecharger = [],
   children,
 }: {
   userId: string;
   etablissementId: string;
+  /** Destinations du role connecte, mises en cache tant qu'il y a du reseau. */
+  cheminsAPrecharger?: string[];
   children: React.ReactNode;
 }) {
   const { enLigne } = useConnectivity();
@@ -142,6 +145,36 @@ export function SynchronisationProvider({
     }, 5 * 60_000);
     return () => clearInterval(minuteur);
   }, [enLigne, synchroniser]);
+
+  /**
+   * Prepare les destinations du menu pendant qu'il y a du reseau.
+   *
+   * Sans cela, seules les pages deja ouvertes survivent a une coupure, et
+   * l'utilisateur qui change de page tombe sur l'ecran d'erreur du navigateur.
+   * Personne ne visite chaque page « au cas ou » avant une coupure qui ne
+   * previent pas.
+   *
+   * Retarde de quelques secondes : au chargement, la page courante et ses
+   * ressources ont la priorite sur des pages que l'utilisateur n'a pas encore
+   * demandees. Sur une connexion togolaise, se disputer la bande passante avec
+   * l'ecran affiche serait un mauvais echange.
+   */
+  React.useEffect(() => {
+    if (!enLigne || cheminsAPrecharger.length === 0) return;
+    const minuteur = setTimeout(() => {
+      try {
+        navigator.serviceWorker?.controller?.postMessage({
+          type: 'PRECHARGER_PAGES',
+          urls: cheminsAPrecharger,
+        });
+      } catch {
+        // Pas de service worker actif : la consultation hors ligne se limitera
+        // aux pages reellement visitees. Rien a signaler a l'utilisateur.
+      }
+    }, 4_000);
+    return () => clearTimeout(minuteur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enLigne, cheminsAPrecharger.join('|')]);
 
   const valeur = React.useMemo<CtxSynchronisation>(
     () => ({ enAttente: operations.length, operations, mettreEnFile, synchroniser, enCours }),

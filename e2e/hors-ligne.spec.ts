@@ -94,3 +94,41 @@ test.describe('consultation hors ligne', () => {
     await expect(page).not.toHaveURL(/\/offline/);
   });
 });
+
+test.describe('prechargement', () => {
+  test.skip(identifiants('SECRETAIRE') === null, raisonAbsence('SECRETAIRE'));
+  test.use({ storageState: cheminSession('SECRETAIRE') });
+
+  test('ouvre une page jamais visitee, hors ligne', async ({ page, context }) => {
+    // Le defaut signale le 2026-09-07 : hors ligne, changer de page menait a
+    // l'ecran d'erreur du navigateur. Seules les pages deja ouvertes etaient
+    // en cache, et personne ne visite chaque ecran « au cas ou » avant une
+    // coupure de courant qui ne previent pas.
+    await page.goto('/dashboard');
+    await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, {
+      timeout: 30_000,
+    });
+
+    // Le prechargement part 4s apres le montage, puis telecharge par paquets
+    // de quatre. On attend qu'une page jamais visitee soit reellement en
+    // cache plutot qu'un delai fixe, qui serait flaky sur une machine lente.
+    const CIBLE = '/etablissement/finances/tarifs';
+    await page.waitForFunction(
+      async (chemin) => {
+        for (const nom of await caches.keys()) {
+          const cache = await caches.open(nom);
+          if (await cache.match(chemin)) return true;
+        }
+        return false;
+      },
+      CIBLE,
+      { timeout: 60_000 },
+    );
+
+    await context.setOffline(true);
+    await page.goto(CIBLE);
+
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Page non disponible hors connexion/i)).toBeHidden();
+  });
+});

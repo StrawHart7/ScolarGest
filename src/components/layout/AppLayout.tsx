@@ -7,6 +7,8 @@ import { BulleSupport } from './BulleSupport';
 import { PanneauConseil } from '@/components/conseils/PanneauConseil';
 import { SidebarCollapseProvider, ContenuDecale } from './sidebar-collapse';
 import { ToastProvider } from '@/components/ui/toast';
+import { cheminsAccessibles } from '@/lib/navigation';
+import type { Role } from '@/services/tenant';
 import { Synchronisation } from '@/components/offline/Synchronisation';
 import { IndicateurFile } from '@/components/offline/IndicateurFile';
 
@@ -26,7 +28,17 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
         authentifiee : une ecriture mise en file depuis un ecran doit partir
         meme si l'utilisateur a navigue ailleurs entre-temps.
       */}
-      <Synchronisation>
+      {/*
+        Toutes les destinations du role, pas seulement celles de la barre
+        laterale : un ecran atteint depuis une page de section doit lui aussi
+        survivre a la coupure. `role` peut manquer sur un rendu partiel, on
+        retombe alors sur les seules entrees affichees.
+      */}
+      <Synchronisation
+        cheminsAPrecharger={
+          role ? cheminsAccessibles(role as Role) : items.map((item) => item.href)
+        }
+      >
       <SidebarCollapseProvider>
         <div className="min-h-screen bg-surface">
           <Sidebar items={items} />
