@@ -309,3 +309,52 @@ export const ITEM_SUPPORT: SidebarItem = {
   href: '/profil/support',
   icone: 'support',
 };
+
+const ROLES_ECOLE: Role[] = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'];
+
+/**
+ * Rôles autorisés sur un chemin, déduits du catalogue de navigation.
+ *
+ * Deux sources, parce qu'aucune n'est complète à elle seule : les blocs de
+ * `SECTIONS` portent déjà un `roles` explicite, et les entrées de barre
+ * latérale disent implicitement qu'un rôle a accès à ce qu'on lui propose.
+ * Un chemin absent des deux n'est pas « interdit à tous » : il est inconnu.
+ */
+const ROLES_PAR_CHEMIN: Map<string, Set<Role>> = (() => {
+  const carte = new Map<string, Set<Role>>();
+  const ajouter = (href: string, role: Role) => {
+    const deja = carte.get(href);
+    if (deja) deja.add(role);
+    else carte.set(href, new Set([role]));
+  };
+  for (const section of Object.values(SECTIONS)) {
+    for (const bloc of section.blocs) {
+      for (const role of bloc.roles) ajouter(bloc.href, role);
+    }
+  }
+  for (const role of ROLES_ECOLE) {
+    for (const item of getSidebarItems(role)) ajouter(item.href, role);
+  }
+  return carte;
+})();
+
+/**
+ * Un rôle peut-il atteindre ce chemin sans se heurter à un refus ?
+ *
+ * Sert de filet aux tableaux de bord, qui construisent leurs tuiles à la main
+ * et peuvent donc proposer un lien que la garde de la page refusera. C'est
+ * arrivé le 2026-09-05 : la tuile « Notes à approuver » du Directeur pointait
+ * vers `/etablissement/notes/approbation`, réservée à la Secrétaire, et lui
+ * servait un écran d'erreur depuis sa propre page d'accueil.
+ *
+ * **Un chemin inconnu est autorisé, délibérément.** Le catalogue ne couvre pas
+ * les sous-pages (`/etablissement/eleves/nouvelle`, `/abonnement/souscrire`) :
+ * répondre `false` par défaut ferait disparaître des liens parfaitement
+ * valides. Ce filet ne retire que ce qu'on sait interdit — il ne prétend pas
+ * remplacer les gardes de service, qui restent seules à décider.
+ */
+export function cheminAutorise(chemin: string, role: Role): boolean {
+  if (role === 'SUPER_ADMIN') return true;
+  const roles = ROLES_PAR_CHEMIN.get(chemin);
+  return roles ? roles.has(role) : true;
+}
