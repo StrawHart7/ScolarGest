@@ -1,7 +1,9 @@
 'use client';
 
 import { ouvrirBase, type OperationEnFile } from './db';
-import { nouvelleCleOperation, type TypeOperation } from './operations';
+import { messageErreur, nouvelleCleOperation, type TypeOperation } from './operations';
+
+export { messageErreur };
 
 /**
  * File d'attente des ecritures differees.
@@ -183,24 +185,6 @@ export async function viderFile(
   }
 
   return bilan;
-}
-
-/**
- * Les erreurs Supabase ne sont pas des `Error` : `e instanceof Error` est
- * toujours faux et masquerait la cause reelle — contrainte violee, refus RLS —
- * derriere un message generique. Piege deja documente dans `CLAUDE.md`.
- */
-export function messageErreur(e: unknown): string {
-  if (typeof e === 'string') return e;
-  if (e && typeof e === 'object') {
-    const o = e as Record<string, unknown>;
-    const parties = [o.message, o.details, o.hint].filter(
-      (p): p is string => typeof p === 'string' && p.length > 0,
-    );
-    if (parties.length > 0) return parties.join(' — ');
-    if (typeof o.code === 'string') return `Code ${o.code}`;
-  }
-  return 'Erreur inconnue';
 }
 
 /**

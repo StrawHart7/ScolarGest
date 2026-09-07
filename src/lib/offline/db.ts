@@ -132,4 +132,19 @@ export async function effacerToutLeLocal(): Promise<void> {
   } catch {
     // Degrade en silence : ne jamais bloquer une deconnexion.
   }
+
+  // Le service worker garde une copie des pages consultees, donnees d'ecole
+  // comprises. Vider IndexedDB sans la purger laisserait le tableau de bord et
+  // les factures de l'ecole accessibles au compte suivant sur un poste
+  // partage — l'essentiel de ce qu'on cherchait a proteger.
+  //
+  // C'est lui qui supprime, pas nous : il est seul a savoir sous quel nom il
+  // range ses caches.
+  try {
+    const sw = navigator.serviceWorker?.controller;
+    if (sw) sw.postMessage({ type: 'PURGER_PAGES' });
+  } catch {
+    // Pas de service worker actif (premier chargement, navigateur sans
+    // support) : rien a purger.
+  }
 }

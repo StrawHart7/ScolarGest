@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { saisirNote, soumettreNotes, demanderModification } from '@/services/note';
+import { executerUneSeuleFois } from '@/services/synchronisation';
+import { messageErreur } from '@/lib/offline/operations';
 
 const saisirNoteSchema = z.object({
   evaluationId: z.string().uuid(),
@@ -28,7 +30,7 @@ export async function saisirNoteAction(input: SaisirNoteInput): Promise<string |
   try {
     await saisirNote(parsed.data.evaluationId, parsed.data.eleveId, parsed.data.valeur, parsed.data.observation);
   } catch (e) {
-    return e instanceof Error ? e.message : 'Erreur lors de la saisie de la note';
+    return messageErreur(e);
   }
 
   revalidatePath(`/etablissement/notes/saisie/${parsed.data.evaluationId}`);
@@ -38,14 +40,29 @@ export async function saisirNoteAction(input: SaisirNoteInput): Promise<string |
 const evaluationIdSchema = z.string().uuid();
 
 /** Bascule toutes les notes BROUILLON de l'évaluation en SOUMISE (verrouillage). */
-export async function soumettreNotesAction(evaluationId: string): Promise<string | null> {
+export async function soumettreNotesAction(
+  evaluationId: string,
+  cleOperation?: string,
+): Promise<string | null> {
   const parsed = evaluationIdSchema.safeParse(evaluationId);
   if (!parsed.success) return 'Identifiant invalide';
 
   try {
-    await soumettreNotes(parsed.data);
+    // La soumission n'est pas un upsert : elle bascule les notes en SOUMISE et
+    // verrouille l'evaluation. La rejouer apres une coupure echouerait sur une
+    // evaluation deja verrouillee, et l'utilisateur lirait une erreur pour une
+    // action qui avait pourtant abouti. D'ou la cle d'idempotence quand
+    // l'appel vient de la file hors ligne.
+    if (cleOperation) {
+      await executerUneSeuleFois(cleOperation, 'SOUMISSION_NOTES', async () => {
+        await soumettreNotes(parsed.data);
+        return { evaluationId: parsed.data };
+      });
+    } else {
+      await soumettreNotes(parsed.data);
+    }
   } catch (e) {
-    return e instanceof Error ? e.message : 'Erreur lors de la soumission des notes';
+    return messageErreur(e);
   }
 
   revalidatePath(`/etablissement/notes/saisie/${parsed.data}`);
@@ -60,21 +77,42 @@ const demanderModificationSchema = z.object({
 });
 
 /** Demande de correction sur une note déjà VALIDE — passe par l'approbation de la secrétaire (PIN). */
-export async function demanderModificationAction(input: {
-  noteId: string;
-  evaluationId: string;
-  nouvelleValeur: number;
-  observation?: string;
-}): Promise<string | null> {
+export async function demanderModificationAction(
+  input: {
+    noteId: string;
+    evaluationId: string;
+    nouvelleValeur: number;
+    observation?: string;
+  },
+  cleOperation?: string,
+): Promise<string | null> {
   const parsed = demanderModificationSchema.safeParse(input);
   if (!parsed.success) {
     return parsed.error.issues[0]?.message ?? 'Donnée invalide';
   }
 
   try {
-    await demanderModification(parsed.data.noteId, parsed.data.nouvelleValeur, parsed.data.observation);
+    // Rejouee, une demande de correction en creerait une seconde : la
+    // secretaire verrait deux fois la meme ligne dans sa file d'approbation et
+    // ne saurait pas laquelle traiter.
+    if (cleOperation) {
+      await executerUneSeuleFois(cleOperation, 'DEMANDE_CORRECTION', async () => {
+        await demanderModification(
+          parsed.data.noteId,
+          parsed.data.nouvelleValeur,
+          parsed.data.observation,
+        );
+        return { noteId: parsed.data.noteId };
+      });
+    } else {
+      await demanderModification(
+        parsed.data.noteId,
+        parsed.data.nouvelleValeur,
+        parsed.data.observation,
+      );
+    }
   } catch (e) {
-    return e instanceof Error ? e.message : 'Erreur lors de la demande de modification';
+    return messageErreur(e);
   }
 
   revalidatePath(`/etablissement/notes/saisie/${parsed.data.evaluationId}`);

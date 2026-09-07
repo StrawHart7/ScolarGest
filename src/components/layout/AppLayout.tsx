@@ -7,6 +7,8 @@ import { BulleSupport } from './BulleSupport';
 import { PanneauConseil } from '@/components/conseils/PanneauConseil';
 import { SidebarCollapseProvider, ContenuDecale } from './sidebar-collapse';
 import { ToastProvider } from '@/components/ui/toast';
+import { Synchronisation } from '@/components/offline/Synchronisation';
+import { IndicateurFile } from '@/components/offline/IndicateurFile';
 
 export interface AppLayoutProps {
   items: SidebarItem[];
@@ -19,12 +21,19 @@ export interface AppLayoutProps {
 export function AppLayout({ items, schoolName, role, userName, children }: AppLayoutProps) {
   return (
     <ToastProvider>
+      {/*
+        Le moteur de synchronisation enveloppe toute l'application
+        authentifiee : une ecriture mise en file depuis un ecran doit partir
+        meme si l'utilisateur a navigue ailleurs entre-temps.
+      */}
+      <Synchronisation>
       <SidebarCollapseProvider>
         <div className="min-h-screen bg-surface">
           <Sidebar items={items} />
           <ContenuDecale>
             <Header schoolName={schoolName} role={role} userName={userName} />
             <AbonnementBanner />
+            <IndicateurFile />
             <RappelFinEssai />
             {/*
               Le bas de page doit dégager la barre de navigation flottante :
@@ -46,6 +55,7 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
           <PanneauConseil role={role} />
         </div>
       </SidebarCollapseProvider>
+      </Synchronisation>
     </ToastProvider>
   );
 }

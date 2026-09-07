@@ -16,6 +16,7 @@ import {
   effacerBrouillon,
   type RowStateBrouillon,
 } from '@/lib/offline/notes-brouillon-db';
+import { useSynchronisation } from '@/components/offline/synchronisation-context';
 import { saisirNoteAction, soumettreNotesAction, demanderModificationAction } from './actions';
 
 const STATUT_BADGE: Partial<
@@ -132,6 +133,7 @@ export function SaisieNotesForm({
 }) {
   const router = useRouter();
   const { enLigne } = useConnectivity();
+  const sync = useSynchronisation();
   const [rows, setRows] = useState<Record<string, RowState>>(() => buildInitialRows(eleves, notes));
   const [error, setError] = useState<string | null>(null);
   const [erreurReseau, setErreurReseau] = useState(false);
@@ -271,6 +273,41 @@ export function SaisieNotesForm({
   function confirmerSoumission() {
     setError(null);
     startTransition(async () => {
+      // Hors ligne, la soumission part en file au lieu d'echouer.
+      //
+      // Elle est mise en file **apres** les lignes de notes, qui l'ont
+      // precedee dans le temps : la file respecte l'ordre d'arrivee, et
+      // soumettre avant d'avoir envoye la derniere note verrouillerait
+      // l'evaluation sur une saisie incomplete.
+      if (!enLigne && sync) {
+        // Les lignes encore `dirty` doivent partir d'abord. On les depose une
+        // a une, dans l'ordre de la liste affichee.
+        for (const eleve of eleves) {
+          const row = rows[eleve.id];
+          if (!row?.dirty || row.valeur === '') continue;
+          await sync.mettreEnFile({
+            type: 'SAISIE_NOTE',
+            charge: {
+              evaluationId,
+              eleveId: eleve.id,
+              valeur: Number(row.valeur),
+              observation: row.observation || undefined,
+            },
+            intitule: `Note de ${eleve.nom} ${eleve.prenoms}`,
+          });
+        }
+        await sync.mettreEnFile({
+          type: 'SOUMISSION_NOTES',
+          charge: { evaluationId },
+          intitule: 'Soumission des notes de l’évaluation',
+        });
+        setConfirmationOuverte(false);
+        setError(
+          'Hors connexion : la soumission est enregistrée sur cet appareil et partira au retour du réseau.',
+        );
+        return;
+      }
+
       const result = await soumettreNotesAction(evaluationId);
       if (result) {
         setError(result);

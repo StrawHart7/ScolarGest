@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
-import type { EtatOperation, TypeOperation } from '@/lib/offline/operations';
+import { estTypeOperation, type EtatOperation, type TypeOperation } from '@/lib/offline/operations';
 
 export type { EtatOperation, TypeOperation };
 
@@ -34,6 +34,17 @@ export async function executerUneSeuleFois<T>(
   // que d'appeler la garde sans argument — sans argument elle ne laisse
   // passer que le SUPER_ADMIN, et bloquerait toute la file.
   await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+
+  // La cle et le type viennent de l'appelant. Une cle malformee serait de
+  // toute facon refusee par la colonne `uuid`, mais le message serait une
+  // erreur Postgres brute ; un type libre, lui, passerait sans bruit.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cle)) {
+    throw new Error("Cle d'operation invalide");
+  }
+  if (!estTypeOperation(type)) {
+    throw new Error(`Type d'operation inconnu : ${String(type)}`);
+  }
+
   const supabase = createClient();
 
   const { data, error } = await supabase

@@ -2698,25 +2698,63 @@ consultation hors ligne : depuis que des données d'établissement vivent sur
 l'appareil, n'en effacer qu'une partie exposerait l'école au compte suivant sur
 un poste partagé.
 
+#### Écrans branchés (2026-09-07, second incrément)
+
+- [x] Migration **appliquée** sur la base réelle. Vérifiée par requête : table,
+      index unique, quatre fonctions, deux policies, RLS active.
+- [x] **Encaissement d'un versement hors ligne.** Le formulaire intercepte la
+      soumission avant d'appeler la Server Action, met en file, et le libellé du
+      bouton devient « Mettre l'encaissement en attente » — écrire « Valider »
+      ferait croire l'argent encaissé.
+- [x] **Soumission des notes et demande de correction** sur la file. Les lignes
+      encore `dirty` sont déposées **avant** la soumission : l'ordre d'arrivée
+      empêche de verrouiller l'évaluation sur une saisie incomplète.
+- [x] **Moteur monté une fois pour toute l'application** (`AppLayout`), via une
+      enveloppe serveur qui lit le contexte tenant — passer `userId` en props
+      depuis chaque page aurait exigé une quarantaine de fichiers, et la
+      première page oubliée aurait perdu sa file en silence.
+- [x] **Bandeau « N écritures en attente »**, avec le détail par opération, le
+      motif du dernier échec, et un envoi manuel.
+- [x] **Le service worker met enfin les pages en cache.** Il prévoyait le repli
+      `caches.match` mais rien n'y déposait jamais de navigation : toute coupure
+      menait à `/offline`, même sur une page vue une minute plus tôt.
+- [x] **Purge du cache de pages à la déconnexion**, par message au service
+      worker — lui seul sait sous quel nom il range ses caches.
+
+#### Vérifié par le chemin réel
+
+Deux parcours Playwright (`e2e/hors-ligne.spec.ts`), joués contre la base réelle
+sur l'école de démonstration « Les Victorieux » :
+
+- **Encaissement hors ligne** : coupure, mise en file, retour du réseau, envoi
+  automatique. Contrôlé en base — **un versement par exécution, jamais deux**,
+  et une ligne `operation_client` achevée par versement.
+- **Consultation hors ligne** : une page déjà visitée se recharge sans réseau,
+  et ce n'est pas `/offline`.
+- **Le verrou d'unicité** : deux insertions de la même clé, la seconde refusée
+  (`unique_violation`). Testé en SQL, ligne de test retirée.
+
+Build de production vert (exit 0) : c'est lui qui prouve l'absence d'erreur de
+frontière serveur/client, invisible en `typecheck`.
+
 #### Reste à faire
 
-- [x] Migration **appliquée** sur la base réelle le 2026-09-07. Vérifiée par
-      requête : table, index unique, quatre fonctions, deux policies, RLS active.
-- [ ] Brancher `soumettreNotesAction` et `demanderModificationAction` sur la
-      file — aujourd'hui synchrones.
-- [ ] Brancher l'encaissement d'un versement. C'est ce qui a motivé
-      l'idempotence : numérotation du reçu, solde de facture, journal d'audit.
-      Le reçu n'existe qu'après synchronisation.
-- [ ] Cache de consultation (élèves, classes, factures) et alimentation depuis
-      les écrans.
-- [ ] Indicateur global « N écritures en attente » et écran de reprise
-      manuelle pour les opérations épuisées.
+- [ ] Cache de **données** structuré (magasin `cache` d'IndexedDB) : la
+      consultation repose aujourd'hui sur les pages mises en cache par le
+      service worker, ce qui couvre les écrans déjà visités et rien d'autre.
 - [ ] Background Sync API quand elle est disponible, en plus du retry
       événementiel actuel.
+- [ ] Protection du double-clic **en ligne** : la clé d'idempotence n'est posée
+      que pour les écritures mises en file. En attacher une à une saisie en
+      ligne ferait prendre le versement suivant pour un rejeu du précédent.
 
-**DoD** : lint, typecheck et tests verts. **Non vérifié** : le comportement réel
-en coupure — la machine de développement ne fait pas tourner le serveur. Aucun
-écran n'est encore branché sur la file, donc rien n'a changé pour l'utilisateur
-à ce stade.
+**DoD** : lint, typecheck, 402 tests unitaires, build de production et deux
+parcours Playwright de coupure — tous verts.
+
+**Trace laissée** : trois versements de 1 000 F sur la facture de démonstration
+`947bd788` (« Les Victorieux »), un par exécution du test. Volontairement non
+supprimés : `paiement` est une donnée financière, et forcer `statut` en SQL
+contournerait le service et son journal d'audit tout en risquant de désaccorder
+le statut de la facture.
 
 ---

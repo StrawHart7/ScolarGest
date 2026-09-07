@@ -560,6 +560,37 @@ silencieusement un encaissement serait pire que de le laisser en attente. Et un
 echec n'arrete pas la file — bloquer sur la premiere ligne fautive ferait
 perdre une journee de saisie.
 
+**Le service worker met les pages en cache — c'est nouveau.** Il prevoyait
+depuis toujours le repli `caches.match(request)` quand le reseau echoue, mais
+**rien n'y deposait jamais de navigation** : le repli ne tombait jamais et toute
+coupure menait a `/offline`. Le cache `scolargest-pages-v1` est separe de la
+coquille statique pour pouvoir etre purge seul, et il **survit** a un
+changement de `CACHE_VERSION` : le vider a chaque deploiement priverait de
+consultation une ecole qui n'a pas de reseau au moment de la mise a jour. Les
+reponses `redirected` en sont exclues — le middleware renvoie vers `/login`
+quand la session expire, et mettre cette redirection en cache servirait une
+page de connexion a la place du tableau de bord, hors ligne, pour toujours.
+
+**Le libelle d'un bouton hors ligne dit ce qui va se passer.** « Valider
+l'encaissement » ferait croire l'argent encaisse alors que rien n'est parti ;
+il devient « Mettre l'encaissement en attente ».
+
+**La cle d'idempotence n'est posee que pour les ecritures mises en file.** En
+attacher une a une saisie en ligne la ferait survivre au rendu suivant, et le
+versement suivant saisi dans le meme formulaire serait pris pour un rejeu du
+precedent — l'argent avale en silence. Le double-clic en ligne reste donc
+couvert comme avant, pas davantage.
+
+**Le moteur est monte une seule fois**, dans `AppLayout`, via une enveloppe
+serveur qui lit le contexte tenant. Passer `userId` en props depuis chaque page
+aurait exige de toucher une quarantaine de fichiers, et la premiere page oubliee
+aurait perdu sa file sans que rien ne le signale.
+
+**Les Server Actions rendent un message d'erreur au lieu de lever.** Un
+gestionnaire de file qui se contenterait de les appeler tiendrait tout echec
+pour un succes et **viderait la file en perdant son contenu** : d'ou la
+conversion explicite en exception (`exigerSucces`).
+
 **La deconnexion efface cache, file et brouillons.** Contrepartie assumee de la
 consultation hors ligne sur poste partage. D'ou l'avertissement chiffre de
 `DeconnexionButton` : sans lui, le balayage detruirait sans un mot une saisie
