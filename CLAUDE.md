@@ -519,12 +519,12 @@ rôles — ne pas la supprimer.
 
 ### Contact support : un recours, pas une destination
 
-Migrations `0023`, `0024` et `0026`. `support_demande` porte une demande par
+Migrations `0023`, `0024` et `20260907213222`. `support_demande` porte une demande par
 etablissement, avec l'identite de son auteur **figee a l'envoi** (nom, email,
 role) : un compte change de role ou est desactive, la demande doit continuer de
 dire qui l'a ecrite et a quel titre.
 
-**Une demande ne se relit que par son auteur** (`0026`). La premiere version
+**Une demande ne se relit que par son auteur** (`20260907213222`). La premiere version
 l'ouvrait a tout l'etablissement, pour qu'un collegue voie qu'une question a
 deja ete posee. Mauvais calcul : une demande raconte un blocage, parfois
 nominatif — compte suspendu, erreur de saisie, differend sur une facture — et
@@ -562,7 +562,7 @@ listes (`bottom-24 right-4`) et surplombe par la barre d'onglets. D'ou
 telephone.
 
 **La piece jointe passe par la cle service-role, dans les deux sens.** Le
-bucket `support` est prive et le tenant n'y a **aucun** droit depuis `0026` :
+bucket `support` est prive et le tenant n'y a **aucun** droit depuis `20260907213222` :
 l'ecriture lui laisserait choisir son prefixe, donc ecrire sous le dossier
 d'une autre ecole ; la lecture lui donnait le fichier de ses collegues. Le
 chemin est construit cote serveur, jamais recu, et la lecture passe par une URL

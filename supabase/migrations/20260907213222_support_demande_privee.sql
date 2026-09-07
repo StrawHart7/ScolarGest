@@ -1,5 +1,10 @@
 -- Une demande de support ne se lit que par son auteur.
 --
+-- Nommee au format horodate, comme toutes les migrations depuis
+-- `20260902130110` : la numerotation `00NN` s'est arretee a `0024`, et un
+-- `0026` se serait classe *avant* les migrations deja appliquees — la CLI
+-- Supabase compare les versions lexicographiquement.
+--
 -- La policy de `0023` ouvrait la lecture a tout l'etablissement, au motif
 -- qu'un collegue verrait qu'une question a deja ete posee et eviterait le
 -- doublon. Le calcul etait mauvais : une demande raconte un blocage, parfois
