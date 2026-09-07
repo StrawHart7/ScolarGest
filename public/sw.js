@@ -19,7 +19,7 @@
  * Bump CACHE_VERSION à chaque changement de cette liste ou de la stratégie :
  * l'ancien cache est purgé à l'activation.
  */
-const CACHE_VERSION = 'scolargest-v5';
+const CACHE_VERSION = 'scolargest-v6';
 
 // Cache des pages consultees, separe de la coquille statique : il contient des
 // donnees d'etablissement et doit pouvoir etre purge seul, a la deconnexion,
@@ -172,8 +172,16 @@ self.addEventListener('fetch', (event) => {
   // Assets statiques Next et icônes : cache d'abord, réseau en secours, et on
   // met en cache la réponse réseau pour la prochaine fois.
   const url = new URL(request.url);
+  // Le manifeste et le favicon sont precaches mais n'etaient intercepes par
+  // aucune branche : ni `/_next/static/`, ni `/assets/`. Ils partaient donc au
+  // reseau et echouaient hors ligne, alors que leur copie etait a portee de
+  // main. Visible dans l'onglet Reseau : `manifest.webmanifest` en echec sur
+  // une page par ailleurs servie depuis le cache.
   const isStaticAsset =
-    url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/assets/');
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/assets/') ||
+    url.pathname === '/manifest.webmanifest' ||
+    url.pathname === '/favicon.ico';
 
   if (isStaticAsset) {
     event.respondWith(
@@ -210,6 +218,7 @@ self.addEventListener('fetch', (event) => {
  */
 async function precharger(urls) {
   const cache = await caches.open(CACHE_PAGES);
+  const cacheStatique = await caches.open(CACHE_VERSION);
   const TAILLE_PAQUET = 4;
 
   for (let i = 0; i < urls.length; i += TAILLE_PAQUET) {
@@ -218,9 +227,64 @@ async function precharger(urls) {
         const reponse = await fetch(url, { credentials: 'same-origin' });
         // Meme garde que sur les navigations : une redirection vers /login
         // mise en cache servirait une page de connexion pour toujours.
-        if (reponse.ok && !reponse.redirected && reponse.type === 'basic') {
-          await cache.put(url, reponse);
-        }
+        if (!reponse.ok || reponse.redirected || reponse.type !== 'basic') return;
+
+        // Lire le corps AVANT de le ranger : `cache.put` consomme le flux.
+        const html = await reponse.clone().text();
+        await cache.put(url, reponse);
+        await mettreEnCacheRessources(html, cacheStatique);
+      }),
+    );
+  }
+}
+
+/**
+ * Met en cache les fichiers statiques qu'une page precharge reclame.
+ *
+ * Sans cela le prechargement produit une page **a moitie** disponible : le
+ * HTML arrive du cache, React tente de s'hydrater, le morceau de code manquant
+ * fait tomber la limite d'erreur, et l'utilisateur lit « Une erreur est
+ * survenue » sur une page qu'on croyait preparee. C'est pire qu'une page
+ * absente : on a promis puis echoue. Constate en production le 2026-09-07.
+ *
+ * Les fragments sont largement partages entre pages — le cache dedoublonne de
+ * lui-meme, et vingt-cinq pages ne coutent pas vingt-cinq fois leur poids.
+ *
+ * L'extraction se fait par expression reguliere et non par un analyseur HTML :
+ * `DOMParser` n'existe pas dans un service worker. On ne cherche que des
+ * chemins `/_next/static/`, dont la forme est connue et close.
+ */
+async function mettreEnCacheRessources(html, cacheStatique) {
+  const chemins = new Set();
+  // Le chemin capture peut emporter un caractere d'echappement : dans les
+  // donnees RSC les guillemets sont echappes. On le retire ensuite plutot
+  // que de compliquer l'expression — une URL qui finit par une barre oblique
+  // inverse n'existe pas, et le telechargement echouerait a chaque
+  // prechargement sans que personne ne le voie.
+  const motif = /["'(](\/_next\/static\/[^"')\s]+)/g;
+  let trouve;
+  while ((trouve = motif.exec(html)) !== null) {
+    // Retire tout caractere final qui ne peut pas appartenir a un chemin :
+    // dans les donnees RSC le guillemet est echappe, et la capture emporte le
+    // caractere d'echappement. Une URL ainsi salie n'existe pas, et son
+    // telechargement echouerait a chaque prechargement sans que rien ne le dise.
+    chemins.add(trouve[1].replace(/[^A-Za-z0-9._/-]+$/, ''));
+  }
+
+  const aTelecharger = [];
+  for (const chemin of chemins) {
+    // Ne pas retelecharger ce qui est deja la : les fichiers Next portent un
+    // condensat dans leur nom, une URL identique designe donc toujours le meme
+    // contenu.
+    if (!(await cacheStatique.match(chemin))) aTelecharger.push(chemin);
+  }
+
+  const TAILLE_PAQUET = 6;
+  for (let i = 0; i < aTelecharger.length; i += TAILLE_PAQUET) {
+    await Promise.allSettled(
+      aTelecharger.slice(i, i + TAILLE_PAQUET).map(async (chemin) => {
+        const reponse = await fetch(chemin, { credentials: 'same-origin' });
+        if (reponse.ok) await cacheStatique.put(chemin, reponse);
       }),
     );
   }

@@ -2806,3 +2806,42 @@ contournerait le service et son journal d'audit tout en risquant de désaccorder
 le statut de la facture.
 
 ---
+
+### Idée — « Envoyer au support » depuis la page d'erreur
+
+**Statut** : idée notée le 2026-09-07, **non autorisée**, à instruire.
+
+**Origine** : la page d'erreur propose « Réessayer » et « Retour au tableau de
+bord ». Un troisième choix, « Envoyer au support », transmettrait la panne
+au lieu de laisser l'utilisateur la décrire de mémoire. Il affiche déjà une
+référence — aujourd'hui personne ne sait quoi en faire.
+
+**Ce qui existe déjà et sert de fondation** :
+
+- `support_demande` et son écran `/profil/support` (migrations `0023`, `0024`).
+- La pièce jointe passe par la clé service-role, chemin construit côté serveur.
+- La file d'écritures différées : une panne survient souvent *parce que* le
+  réseau est mauvais. La demande doit donc pouvoir partir en différé, sinon la
+  fonctionnalité échouera précisément quand elle sert.
+
+**La capture d'écran est le point dur, à instruire avant de promettre** :
+
+- Un navigateur ne se photographie pas lui-même. `getDisplayMedia` demande à
+  l'utilisateur de choisir une fenêtre et capture **tout l'écran** — donc
+  potentiellement autre chose que ScolarGest. Poser cette question au moment où
+  quelqu'un est déjà bloqué est un mauvais moment.
+- `html2canvas` redessine le DOM : dépendance lourde, rendu approximatif, et
+  sur une page en erreur il n'y a souvent plus de DOM utile à capturer.
+- **Le repli du repli, c'est le contexte**, pas l'image : référence, URL, rôle,
+  horodatage, dernière action, version du build. Plus utile qu'une capture, et
+  toujours disponible. La capture devrait être l'option, pas le mécanisme.
+
+**Question de confidentialité à trancher** : une capture d'un écran ScolarGest
+contient des noms d'élèves, parfois des montants. L'envoyer au support sort ces
+données de l'école. À décider explicitement, et à annoncer à l'utilisateur avant
+l'envoi — pas dans des conditions générales.
+
+**Périmètre** : le domaine support appartient à TAMA (`feat/contact-support`).
+À lui attribuer, ou à coordonner.
+
+---
