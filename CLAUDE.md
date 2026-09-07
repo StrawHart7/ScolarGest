@@ -207,7 +207,15 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-02) :
+**Active branches** (liste tenue depuis le 2026-09-02 ; `main` a beaucoup
+avance depuis, les entrees ci-dessous ne couvrent pas les branches des autres
+sessions) :
+- `feat/contact-support` — contact support, file de travail SUPER_ADMIN, import
+  en deux temps. Livree le 2026-09-02 et mergee ; **complement du 2026-09-07
+  non merge** : une demande ne se relit que par son auteur (migration
+  `20260907221109`, appliquee). La branche est tres en retard sur `main` et
+  porte encore `0025_document_contexte_bulletin.sql`, renomme sur `main` en
+  `20260902130110_...` — a dedoublonner avant le merge.
 - `feat/bulletin-mise-en-page` — ✅ livrée (2026-09-02) : hauteurs de ligne
   égales sur le bulletin PDF, pied de page réorganisé, écran des bulletins
   prêts, téléchargement groupé dans un dossier. Migration `0025`. Voir
