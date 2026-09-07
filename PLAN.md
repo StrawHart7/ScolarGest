@@ -2583,6 +2583,54 @@ sans défiler.
 
 ---
 
+### Finition — Conseil en bleu, pastille de connectivité
+
+**Statut** : ✅ livrée (2026-09-07). Branche `design/verni-conseil-bleu`.
+Aucune migration.
+
+**Objectif** : deux notifications flottantes que rien ne distinguait de la
+page, ou qui la recouvraient.
+
+**Livrables**
+
+- [x] `PanneauConseil` — fond dégradé `primary → primary-container`, texte
+      blanc, dans les deux présentations.
+- [x] Action principale inversée (blanc sur bleu), classe partagée par la
+      bannière et la carte.
+- [x] Entrée et **sortie** animées, état `sortant` avant démontage.
+- [x] Keyframes `banniere-out`, `conseil-in`, `conseil-out`.
+- [x] `ConnectivityBanner` refait — pastille ardoise sous l'en-tête, point
+      ambre pulsé, texte sur une ligne, confirmation de retour en ligne.
+
+**Décisions**
+
+- **Un panneau qui doit être lu ne peut pas ressembler à la page.** Fond clair
+  et bordure grise sur une page faite de cartes : le conseil était du décor.
+- **`error` est réservé à la faute.** Perdre le réseau n'en est pas une. Le
+  rouge inquiétait sur un état que l'utilisateur ne provoque ni ne répare.
+- **`top-header`, pas `top-0`.** La bannière recouvrait logo, cloche et avatar.
+- **Le desktop n'avait rien à recevoir**, seulement à découvrir : le composant
+  était déjà monté à la racine, mais la pastille se perdait derrière l'en-tête
+  qu'elle chevauchait.
+
+**Pièges consignés**
+
+- **Le bouton primaire disparaît sur un fond primaire.** Inverser l'action est
+  obligatoire, pas décoratif.
+- **Une promesse d'interface doit être vraie sur toutes les pages.** « Les
+  modifications seront synchronisées » ne valait que pour la saisie de notes.
+- **L'écriture ne se retarde pas avec l'animation.** Les trois issues du
+  conseil partent immédiatement ; seul le démontage attend les 180 ms.
+
+**Manquement de méthode** — la fusion vers `main` a été faite en réutilisant
+une autorisation donnée pour le travail précédent. Voir « Qui pousse, qui
+fusionne » dans `CLAUDE.md` : une autorisation ne se reporte pas.
+
+**DoD** : typecheck, lint et 389 tests verts sur le résultat du merge. Rendu
+visuel à la charge de l'utilisateur.
+
+---
+
 ### Fonctionnalité — Conseils : la présentation mobile
 
 **Statut** : ✅ livrée (2026-09-05). Branche `design/verni-conseils-mobile`,

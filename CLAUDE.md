@@ -1396,6 +1396,15 @@ production des écrans que personne n'avait ouverts. Pour regarder sans
 exposer : `git push origin main:preview-<sujet>`, qui construit une preview
 depuis le même contenu.
 
+**Une autorisation de pousser vaut pour le travail qu'elle vise, et pour lui
+seul.** « Tu peux push et merge directement » répond à la demande en cours ; la
+demande suivante n'en hérite pas. Le 2026-09-07, cette phrase donnée pour le
+panneau de conseil a servi à fusionner la pastille de connectivité, livrée aux
+écoles sans que personne l'ait vue. La consigne qui en sort est explicite :
+**ne rien mettre en production sans l'aval de l'utilisateur, à chaque fois.**
+En pratique — commiter sur sa branche, pousser la branche, annoncer ce qui est
+prêt, et s'arrêter là. La fusion attend sa phrase.
+
 **Ne jamais fusionner dans le worktree d'une autre session.** `main` peut être
 sorti ailleurs (`git worktree list` le dit, et `git branch` le préfixe d'un
 `+`) : y fusionner réécrit le disque d'une session en plein travail. Vérifier
@@ -1851,6 +1860,52 @@ Deux règles en sortent :
 Et une garde de type « déjà demandé » se relit **dans** le minuteur, pas
 seulement à l'entrée de l'effet : deux minuteurs survivants appelleraient deux
 fois.
+
+### Une couleur d'alarme ne dit pas un état subi
+
+`variant="error"` désigne une **faute** : une saisie refusée, une contrainte
+violée, une action qui a échoué. La bannière hors-ligne l'employait pour un
+état que l'utilisateur ne provoque ni ne répare — perdre le réseau dans une
+école de Lomé est l'ordinaire de la journée, pas un incident. Le rouge y
+inquiète sans rien proposer.
+
+Trois règles pour toute notification d'état :
+
+- **Un état subi se dit en neutre.** Ardoise sombre plus un point coloré, pas
+  un fond d'alarme. `warning` reste possible quand une échéance approche ;
+  `error` est réservé à ce qui a échoué.
+- **Elle se pose sous l'en-tête (`top-header`), jamais en `top-0`.** L'ancienne
+  version recouvrait le logo, la cloche et l'avatar : deux textes illisibles
+  l'un sur l'autre, et la navigation masquée au moment précis où l'on voudrait
+  s'en servir.
+- **Le texte tient sur une ligne à 320px.** « Hors ligne — les modifications
+  seront synchronisées au retour du réseau » en faisait trois sur un écran de
+  390px. Un état plus une promesse courte suffisent, et **la promesse doit être
+  vraie partout** : celle-ci annonçait une synchronisation générale alors que
+  seule la saisie de notes est conservée hors ligne.
+
+**Le retour à la normale s'annonce, puis se tait.** Une pastille qui disparaît
+sans un mot ne dit pas si l'état a changé ou si l'affichage a lâché. Quatre
+secondes dans le même contenant, point vert, puis effacement.
+
+### Un panneau qui doit être lu ne peut pas ressembler à la page
+
+Le panneau de conseil reprenait l'habillage des cartes de contenu — fond clair,
+bordure grise. Sur une page qui n'est faite que de cartes, il se confondait
+avec le décor. La couleur est le seul moyen de dire « ceci n'est pas la page,
+c'est une proposition » : fond bleu, texte blanc.
+
+**Conséquence à ne pas manquer** : le bouton primaire du système est bleu lui
+aussi, et disparaît sur ce fond. Toute carte à fond primaire doit inverser son
+action — blanc sur bleu — et la classe doit être **partagée** par les
+présentations mobile et bureau, sinon elles divergent sur la seule chose
+cliquable de la carte.
+
+**Une disparition instantanée se lit comme un défaut d'affichage**, pas comme
+le résultat du geste : on ne sait plus si l'on a fermé ou si l'écran a sauté.
+D'où l'état `sortant`, qui joue l'animation avant de démonter. **Les écritures,
+elles, partent tout de suite** — retarder l'action avec le démontage perdrait
+un conseil fermé juste avant de quitter la page.
 
 ### Composants UI mobile — règles d'usage
 
