@@ -519,10 +519,27 @@ rôles — ne pas la supprimer.
 
 ### Contact support : un recours, pas une destination
 
-Migrations `0023` et `0024`. `support_demande` porte une demande par
+Migrations `0023`, `0024` et `0026`. `support_demande` porte une demande par
 etablissement, avec l'identite de son auteur **figee a l'envoi** (nom, email,
 role) : un compte change de role ou est desactive, la demande doit continuer de
 dire qui l'a ecrite et a quel titre.
+
+**Une demande ne se relit que par son auteur** (`0026`). La premiere version
+l'ouvrait a tout l'etablissement, pour qu'un collegue voie qu'une question a
+deja ete posee. Mauvais calcul : une demande raconte un blocage, parfois
+nominatif — compte suspendu, erreur de saisie, differend sur une facture — et
+la savoir lisible par toute l'ecole dissuade d'ecrire. Un doublon coute au
+support ; une confidence lue par un collegue coute a l'utilisateur.
+
+Le resserrement se fait **aux trois endroits a la fois**, sans quoi il n'est
+que cosmetique : le service (`listMesDemandesSupport` filtre sur `auteurId`),
+la policy de lecture (la cle anon est publique, la RLS est la seule barriere si
+une lecture passe un jour a cote du service), et le bucket `support`, repasse
+en **service-role seul** — sa policy de lecture par prefixe d'etablissement
+laissait telecharger la piece jointe d'un collegue, le plus souvent une liste
+d'eleves. La policy d'insertion fige en plus `auteurId = auth.uid()` : sans
+elle, une ecole pouvait signer une demande du nom d'un collegue, et l'identite
+figee ne valait plus rien.
 
 **La page vit sous `/profil/support` deliberement.** `/profil` figure dans
 `PATHS_TOUJOURS_ACCESSIBLES` (`src/lib/supabase/middleware.ts`), donc une ecole
@@ -544,10 +561,13 @@ listes (`bottom-24 right-4`) et surplombe par la barre d'onglets. D'ou
 « Plus » de `BottomNav` : sans cette ligne, le support serait injoignable sur
 telephone.
 
-**La piece jointe passe par la cle service-role.** Le bucket `support` est
-prive et le tenant n'y a que la lecture : lui donner l'ecriture directe le
-laisserait choisir son prefixe, donc ecrire sous le dossier d'une autre ecole.
-Le chemin est construit cote serveur, jamais recu.
+**La piece jointe passe par la cle service-role, dans les deux sens.** Le
+bucket `support` est prive et le tenant n'y a **aucun** droit depuis `0026` :
+l'ecriture lui laisserait choisir son prefixe, donc ecrire sous le dossier
+d'une autre ecole ; la lecture lui donnait le fichier de ses collegues. Le
+chemin est construit cote serveur, jamais recu, et la lecture passe par une URL
+signee (`getLienPieceJointe`) qui verifie que l'appelant est l'auteur de la
+demande — le SUPER_ADMIN excepte.
 
 ### Import en deux temps : analyser, montrer, puis ecrire
 
