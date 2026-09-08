@@ -33,9 +33,9 @@ export type {
  *
  * Deux choix structurants, voir aussi la migration `0023` :
  *
- * - **La demande est portée par l'établissement, pas par l'auteur.** Le
- *   Directeur doit pouvoir relire ce que sa Secrétaire a envoyé : un ticket
- *   invisible à l'école se rouvre en double la semaine suivante.
+ * - **La demande est rattachée à l'établissement, mais relue par son seul
+ *   auteur.** Le rattachement sert au support, qui répond à une école ; il
+ *   n'ouvre pas la lecture aux collègues. Voir `listMesDemandesSupport`.
  * - **L'identité de l'auteur est figée à l'envoi** (nom, email, rôle). Un
  *   compte change de rôle ou est désactivé ; la demande doit continuer de dire
  *   qui l'a écrite et à quel titre. Même raisonnement que l'historisation des
@@ -126,18 +126,32 @@ export async function creerDemandeSupport(
 }
 
 /**
- * Les demandes de l'établissement de l'appelant, les plus récentes d'abord.
+ * Les demandes écrites par l'appelant, les plus récentes d'abord.
  *
- * Toutes celles de l'école, pas seulement celles de l'appelant : c'est ce qui
- * évite qu'une même question soit posée trois fois par trois collègues.
+ * **Les siennes seulement**, pas celles de l'école. L'écran montrait d'abord
+ * tout l'établissement, au motif qu'un collègue verrait qu'une question a déjà
+ * été posée. Le prix est trop élevé : une demande de support raconte un
+ * blocage, parfois nominatif — un compte suspendu, une erreur de saisie, un
+ * différend sur une facture — et la mettre sous les yeux de toute l'école
+ * dissuade d'écrire. Un doublon coûte au support ; une confidence lue par un
+ * collègue coûte à l'utilisateur.
+ *
+ * Le filtre sur `auteurId` **s'ajoute** à celui sur l'établissement plutôt que
+ * de le remplacer : `auteurId` est nullable en base (`0023`) et une ligne dont
+ * l'auteur aurait été effacé ne doit pas pour autant devenir lisible ailleurs.
+ *
+ * La RLS, elle, reste ouverte à l'établissement : c'est le service qui
+ * restreint. Un resserrement de la policy demanderait une migration, et le
+ * SUPER_ADMIN doit continuer de tout lire.
  */
-export async function listDemandesSupportEtablissement(): Promise<DemandeSupport[]> {
+export async function listMesDemandesSupport(): Promise<DemandeSupport[]> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('support_demande')
     .select(CHAMPS)
     .eq('etablissementId', ctx.etablissementId)
+    .eq('auteurId', ctx.userId)
     .order('createdAt', { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as DemandeSupport[];
@@ -284,16 +298,25 @@ async function deposerPieceJointe(
  * lecteur universel du bucket.
  */
 export async function getLienPieceJointe(demandeId: string): Promise<string | null> {
-  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
 
   const { data, error } = await supabase
     .from('support_demande')
-    .select('"fichierChemin"')
+    .select('"fichierChemin", "auteurId"')
     .eq('id', demandeId)
     .maybeSingle();
   if (error) throw error;
-  const chemin = (data as { fichierChemin: string | null } | null)?.fichierChemin;
+  const demande = data as { fichierChemin: string | null; auteurId: string | null } | null;
+
+  // Un rôle école ne récupère que la pièce de ses propres demandes. La RLS
+  // laisse passer toute l'école : sans ce test, l'écran ne montrerait que les
+  // siennes mais un identifiant deviné rendrait le fichier d'un collègue —
+  // souvent une liste d'élèves — téléchargeable. Le SUPER_ADMIN doit tout
+  // lire, c'est son travail.
+  if (ctx.role !== 'SUPER_ADMIN' && demande?.auteurId !== ctx.userId) return null;
+
+  const chemin = demande?.fichierChemin;
   if (!chemin) return null;
 
   const admin = createAdminClient();

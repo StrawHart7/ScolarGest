@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { getSidebarItems } from '@/lib/navigation';
 import { Badge } from '@/components/ui/badge';
-import { listDemandesSupportEtablissement } from '@/services/support';
+import { listMesDemandesSupport } from '@/services/support';
 import { libelleCategorie, LIBELLES_STATUT_SUPPORT, type StatutSupport } from '@/lib/support';
 import { FormulaireSupport } from './FormulaireSupport';
 
@@ -26,11 +26,13 @@ function dateCourte(iso: string): string {
 }
 
 /**
- * Contacter le support, et relire ce que l'école a déjà envoyé.
+ * Contacter le support, et relire ce qu'on lui a déjà envoyé.
  *
- * L'historique est sous le formulaire, pas sur un autre écran : quelqu'un qui
- * vient signaler un problème doit voir d'un coup d'œil qu'un collègue l'a déjà
- * signalé, et lire la réponse reçue plutôt que rouvrir la même demande.
+ * L'historique est sous le formulaire, pas sur un autre écran : on vient
+ * signaler un problème, et la réponse à la demande précédente est souvent la
+ * raison pour laquelle il ne faut plus en écrire.
+ *
+ * **Chacun ne voit que ses propres demandes** — voir `listMesDemandesSupport`.
  *
  * La page est sous `/profil` **délibérément** — voir `src/services/support.ts` :
  * c'est ce qui la laisse accessible à une école passée en lecture seule.
@@ -45,7 +47,7 @@ export default async function SupportPage({
   // répond. Le laisser ici produirait une liste vide et un formulaire qui
   // échoue à l'envoi, sans dire pourquoi.
   if (ctx.role === 'SUPER_ADMIN') redirect('/super-admin/support');
-  const demandes = await listDemandesSupportEtablissement();
+  const demandes = await listMesDemandesSupport();
 
   // Chemin d'origine repris de l'URL, jamais une URL absolue : on ne veut ni
   // stocker un domaine, ni rendre cliquable ce qu'un tiers pourrait injecter.
@@ -88,10 +90,10 @@ export default async function SupportPage({
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-headline-sm text-text-primary">Demandes de votre établissement</h2>
+          <h2 className="text-headline-sm text-text-primary">Vos demandes</h2>
           {demandes.length === 0 ? (
             <p className="rounded-lg border border-surface-border bg-surface-container-lowest px-5 py-8 text-center text-body-sm text-text-secondary">
-              Aucune demande envoyée pour le moment.
+              Vous n&apos;avez encore envoyé aucune demande.
             </p>
           ) : (
             <div className="flex flex-col gap-3">
@@ -106,8 +108,7 @@ export default async function SupportPage({
                         {demande.sujet}
                       </p>
                       <p className="text-body-sm text-text-secondary">
-                        {libelleCategorie(demande.categorie)} — {demande.auteurNom},{' '}
-                        {dateCourte(demande.createdAt)}
+                        {libelleCategorie(demande.categorie)} — {dateCourte(demande.createdAt)}
                       </p>
                     </div>
                     <Badge shape="pill" variant={TON[demande.statut]}>

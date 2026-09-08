@@ -1789,8 +1789,10 @@ final le dira.
 
 ### Fonctionnalité — Contact support
 
-**Statut** : ✅ livrée (2026-09-02) — branche `feat/contact-support`.
-Migrations `0023` et `0024` **appliquées**.
+**Statut** : ✅ livrée (2026-09-02), complétée le 2026-09-07 — branche
+`feat/contact-support`. Migrations `0023`, `0024` et `20260907221109`
+**appliquées**. Le complément du 2026-09-07 n'est **pas encore mergé sur
+`main`**.
 
 **Objectif** : donner à une école un moyen de joindre la plateforme depuis le
 produit. `/profil/aide` répondait à sept questions figées et s'arrêtait là :
@@ -1802,7 +1804,7 @@ une école bloquée sur autre chose n'avait aucun recours.
       `statut_support`, policies RLS.
 - [x] `src/services/support.ts` — dépôt, lecture par école, file plateforme,
       réponse, changement de statut. Six gardes à la matrice.
-- [x] `/profil/support` — formulaire + historique des demandes de l'école.
+- [x] `/profil/support` — formulaire + historique de **ses propres** demandes.
 - [x] `/super-admin/support` — file à traiter / en cours / closes, réponse
       inline.
 - [x] Entrées de navigation (bas de sidebar pour tous, entrée dédiée
@@ -1816,8 +1818,13 @@ une école bloquée sur autre chose n'avait aucun recours.
       « Plus » mobile.
 - [x] Skill `scolargest-inputs` (hors dépôt, `~/.claude/skills/`) : remise en
       forme d'un classeur quelconque vers les gabarits d'import.
+- [x] Confidentialité (2026-09-07, migration `20260907221109`) : une demande ne
+      se relit que par son auteur — service, policy de lecture, policy
+      d'insertion figeant `auteurId`, et bucket `support` repassé en
+      service-role seul.
 - [ ] Vérification par le chemin réel : pages ouvertes, dépôt et réponse joués
-      de bout en bout.
+      de bout en bout. **Toujours pas fait** — aucun de ces écrans n'a été
+      ouvert.
 
 **Décisions consignées** :
 
@@ -1826,9 +1833,22 @@ une école bloquée sur autre chose n'avait aucun recours.
   encore écrire au support — c'est précisément celle qui en a le plus besoin.
   Déplacer cette page ailleurs refermerait le canal au pire moment, sans erreur
   visible nulle part.
-- **La demande est portée par l'établissement, pas par l'auteur.** Le Directeur
-  relit ce que sa Secrétaire a envoyé ; sinon le même ticket se rouvre en
-  double la semaine suivante.
+- **La demande est rattachée à l'établissement, mais relue par son seul
+  auteur** (revirement du 2026-09-07). La première version l'ouvrait à toute
+  l'école, pour qu'un collègue voie qu'une question avait déjà été posée.
+  Mauvais calcul : une demande raconte un blocage, parfois nominatif — compte
+  suspendu, erreur de saisie, différend sur une facture — et la savoir lisible
+  par toute l'école dissuade d'écrire. Un doublon coûte au support ; une
+  confidence lue par un collègue coûte à l'utilisateur.
+- **Le resserrement se fait aux trois endroits à la fois**, sinon il n'est que
+  cosmétique : le service (`listMesDemandesSupport` filtre sur `auteurId`), la
+  policy de lecture (la clé anon est publique — la RLS est la seule barrière si
+  une lecture passe un jour à côté du service), et le **bucket** `support`,
+  dont la policy de lecture par préfixe d'établissement laissait télécharger la
+  pièce jointe d'un collègue, le plus souvent une liste d'élèves. La policy
+  d'insertion fige en plus `auteurId = auth.uid()` : sans elle, une école
+  pouvait signer une demande du nom d'un collègue, et l'identité figée ne valait
+  plus rien.
 - **L'identité de l'auteur est figée à l'envoi** (nom, email, rôle). Un compte
   change de rôle ou est désactivé ; la demande doit continuer de dire qui l'a
   écrite et à quel titre. Même raisonnement que l'historisation des tarifs.
@@ -1845,6 +1865,11 @@ une école bloquée sur autre chose n'avait aucun recours.
   `/` : on ne stocke pas de domaine et on ne rend pas cliquable ce qu'un tiers
   pourrait injecter.
 
+**Vérification avant d'appliquer** : les six demandes existantes ont toutes un
+`auteurId` présent dans `auth.users`. Si l'identifiant métier avait divergé de
+l'identifiant Auth, la nouvelle policy aurait masqué l'historique de tout le
+monde — sans erreur, juste des listes vides.
+
 **Piège rencontré** : le générateur de `Docs/11-Matrice-permissions.md` lit les
 appels `requireRole` **textuellement**. Un tableau de rôles déplié dans l'appel
 ressort en « DYNAMIQUE », donc invérifiable — et un commentaire citant cette
@@ -1853,6 +1878,12 @@ lettres dans l'appel.
 
 **Reste** : notification du support à l'arrivée d'une demande (aujourd'hui il
 faut ouvrir l'écran), et compteur de demandes en attente sur `/super-admin`.
+
+**À traiter avant le merge** : la branche porte encore
+`0025_document_contexte_bulletin.sql`, que `main` connaît sous
+`20260902130110_...`. Git ne reconnaît pas un fichier renommé : un merge naïf
+garderait **les deux**, donc la même migration deux fois. La branche est par
+ailleurs très en retard sur `main`.
 
 ### Fonctionnalité — Statistiques académiques
 
