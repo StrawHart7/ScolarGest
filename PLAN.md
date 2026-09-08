@@ -2910,9 +2910,23 @@ antérieure.
 **DoD** : lint, typecheck et suite verte (437 tests). 24 tests ajoutés, dont le
 retrait de la query string, qui est la garantie de confidentialité.
 
-**Reste ouvert** : le parcours n'a pas de test de bout en bout — provoquer une
-vraie erreur applicative depuis Playwright demanderait une route de panne
-dédiée, qu'on ne veut pas en production.
+**Vérifié par le chemin réel** le 2026-09-08, contre `next dev` et la base
+partagée, avec une route de panne temporaire (non commitée) visitée à l'adresse
+`/panne-test?q=Kossi%20Amewu&secret=42` :
+
+- le bouton apparaît, le bloc s'affiche, la demande part et se relit sur
+  `/profil/support` ;
+- **la ligne écrite en base porte `pageOrigine = /panne-test`** et son message
+  ne contient ni `Kossi`, ni `secret`, ni `?q=` — la garantie constatée là où
+  elle compte, pas seulement dans le composant ;
+- aucun bouton sur un refus d'accès (`/super-admin` en Secrétaire).
+
+La demande de test a été supprimée de la base après coup.
+
+**Reste ouvert** : ce parcours n'est pas rejouable — il n'y a pas de test de
+bout en bout commité, parce qu'il exigerait une route de panne dédiée qu'on ne
+veut pas en production. Autrement dit, comme pour le hors-ligne : on l'a vu
+marcher, on n'a pas de quoi le re-prouver au prochain changement.
 
 ---
 
