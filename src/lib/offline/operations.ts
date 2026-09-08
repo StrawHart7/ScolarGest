@@ -20,6 +20,7 @@ export const TYPES_OPERATION = [
   'SOUMISSION_NOTES',
   'DEMANDE_CORRECTION',
   'PAIEMENT',
+  'SIGNALEMENT_INCIDENT',
 ] as const;
 
 export type TypeOperation = (typeof TYPES_OPERATION)[number];

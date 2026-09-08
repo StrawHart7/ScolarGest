@@ -2869,24 +2869,66 @@ le statut de la facture.
 
 ---
 
-### Idée — « Envoyer au support » depuis la page d'erreur
+### Fonctionnalité — « Signaler au support » depuis la page d'erreur
+
+**Statut** : ✅ livrée le 2026-09-08, branche `feat/soko-signalement-incident`.
+Aucune migration.
+
+**Ce qui a été fait** :
+
+- Un troisième bouton sur `src/app/error.tsx`, absent sur un refus d'accès :
+  celui-là n'est pas un incident, et l'envoyer au traitement humain noierait
+  les vraies pannes — même raisonnement que l'exclusion Sentry déjà en place.
+- `src/lib/support-incident.ts`, sans aucune dépendance : compose le contexte,
+  le formate, et **produit d'une seule fonction le texte affiché et le texte
+  envoyé**. En avoir deux ferait diverger la promesse et le contenu.
+- `signalerIncidentAction` dans `src/app/profil/support/actions.ts` : dépose une
+  demande de catégorie `ANOMALIE`, rend `null` ou un message — le contrat de la
+  file d'écritures différées, pas le `ResultatSupport` de l'envoi manuel.
+- Type d'opération `SIGNALEMENT_INCIDENT` et son gestionnaire : le signalement
+  part en différé quand le réseau manque. Une panne survient souvent *parce
+  que* le réseau est mauvais ; l'exiger ferait échouer la fonctionnalité
+  précisément quand elle sert.
+- `src/lib/offline/identite-locale.ts` : `error.tsx` remplace la page, donc le
+  `SynchronisationProvider` n'y est pas monté et son `userId` n'est pas
+  disponible. Le fournisseur laisse cette trace, effacée à la déconnexion.
+
+**La capture d'écran a été écartée, pas oubliée.** Un navigateur ne se
+photographie pas lui-même : `getDisplayMedia` demande de choisir une fenêtre —
+mauvaise question à poser à quelqu'un de déjà bloqué — et `html2canvas`
+redessine un DOM qui, sur une page en erreur, n'existe souvent plus. Le
+contexte est toujours disponible et répond aux questions que le support pose de
+toute façon.
+
+**La confidentialité se traite sous les yeux de l'utilisateur**, pas dans des
+conditions générales : le bloc exact est affiché avant l'envoi. Et la query
+string est retirée — vérifié, pas supposé : sur `/etablissement/eleves`, `?q=`
+porte la recherche libre, c'est-à-dire le plus souvent un nom d'élève. Le
+nettoyage est refait côté serveur, le client pouvant être d'une version
+antérieure.
+
+**DoD** : lint, typecheck et suite verte (437 tests). 24 tests ajoutés, dont le
+retrait de la query string, qui est la garantie de confidentialité.
+
+**Reste ouvert** : le parcours n'a pas de test de bout en bout — provoquer une
+vraie erreur applicative depuis Playwright demanderait une route de panne
+dédiée, qu'on ne veut pas en production.
+
+---
+
+### Idée — capture d'écran jointe à un signalement
 
 **Statut** : idée notée le 2026-09-07, **non autorisée**, à instruire.
 
-**Origine** : la page d'erreur propose « Réessayer » et « Retour au tableau de
-bord ». Un troisième choix, « Envoyer au support », transmettrait la panne
-au lieu de laisser l'utilisateur la décrire de mémoire. Il affiche déjà une
-référence — aujourd'hui personne ne sait quoi en faire.
+**Origine** : le signalement livré le 2026-09-08 transmet du texte. Y joindre
+une image dirait en un coup d'oeil ce qu'un `userAgent` ne dit pas — un
+tableau tronqué, un bouton absent, un chiffre aberrant.
 
-**Ce qui existe déjà et sert de fondation** :
+**Ce qui existe déjà et servirait de fondation** : `support_demande` accepte
+déjà une pièce jointe (`image/png` figure dans `TYPES_PIECE_JOINTE`), déposée
+par la clé service-role sous un chemin construit côté serveur.
 
-- `support_demande` et son écran `/profil/support` (migrations `0023`, `0024`).
-- La pièce jointe passe par la clé service-role, chemin construit côté serveur.
-- La file d'écritures différées : une panne survient souvent *parce que* le
-  réseau est mauvais. La demande doit donc pouvoir partir en différé, sinon la
-  fonctionnalité échouera précisément quand elle sert.
-
-**La capture d'écran est le point dur, à instruire avant de promettre** :
+**Les obstacles, instruits le 2026-09-08 et toujours valables** :
 
 - Un navigateur ne se photographie pas lui-même. `getDisplayMedia` demande à
   l'utilisateur de choisir une fenêtre et capture **tout l'écran** — donc
@@ -2894,14 +2936,15 @@ référence — aujourd'hui personne ne sait quoi en faire.
   quelqu'un est déjà bloqué est un mauvais moment.
 - `html2canvas` redessine le DOM : dépendance lourde, rendu approximatif, et
   sur une page en erreur il n'y a souvent plus de DOM utile à capturer.
-- **Le repli du repli, c'est le contexte**, pas l'image : référence, URL, rôle,
-  horodatage, dernière action, version du build. Plus utile qu'une capture, et
-  toujours disponible. La capture devrait être l'option, pas le mécanisme.
+- **Le contexte reste le mécanisme, la capture ne serait que l'option.** C'est
+  déjà ce qui est livré ; une capture s'ajouterait, elle ne remplacerait rien.
 
-**Question de confidentialité à trancher** : une capture d'un écran ScolarGest
-contient des noms d'élèves, parfois des montants. L'envoyer au support sort ces
-données de l'école. À décider explicitement, et à annoncer à l'utilisateur avant
-l'envoi — pas dans des conditions générales.
+**Question de confidentialité, toujours non tranchée** : une capture d'un écran
+ScolarGest contient des noms d'élèves, parfois des montants — précisément ce
+que le signalement actuel s'interdit d'envoyer (voir le retrait de la query
+string). L'autoriser reviendrait sur cette promesse, et devrait donc être un
+geste explicite de l'utilisateur, écran par écran, jamais un réglage par
+défaut.
 
 **Périmètre** : le domaine support appartient à TAMA (`feat/contact-support`).
 À lui attribuer, ou à coordonner.

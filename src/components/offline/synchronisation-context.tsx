@@ -13,6 +13,8 @@ import {
 import type { OperationEnFile } from '@/lib/offline/db';
 import { saisirNoteAction, soumettreNotesAction, demanderModificationAction } from '@/app/etablissement/notes/saisie/[evaluationId]/actions';
 import { enregistrerVersementAction } from '@/app/etablissement/finances/factures/[id]/actions';
+import { signalerIncidentAction } from '@/app/profil/support/actions';
+import { memoriserIdentite } from '@/lib/offline/identite-locale';
 
 /**
  * Moteur de synchronisation, monte une fois pour toute l'application
@@ -60,6 +62,13 @@ const GESTIONNAIRES: Gestionnaires = {
   DEMANDE_CORRECTION: async (charge, cle) =>
     exigerSucces(
       demanderModificationAction(charge as Parameters<typeof demanderModificationAction>[0], cle),
+    ),
+
+  // Depose depuis la page d'erreur, ou le fournisseur n'est pas monte : la
+  // mise en file s'y fait en direct, mais le vidage repasse bien par ici.
+  SIGNALEMENT_INCIDENT: async (charge, cle) =>
+    exigerSucces(
+      signalerIncidentAction(charge as Parameters<typeof signalerIncidentAction>[0], cle),
     ),
 
   PAIEMENT: async (charge, cle) => {
@@ -125,6 +134,14 @@ export function SynchronisationProvider({
   React.useEffect(() => {
     void rafraichir();
   }, [rafraichir]);
+
+  // `error.tsx` remplace la page en panne, donc ce fournisseur n'y est pas
+  // monte — et c'est justement la qu'il faut pouvoir mettre un signalement en
+  // file. On laisse donc de quoi retrouver le bon casier local. Voir
+  // `identite-locale.ts` : ce n'est pas une identite de confiance.
+  React.useEffect(() => {
+    memoriserIdentite({ userId, etablissementId });
+  }, [userId, etablissementId]);
 
   // Retour du reseau : evenementiel, pas de scrutation. Une coupure de six
   // heures ne doit pas coûter six heures de requetes.

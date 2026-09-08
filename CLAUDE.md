@@ -1139,6 +1139,51 @@ collegues. Le chemin est construit cote serveur, jamais recu, et la lecture
 passe par une URL signee (`getLienPieceJointe`) qui verifie que l'appelant est
 l'auteur de la demande — le SUPER_ADMIN excepte.
 
+### Signaler une panne : le contexte, jamais la capture
+
+Livre le 2026-09-08. Aucune migration. La page d'erreur (`src/app/error.tsx`)
+porte un troisieme bouton qui depose une demande de support de categorie
+`ANOMALIE`, au lieu de laisser l'utilisateur decrire la panne de memoire.
+
+**Le bouton est absent sur un refus d'acces.** Ce n'est pas un incident, c'est
+le produit qui fait son travail. Meme raisonnement que l'exclusion Sentry deja
+en place juste au-dessus : envoyer ca au traitement humain noierait les vraies
+pannes.
+
+**Pas de capture d'ecran, et ce n'est pas un manque de temps.** Un navigateur
+ne se photographie pas lui-meme : `getDisplayMedia` demande de choisir une
+fenetre — mauvaise question a poser a quelqu'un de deja bloque — et
+`html2canvas` redessine un DOM qui, sur une page en erreur, n'existe souvent
+plus. Le contexte, lui, est toujours disponible et repond aux questions que le
+support pose de toute facon.
+
+**La query string ne part pas.** Verifie, pas suppose : sur
+`/etablissement/eleves`, `?q=` porte la recherche libre, donc le plus souvent
+un nom d'eleve. Le chemin seul identifie l'ecran. Le nettoyage est **refait
+cote serveur** — le client peut etre d'une version anterieure, et un chemin
+recu d'un appelant est une valeur, pas une garantie.
+
+**Une seule fonction produit le texte affiche et le texte envoye.** Le bloc
+exact est montre avant l'envoi ; en avoir deux ferait diverger la promesse et
+le contenu, ce qui viderait de son sens le fait de le montrer. C'est la que se
+traite la question de confidentialite — sous les yeux de l'utilisateur, pas
+dans des conditions generales.
+
+**Le signalement part en differe quand le reseau manque**, avec sa cle
+d'idempotence : une panne survient souvent *parce que* le reseau est mauvais,
+et l'exiger ferait echouer la fonctionnalite precisement quand elle sert.
+`error.tsx` remplace la page, donc `SynchronisationProvider` n'y est pas monte
+et son `userId` n'est pas disponible : d'ou `src/lib/offline/identite-locale.ts`,
+ecrit par le fournisseur et efface par `effacerToutLeLocal()`. **Ce n'est pas
+une identite de confiance** — elle choisit un casier local, rien de plus ;
+l'auteur reel est fige a l'envoi par la policy `auteurId = auth.uid()`.
+
+**Le succes vaut `null`, et `undefined` ne vaut pas succes.** Une Server Action
+interrompue peut se resoudre sur `undefined` (voir plus haut) : le lire comme
+un succes perdrait le signalement en annoncant qu'il est parti. Il est traite
+comme une coupure, donc mis en file. Un refus **explicite** du serveur, lui,
+n'est pas mis en file : rejouer ne ferait que rejouer le refus.
+
 ### Import en deux temps : analyser, montrer, puis ecrire
 
 Le depot d'un fichier declenchait l'ecriture immediate. `preparerImport*` lit

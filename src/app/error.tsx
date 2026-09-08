@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/nextjs';
 import { ShieldAlert, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { SignalerIncident } from '@/components/erreur/SignalerIncident';
 
 /**
  * Frontière d'erreur de l'espace applicatif.
@@ -64,6 +65,16 @@ export default function Erreur({
             <p className="text-label-md text-text-secondary" data-mono>
               Référence : {error.digest}
             </p>
+          )}
+
+          {/* Un refus d'acces n'a rien a signaler : le produit fonctionne. Y
+              proposer le support enverrait au traitement humain ce qui est une
+              regle de role, et noierait les vraies pannes — meme raisonnement
+              que pour Sentry ci-dessus. */}
+          {!refusAcces && (
+            <div className="flex w-full justify-center pt-2">
+              <SignalerIncident error={error} />
+            </div>
           )}
 
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
