@@ -28,6 +28,7 @@ import { encaissementsAnnee, effectifsParClasse } from '@/services/series-ecole'
 import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
 import { CarteEncaissements, CarteEffectifs } from './CartesGraphes';
 import { BanniereDemarrage } from './BanniereDemarrage';
+import { InvitationPremiersEleves } from '@/components/eleves/InvitationPremiersEleves';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} F`;
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
@@ -178,6 +179,12 @@ export default async function DashboardPage() {
 
     return layout(
       <>
+        {/* Une ecole configuree mais sans eleve n'a pas besoin de lire douze
+            compteurs a zero : elle a un seul geste devant elle. Le bloc passe
+            avant les metriques, parce qu'il est la seule chose actionnable de
+            la page tant qu'aucun eleve n'est entre. */}
+        {stats.eleves.actifs === 0 && <InvitationPremiersEleves avecCarte />}
+
         {/* Une rangee de metriques expliquees plutot que huit compteurs nus.
             Chaque carte porte sa comparaison en clair : « 276 » ne dit rien,
             « 276 / 481 places » dit si l'ecole est pleine. */}
@@ -359,6 +366,10 @@ export default async function DashboardPage() {
     ]);
     return layout(
       <>
+        {/* Meme raison que sur le tableau de bord du Directeur : la Secretaire
+            est celle qui saisit, c'est donc elle qui fera l'import. */}
+        {stats.eleves.actifs === 0 && <InvitationPremiersEleves avecCarte />}
+
         {stats.notesEnAttente > 0 && (
           <CarteAction
             intitule="Notes en attente de validation"

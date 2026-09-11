@@ -14,6 +14,7 @@ import {
   LigneCarteMobile,
   type TonStatut,
 } from '@/components/ui/carte-liste-mobile';
+import { InvitationPremiersEleves } from '@/components/eleves/InvitationPremiersEleves';
 import { BoutonFlottant, BoutonOutilPrincipal } from '@/components/ui/actions-mobile';
 import { BarreListe } from '@/components/ui/barre-liste';
 import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
@@ -64,6 +65,19 @@ export default async function ElevesPage({
   ]);
 
   const canWrite = ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE';
+
+  /**
+   * « L'école n'a aucun élève » et « la recherche ne ramène rien » sont deux
+   * situations opposées que `total === 0` confondait : une Directrice qui
+   * cherchait un nom mal orthographié lisait « Créez votre premier élève pour
+   * commencer » alors que son école en comptait trois cents, et une école
+   * réellement vide recevait le même message tiède, sans l'import.
+   *
+   * Le test porte sur les filtres et non sur un comptage supplémentaire : sans
+   * recherche ni statut, `total` est bien l'effectif de l'établissement, et une
+   * seconde requête ne dirait rien de plus.
+   */
+  const ecoleSansEleve = !lireUnique('q') && !lireUnique('statut');
   const page = paginationDepuisBase(
     resultat.lignes,
     resultat.total,
@@ -136,18 +150,22 @@ export default async function ElevesPage({
             compte={`${page.total} élève${page.total > 1 ? 's' : ''}`}
           />
 
-          {page.total === 0 ? (
+          {page.total === 0 && ecoleSansEleve && canWrite ? (
+            <InvitationPremiersEleves />
+          ) : page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucun élève trouvé.</p>
-              <p className="text-body-sm text-text-secondary">
-                {canWrite
-                  ? 'Créez votre premier élève pour commencer.'
-                  : 'Aucun élève ne correspond à ces critères.'}
+              <p className="text-body-md text-text-primary">
+                {ecoleSansEleve ? 'Aucun élève inscrit.' : 'Aucun élève ne correspond.'}
               </p>
-              {canWrite && (
-                <Button asChild size="sm">
-                  <Link href="/etablissement/eleves/nouvelle">Nouvel élève</Link>
+              <p className="text-body-sm text-text-secondary">
+                {ecoleSansEleve
+                  ? "L'inscription des élèves est faite par la direction ou le secrétariat."
+                  : 'Modifiez la recherche ou retirez les filtres pour voir toute la liste.'}
+              </p>
+              {!ecoleSansEleve && (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href="/etablissement/eleves">Voir tous les élèves</Link>
                 </Button>
               )}
             </CardContent>
