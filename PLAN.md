@@ -2869,6 +2869,112 @@ le statut de la facture.
 
 ---
 
+### Fonctionnalité — Sécurité : la RLS porte les rôles
+
+**Statut** : livrée le 2026-09-11, sur `main`. Migrations `20260911005324`,
+`20260911012600`, `20260911013500`, `20260911021500` — **toutes appliquées**.
+
+**Origine** : un tour de sécurité demandé avant d'attaquer la documentation.
+Constaté par le chemin réel — client anon plus session d'un Enseignant de
+démonstration, jamais la clé service-role — **cinq essais sur cinq ont réussi** :
+insérer un paiement, modifier un tarif, réécrire des notes hors de son
+affectation, effacer le PIN d'approbation de la Secrétaire, détourner
+l'opération d'un collègue.
+
+**La cause, en une phrase** : les gardes `requireRole` vivent dans les Server
+Actions, que l'appelant peut sauter. L'URL du projet et la clé anon sont dans le
+bundle client par construction ; un utilisateur connecté parle à PostgREST
+directement. La RLS était la seule barrière, et elle comparait l'établissement
+sans jamais regarder le rôle.
+
+**Ce qui a été fermé** :
+
+- `paiement` : écriture réservée à SECRETAIRE et COMPTABLE.
+- `facture_eleve`, `ligne_facture` : DIRECTEUR en plus, par la chaîne
+  d'inscription (`fn_inscrire_eleve` y insère la facture et ses lignes).
+- `tarif_scolaire`, `type_frais` : SECRETAIRE et COMPTABLE.
+- `note`, `evaluation` : **bornées à l'affectation** pour un ENSEIGNANT
+  (`est_affecte`), ouvertes à l'établissement pour DIRECTEUR et SECRETAIRE qui
+  font tourner le circuit de validation. Un resserrement par rôle n'aurait rien
+  fermé ici : saisir des notes **est** le métier de l'enseignant.
+- `eleve`, `inscription`, `responsable`, `eleve_responsable` : DIRECTEUR et
+  SECRETAIRE.
+- `utilisateur` : DIRECTEUR, ou sa propre ligne — plus un déclencheur
+  (`fn_proteger_champs_utilisateur`) qui interdit de se changer `role`, `statut`
+  ou `etablissementId`. La RLS ne sait pas restreindre par colonne ; le dépôt
+  avait déjà résolu ce problème exact pour les dates d'essai.
+- `operation_client` : lecture et RPC scopées sur `userId`, avec refus
+  **explicite** en cas de détournement.
+- `fn_expirer_abonnements` et `fn_purger_operations_client` retirées de l'API
+  publique — la première était joignable **sans être connecté**.
+- `search_path` figé sur les 18 fonctions signalées, dont tout le cœur financier.
+- Bornes de longueur sur `demande_demo`, seul point d'insertion anonyme.
+
+**La désactivation d'un utilisateur révoque enfin.** Elle écrivait
+`statut = 'INACTIF'` et rien d'autre, or personne ne lit cette colonne : une
+secrétaire renvoyée gardait un accès complet tant que sa session se renouvelait.
+Elle bannit désormais le compte Auth. `reactiverUtilisateur` existe **parce
+que** la désactivation est devenue effective — sans elle, un clic de trop serait
+sans retour.
+
+**DoD** : `scripts/verifier-separation-roles.ts` — six essais refusés, zéro
+toléré, zéro régression, code de sortie 0. Contrôles positifs : encaissement et
+annulation par une Secrétaire, annotation d'une note par l'enseignant affecté,
+lecture et écriture des élèves et inscriptions, redéfinition de son propre PIN.
+Lint, typecheck, 413 tests.
+
+**Reste ouvert** :
+
+- **Une fenêtre d'une heure** à la désactivation : le jeton d'accès déjà émis
+  vaut jusqu'à son expiration, et l'API d'administration de Supabase n'expose
+  pas de révocation immédiate des sessions.
+- La **protection contre les mots de passe compromis** est désactivée dans
+  Supabase Auth — réglage hors dépôt.
+- Aucune **limitation de débit** sur le formulaire public de démo : elle ne
+  s'exprime pas au niveau de la RLS.
+- Les écrans n'ont pas été ouverts : une saisie de notes et une validation
+  restent à constater à la main.
+
+---
+
+### Fonctionnalité — Inciter à l'import quand l'école n'a aucun élève
+
+**Statut** : livrée le 2026-09-10, branche `feat/soko-inciter-import-eleves`
+**poussée mais non fusionnée** — en attente du verdict de preview. Aucune
+migration.
+
+**Origine** : un diagnostic sur la base réelle, pas une intuition d'ergonomie.
+La seule école en essai avait posé sa structure complète en **sept minutes** le
+4 septembre — deux cycles, une année, dix classes, dix matières, programme et
+coefficients — puis s'était arrêtée à **zéro élève**. Elle s'est reconnectée
+cinq jours plus tard et est repartie **sans écrire une seule ligne**. Ce qu'elle
+avait sous les yeux : un tableau de bord de zéros, et une liste annonçant
+« Aucun élève trouvé ».
+
+**Livré** :
+
+- `InvitationPremiersEleves`, composant partagé par la liste des élèves et le
+  tableau de bord, pour que les deux promesses ne divergent pas.
+- L'import est l'action principale, la saisie unitaire passe en second : une
+  école arrive avec deux à quatre cents élèves déjà dans un tableur.
+- L'état vide de la liste **distingue** enfin « école vide » de « la recherche
+  ne ramène rien ». Le code confondait les deux sous `total === 0`, et une
+  Directrice cherchant un nom mal orthographié lisait « Créez votre premier
+  élève » avec trois cents élèves en base.
+- Le conseil contextuel « Inscrivez vos élèves » mène à l'import, plus au
+  formulaire unitaire.
+
+**Ce que le diagnostic a aussi révélé** : `conseil_utilisateur` était **vide**
+pour cette école. Le panneau attend la deuxième page de la session ; le
+Directeur s'est connecté, a vu le tableau de bord, et est reparti. Le mécanisme
+d'incitation existait et n'a jamais eu l'occasion de se déclencher.
+
+**Reste ouvert** : le questionnaire de démarrage ne comporte **aucune étape
+« élèves »** sur ses onze étapes. Même en allant au bout, une école ressort avec
+zéro élève. C'est l'autre moitié du problème, non traitée.
+
+---
+
 ### Idée — « Envoyer au support » depuis la page d'erreur
 
 **Statut** : idée notée le 2026-09-07, **non autorisée**, à instruire.

@@ -278,11 +278,24 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-08) :
+**Active branches** (2026-09-11) :
+- `feat/soko-durcissement-securite` + `feat/soko-revocation-acces` — ✅ terminées
+  et mergées sur `main` (2026-09-11), agent SOKO : la RLS porte les rôles, la
+  désactivation d'un utilisateur révoque vraiment, les notes sont bornées à
+  l'affectation. Migrations `20260911005324`, `20260911012600`,
+  `20260911013500`, `20260911021500`, **toutes appliquées**. Sonde permanente :
+  `scripts/verifier-separation-roles.ts`. Voir `PLAN.md` § 8.
+- `feat/soko-inciter-import-eleves` — **poussée, non fusionnée** (2026-09-10) :
+  l'import est mis en avant quand l'école n'a aucun élève, et l'état vide de la
+  liste distingue enfin « école vide » de « aucun résultat ». Aucune migration.
+  En attente du verdict de preview de l'utilisateur.
+- `feat/soko-signalement-incident` — **locale, non poussée** (2026-09-08) :
+  bouton « Signaler au support » sur la page d'erreur, contexte et non capture
+  d'écran. Aucune migration. En attente de l'aval de l'utilisateur.
 - `feat/contact-support` — ✅ terminée et mergée sur `main` (2026-09-08), agent
   TAMA : une demande de support ne se relit que par son auteur — service,
-  policy RLS et bucket resserres ensemble. Migration `20260907221109`, deja
-  appliquee. Voir `PLAN.md` § 8.
+  policy RLS et bucket resserrés ensemble. Migration `20260907221109`, déjà
+  appliquée. Voir `PLAN.md` § 8.
 - `design/verni-tactile-socle` — ✅ terminée et mergée sur `main` (2026-09-05),
   agent VERNI : refonte tactile. Échelle tactile, `src/components/tactile/`,
   cibles à 44px corrigées à la source, fin des débordements horizontaux, les
