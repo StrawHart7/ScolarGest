@@ -2975,6 +2975,84 @@ zéro élève. C'est l'autre moitié du problème, non traitée.
 
 ---
 
+### Contrainte — Le cadre réglementaire togolais, et ce qu'il impose au modèle
+
+**Statut** : documenté le 2026-09-11, **rien d'engagé**. Dossier complet hors
+dépôt : `ScolarGest-Documentation/00-Socle/01-Cadre-reglementaire-togolais.md`.
+
+**Origine** : des écoles ont dit que l'inspection était l'entité définissant le
+plus le bloc Structure. Vérification faite sur l'arrêté n° 2021/1049/MEPSTA/CAB/SG
+(53 articles), le calendrier ministériel et l'annuaire national.
+
+**Le constat** : l'intuition est juste sur le fond, imprécise sur l'auteur.
+L'inspection ne définit pas les cycles, niveaux et séries — ils sont nationaux.
+Mais **une école ne choisit pas son périmètre d'enseignement, elle l'obtient**.
+Toute extension vers un autre niveau ou une autre série est soumise à
+approbation préalable du ministre (art. 44) et son absence est un motif de
+sanction explicite (art. 53). Du point de vue du directeur, c'est l'inspection
+qui décide : c'est elle qui contrôle, valide sa remontée statistique annuelle
+et inscrit ses candidats aux examens.
+
+**Quatre suppositions du produit que le droit contredit** :
+
+| Le produit suppose | Le droit dit |
+|---|---|
+| L'école choisit ses cycles, niveaux et séries | Elle les tient d'une autorisation ; l'extension est approuvée au préalable |
+| L'année scolaire est un paramètre d'établissement | Calendrier national, dont le respect est contrôlé (art. 50) |
+| Les tarifs sont un réglage interne | Ils sont déclarés à l'État au dossier d'ouverture (art. 26) |
+| L'inscription est le seul registre | Le registre de présence est également obligatoire (art. 38) |
+
+**Cinq pistes, aucune engagée** : rattacher l'établissement à son inspection
+(unité de classement officielle, et porte d'entrée du rapport statistique
+annuel) ; distinguer périmètre autorisé et périmètre configuré ; proposer le
+calendrier national par défaut ; **produire le dossier de renouvellement** ;
+tenir le registre de présence.
+
+**Le dossier de renouvellement mérite une ligne à part.** L'autorisation de
+fonctionnement dure cinq années scolaires, et son renouvellement exige
+l'effectif global par année **sur les cinq dernières années** plus les
+statistiques de résultats de la période (art. 48). C'est exactement ce qu'un
+logiciel produit et qu'un classeur ne produit pas — l'argument commercial le
+plus solide identifié à ce jour, et il n'est utilisé nulle part.
+
+**Dépendances** : toutes ces pistes touchent le modèle de données ou les
+services. Arbitrage explicite requis avant toute écriture.
+
+---
+
+### Constat — Catalogue des coefficients : la Seconde reste le seul trou
+
+**Statut** : inventaire dressé le 2026-09-11. Aucun changement de code. Détail :
+`ScolarGest-Documentation/00-Socle/02-Matieres-et-coefficients.md`.
+
+**État réel du catalogue** (lu en base, pas recopié) : **dix colonnes sur
+douze** sont semées et vérifiées — 6ème à 3ème, puis 1ère et Terminale en A4, C
+et D. Les totaux concordent avec les totaux officiels.
+
+**La Seconde reste vide**, et la décision de la migration `0020` tient toujours :
+les totaux officiels donnaient 20 en série A et 19 en C/D, la lecture cellule
+par cellule 21 et 20 — une seule ligne mal lue, cinq candidates, rien pour les
+départager sur une image. La Seconde ne compte que **deux** colonnes, la
+séparation C/D n'intervenant qu'en Première.
+
+**Aucun tableau officiel togolais des coefficients n'est accessible en ligne** —
+ni le site du ministère, ni la Direction de la planification, ni `ecole.gouv.tg`
+qui n'héberge que des sujets d'examen. Trois éléments sourcés seulement :
+Français coefficient 4 en littéraire (2nde et 1ère) et 2 en scientifique ; la
+Philosophie enseignée dans toutes les séries dès la Seconde ; la SVT ajoutée en
+série littéraire — réforme de 2022-2023.
+
+**Pour fermer** : une photo lisible des deux colonnes de Seconde du document
+d'origine, ou un bulletin de Seconde d'une école réelle, ou une demande à
+l'inspection de rattachement.
+
+**Les huit séries techniques** (E, F1 à F4, G1 à G3) existent dans `serie` et
+n'ont **aucun coefficient** : les documents ministériels utilisés ne traitent
+que l'enseignement général. À savoir avant de démarcher un établissement
+technique.
+
+---
+
 ### Idée — « Envoyer au support » depuis la page d'erreur
 
 **Statut** : idée notée le 2026-09-07, **non autorisée**, à instruire.

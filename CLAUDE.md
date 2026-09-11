@@ -1675,6 +1675,24 @@ Seconde dont les totaux ne se recoupent pas — **laisser le trou et le
 documenter** vaut mieux que combler au jugé. Le repli sur saisie manuelle existe
 déjà : l'utiliser coûte dix saisies, se tromper coûte une année de bulletins.
 
+### Une source de barème se vérifie d'abord au pays
+
+Constaté le 2026-09-11 en cherchant les coefficients de la Seconde. Les moteurs
+de recherche remontent en très bonne place des tableaux de coefficients
+**ivoiriens** — `men-delc.org`, `dpfc-ci.net` — dont la présentation, le
+vocabulaire et jusqu'à la numérotation des circulaires ressemblent à s'y
+méprendre à des documents togolais. Le fichier « Coefficients dans le premier et
+le second cycle » a été téléchargé et ouvert : c'est la circulaire
+n° 270/MENA/DPFC du 31 juillet 2023 de la **République de Côte d'Ivoire**.
+
+Appliquée au Togo, cette grille aurait produit exactement le défaut décrit
+juste au-dessus : des bulletins faux, sans la moindre alerte nulle part.
+
+Donc : avant d'employer un barème, un programme ou un calendrier trouvé en
+ligne, **ouvrir le document et lire son en-tête** — République, ministère,
+numéro et date. Un nom de domaine ne suffit pas, un résumé de moteur de
+recherche encore moins.
+
 ### Vérifier par le chemin réel
 
 Un contrôle qui rassure à tort est pire que pas de contrôle.
