@@ -142,9 +142,78 @@ export async function listUtilisateursParEtablissement(
   return data ?? [];
 }
 
+/**
+ * Banni cent ans. Supabase attend une duree, pas un booleen ; `'none'` la leve.
+ *
+ * Un bannissement interdit la connexion **et le renouvellement du jeton**.
+ * C'est ce second effet qui compte : sans lui, une session ouverte se
+ * prolongerait indefiniment.
+ */
+const BANNISSEMENT = '876000h';
+
+/**
+ * Retire l'acces d'un compte, pour de vrai.
+ *
+ * ## Ce que cette fonction ne faisait pas
+ *
+ * Elle ecrivait `statut = 'INACTIF'` et s'arretait la. Or **rien ne lit cette
+ * colonne** : ni `requireRole`, qui travaille sur les seuls claims du JWT, ni
+ * le middleware, qui ne regarde que l'abonnement. Aucun bannissement, aucune
+ * revocation, les claims `app_metadata` intacts.
+ *
+ * Une secretaire renvoyee gardait donc un acces complet aux dossiers d'eleves
+ * et aux factures, aussi longtemps que sa session se renouvelait. Constate le
+ * 2026-09-11, et c'est le defaut de securite le plus probable du produit : un
+ * depart de personnel est routinier, ouvrir les outils de developpeur ne l'est
+ * pas.
+ *
+ * ## L'ordre des deux ecritures n'est pas indifferent
+ *
+ * Le bannissement **d'abord**, le statut ensuite. Les deux peuvent echouer, et
+ * les deux echecs ne se valent pas : un compte banni encore affiche « Actif »
+ * desoriente, un compte affiche « Inactif » qui conserve son acces est
+ * exactement le defaut qu'on corrige. On garde donc le risque du premier.
+ *
+ * ## La fenetre qui reste
+ *
+ * Le bannissement interdit la connexion et le renouvellement, il ne detruit pas
+ * le jeton d'acces deja emis : celui-ci reste valable jusqu'a son expiration,
+ * une heure par defaut. L'API d'administration de Supabase n'expose pas de
+ * revocation immediate des sessions d'un utilisateur. Cette heure est connue et
+ * assumee, pas ignoree — et elle n'a aucun rapport avec l'acces illimite
+ * d'avant.
+ */
 export async function desactiverUtilisateur(utilisateurId: string): Promise<void> {
   const ctx = await requireRole('DIRECTEUR');
+
+  // Se desactiver soi-meme etait sans consequence tant que la desactivation
+  // n'avait aucun effet. Maintenant qu'elle en a, un Directeur seul de son
+  // ecole s'enfermerait dehors sans recours : personne d'autre n'a le droit de
+  // le reactiver.
+  if (utilisateurId === ctx.userId) {
+    throw new Error('Vous ne pouvez pas désactiver votre propre compte.');
+  }
+
   const supabase = createClient();
+
+  // L'appartenance est verifiee **avant** le bannissement : la cle service-role
+  // ne connait pas de tenant, et bannir sur un identifiant arbitraire
+  // reviendrait a laisser une ecole couper l'acces d'une autre.
+  const { data: cible, error: erreurCible } = await supabase
+    .from('utilisateur')
+    .select('id')
+    .eq('id', utilisateurId)
+    .eq('etablissementId', ctx.etablissementId)
+    .maybeSingle();
+  if (erreurCible) throw erreurCible;
+  if (!cible) throw new Error('Utilisateur introuvable dans votre établissement.');
+
+  const admin = createAdminClient();
+  const { error: erreurBan } = await admin.auth.admin.updateUserById(utilisateurId, {
+    ban_duration: BANNISSEMENT,
+  });
+  if (erreurBan) throw erreurBan;
+
   const { error } = await supabase
     .from('utilisateur')
     .update({ statut: 'INACTIF' })
@@ -154,6 +223,53 @@ export async function desactiverUtilisateur(utilisateurId: string): Promise<void
 
   await auditLog({
     action: 'DESACTIVER_UTILISATEUR',
+    module: 'identity',
+    objetType: 'Utilisateur',
+    objetId: utilisateurId,
+  });
+}
+
+/**
+ * Rend l'acces a un compte desactive.
+ *
+ * Elle existe **parce que** la desactivation est devenue effective. Sans elle,
+ * un clic de trop sur « Desactiver » serait une porte a sens unique : le
+ * bannissement Auth ne se leve pas depuis le produit, et une ecole resterait
+ * avec une secretaire definitivement dehors pour une erreur de ligne dans un
+ * tableau.
+ *
+ * Ordre inverse de la desactivation, pour la meme raison : le statut d'abord,
+ * le bannissement ensuite. Si le second echoue, le compte est affiche « Actif »
+ * sans pouvoir entrer — genant et visible — plutot que l'inverse.
+ */
+export async function reactiverUtilisateur(utilisateurId: string): Promise<void> {
+  const ctx = await requireRole('DIRECTEUR');
+  const supabase = createClient();
+
+  const { data: cible, error: erreurCible } = await supabase
+    .from('utilisateur')
+    .select('id')
+    .eq('id', utilisateurId)
+    .eq('etablissementId', ctx.etablissementId)
+    .maybeSingle();
+  if (erreurCible) throw erreurCible;
+  if (!cible) throw new Error('Utilisateur introuvable dans votre établissement.');
+
+  const { error } = await supabase
+    .from('utilisateur')
+    .update({ statut: 'ACTIF' })
+    .eq('id', utilisateurId)
+    .eq('etablissementId', ctx.etablissementId);
+  if (error) throw error;
+
+  const admin = createAdminClient();
+  const { error: erreurBan } = await admin.auth.admin.updateUserById(utilisateurId, {
+    ban_duration: 'none',
+  });
+  if (erreurBan) throw erreurBan;
+
+  await auditLog({
+    action: 'REACTIVER_UTILISATEUR',
     module: 'identity',
     objetType: 'Utilisateur',
     objetId: utilisateurId,

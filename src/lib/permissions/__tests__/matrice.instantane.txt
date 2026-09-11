@@ -226,3 +226,4 @@ utilisateur.getUtilisateur = SUPER_ADMIN+DIRECTEUR
 utilisateur.inviteUtilisateur = SUPER_ADMIN+DIRECTEUR (conditionnel)
 utilisateur.listUtilisateurs = SUPER_ADMIN+DIRECTEUR
 utilisateur.listUtilisateursParEtablissement = SUPER_ADMIN
+utilisateur.reactiverUtilisateur = SUPER_ADMIN+DIRECTEUR

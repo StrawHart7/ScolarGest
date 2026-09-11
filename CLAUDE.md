@@ -120,6 +120,74 @@ ouverte à tous les rôles par conception, et la Secrétaire a un accès finance
 lecture seule (doc 08 § 17) : resserrer sans vérifier casse une page entière pour
 un rôle légitime.
 
+### La RLS porte les rôles, pas seulement le tenant
+
+Constaté le 2026-09-11 par le chemin réel : un Enseignant a inséré un paiement,
+modifié un tarif, réécrit des notes hors de son affectation, et effacé le PIN
+d'approbation de la Secrétaire. Cinq essais sur cinq.
+
+**Les gardes `requireRole` vivent dans les Server Actions, que l'appelant peut
+sauter.** L'URL du projet et la clé anon sont dans le bundle client par
+construction, et un utilisateur connecté détient un jeton valide : il parle à
+PostgREST directement. La RLS est alors la seule barrière. Elle comparait
+l'établissement sans jamais regarder le rôle.
+
+`auth_role()` lit `app_metadata.role` du JWT — **la même source vérifiée** que
+`requireRole`. Une politique qui s'appuie dessus est donc exactement aussi
+fiable que la garde applicative. Toute nouvelle table qui porte de l'argent, des
+notes ou des dossiers doit séparer lecture et écriture, et nommer les rôles dans
+l'écriture. `scripts/verifier-separation-roles.ts` l'éprouve.
+
+Quatre pièges, chacun payé une fois :
+
+**Les RPC métier ne sont PAS `SECURITY DEFINER`.** Sur les vingt et une
+fonctions `fn_*`, seules les sept fonctions d'opération et de maintenance le
+sont. `fn_enregistrer_paiement`, `fn_inscrire_eleve`, `fn_soumettre_notes` et
+les autres sont `SECURITY INVOKER`, donc soumises à la RLS de l'appelant.
+Constater qu'aucun service n'écrit en direct ne permet **pas** d'en déduire que
+la RLS ne s'applique pas — c'est cette déduction qui a cassé les encaissements
+en production le 2026-09-11.
+
+**`select ... for update` est évalué contre la politique d'UPDATE**, pas celle
+de SELECT. Retirer l'écriture à une table dont une fonction fait une lecture
+verrouillante la rend introuvable : `fn_enregistrer_paiement` répondait
+« Facture introuvable » sur une facture parfaitement lisible.
+
+**La RLS ne lève pas sur un UPDATE ni un DELETE : elle filtre les lignes.** Un
+refus revient donc sans erreur et sans ligne. Tout contrôle doit regarder le
+nombre de lignes touchées, sinon il annonce un succès là où rien n'a été écrit —
+la sonde de sécurité elle-même est tombée dans ce piège.
+
+**Un rôle ne suffit pas quand l'écriture est le métier du rôle.** Restreindre
+`note` à l'ENSEIGNANT n'aurait rien fermé : saisir des notes **est** son travail.
+Le bon axe est l'affectation — `est_affecte(classe, matiere, annee)`. Le
+DIRECTEUR et la SECRÉTAIRE gardent la portée établissement, puisqu'ils font
+tourner le circuit de validation sur toute l'école.
+
+**Et `affectation_enseignant` est lisible par tout l'établissement** : filtrer
+sur son propre `enseignantId` est obligatoire, sans quoi on compare aux
+affectations de l'école entière.
+
+### Retirer un accès : la colonne `statut` ne suffit pas
+
+`desactiverUtilisateur` écrivait `statut = 'INACTIF'` et rien de plus. Or
+**personne ne lit cette colonne** : `requireRole` travaille sur les seuls claims
+du JWT, et le middleware ne regarde que l'abonnement. Une secrétaire renvoyée
+gardait un accès complet aussi longtemps que sa session se renouvelait.
+
+La désactivation **bannit désormais le compte Auth** (`ban_duration`), ce qui
+interdit la connexion *et* le renouvellement du jeton. L'ordre compte : le
+bannissement d'abord, le statut ensuite — un compte banni encore affiché
+« Actif » désoriente, un compte affiché « Inactif » qui conserve son accès est
+le défaut qu'on corrige.
+
+Il reste une fenêtre d'une heure : le jeton d'accès déjà émis vaut jusqu'à son
+expiration, et l'API d'administration de Supabase n'expose pas de révocation
+immédiate des sessions. Connue et assumée.
+
+`reactiverUtilisateur` existe **parce que** la désactivation est devenue
+effective : sans elle, un clic de trop serait sans retour.
+
 ### Vérifier l'isolation entre écoles
 
 `npx tsx scripts/verifier-isolation.ts` monte deux écoles jetables et tente des

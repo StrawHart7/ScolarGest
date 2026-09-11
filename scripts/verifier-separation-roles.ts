@@ -66,10 +66,7 @@ const aNettoyer: { table: string; id: string }[] = [];
  * soit ferme. La retirer est ce qui transforme la sonde en garde-fou pour ce
  * trou-la.
  */
-const TOLERES: Record<string, string> = {
-  'Enseignant se promeut DIRECTEUR':
-    "Table `utilisateur` non resserree (deuxieme etape du 2026-09-11). Sans consequence sur les droits : le role applicatif vient du JWT verifie, jamais de cette colonne. Reste a fermer pour l'integrite de la liste des comptes.",
-};
+const TOLERES: Record<string, string> = {};
 
 /**
  * Enregistre le verdict d'un essai d'ecriture.
@@ -223,6 +220,88 @@ async function main(): Promise<void> {
           ? `REPARATION MANUELLE REQUISE : remettre ${EMAIL} en ENSEIGNANT (${erreurRetour.message})`
           : 'role remis a ENSEIGNANT',
       );
+    }
+  }
+
+  // --- 3 bis. Reecrire une note hors de son affectation.
+  //
+  // La granularite de la politique est le **couple (classe, matiere)**, pas la
+  // classe : un professeur de maths enseigne peut-etre dans les treize classes,
+  // il n'y enseigne pas la philosophie. Un premier essai filtrait sur la seule
+  // classe et ne trouvait donc aucune cible sur le compte de demonstration —
+  // il concluait « essai impossible » sur une faille bien reelle.
+  {
+    // `affectation_enseignant` est lisible par **tout l'etablissement**. Sans le
+    // filtre sur son propre `enseignantId`, on compare aux affectations des 113
+    // lignes de l'ecole au lieu des cinq de l'appelant, et la sonde conclut
+    // « ce compte enseigne tout » sur une faille bien reelle — 26 957 notes
+    // etaient hors de son affectation. Defaut de la sonde corrige le
+    // 2026-09-11, apres l'avoir cru concluante.
+    const { data: monEnseignant } = await sb
+      .from('enseignant')
+      .select('id')
+      .eq('utilisateurId', monId)
+      .maybeSingle();
+
+    const { data: mesAffectations } = monEnseignant
+      ? await sb
+          .from('affectation_enseignant')
+          .select('"classeId", "matiereId"')
+          .eq('enseignantId', monEnseignant.id)
+      : { data: [] };
+
+    const miennes = new Set(
+      (mesAffectations ?? []).map((a) => `${a.classeId}|${a.matiereId}`),
+    );
+    console.log(`Couples (classe, matiere) affectes a ce compte : ${miennes.size}`);
+
+    const { data: evals } = await sb
+      .from('evaluation')
+      .select('id, "classeId", "matiereId"')
+      .limit(500);
+    const horsAffectation = (evals ?? []).find(
+      (e) => !miennes.has(`${e.classeId}|${e.matiereId}`),
+    );
+
+    if (!horsAffectation) {
+      noter(
+        'Enseignant reecrit une note hors de son affectation',
+        new Error('ce compte enseigne tous les couples (classe, matiere) lisibles'),
+        null,
+        '',
+      );
+    } else {
+      const { data: notes } = await sb
+        .from('note')
+        .select('id, valeur, observation')
+        .eq('evaluationId', horsAffectation.id)
+        .limit(1);
+      const note = notes?.[0];
+      if (!note) {
+        noter(
+          'Enseignant reecrit une note hors de son affectation',
+          new Error('aucune note sur cette evaluation'),
+          null,
+          '',
+        );
+      } else {
+        const { data, error } = await sb
+          .from('note')
+          .update({ valeur: 19.5 })
+          .eq('id', note.id)
+          .select('id, valeur')
+          .maybeSingle();
+        noter(
+          'Enseignant reecrit une note hors de son affectation',
+          error,
+          data,
+          `note ${note.id} : ${note.valeur} -> ${data?.valeur}`,
+        );
+        if (data) {
+          await sb.from('note').update({ valeur: note.valeur }).eq('id', note.id);
+          console.log(`valeur d'origine ${note.valeur} restauree sur la note ${note.id}`);
+        }
+      }
     }
   }
 

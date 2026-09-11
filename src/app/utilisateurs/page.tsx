@@ -15,7 +15,7 @@ import { BarreListe } from '@/components/ui/barre-liste';
 import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
-import { DesactiverButton } from './DesactiverButton';
+import { DesactiverButton, ReactiverButton } from './DesactiverButton';
 
 const STATUT_BADGE = {
   ACTIF: 'success',
@@ -156,7 +156,18 @@ export default async function UtilisateursPage({
                           <Badge variant={STATUT_BADGE[u.statut]}>{u.statut}</Badge>
                         </TableCell>
                         <TableCell>
-                          {u.statut === 'ACTIF' && <DesactiverButton utilisateurId={u.id} />}
+                          {u.statut === 'ACTIF' ? (
+                            <DesactiverButton
+                              utilisateurId={u.id}
+                              nomComplet={`${u.prenom} ${u.nom}`}
+                            />
+                          ) : (
+                            // Un compte desactive doit pouvoir revenir : la
+                            // desactivation bannit desormais le compte Auth, et
+                            // le bannissement ne se leve pas autrement que par
+                            // ce bouton.
+                            <ReactiverButton utilisateurId={u.id} />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

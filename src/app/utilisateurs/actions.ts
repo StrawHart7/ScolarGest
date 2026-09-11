@@ -4,7 +4,11 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getTenantContext } from '@/services/tenant';
-import { inviteUtilisateur, desactiverUtilisateur } from '@/services/utilisateur';
+import {
+  inviteUtilisateur,
+  desactiverUtilisateur,
+  reactiverUtilisateur,
+} from '@/services/utilisateur';
 
 const schema = z.object({
   nom: z.string().min(1, 'Nom requis'),
@@ -41,5 +45,10 @@ export async function inviterUtilisateur(
 
 export async function desactiver(utilisateurId: string): Promise<void> {
   await desactiverUtilisateur(utilisateurId);
+  revalidatePath('/utilisateurs');
+}
+
+export async function reactiver(utilisateurId: string): Promise<void> {
+  await reactiverUtilisateur(utilisateurId);
   revalidatePath('/utilisateurs');
 }
