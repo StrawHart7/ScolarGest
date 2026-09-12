@@ -8,6 +8,8 @@ export interface ResultatProjection {
   projetes: number;
   /** Lignes laissées à la saisie de l'école, faute de barème national. */
   laissesLocaux: number;
+  /** Ce que la projection du programme a produit en amont. */
+  programme: ResultatProgramme;
 }
 
 interface LigneProjetee {
@@ -82,6 +84,10 @@ export async function projeterReferentielNational(
 
   const anneeReference = anneeDeReference(annee.dateDebut);
 
+  // Le programme d'abord : les coefficients se posent sur ses lignes, et une
+  // école qui n'a plus d'étape « Matières » n'en a aucune au départ.
+  const resultatProgramme = await projeterProgrammeNational(anneeScolaireId);
+
   // Le programme de l'école, avec le code de la matière et le cycle du niveau :
   // les deux ensemble désignent la matière officielle (migration `0021`).
   const { data: programme, error: erreurProgramme } = await supabase
@@ -98,7 +104,7 @@ export async function projeterReferentielNational(
   }[];
   if (lignes.length === 0) {
     await rattacherAuReferentiel(anneeScolaireId, ctx.etablissementId);
-    return { projetes: 0, laissesLocaux: 0 };
+    return { projetes: 0, laissesLocaux: 0, programme: resultatProgramme };
   }
 
   // `codeEcole` et non `code` : le ministère renomme la même discipline d'un
@@ -164,10 +170,214 @@ export async function projeterReferentielNational(
     module: 'academique',
     objetType: 'AnneeScolaire',
     objetId: anneeScolaireId,
-    nouvelleValeur: { anneeReference, projetes: voulues.length },
+    nouvelleValeur: {
+      anneeReference,
+      projetes: voulues.length,
+      matieresCreees: resultatProgramme.matieresCreees,
+      lignesProgrammeCreees: resultatProgramme.lignesCreees,
+    },
   });
 
-  return { projetes: voulues.length, laissesLocaux: lignes.length - couvertes.size };
+  return {
+    projetes: voulues.length,
+    laissesLocaux: lignes.length - couvertes.size,
+    programme: resultatProgramme,
+  };
+}
+
+export interface ResultatProgramme {
+  /** Matières créées dans l'établissement depuis le catalogue national. */
+  matieresCreees: number;
+  /** Matières existantes auxquelles le code officiel a été rattaché. */
+  matieresRattachees: number;
+  /** Lignes de programme créées. */
+  lignesCreees: number;
+}
+
+/**
+ * Crée les matières et le programme d'un établissement depuis le catalogue
+ * national, pour les niveaux qu'il ouvre cette année.
+ *
+ * ## Pourquoi cette fonction existe
+ *
+ * Retirer les étapes « Matières » et « Programme » du démarrage ne les supprime
+ * pas : il faut que quelque chose produise leur résultat. `programme_etablissement`
+ * reste indispensable — c'est lui que la projection des coefficients garnit, et
+ * c'est lui que le bulletin parcourt.
+ *
+ * ## Ce qui est créé, et ce qui ne l'est pas
+ *
+ * **Seules les matières ayant un barème national** pour un niveau ouvert. Le
+ * catalogue contient aussi Dessin, Musique, Langues Nationales et Enseignement
+ * Ménager, sans aucun coefficient : les générer produirait des lignes de
+ * programme à coefficient nul, que le moteur écarte du calcul et qui
+ * encombreraient les bulletins. Une école qui les enseigne les ajoute
+ * elle-même — elles relèvent de son choix, pas du barème.
+ *
+ * ## Le nom d'une matière, quand le ministère en change d'un cycle à l'autre
+ *
+ * `codeEcole` réunit « Physique-Chimie-Technologie » (collège, code `PCT`) et
+ * « Physique-Chimie » (lycée, code `PC`) sous un même `PC`, parce qu'une école
+ * n'a qu'une matière. Reste à choisir le nom. La règle est déterministe :
+ * **celui dont le code officiel est égal au code école** — « Physique-Chimie »
+ * pour `PC`, « Anglais » pour `ANG`. Sans règle, un complexe collège-lycée
+ * obtiendrait un nom ou l'autre selon l'ordre de lecture.
+ */
+export async function projeterProgrammeNational(
+  anneeScolaireId: string,
+): Promise<ResultatProgramme> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const supabase = createClient();
+
+  // Les niveaux réellement ouverts cette année. Générer le programme de niveaux
+  // sans classe remplirait l'écran de matières que personne n'enseigne.
+  const { data: classes, error: erreurClasses } = await supabase
+    .from('classe')
+    .select('"niveauId"')
+    .eq('etablissementId', ctx.etablissementId)
+    .eq('anneeScolaireId', anneeScolaireId);
+  if (erreurClasses) throw erreurClasses;
+
+  const niveauxOuverts = [
+    ...new Set(((classes ?? []) as { niveauId: string }[]).map((c) => c.niveauId)),
+  ];
+  if (niveauxOuverts.length === 0) {
+    return { matieresCreees: 0, matieresRattachees: 0, lignesCreees: 0 };
+  }
+
+  // Une matière est au programme d'un niveau si le barème national lui y donne
+  // un coefficient — toutes séries confondues. C'est la seule source dont on
+  // dispose, et c'est la bonne : un coefficient est précisément la trace qu'une
+  // matière compte à ce niveau.
+  const { data: baremes, error: erreurBaremes } = await supabase
+    .from('coefficient_officiel')
+    .select('"niveauId", "matiereOfficielleId"')
+    .in('niveauId', niveauxOuverts)
+    .is('valableJusqua', null);
+  if (erreurBaremes) throw erreurBaremes;
+
+  const lignesBareme = (baremes ?? []) as { niveauId: string; matiereOfficielleId: string }[];
+  if (lignesBareme.length === 0) {
+    return { matieresCreees: 0, matieresRattachees: 0, lignesCreees: 0 };
+  }
+
+  const { data: officielles, error: erreurOfficielles } = await supabase
+    .from('matiere_officielle')
+    .select('id, code, nom, "codeEcole"');
+  if (erreurOfficielles) throw erreurOfficielles;
+
+  const catalogue = (officielles ?? []) as {
+    id: string;
+    code: string;
+    nom: string;
+    codeEcole: string;
+  }[];
+  const parId = new Map(catalogue.map((m) => [m.id, m]));
+
+  // Nom canonique par code école : celui dont le code officiel lui est égal.
+  const nomCanonique = new Map<string, string>();
+  for (const m of catalogue) {
+    if (m.code === m.codeEcole) nomCanonique.set(m.codeEcole, m.nom);
+  }
+  for (const m of catalogue) {
+    if (!nomCanonique.has(m.codeEcole)) nomCanonique.set(m.codeEcole, m.nom);
+  }
+
+  const codesVoulus = new Set<string>();
+  for (const ligne of lignesBareme) {
+    const officielle = parId.get(ligne.matiereOfficielleId);
+    if (officielle) codesVoulus.add(officielle.codeEcole);
+  }
+
+  // Matières déjà présentes, par code **et** par nom : la table est unique sur
+  // les deux, et une école configurée à la main a pu créer « Anglais » sans
+  // code. La retrouver par son nom évite un doublon que la base refuserait de
+  // toute façon, avec une erreur illisible.
+  const { data: existantes, error: erreurMatieres } = await supabase
+    .from('matiere')
+    .select('id, nom, code')
+    .eq('etablissementId', ctx.etablissementId);
+  if (erreurMatieres) throw erreurMatieres;
+
+  const matieres = (existantes ?? []) as { id: string; nom: string; code: string | null }[];
+  const parCode = new Map(matieres.filter((m) => m.code).map((m) => [m.code as string, m]));
+  const parNom = new Map(matieres.map((m) => [m.nom.toLocaleLowerCase('fr'), m]));
+
+  const idParCode = new Map<string, string>();
+  let matieresCreees = 0;
+  let matieresRattachees = 0;
+
+  for (const code of codesVoulus) {
+    const deja = parCode.get(code);
+    if (deja) {
+      idParCode.set(code, deja.id);
+      continue;
+    }
+
+    const nom = nomCanonique.get(code);
+    if (!nom) continue;
+
+    const memeNom = parNom.get(nom.toLocaleLowerCase('fr'));
+    if (memeNom) {
+      // Matière saisie à la main, sans code : on la rattache au catalogue
+      // plutôt que d'en créer une seconde. Sans ce rattachement, aucun barème
+      // national ne s'y appliquerait jamais — la résolution se fait par le code.
+      if (!memeNom.code) {
+        const { error } = await supabase.from('matiere').update({ code }).eq('id', memeNom.id);
+        if (error) throw error;
+        matieresRattachees += 1;
+      }
+      idParCode.set(code, memeNom.id);
+      continue;
+    }
+
+    const { data: creee, error } = await supabase
+      .from('matiere')
+      .insert({ etablissementId: ctx.etablissementId, nom, code })
+      .select('id')
+      .single();
+    if (error) throw error;
+    idParCode.set(code, creee.id);
+    matieresCreees += 1;
+  }
+
+  // Lignes de programme voulues : (niveau, matière) dès qu'un barème existe.
+  const voulues = new Map<string, { niveauId: string; matiereId: string }>();
+  for (const ligne of lignesBareme) {
+    const officielle = parId.get(ligne.matiereOfficielleId);
+    if (!officielle) continue;
+    const matiereId = idParCode.get(officielle.codeEcole);
+    if (!matiereId) continue;
+    voulues.set(`${ligne.niveauId}|${matiereId}`, { niveauId: ligne.niveauId, matiereId });
+  }
+
+  const { data: programmeExistant, error: erreurProgramme } = await supabase
+    .from('programme_etablissement')
+    .select('"niveauId", "matiereId"')
+    .eq('etablissementId', ctx.etablissementId);
+  if (erreurProgramme) throw erreurProgramme;
+
+  const deja = new Set(
+    ((programmeExistant ?? []) as { niveauId: string; matiereId: string }[]).map(
+      (p) => `${p.niveauId}|${p.matiereId}`,
+    ),
+  );
+
+  const aInserer = [...voulues.entries()]
+    .filter(([cle]) => !deja.has(cle))
+    .map(([, v]) => ({
+      etablissementId: ctx.etablissementId,
+      niveauId: v.niveauId,
+      matiereId: v.matiereId,
+      obligatoire: true,
+    }));
+
+  if (aInserer.length > 0) {
+    const { error } = await supabase.from('programme_etablissement').insert(aInserer);
+    if (error) throw error;
+  }
+
+  return { matieresCreees, matieresRattachees, lignesCreees: aInserer.length };
 }
 
 interface BaremeSource {
