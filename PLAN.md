@@ -2975,6 +2975,38 @@ zéro élève. C'est l'autre moitié du problème, non traitée.
 
 ---
 
+### Correctif — Stockage des fonctions Vercel
+
+**Statut** : livré le 2026-09-12.
+
+**Constat** : stockage des fonctions à **47,5 Go pour 10 alloués**. Ni du trafic
+— 49K requêtes sur 1M, 43K invocations sur 1M — ni une régression : le jour du
+saut n'a aucun commit sur aucune branche, et `next.config.mjs` n'avait pas bougé
+depuis le 1er septembre. Le compteur venait d'être mis en service côté Vercel.
+La consommation, elle, était réelle depuis des semaines.
+
+**Cause** : deux entrées de `outputFileTracingIncludes` étaient des globs
+couvrant treize routes, dont **deux seulement** produisent un PDF. Onze fonctions
+transportaient 67 Mo de binaires Chromium sans jamais les lire.
+
+**Livré** : globs resserrés sur les deux routes réelles — la fiche bulletins d'un
+élève et la fiche d'une facture. **16 fonctions concernées deviennent 5, soit
+335 Mo par déploiement au lieu de 1,05 Go.** Et 37 branches distantes fusionnées
+supprimées : la rétention conserve le dernier aperçu de toute branche vivante,
+quelle que soit la politique configurée.
+
+**Reste ouvert** :
+
+- **Raccourcir la rétention des aperçus** — Settings → Security → Deployment
+  Retention Policy. Réglage hors dépôt.
+- L'effet ne se mesure pas tout de suite : facturation en Go-mois sur le maximum
+  quotidien, et 30 jours de période de récupération avant qu'un déploiement
+  supprimé ne libère son espace.
+- **Les deux routes PDF n'ont pas été testées** après resserrage. Un
+  resserrage trop zélé n'échoue qu'en production.
+
+---
+
 ### Fonctionnalité — Le référentiel national fait autorité
 
 **Statut** : livrée le 2026-09-12. Migrations `20260912120000` et

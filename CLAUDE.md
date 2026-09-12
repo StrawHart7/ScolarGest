@@ -1424,6 +1424,45 @@ n'y est pas emprunte. L'export echoue **en production seulement**, avec « The
 input directory .../@sparticuz/chromium/bin does not exist ». C'est exactement
 ce qui est arrive a `/api/emploi-du-temps`.
 
+**Mais l'inverse coute cher aussi, et personne ne le voit.** Chaque cle fait
+entrer **67 Mo** de binaires dans le bundle de la fonction correspondante. Deux
+entrees etaient des globs — `/etablissement/eleves/**` et
+`/etablissement/finances/**` — couvrant treize routes alors que deux seulement
+produisent un PDF. Onze fonctions transportaient 67 Mo sans jamais les lire :
+**1,05 Go par deploiement au lieu de 335 Mo**.
+
+Constate le 2026-09-12 quand le stockage des fonctions a depasse son quota a
+47,5 Go pour 10 alloues. Ce n'etait pas du trafic — 49K requetes sur 1M — ni une
+regression : le jour du saut n'avait aucun commit, le compteur venait d'etre mis
+en service cote Vercel. La consommation, elle, etait bien reelle depuis des
+semaines.
+
+Trois regles en sortent :
+
+- **Ne jamais elargir en glob « pour etre tranquille ».** Le stockage se facture
+  en Go-mois sur le **maximum quotidien**, cumule sur **tous les deploiements
+  conserves** — supprimer aujourd'hui ne rend rien des jours deja comptes, et un
+  deploiement supprime reste 30 jours en periode de recuperation avant de liberer
+  quoi que ce soit.
+- **Un segment dynamique s'ecrit `*`, jamais `[id]`.** En glob, des crochets
+  designent une classe de caracteres : la cle ne correspondrait a rien, et
+  l'echec serait invisible partout sauf en production.
+- **Remonter la chaine complete avant de resserrer**, Server Actions comprises :
+  une action importee d'un autre `actions.ts` s'execute dans la fonction de la
+  page qui l'invoque, et cette page a donc besoin des binaires.
+
+**La retention garde aussi le dernier apercu de toute branche vivante**, quelle
+que soit la politique configuree (Settings → Security → Deployment Retention
+Policy). Une branche fusionnee mais non supprimee immobilise donc son
+deploiement indefiniment : le menage des branches distantes est un levier de
+stockage, pas seulement de proprete. Quarante-quatre branches distantes le
+2026-09-12, ramenees a sept.
+
+**Verifier la configuration en la chargeant**, pas en la relisant : ni le lint ni
+le typecheck ne la regardent. `node --input-type=module -e "import('./next.config.mjs')"`
+a revele une sixieme cle de tracing invisible dans le source, injectee par
+`withSentryConfig`.
+
 ### Le build ne doit dependre d'aucun service tiers
 
 Le 2026-09-01, un deploiement a mis trente minutes sans la moindre erreur de
