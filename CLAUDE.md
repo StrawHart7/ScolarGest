@@ -279,7 +279,13 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-11) :
+**Active branches** (2026-09-12) :
+- `docs/soko-cadre-reglementaire` — ✅ terminée et mergée sur `main`
+  (2026-09-12), agent SOKO : le référentiel national fait autorité — matières,
+  programme et coefficients projetés depuis le catalogue, démarrage ramené de
+  onze à huit étapes, étape « Classes » refondue. Plus le cadre réglementaire
+  togolais consigné et le dossier « Régie ». Migrations `20260912120000` et
+  `20260912160000`, **appliquées**. Voir `PLAN.md` § 8.
 - `feat/soko-durcissement-securite` + `feat/soko-revocation-acces` — ✅ terminées
   et mergées sur `main` (2026-09-11), agent SOKO : la RLS porte les rôles, la
   désactivation d'un utilisateur révoque vraiment, les notes sont bornées à
@@ -734,6 +740,12 @@ les catalogues système sont finis et fermés, tout est sélection dans des list
 connues. Les étapes sont déclarées dans `src/lib/onboarding/etapes.ts`, les
 suggestions (matières, types de frais) dans `suggestions.ts`.
 
+**Trois étapes ont disparu le 2026-09-12** — « Matières », « Programme par
+niveau » et « Coefficients » — parce qu'elles relèvent du national (voir « Le
+référentiel national fait autorité »). `creerClassesAction` projette le
+programme et le barème dès que les classes sont créées : c'est le premier
+moment où l'on sait quels niveaux l'école ouvre.
+
 L'interface est une **carte flottante à deux colonnes** (`FilDemarrage.tsx`) :
 une seule étape à la fois, rail de progression à gauche (`RailEtapes.tsx`),
 écran de félicitations chiffré à la fin (`EcranFinal.tsx`). **Pas de bouton
@@ -808,6 +820,97 @@ d'elle-même à la seconde où le code est posé, puisque l'essai démarre alors
 Les deux conditions comptent — ni `essaiDebuteLe` ni `essaiFinLe`. Ne tester
 que le début ferait rebasculer en « configuration » une école dont l'essai est
 échu, ce qui lui rouvrirait `/demarrage` en écriture.
+
+### Le référentiel national fait autorité
+
+Livré le 2026-09-12. Migrations `20260912120000` et `20260912160000`, appliquées.
+
+Le découpage de l'année, les matières, les coefficients et les séries sont
+**nationaux** : fixés par le ministère, et leur respect est contrôlé (arrêté
+1049, art. 38 et 50). Un directeur n'a pas à les trancher, et le produit ne doit
+pas lui laisser saisir des valeurs qui contrediraient l'État.
+
+**Trois étages, et qui décide à chaque étage** :
+
+| Étage | Décide | Écrivable par l'école |
+|---|---|---|
+| National | le ministère, détenu par la plateforme | non |
+| Autorisé | le ministère, par école — cycles, niveaux, séries | non |
+| Établissement | l'école — classes, personnel, tarifs, élèves | oui |
+
+**Le national s'impose par projection, pas par résolution à la lecture.** Deux
+architectures étaient possibles ; celle qui consistait à consulter le national
+depuis chaque lecteur a été écartée. Elle imposait de toucher
+`resultats-classe`, `rapport` et le bulletin, de reconstruire la correspondance
+par code matière à chaque calcul, et surtout d'accepter qu'un bulletin déjà émis
+change de barème sous nos pieds. Avec la projection, **les lecteurs sont
+inchangés** — même table, même requête — donc aucun bulletin ne peut bouger par
+effet de bord, et l'historisation est automatique puisqu'une année close n'est
+jamais reprojetée. Le prix est qu'une correction nationale ne se propage pas
+seule : il faudra une reprojection explicite, tracée.
+
+**`annee_scolaire.referentielNational` dit quel barème s'applique**, année par
+année. Un booléen plutôt qu'une comparaison de dates : il faudrait sinon figer
+une « date de bascule » quelque part et la réinterpréter à chaque lecture. Les
+années créées avant la bascule restent à `false` et gardent leurs valeurs.
+
+**Corriger un coefficient ne se fait jamais par un `UPDATE`.** On ferme la ligne
+en vigueur (`valableJusqua`, borne **exclue**) et on en insère une nouvelle.
+L'historique se conserve tout seul. `valableDe` porte l'année de **début** de
+l'année scolaire — 2026 vaut 2026-2027 — et c'est un entier, pas une référence à
+`annee_scolaire`, qui est une table **par établissement** : le barème national
+ne peut pas pointer vers l'année d'une école en particulier.
+
+**Le référentiel dit ce qu'il ne sait pas.** `coefficient_officiel.confiance` :
+`OFFICIEL` (document ministériel identifié), `CONVERGENT` (plusieurs écoles ont
+saisi indépendamment la même valeur — candidat, pas vérité). `LOCAL` existe dans
+l'énumération sans jamais apparaître dans cette table : il permet au résolveur
+de renvoyer une origine uniforme. Sans ce mécanisme, un niveau non couvert — la
+**2nde**, les huit séries techniques — bloquerait les établissements concernés
+le jour où le national devient l'autorité.
+
+Une valeur ne passe `CONVERGENT` à `OFFICIEL` que sur **un document**, ou sur
+convergence **plus une pièce indépendante**. Neuf écoles qui se sont copiées
+confirment une erreur commune, et la ratification l'imprimerait sur tous les
+bulletins du pays.
+
+**Deux déclencheurs, parce que la RLS ne restreint pas par colonne.** Même motif
+que `fn_proteger_dates_essai` et `fn_proteger_champs_utilisateur` :
+`fn_proteger_coefficients_nationaux` interdit de modifier ou supprimer une ligne
+projetée **et de s'attribuer une origine nationale** — sans cette troisième
+interdiction, une école se fabriquerait un coefficient « officiel » de son choix
+qui survivrait à toute vérification. `fn_proteger_referentiel_annee` empêche de
+rebasculer le drapeau à `false`, ce qui rendrait la main sur les coefficients.
+
+**La projection écrit avec la clé service-role**, l'appartenance de l'année étant
+vérifiée **avant** de la prendre — même ordre que `desactiverUtilisateur`. Et
+**jamais d'`upsert`** : la contrainte unique porte sur `(programme, année,
+série)` et `serieId` est nul au collège, or deux NULL sont distincts en
+Postgres. Le dépôt s'est fait prendre en `0018` et en `0020`.
+
+**Le programme est généré, lui aussi.** Retirer les étapes « Matières » et
+« Programme » ne les supprime pas : `programme_etablissement` reste ce que la
+projection garnit et ce que le bulletin parcourt. Une matière est au programme
+d'un niveau **si le barème national lui y donne un coefficient** — seule source
+disponible, et la bonne. Conséquence assumée : Dessin, Musique, Langues
+Nationales et Enseignement Ménager ne sont pas générés, faute de coefficient ;
+les créer produirait des lignes à coefficient nul qui encombreraient les
+bulletins. Une école qui les enseigne les ajoute elle-même.
+
+**Le nom d'une matière suit une règle déterministe** : celui dont le code
+officiel est égal au `codeEcole`. `codeEcole` réunit « Physique-Chimie-
+Technologie » (collège, `PCT`) et « Physique-Chimie » (lycée, `PC`) sous un même
+`PC`. Sans règle, un complexe collège-lycée obtiendrait l'un ou l'autre selon
+l'ordre de lecture — un défaut non déterministe, le pire genre.
+
+**Le calendrier national n'a aucune incidence.** `calendrier_national` alimente
+un rappel, rien d'autre : pas de gel de saisie, pas de verrouillage de bulletin,
+pas de condition d'écriture. Décision du 2026-09-12, écrite dans la migration
+pour que personne ne déduise le contraire de l'existence de la table.
+
+**Ce qui reste ouvert** : la 2nde n'a toujours aucun barème, et
+`coefficientsOfficiels()` ne remonte que le barème **en vigueur** — la
+résolution par année vit dans `referentiel-national.ts`.
 
 ### Modèle économique : essai, facturation par cycle, paiement FedaPay
 

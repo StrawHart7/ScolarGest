@@ -2975,6 +2975,57 @@ zéro élève. C'est l'autre moitié du problème, non traitée.
 
 ---
 
+### Fonctionnalité — Le référentiel national fait autorité
+
+**Statut** : livrée le 2026-09-12. Migrations `20260912120000` et
+`20260912160000`, **appliquées**. Branche `docs/soko-cadre-reglementaire`.
+
+**Objectif** : retirer à l'établissement les décisions qui sont nationales — le
+découpage de l'année, les matières, les coefficients — parce que le ministère
+les fixe et en contrôle le respect. Une école ne doit pas pouvoir saisir des
+valeurs qui contredisent l'État, et un directeur n'a pas à trancher ce qui ne
+lui appartient pas.
+
+**Livré** :
+
+- Versionnement de `coefficient_officiel` (`valableDe` / `valableJusqua`,
+  borne haute exclue), origine (`OFFICIEL` / `CONVERGENT` / `LOCAL`) et source.
+- `calendrier_national`, **sans aucune incidence** sur le produit : un rappel,
+  rien d'autre.
+- `annee_scolaire.referentielNational` : le barème s'applique année par année,
+  les années antérieures gardent leurs valeurs.
+- Deux déclencheurs de protection — une école ne peut ni modifier un
+  coefficient projeté, ni s'attribuer une origine nationale, ni rebasculer le
+  drapeau de son année.
+- `projeterProgrammeNational` et `projeterReferentielNational` : matières,
+  programme et coefficients générés depuis le catalogue, appelés à la création
+  des classes.
+- **Le démarrage passe de onze à huit étapes.** « Matières », « Programme par
+  niveau » et « Coefficients » disparaissent.
+- L'écran des coefficients verrouille ce qui est imposé, plutôt que de laisser
+  saisir une valeur que la base refusera.
+- Refonte de l'étape « Classes » : une seule forme de ligne, compteur par
+  série, aperçu des noms dans la ligne, et une classe seule ne porte plus
+  d'indice.
+
+**DoD** : lint, typecheck, 413 tests. Protection éprouvée en simulant une
+session de Directeur — modifier, supprimer, usurper une origine et rebasculer
+le drapeau sont refusés ; l'écriture locale passe. Projection rejouée en SQL sur
+l'école de démonstration : 58 lignes, zéro doublon, aucun coefficient hors
+bornes.
+
+**Reste ouvert** :
+
+- **La 2nde n'a toujours aucun barème** — dix combinaisons couvertes sur douze.
+  Le mécanisme des états de confiance fait qu'elle ne bloque rien en attendant.
+- Les **huit séries techniques** (E, F1 à F4, G1 à G3) n'ont aucun coefficient.
+- La **reprojection** d'une correction nationale sur les années non closes n'est
+  pas écrite : c'est `H6` de la Régie.
+- **Aucun écran n'a été ouvert.** Tout est vérifié par le compilateur, les tests
+  et la base.
+
+---
+
 ### Contrainte — Le cadre réglementaire togolais, et ce qu'il impose au modèle
 
 **Statut** : documenté le 2026-09-11, **rien d'engagé**. Dossier complet hors
