@@ -102,10 +102,21 @@ export async function coefficientsOfficiels(
   await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const supabase = createClient();
 
+  // Ne remonter que le barème **en vigueur**. Depuis la migration
+  // `20260912120000`, une correction ne se fait pas par un `UPDATE` : on ferme
+  // la ligne en cours en renseignant `valableJusqua`, et on en ouvre une
+  // nouvelle. Sans ce filtre, les deux versions remonteraient et cette
+  // fonction — qui en attend une par matière — en écraserait une au hasard.
+  //
+  // « En vigueur » plutôt que « valable pour l'année X » : cette fonction sert
+  // la suggestion et l'affichage, qui parlent toujours du présent. La
+  // projection dans une année scolaire, elle, résout à l'année concernée (voir
+  // `referentiel-national.ts`).
   const requete = supabase
     .from('coefficient_officiel')
     .select('"matiereOfficielleId", coefficient')
-    .eq('niveauId', niveauId);
+    .eq('niveauId', niveauId)
+    .is('valableJusqua', null);
 
   const { data, error } = await (serieId
     ? requete.eq('serieId', serieId)

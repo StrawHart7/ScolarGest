@@ -186,6 +186,7 @@ rapport.definitionRapport = AUCUNE
 rapport.rapportsAutorises = AUCUNE
 recherche-globale.rechercheGlobale = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 recu.genererRecuPaiement = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
+referentiel-national.projeterReferentielNational = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 relances-abonnement.traiterEcheances = AUCUNE
 responsable.linkResponsableEleve = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 responsable.listResponsablesEleve = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
