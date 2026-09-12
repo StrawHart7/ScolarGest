@@ -16,6 +16,13 @@ export interface LigneCoefficient {
   coefficient: number | null;
   /** Valeur prescrite par le ministère, `null` hors barème national. */
   coefficientOfficiel: number | null;
+  /**
+   * La valeur enregistrée vient du référentiel national et n'est pas
+   * modifiable. Distinct de `coefficientOfficiel`, qui dit seulement qu'un
+   * barème existe : une année créée avant la bascule garde ses valeurs locales
+   * alors même que le ministère en prescrit d'autres.
+   */
+  impose: boolean;
 }
 
 /**
@@ -67,10 +74,12 @@ export function CoefficientsForm({
                 </p>
                 <p className="text-[11px] text-text-secondary">
                   {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
-                  {ligne.coefficientOfficiel !== null && ' · Barème national'}
+                  {ligne.impose
+                    ? ' · Imposé par le ministère'
+                    : ligne.coefficientOfficiel !== null && ' · Barème national'}
                 </p>
               </div>
-              {modifiable ? (
+              {modifiable && !ligne.impose ? (
                 <Input
                   key={`${ligne.programmeEtablissementId}-${cleSerie}`}
                   name={`coefficient:${ligne.programmeEtablissementId}`}
@@ -127,7 +136,7 @@ export function CoefficientsForm({
                   {ligne.obligatoire ? 'Obligatoire' : 'Facultative'}
                 </TableCell>
                 <TableCell className="text-right">
-                  {modifiable ? (
+                  {modifiable && !ligne.impose ? (
                     <Input
                       key={`${ligne.programmeEtablissementId}-${cleSerie}`}
                       name={`coefficient:${ligne.programmeEtablissementId}`}

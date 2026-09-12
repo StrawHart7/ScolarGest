@@ -10,9 +10,6 @@ import { EtapePin } from './etapes/EtapePin';
 import { EtapeAnnee } from './etapes/EtapeAnnee';
 import { EtapeCycles } from './etapes/EtapeCycles';
 import { EtapeClasses, type NiveauAvecCycle, type SerieCycle } from './etapes/EtapeClasses';
-import { EtapeMatieres } from './etapes/EtapeMatieres';
-import { EtapeProgramme, type MatiereChoisissable } from './etapes/EtapeProgramme';
-import { EtapeCoefficients, type LigneProgrammeNiveau } from './etapes/EtapeCoefficients';
 import { EtapeEnseignants } from './etapes/EtapeEnseignants';
 import { EtapeUtilisateurs } from './etapes/EtapeUtilisateurs';
 import { EtapeTypesFrais } from './etapes/EtapeTypesFrais';
@@ -26,7 +23,6 @@ import { appelerAction } from './appel-action';
 import type { DefinitionEtape, IdEtape } from '@/lib/onboarding/etapes';
 import type { ProgressionOnboarding, BilanOnboarding } from '@/services/onboarding';
 import type { FormuleProposee } from '@/lib/abonnement-formule';
-import type { CombinaisonEnseignee } from '@/lib/filiere';
 import type { Cycle } from '@/services/structure';
 
 export interface DonneesDemarrage {
@@ -37,21 +33,15 @@ export interface DonneesDemarrage {
   /** Niveaux portant au moins une classe : le périmètre réel de l'école. */
   niveauxUtilises: NiveauAvecCycle[];
   /** Filières réellement ouvertes : « Seconde C » et non « Seconde ». */
-  combinaisons: CombinaisonEnseignee[];
   /** Codes du barème national par filière, pour le pré-cochage du programme. */
-  codesParCombinaison: Record<string, string[]>;
   series: SerieCycle[];
   seriesParId: Record<string, string>;
-  matieres: MatiereChoisissable[];
-  lignesProgramme: LigneProgrammeNiveau[];
   /**
    * Catalogue officiel des cycles activés, chargé côté serveur. Remplace la
    * liste en dur : les matières proposées sont celles du programme national,
    * et `parDefaut` distingue celles qui portent un coefficient ministériel.
    */
-  matieresOfficielles: { nom: string; code: string; parDefaut: boolean }[];
   /** Le programme existe, même si plus rien n'y reste à coefficienter. */
-  programmeDefini: boolean;
   classes: ClasseTarifable[];
   typesFrais: TypeFraisTarifable[];
   anneeScolaireId: string | null;
@@ -144,48 +134,6 @@ export function FilDemarrage({
         ) : (
           <p className="mt-3 text-body-sm text-error">
             Activez d&apos;abord une année scolaire.
-          </p>
-        );
-      case 'matieres':
-        return (
-          <EtapeMatieres
-            catalogue={donnees.matieresOfficielles}
-            matieresExistantes={donnees.matieres.map((m) => m.nom)}
-            onTermine={avancer}
-          />
-        );
-      case 'programme':
-        return donnees.combinaisons.length > 0 && donnees.anneeScolaireId ? (
-          <EtapeProgramme
-            anneeScolaireId={donnees.anneeScolaireId}
-            combinaisons={donnees.combinaisons}
-            matieres={donnees.matieres}
-            codesParCombinaison={donnees.codesParCombinaison}
-            onTermine={avancer}
-          />
-        ) : (
-          <p className="mt-3 text-body-sm text-error">Créez d&apos;abord vos classes.</p>
-        );
-      case 'coefficients':
-        return donnees.anneeScolaireId && donnees.lignesProgramme.length > 0 ? (
-          <EtapeCoefficients
-            anneeScolaireId={donnees.anneeScolaireId}
-            lignes={donnees.lignesProgramme}
-            seriesParId={donnees.seriesParId}
-            onTermine={avancer}
-          />
-        ) : donnees.programmeDefini ? (
-          // Toutes les matières du programme suivent le barème du ministère :
-          // il n'y a rien à décider ici. Afficher « définissez d'abord le
-          // programme » serait faux, et laisserait croire à un blocage.
-          <p className="mt-3 text-body-sm text-text-secondary">
-            Rien à saisir : toutes les matières de votre programme suivent le barème fixé par le
-            ministère, déjà appliqué. Vous n&apos;auriez à intervenir que pour une matière ajoutée
-            hors programme national.
-          </p>
-        ) : (
-          <p className="mt-3 text-body-sm text-error">
-            Définissez d&apos;abord le programme de vos niveaux.
           </p>
         );
       case 'enseignants':

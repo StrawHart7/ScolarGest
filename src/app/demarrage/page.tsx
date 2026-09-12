@@ -3,13 +3,9 @@ import { getProgressionOnboarding, getBilanOnboarding } from '@/services/onboard
 import { getEtatEtablissement } from '@/services/abonnement';
 import { cyclesFactures } from '@/services/paiement-fedapay';
 import { formulesPour } from '@/lib/abonnement-formule';
-import { combinaisonsEnseignees } from '@/lib/filiere';
 import { listCycles, listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
-import { listMatieres } from '@/services/matiere';
-import { listProgramme } from '@/services/programme';
-import { baremeOfficiel, listMatieresOfficielles } from '@/services/matiere-officielle';
 import { listTypesFrais } from '@/services/type-frais';
 import { listTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -18,7 +14,6 @@ import { getSidebarItems } from '@/lib/navigation';
 import { etapesPourRole, type IdEtape } from '@/lib/onboarding/etapes';
 import { FilDemarrage, type DonneesDemarrage } from './FilDemarrage';
 import type { NiveauAvecCycle, SerieCycle } from './etapes/EtapeClasses';
-import type { LigneProgrammeNiveau } from './etapes/EtapeCoefficients';
 
 export const metadata = { title: 'Démarrage' };
 
@@ -173,14 +168,8 @@ async function chargerDonnees(
     cyclesActifsNoms: [],
     niveaux: [],
     niveauxUtilises: [],
-    combinaisons: [],
-    codesParCombinaison: {},
     series: [],
     seriesParId: {},
-    matieres: [],
-    lignesProgramme: [],
-    matieresOfficielles: [],
-    programmeDefini: false,
     classes,
     typesFrais: [],
     anneeScolaireId: anneeActive?.id ?? null,
@@ -207,7 +196,6 @@ async function chargerDonnees(
   }
 
   const cycles = await listCycles();
-  const matieres = await listMatieres();
 
   // Le périmètre réel de l'école : seuls les niveaux portant au moins une
   // classe sont « enseignés ». Rien d'autre ne matérialise cette information
@@ -218,92 +206,12 @@ async function chargerDonnees(
   // désigne pas un programme : la Seconde A4, la Seconde C et la Seconde D
   // n'enseignent ni les mêmes matières ni les mêmes coefficients. L'étape
   // « programme » les confondait sous un intitulé unique.
-  const combinaisons = combinaisonsEnseignees(
-    classesBrutes.map((c) => ({
-      niveauId: c.niveauId,
-      serieId: c.serieId,
-      serieNom: c.serie?.nom ?? null,
-    })),
-    niveaux,
-  );
-
-  // Barème national de chaque filière, réduit aux codes : il sert à pré-cocher
-  // l'étape. Une carte vide signifie que la combinaison n'est pas couverte —
-  // série technique, niveau hors barème — et l'écran propose alors tout.
-  const codesParCombinaison: Record<string, string[]> = {};
-  for (const combinaison of combinaisons) {
-    const bareme = await baremeOfficiel(combinaison.niveauId, combinaison.serieId);
-    codesParCombinaison[combinaison.cle] = [...bareme.keys()];
-  }
-
-  // Catalogue officiel des cycles activés. Remplace la liste en dur : les
-  // matières proposées sont désormais celles du programme national, avec leur
-  // code — c'est ce code qui rattachera ensuite le barème.
-  const catalogue = new Map<string, { nom: string; code: string; parDefaut: boolean }>();
-  for (const actif of cyclesActifs) {
-    for (const m of await listMatieresOfficielles(actif.cycleId)) {
-      const existante = catalogue.get(m.codeEcole);
-      // Une matière coefficientée dans l'un des cycles de l'école le reste
-      // globalement : le tronc commun prime sur l'option.
-      if (!existante || (!existante.parDefaut && m.aCoefficientOfficiel)) {
-        catalogue.set(m.codeEcole, {
-          nom: m.nom,
-          code: m.codeEcole,
-          parDefaut: m.aCoefficientOfficiel,
-        });
-      }
-    }
-  }
-  const matieresOfficielles = [...catalogue.values()];
-
-  const lignesProgramme: LigneProgrammeNiveau[] = [];
-  // Distinct du nombre de lignes restantes : le programme peut etre defini et
-  // entierement couvert par le bareme national.
-  let programmeDefini = false;
-  // Compte les associations reelles : `lignesProgramme` ne retient que celles
-  // qui restent a coefficienter, et servirait un resume faux.
-  let nombreAssociations = 0;
-  for (const niveau of niveauxUtilises) {
-    const programme = await listProgramme(niveau.id);
-    if (programme.length > 0) programmeDefini = true;
-    nombreAssociations += programme.length;
-    // Seules les séries que l'établissement utilise réellement, déduites de
-    // ses classes — proposer les six séries du catalogue alors que l'école
-    // n'en ouvre que deux noyait la grille sous des colonnes inutiles.
-    const serieIds = [
-      ...new Set(
-        classesBrutes
-          .filter((c) => c.niveauId === niveau.id && c.serieId)
-          .map((c) => c.serieId as string),
-      ),
-    ];
-
-    // Le barème du ministère, par série. Ce que l'État fixe n'a pas à être
-    // demandé au Directeur : ne restent dans l'étape que les matières et les
-    // séries qu'il lui appartient réellement d'arbitrer.
-    const cibles: (string | null)[] = serieIds.length > 0 ? serieIds : [null];
-    const baremes = new Map<string, Map<string, number>>();
-    for (const cible of cibles) {
-      baremes.set(cible ?? '', await baremeOfficiel(niveau.id, cible));
-    }
-
-    for (const item of programme) {
-      const code = item.matiere.code;
-      const serieIdsASaisir = cibles.filter(
-        (cible) => !(code && baremes.get(cible ?? '')?.has(code)),
-      );
-      // Toutes les séries couvertes : la ligne disparaît du questionnaire.
-      if (serieIdsASaisir.length === 0) continue;
-
-      lignesProgramme.push({
-        programmeEtablissementId: item.id,
-        niveauId: niveau.id,
-        niveauNom: niveau.nom,
-        matiereNom: item.matiere.nom,
-        serieIds: serieIdsASaisir.filter((s): s is string => s !== null),
-      });
-    }
-  }
+  // Les combinaisons niveau/série, le catalogue des matières et les lignes de
+  // programme à coefficienter étaient calculés ici, pour les étapes
+  // « Matières », « Programme » et « Coefficients ». Ces trois étapes ont
+  // disparu le 2026-09-12 : ce sont des décisions nationales, projetées
+  // automatiquement dès que les classes sont connues. Le calcul coûtait
+  // plusieurs requêtes séquentielles par niveau, à chaque affichage.
 
   const resumes: Partial<Record<IdEtape, string>> = {
     pin: 'Code de confirmation défini',
@@ -315,16 +223,6 @@ async function chargerDonnees(
   if (classes.length > 0) {
     resumes.classes = `${classes.length} classe${classes.length > 1 ? 's' : ''}`;
   }
-  if (matieres.length > 0) {
-    resumes.matieres = `${matieres.length} matière${matieres.length > 1 ? 's' : ''}`;
-  }
-  if (nombreAssociations > 0) {
-    resumes.programme = `${nombreAssociations} association${nombreAssociations > 1 ? 's' : ''}`;
-    resumes.coefficients =
-      lignesProgramme.length === 0
-        ? 'Barème national appliqué'
-        : `${lignesProgramme.length} à saisir`;
-  }
 
   return {
     ...base,
@@ -333,14 +231,8 @@ async function chargerDonnees(
     cyclesActifsNoms: cyclesActifs.map((c) => c.cycle.nom),
     niveaux: [...niveaux].sort(parCursus),
     niveauxUtilises: [...niveauxUtilises].sort(parCursus),
-    combinaisons,
-    codesParCombinaison,
     series,
     seriesParId: Object.fromEntries(series.map((s) => [s.id, s.nom])),
-    matieres: matieres.map((m) => ({ id: m.id, nom: m.nom, code: m.code })),
-    lignesProgramme,
-    matieresOfficielles,
-    programmeDefini,
     resumes,
   };
 }

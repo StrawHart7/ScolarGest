@@ -21,9 +21,6 @@ export type IdEtape =
   | 'annee-scolaire'
   | 'cycles'
   | 'classes'
-  | 'matieres'
-  | 'programme'
-  | 'coefficients'
   | 'enseignants'
   | 'utilisateurs'
   // Parcours SECRETAIRE / COMPTABLE — finance
@@ -57,9 +54,20 @@ export interface DefinitionEtape {
  *   sont rattachés, et le matricule enseignant s'en sert de séquence ;
  * - `cycles` avant `classes` : les niveaux ne deviennent disponibles qu'une
  *   fois le cycle activé (il n'existe pas de table `niveau_etablissement`,
- *   la disponibilité est implicite) ;
- * - `matieres` avant `programme` avant `coefficients` : chaque étape
- *   consomme les identifiants créés par la précédente.
+ *   la disponibilité est implicite).
+ *
+ * **Trois étapes ont disparu le 2026-09-12** — « Matières », « Programme par
+ * niveau » et « Coefficients ». Ce sont des décisions nationales : le
+ * découpage de l'année, les matières et leurs coefficients sont fixés par le
+ * ministère et leur respect est contrôlé. Un directeur n'a pas à les trancher,
+ * et le produit n'a pas à lui laisser saisir des valeurs qui contrediraient
+ * l'État.
+ *
+ * Elles ne sont pas supprimées sans contrepartie : `creerClassesAction`
+ * projette le programme et le barème nationaux dès que les classes sont
+ * connues — c'est à ce moment seulement qu'on sait quels niveaux sont ouverts.
+ * Une matière hors barème national reste ajoutable depuis l'écran du
+ * programme.
  */
 export const ETAPES_DIRECTEUR: DefinitionEtape[] = [
   {
@@ -88,25 +96,7 @@ export const ETAPES_DIRECTEUR: DefinitionEtape[] = [
     id: 'classes',
     titre: 'Classes',
     question: 'Combien de classes par niveau ?',
-    aide: 'Laissez à zéro les niveaux que vous n’enseignez pas. Les noms sont générés automatiquement (6ème A, 6ème B…).',
-  },
-  {
-    id: 'matieres',
-    titre: 'Matières',
-    question: 'Quelles matières sont enseignées dans votre établissement ?',
-    aide: 'Vous pourrez en ajouter d’autres à tout moment.',
-  },
-  {
-    id: 'programme',
-    titre: 'Programme par niveau',
-    question: 'Quelles matières sont enseignées à chaque niveau ?',
-    aide: 'Les matières sont pré-cochées partout ; décochez celles qui ne concernent pas un niveau. Au lycée, indiquez ici tout ce qui est proposé au niveau : la distinction par série se fait à l’étape suivante.',
-  },
-  {
-    id: 'coefficients',
-    titre: 'Coefficients',
-    question: 'Quel coefficient pour chaque matière ?',
-    aide: 'Ils servent au calcul des moyennes. Par défaut 1. Au lycée, chaque série a sa propre colonne — mettez 0 pour une matière qui ne compte pas dans cette série.',
+    aide: 'Laissez à zéro les niveaux que vous n’enseignez pas. Les noms sont générés automatiquement (6ème A, 6ème B…). Les matières et les coefficients officiels seront appliqués automatiquement.',
   },
   {
     id: 'enseignants',

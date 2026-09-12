@@ -3,7 +3,7 @@ import { getTenantContext } from '@/services/tenant';
 import { listCyclesActifs, listNiveauxParCycle, listSeriesParCycle } from '@/services/structure';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listProgramme } from '@/services/programme';
-import { listCoefficients } from '@/services/coefficient';
+import { listCoefficients, listCoefficientsImposes } from '@/services/coefficient';
 import { baremeOfficiel } from '@/services/matiere-officielle';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
@@ -55,6 +55,16 @@ export default async function CoefficientsPage({
       )
     : new Map<string, number>();
 
+  // Ce qui est verrouillé par le référentiel : la colonne `origine`, et non la
+  // simple existence d'un barème national.
+  const imposes = anneeActive
+    ? await listCoefficientsImposes(
+        programme.map((p) => p.id),
+        anneeActive.id,
+        serieId,
+      )
+    : new Set<string>();
+
   // Le barème national, indexé par le code que l'école utilise. Vide sur les
   // séries techniques, la Seconde et les cycles hors périmètre : l'écran
   // redevient alors entièrement éditable, comme avant.
@@ -66,6 +76,7 @@ export default async function CoefficientsPage({
     obligatoire: p.obligatoire,
     coefficient: coefficients.get(p.id) ?? null,
     coefficientOfficiel: p.matiere.code ? (officiel.get(p.matiere.code) ?? null) : null,
+    impose: imposes.has(p.id),
   }));
 
   const nombreOfficiels = lignes.filter((l) => l.coefficientOfficiel !== null).length;

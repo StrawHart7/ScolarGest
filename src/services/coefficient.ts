@@ -221,6 +221,44 @@ export async function listCoefficients(
 }
 
 /**
+ * Lignes de programme dont le coefficient est **imposé** par le référentiel
+ * national, pour une année et une série données.
+ *
+ * Distincte de `baremeOfficiel`, qui dit ce que le ministère *prescrit*. Ici on
+ * dit ce qui est *enregistré comme imposé* — la colonne `origine`, posée par la
+ * projection. Les deux peuvent différer : une année créée avant la bascule
+ * garde ses valeurs locales alors qu'un barème national existe pour son niveau.
+ *
+ * L'écran de saisie en a besoin pour ne pas offrir un champ que la base
+ * refusera : `fn_proteger_coefficients_nationaux` rejette toute modification
+ * d'une ligne projetée, et une protection qui ne se manifeste qu'à
+ * l'enregistrement se comporte, pour l'utilisateur, exactement comme un bug.
+ */
+export async function listCoefficientsImposes(
+  programmeIds: string[],
+  anneeScolaireId: string,
+  serieId: string | null,
+): Promise<Set<string>> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT');
+  if (programmeIds.length === 0) return new Set();
+  const supabase = createClient();
+
+  let requete = supabase
+    .from('coefficient_matiere')
+    .select('"programmeEtablissementId"')
+    .eq('anneeScolaireId', anneeScolaireId)
+    .in('programmeEtablissementId', programmeIds)
+    .neq('origine', 'LOCAL');
+  requete = serieId === null ? requete.is('serieId', null) : requete.eq('serieId', serieId);
+
+  const { data, error } = await requete;
+  if (error) throw error;
+  return new Set(
+    ((data ?? []) as { programmeEtablissementId: string }[]).map((c) => c.programmeEtablissementId),
+  );
+}
+
+/**
  * Retire les coefficients des matières écartées d'une filière.
  *
  * L'étape « programme » du démarrage laisse le Directeur décider filière par

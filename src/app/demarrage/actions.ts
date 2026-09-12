@@ -11,6 +11,7 @@ import { activerCycle } from '@/services/structure';
 import { createClasse } from '@/services/classe';
 import { createMatiere } from '@/services/matiere';
 import { ajouterMatiereAuProgramme } from '@/services/programme';
+import { projeterReferentielNational } from '@/services/referentiel-national';
 import { definirCoefficients } from '@/services/coefficient';
 import { appliquerCoefficientsOfficiels } from '@/services/matiere-officielle';
 import { createEnseignant } from '@/services/enseignant';
@@ -238,7 +239,29 @@ export async function creerClassesAction(
     return echec(e, 'Impossible de créer les classes.');
   }
   const details = existantes > 0 ? ` (${existantes} existaient déjà)` : '';
-  return { ok: true, message: `${creees} classe${creees > 1 ? 's' : ''} créée${creees > 1 ? 's' : ''}${details}.` };
+
+  // Les classes connues, on sait enfin quels niveaux l'école ouvre — donc quel
+  // programme et quels coefficients le ministère lui impose. C'est ce qui
+  // remplace les trois étapes « Matières », « Programme » et « Coefficients ».
+  //
+  // L'échec n'interrompt pas l'étape : les classes, elles, sont créées, et les
+  // refaire échouerait en doublon. Le référentiel se reprojette sans risque
+  // depuis l'écran du programme.
+  let referentiel = '';
+  try {
+    const resultat = await projeterReferentielNational(anneeScolaireId);
+    const total = resultat.programme.lignesCreees;
+    if (total > 0) {
+      referentiel = ` Programme national appliqué : ${total} matière${total > 1 ? 's' : ''} par niveau, ${resultat.projetes} coefficient${resultat.projetes > 1 ? 's' : ''}.`;
+    }
+  } catch {
+    referentiel = ' Le programme national n’a pas pu être appliqué ; vous pourrez le faire depuis l’écran du programme.';
+  }
+
+  return {
+    ok: true,
+    message: `${creees} classe${creees > 1 ? 's' : ''} créée${creees > 1 ? 's' : ''}${details}.${referentiel}`,
+  };
 }
 
 // --- Étape 4 : matières ----------------------------------------------------

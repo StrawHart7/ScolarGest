@@ -127,24 +127,6 @@ export async function getProgressionOnboarding(): Promise<ProgressionOnboarding>
           anneeId !== null &&
           (await compter('classe', ctx.etablissementId, { anneeScolaireId: anneeId })) > 0;
         break;
-      case 'matieres':
-        faite = (await compter('matiere', ctx.etablissementId)) > 0;
-        break;
-      case 'programme':
-        faite = (await compter('programme_etablissement', ctx.etablissementId)) > 0;
-        break;
-      case 'coefficients': {
-        // `coefficient_matiere` ne porte pas d'`etablissementId` : elle se
-        // rattache au programme, lui-même scopé. On passe donc par l'année.
-        if (anneeId === null) break;
-        const { count, error } = await supabase
-          .from('coefficient_matiere')
-          .select('id', { count: 'exact', head: true })
-          .eq('anneeScolaireId', anneeId);
-        if (error) throw error;
-        faite = (count ?? 0) > 0;
-        break;
-      }
       case 'enseignants':
         faite = (await compter('enseignant', ctx.etablissementId)) > 0;
         break;
