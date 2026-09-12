@@ -18,9 +18,25 @@ const nextConfig = {
     // dans chaque fonction qui génère un PDF (bulletins, reçus, export
     // rapports).
     outputFileTracingIncludes: {
+      // Chaque cle ci-dessous fait entrer **67 Mo** de binaires Chromium dans le
+      // bundle de la fonction correspondante. Les deux entrees precedentes
+      // etaient des globs — `/etablissement/eleves/**` et
+      // `/etablissement/finances/**` — qui couvraient treize routes alors que
+      // deux seulement generent un PDF. Onze fonctions transportaient donc
+      // 67 Mo pour rien : environ 1 Go par deploiement au lieu de 335 Mo.
+      //
+      // Ne jamais elargir en glob pour « etre tranquille » : le stockage des
+      // fonctions se facture en Go-mois sur le maximum quotidien, et il se
+      // cumule sur tous les deploiements conserves.
+      //
+      // Le `*` remplace un segment dynamique et **n'est pas** ecrit `[id]` :
+      // en glob, des crochets designent une classe de caracteres.
       '/etablissement/notes/bulletins': ['./node_modules/@sparticuz/chromium/bin/**'],
-      '/etablissement/eleves/**': ['./node_modules/@sparticuz/chromium/bin/**'],
-      '/etablissement/finances/**': ['./node_modules/@sparticuz/chromium/bin/**'],
+      // Bouton « regenerer » : l'action vient de `notes/bulletins/actions` mais
+      // s'execute dans la fonction de la page qui l'invoque.
+      '/etablissement/eleves/*/bulletins': ['./node_modules/@sparticuz/chromium/bin/**'],
+      // Emission du recu d'un paiement.
+      '/etablissement/finances/factures/*': ['./node_modules/@sparticuz/chromium/bin/**'],
       '/api/rapports/export': ['./node_modules/@sparticuz/chromium/bin/**'],
       '/api/emploi-du-temps': ['./node_modules/@sparticuz/chromium/bin/**'],
     },
