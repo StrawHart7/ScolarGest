@@ -55,18 +55,29 @@ export const TableBody = React.forwardRef<
 ));
 TableBody.displayName = 'TableBody';
 
-export const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
-    <tr
-      ref={ref}
-      className={cn(
-        'border-b border-surface-border transition-colors last:border-0 hover:bg-primary-fixed/40',
-        className,
-      )}
-      {...props}
-    />
-  ),
-);
+/**
+ * Ligne de tableau.
+ *
+ * Le survol etait un lavis bleu (`primary-fixed/40`). Sur un inventaire de
+ * quarante lignes que l'on parcourt a la souris, une teinte de marque qui
+ * s'allume a chaque ligne survolee tire l'oeil sans rien signifier : le bleu
+ * du systeme veut dire « selection » ou « lien », pas « le curseur est ici ».
+ * Un neutre franc situe le curseur et laisse la couleur aux etats qui la
+ * meritent — les pastilles de statut, les liens.
+ *
+ * La bordure basse est retiree : `TableBody` porte deja `divide-y`, les deux
+ * dessinaient le meme trait au meme endroit.
+ */
+export const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement>
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn('transition-colors hover:bg-surface-container/50', className)}
+    {...props}
+  />
+));
 TableRow.displayName = 'TableRow';
 
 export const TableHead = React.forwardRef<
@@ -76,7 +87,7 @@ export const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      'whitespace-nowrap px-6 py-4 text-label-md uppercase tracking-wide text-text-secondary',
+      'whitespace-nowrap px-6 py-4 text-console-eyebrow uppercase text-text-secondary',
       className,
     )}
     {...props}

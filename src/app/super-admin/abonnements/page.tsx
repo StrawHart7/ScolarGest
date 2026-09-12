@@ -8,7 +8,11 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import {
+  CarteListeMobile,
+  EnteteListe,
+  LigneCarteMobile,
+} from '@/components/ui/carte-liste-mobile';
 import {
   Table,
   TableBody,
@@ -90,14 +94,14 @@ export default async function AbonnementsPage({
         </div>
 
         {!paiementOuvert && (
-          <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
-            <p className="text-body-sm font-medium text-warning-on-container">
+          <div className="rounded-xl border border-warning/30 bg-warning/10 p-4">
+            <p className="text-console-eyebrow uppercase text-warning-on-container">
               Paiement en ligne desactive
             </p>
             <p className="mt-1 text-body-sm text-text-secondary">
               Les ecoles qui souscrivent sont activees par autorisation de la plateforme, sans
-              reglement : leur periode est ouverte a un montant nul et le montant qui aurait ete
-              du figure dans le journal d&apos;audit. Poser PAIEMENT_EN_LIGNE=ACTIF retablit le
+              reglement : leur periode est ouverte a un montant nul et le montant qui aurait ete du
+              figure dans le journal d&apos;audit. Poser PAIEMENT_EN_LIGNE=ACTIF retablit le
               parcours FedaPay.
             </p>
           </div>
