@@ -57,7 +57,8 @@ test : `directeur.test.onboarding@scolargest.local` et
 `secretaire.test.onboarding@scolargest.local`, mot de passe
 `TestOnboarding2026!`. Les adresses en `.local` conviennent à
 `auth.admin.createUser` mais **Supabase les refuse pour les invitations**
-(`inviteUserByEmail`) : tester les étapes 8 et 9 exige de vraies adresses
+(`inviteUserByEmail`) : tester les étapes « Enseignants » et « Équipe
+administrative » exige de vraies adresses
 délivrables, et le SMTP par défaut est fortement limité en débit.
 
 `scripts/seed-demo.ts` (service-role, deterministic) fills one existing établissement with a full cursus — classes, matières, programme, coefficients, élèves, responsables, inscriptions, enseignants, affectations, évaluations, notes — plus the finance side (types de frais, tarifs, factures, paiements), and creates SECRETAIRE / COMPTABLE / ENSEIGNANT test accounts (password `Demo2026!`). It deliberately produces varied states (statuts de facture mixtes, absences, one class left in `BROUILLON`/`SOUMISE` at T3) so every screen has something to show. `--purge` does real hard deletes — test bases only.
