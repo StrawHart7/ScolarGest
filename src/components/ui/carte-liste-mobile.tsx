@@ -86,13 +86,15 @@ export function LigneCarteMobile({
         {(reference || sousTitre) && (
           <div className="flex items-center gap-2">
             {reference && (
-              <span className="shrink-0 font-mono text-[10px] text-secondary">{reference}</span>
+              <span className="shrink-0 font-mono text-touch-meta text-secondary" data-mono>
+                {reference}
+              </span>
             )}
             {reference && sousTitre && (
               <span className="h-1 w-1 shrink-0 rounded-full bg-outline-variant" aria-hidden />
             )}
             {sousTitre && (
-              <span className="truncate text-[11px] text-on-surface-variant">{sousTitre}</span>
+              <span className="truncate text-touch-meta text-on-surface-variant">{sousTitre}</span>
             )}
           </div>
         )}
@@ -103,7 +105,11 @@ export function LigneCarteMobile({
           {statut && (
             <span
               className={cn(
-                'rounded-full px-1.5 text-[10px] font-bold leading-4',
+                // 11px et non 10 : c'est le plancher lisible. Le poids, lui,
+                // ne bouge pas — passee en capitales espacees, la pastille
+                // prenait le pas sur le nom de l'ecole, qui est le sujet de la
+                // ligne.
+                'rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-4',
                 TONS_STATUT[statut.ton],
               )}
             >

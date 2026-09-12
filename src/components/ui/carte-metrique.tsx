@@ -193,7 +193,7 @@ export function PiluleVariation({
     <span
       className={cn(
         'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-body-sm font-medium',
-        sombre && 'bg-white/12',
+        sombre && 'bg-white/10',
         plat && (sombre ? 'text-white/70' : 'bg-surface-container text-text-secondary'),
         monte && (sombre ? 'text-tertiary-fixed' : 'bg-tertiary-fixed/60 text-tertiary'),
         !monte && !plat && (sombre ? 'text-[#ffb4ab]' : 'bg-error-container text-error'),

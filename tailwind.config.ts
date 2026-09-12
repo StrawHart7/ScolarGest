@@ -76,6 +76,13 @@ const config: Config = {
          */
         warning: {
           DEFAULT: '#f59e0b',
+          // `on-container` existait sans son fond : `bg-warning-container`
+          // etait ecrit a deux endroits — l'indicateur de file hors ligne et
+          // le formulaire de versement — et n'etait genere nulle part. Les
+          // deux blocs s'affichaient donc sans fond, en texte noir sur blanc,
+          // exactement la ou ils devaient se distinguer de la page. Valeur
+          // reprise de la meme famille que les deux autres (amber-100).
+          container: '#fef3c7',
           'on-container': '#b45309',
         },
         error: {

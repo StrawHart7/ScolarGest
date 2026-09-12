@@ -112,9 +112,11 @@ function CarteFiltre({
       className={cn(
         'group flex h-full w-full items-start gap-3 rounded-lg border bg-surface-container-lowest p-4 text-left transition-all',
         'hover:-translate-y-0.5 hover:border-primary-container/60 hover:shadow-floating',
-        actif
-          ? 'border-primary-container/70 shadow-floating'
-          : 'border-surface-border',
+        // La carte est un bouton : sans anneau explicite, seul le contour par
+        // defaut du navigateur signalait le focus, et il se voit mal sur une
+        // carte deja bordee.
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        actif ? 'border-primary-container/70 shadow-floating' : 'border-surface-border',
       )}
     >
       <span
@@ -128,10 +130,16 @@ function CarteFiltre({
         <Icone className="h-[18px] w-[18px]" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-display-sm leading-tight text-text-primary" data-mono>
+        {/* Meme voix que les compteurs de la console : chiffre a chasse fixe,
+            intitule en cartouche. Le chiffre portait `display-sm` (24px) et
+            l'intitule `body-md` en demi-gras — deux graisses proches qui se
+            disputaient la carte. */}
+        <span className="block font-mono text-console-figure-sm text-text-primary" data-mono>
           {valeur}
         </span>
-        <span className="block text-body-md font-medium text-text-primary">{libelle}</span>
+        <span className="mt-0.5 block text-console-eyebrow uppercase text-text-secondary">
+          {libelle}
+        </span>
         <span
           className={cn(
             'mt-0.5 block text-body-sm',

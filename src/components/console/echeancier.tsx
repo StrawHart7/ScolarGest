@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
+import { EnteteSection, TEINTE } from './entete-section';
 
 /**
  * L'échéancier : le parc rangé par distance à son échéance.
@@ -17,9 +18,8 @@ import { ArrowUpRight } from 'lucide-react';
  * cet axe-là, du dépassé au lointain, c'est ranger le travail.
  *
  * **Les quatre bandes se lisent de gauche à droite comme une piste**, chacune
- * ouverte par un filet de sa couleur. Rouge, ambre, bleu, vert : la palette de
- * statut déjà validée pour le contraste et le daltonisme, pas des teintes
- * choisies à l'œil.
+ * ouverte par un filet de sa couleur — voir `EnteteSection`, partagé avec la
+ * file des demandes de démo.
  *
  * **Les deux bandes urgentes montrent tout le monde, les deux calmes sont
  * plafonnées.** Une bande « Au-delà » de quarante lignes noierait les trois
@@ -55,28 +55,28 @@ const BANDES: {
     cle: 'depasse',
     titre: 'Dépassé',
     definition: 'échéance passée',
-    couleur: '#de350b',
+    couleur: TEINTE.erreur,
     urgente: true,
   },
   {
     cle: 'semaine',
     titre: 'Cette semaine',
     definition: 'sous 7 jours',
-    couleur: '#b45309',
+    couleur: TEINTE.alerte,
     urgente: true,
   },
   {
     cle: 'mois',
     titre: 'Ce mois',
     definition: 'sous 30 jours',
-    couleur: '#0052cc',
+    couleur: TEINTE.encours,
     urgente: false,
   },
   {
     cle: 'apres',
     titre: 'Au-delà',
     definition: 'plus de 30 jours',
-    couleur: '#00875a',
+    couleur: TEINTE.fait,
     urgente: false,
   },
 ];
@@ -127,25 +127,12 @@ export function Echeancier({ ecoles }: { ecoles: EcoleEcheance[] }) {
 
           return (
             <div key={bande.cle} className="flex flex-col bg-surface-container-lowest">
-              {/* Le filet coloré ouvre la bande. Mises côte à côte, les quatre
-                  bandes forment la piste — c'est l'axe, pas un ornement. */}
-              <div className="h-[3px] w-full" style={{ backgroundColor: bande.couleur }} />
-
-              <div className="px-5 pb-2 pt-4">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="text-touch-label text-text-primary">{bande.titre}</h3>
-                  <span
-                    className="font-mono text-console-figure-sm text-text-primary"
-                    data-mono
-                    style={{ color: liste.length === 0 ? undefined : bande.couleur }}
-                  >
-                    {liste.length}
-                  </span>
-                </div>
-                <p className="text-console-eyebrow uppercase text-text-secondary">
-                  {bande.definition}
-                </p>
-              </div>
+              <EnteteSection
+                titre={bande.titre}
+                definition={bande.definition}
+                compte={liste.length}
+                couleur={bande.couleur}
+              />
 
               {liste.length === 0 ? (
                 // Sur telephone le « 0 » du compteur dit deja tout, et les

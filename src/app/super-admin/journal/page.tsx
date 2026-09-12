@@ -6,19 +6,19 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { BarreListe } from '@/components/ui/barre-liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { EntreeJournalLigne } from './EntreeJournalLigne';
 
 export const metadata = { title: 'Journal d’audit' };
 
-/** Sentinelle : Radix refuse une valeur vide sur un `SelectItem`. */
+/**
+ * Ancienne sentinelle du `Select` maison — Radix refuse une valeur vide sur un
+ * `SelectItem`. `BarreListe` retire simplement le parametre quand le filtre
+ * est sur « tout », si bien qu'elle n'est plus ecrite nulle part. Elle reste
+ * neutralisee a la lecture : des liens vers une recherche filtree ont pu etre
+ * partages, et ils portent encore `etablissement=TOUTES`.
+ */
 const TOUTES = 'TOUTES';
 
 /**
@@ -32,6 +32,18 @@ const TOUTES = 'TOUTES';
  * Les filtres passent par l'URL plutôt que par un état client. Trois raisons :
  * un lien vers une recherche se partage, la page reste rendue côté serveur, et
  * on évite `useSearchParams` qui imposerait une frontière `Suspense`.
+ *
+ * **Ils passent maintenant par `BarreListe`**, comme les autres listes de
+ * l'application. La page composait sa propre rangée : une file de pastilles
+ * de module écrites à la main, un `<input type="search">` brut avec ses classes
+ * en dur — donc hors du système, ni la hauteur ni l'anneau de focus des autres
+ * champs — un `Select`, et deux boutons « Filtrer » et « Effacer ». Soit un
+ * quatrième dialecte de filtrage dans un produit qui en a déjà un.
+ *
+ * `BarreListe` écrit les mêmes paramètres d'URL, efface `page` à chaque
+ * changement — rester en page 4 d'un résultat qui n'en compte plus qu'une
+ * affichait un tableau vide sans explication — et affiche les filtres actifs
+ * en pastilles retirables. La pagination continue de se construire ici.
  */
 export default async function JournalPage({
   searchParams,
@@ -72,12 +84,6 @@ export default async function JournalPage({
     return chaine ? `/super-admin/journal?${chaine}` : '/super-admin/journal';
   }
 
-  const ecoleFiltree =
-    searchParams.etablissement && searchParams.etablissement !== TOUTES
-      ? searchParams.etablissement
-      : undefined;
-  const filtreActif = Boolean(searchParams.module || ecoleFiltree || searchParams.q);
-
   return (
     <AppLayout
       items={getSidebarItems('SUPER_ADMIN')}
@@ -91,79 +97,23 @@ export default async function JournalPage({
           description={`${journal.total} écriture${journal.total > 1 ? 's' : ''} tracée${journal.total > 1 ? 's' : ''}, toutes écoles confondues.`}
         />
 
-        {/* Filtres en liens plutôt qu'en formulaire : une recherche se partage,
-            et la page reste entièrement rendue côté serveur. */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-label-md uppercase tracking-wide text-text-secondary">
-              Module
-            </span>
-            <Link
-              href={lien({ module: undefined, page: undefined })}
-              className={`rounded-full border px-3 py-1 text-body-sm transition-colors ${
-                !searchParams.module
-                  ? 'border-primary-container bg-primary-fixed/50 font-medium text-primary-container'
-                  : 'border-surface-border text-text-secondary hover:border-primary-container/50'
-              }`}
-            >
-              tous
-            </Link>
-            {journal.modules.map((m) => (
-              <Link
-                key={m}
-                href={lien({ module: m, page: undefined })}
-                className={`rounded-full border px-3 py-1 text-body-sm transition-colors ${
-                  searchParams.module === m
-                    ? 'border-primary-container bg-primary-fixed/50 font-medium text-primary-container'
-                    : 'border-surface-border text-text-secondary hover:border-primary-container/50'
-                }`}
-              >
-                {m}
-              </Link>
-            ))}
-          </div>
-
-          <form action="/super-admin/journal" method="get" className="flex flex-wrap gap-2">
-            {searchParams.module && (
-              <input type="hidden" name="module" value={searchParams.module} />
-            )}
-            <input
-              type="search"
-              name="q"
-              defaultValue={searchParams.q ?? ''}
-              placeholder="Rechercher une action, par exemple ANNULER_PAIEMENT"
-              className="h-10 min-w-0 flex-1 rounded-lg border border-surface-border bg-surface-container-lowest px-3 text-body-md text-text-primary placeholder:text-text-secondary/60 focus-visible:border-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/20"
-            />
-            {/* `Select` du projet et non un `<select>` natif : la liste déroulante
-                native est rendue par le système et échappe au design system.
-                Radix soumet quand même via un `<select>` cache, donc le
-                formulaire GET fonctionne tel quel.
-
-                Radix refuse une valeur vide sur un item, d'ou la sentinelle
-                `TOUTES`, neutralisee cote serveur. */}
-            <Select name="etablissement" defaultValue={searchParams.etablissement ?? TOUTES}>
-              <SelectTrigger className="h-10 w-full sm:w-56">
-                <SelectValue placeholder="Toutes les écoles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TOUTES}>Toutes les écoles</SelectItem>
-                {ecoles.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button type="submit" variant="secondary">
-              Filtrer
-            </Button>
-            {filtreActif && (
-              <Button asChild variant="ghost">
-                <Link href="/super-admin/journal">Effacer</Link>
-              </Button>
-            )}
-          </form>
-        </div>
+        <BarreListe
+          placeholderRecherche="Une action, par exemple ANNULER_PAIEMENT…"
+          filtres={[
+            {
+              parametre: 'module',
+              libelle: 'Module',
+              options: journal.modules.map((m) => ({ valeur: m, libelle: m })),
+              libelleTout: 'Tous les modules',
+            },
+            {
+              parametre: 'etablissement',
+              libelle: 'École',
+              options: ecoles.map((e) => ({ valeur: e.id, libelle: e.nom })),
+              libelleTout: 'Toutes les écoles',
+            },
+          ]}
+        />
 
         <Card className="overflow-hidden rounded-xl">
           <CardContent className="p-0">

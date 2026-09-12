@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarreListe } from '@/components/ui/barre-liste';
+import { EnteteSection, TEINTE } from '@/components/console/entete-section';
 import { getSidebarItems } from '@/lib/navigation';
 import { CarteDemande } from './CarteDemande';
 
@@ -20,6 +21,14 @@ export const metadata = { title: 'Demandes de démo' };
  * date : ce sont les seules sur lesquelles il y a quelque chose à faire, et
  * les noyer dans l'ordre chronologique reviendrait à reconstruire le problème
  * qu'on corrige.
+ *
+ * **Les trois sections sont un parcours, pas trois tas.** Une demande entre à
+ * traiter, passe en cours, finit close : elles reprennent donc le filet de
+ * couleur de l'échéancier (`EnteteSection`), qui sert exactement à dire qu'un
+ * ordre compte.
+ *
+ * « Closes » reste **neutre** et non verte. Elle mêle les converties et les
+ * écartées ; la teindre en succès applaudirait les refus.
  */
 export default async function DemandesPage({
   searchParams,
@@ -51,20 +60,28 @@ export default async function DemandesPage({
   const traitees = demandes.length - aTraiter.length;
   const tauxConversion = traitees > 0 ? Math.round((converties / traitees) * 100) : null;
 
-  const sections: { titre: string; aide: string; liste: typeof demandes }[] = [
+  const sections: {
+    titre: string;
+    definition: string;
+    couleur: string;
+    liste: typeof demandes;
+  }[] = [
     {
       titre: 'À traiter',
-      aide: 'Personne ne leur a encore répondu.',
+      definition: 'sans réponse',
+      couleur: TEINTE.alerte,
       liste: aTraiter,
     },
     {
       titre: 'En cours',
-      aide: 'Contactées, en attente de décision.',
+      definition: 'contactées, décision à prendre',
+      couleur: TEINTE.encours,
       liste: enCours,
     },
     {
       titre: 'Closes',
-      aide: 'Converties ou écartées.',
+      definition: 'converties ou écartées',
+      couleur: TEINTE.neutre,
       liste: closes,
     },
   ];
@@ -86,18 +103,22 @@ export default async function DemandesPage({
           }
         />
 
-        {demandes.length > 0 && <BarreListe placeholderRecherche="École, contact, e-mail ou ville…" />}
+        {demandes.length > 0 && (
+          <BarreListe placeholderRecherche="École, contact, e-mail ou ville…" />
+        )}
 
         {demandes.length === 0 || nombreAffichees === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
               <p className="text-body-md text-text-primary">
-                {terme ? 'Aucune demande ne correspond à cette recherche.' : 'Aucune demande pour le moment.'}
+                {terme
+                  ? 'Aucune demande ne correspond à cette recherche.'
+                  : 'Aucune demande pour le moment.'}
               </p>
               {!terme && (
                 <p className="mt-1 text-body-sm text-text-secondary">
-                  Les demandes envoyées depuis le formulaire de la page d&apos;accueil
-                  apparaîtront ici.
+                  Les demandes envoyées depuis le formulaire de la page d&apos;accueil apparaîtront
+                  ici.
                 </p>
               )}
             </CardContent>
@@ -107,15 +128,14 @@ export default async function DemandesPage({
             .filter((s) => s.liste.length > 0)
             .map((section) => (
               <section key={section.titre} className="space-y-3">
-                <div>
-                  <h2 className="text-body-md font-semibold text-text-primary">
-                    {section.titre}
-                    <span className="ml-2 text-body-sm font-normal text-text-secondary">
-                      {section.liste.length}
-                    </span>
-                  </h2>
-                  <p className="text-body-sm text-text-secondary">{section.aide}</p>
-                </div>
+                <EnteteSection
+                  niveau={2}
+                  dansCarte={false}
+                  titre={section.titre}
+                  definition={section.definition}
+                  compte={section.liste.length}
+                  couleur={section.couleur}
+                />
                 <div className="flex flex-col gap-3">
                   {section.liste.map((demande) => (
                     <CarteDemande key={demande.id} demande={demande} />
