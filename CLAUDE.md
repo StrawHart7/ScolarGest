@@ -1627,8 +1627,8 @@ d'écrire quoi que ce soit — pas après.
 
 | Nom | Rôle | Branches |
 |---|---|---|
-| **SOKO** | Fonctionnel : métier, services, base, écrans complets — **tout le fonctionnel** | `feat/soko-<sujet>` |
-| **VERNI** | Finition : design, mise en page, mobile, ergonomie | `design/verni-<sujet>` |
+| **SOKO** | Fonctionnel : métier, services, base, écrans complets — **tout le fonctionnel** | `SOKO` |
+| **VERNI** | Finition : design, mise en page, mobile, ergonomie | `VERNI` |
 
 **TAMA a été retiré le 2026-09-12**, sur décision de l'utilisateur : il ne s'en
 servait pas assez pour que le cloisonnement vaille son coût. **Son périmètre
@@ -1728,7 +1728,8 @@ travail, sans conflit Git puisque tout est commité.
 Donc : si le répertoire principal est déjà occupé, monter un worktree.
 
 ```bash
-git worktree add -b feat/soko-<sujet> ../ScoolAdmin-soko main
+# La branche existe deja : `add` sans `-b`, et l'amont est deja regle.
+git worktree add ../ScoolAdmin-soko SOKO
 cmd //c mklink /J "..\ScoolAdmin-soko\node_modules" "..\ScoolAdmin\node_modules"
 cp ../ScoolAdmin/.env ../ScoolAdmin-soko/.env
 ```
@@ -1748,10 +1749,41 @@ avant de diagnostiquer.
 
 ### Qui pousse, qui fusionne
 
-Chaque agent pousse **sa** branche et ne fusionne que la sienne, après
-`lint`, `typecheck` et `test` verts. Personne ne travaille sur `main` :
-vérifier `git branch --show-current` avant la première écriture, y compris
-juste après un merge, moment où l'on s'y retrouve sans y penser.
+**Deux branches permanentes, une par agent** — décision de l'utilisateur du
+2026-09-12 :
+
+| Agent | Branche |
+|---|---|
+| SOKO | `SOKO` |
+| VERNI | `VERNI` |
+
+**Plus de branche par fonctionnalité.** Quoi qu'il y ait à faire, une session
+travaille sur sa propre branche et sur elle seule. Une branche dédiée ne se crée
+que si **l'utilisateur le demande expressément** pour un sujet donné.
+
+Ce que ça règle : quarante-quatre branches distantes s'étaient accumulées, dont
+trente-sept déjà fusionnées, chacune immobilisant son dernier aperçu Vercel
+(voir « Toute fonction qui genere un PDF doit etre tracee »). Et le compte rendu
+n'avait plus à expliquer sur quelle branche vivait quoi.
+
+Ce que ça coûte, et qu'il faut tenir : **deux branches de longue vie divergent**.
+Après chaque fusion dans `main`, rapatrier `main` dans sa branche plutôt que de
+laisser l'écart grandir — un conflit de trois jours se résout, un conflit de
+trois semaines se subit. Et `matrice.instantane.txt` devient le point de
+collision le plus probable : après tout rapatriement qui y touche, régénérer et
+relire le diff.
+
+**Piège immédiat à la création** : une branche créée depuis `origin/main` en
+hérite comme amont, et un `git push` nu viserait alors `main`. Vérifier
+`git rev-parse --abbrev-ref SOKO@{upstream}` après création.
+
+**Personne n'écrit jamais sur `main`.** Vérifier `git branch --show-current`
+avant la première écriture, y compris juste après un merge, moment où l'on s'y
+retrouve sans y penser. `main` ne reçoit que des fusions, et seulement sur l'aval
+explicite de l'utilisateur.
+
+Chaque agent pousse **sa** branche et ne fusionne que la sienne, après `lint`,
+`typecheck` et `test` verts.
 
 **`main` est la branche de production, pas une preview.** Un `git push origin
 main` déploie sur `scolargest.com` et le donne aux écoles ; il n'y a pas
