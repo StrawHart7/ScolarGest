@@ -127,6 +127,32 @@ const config: Config = {
           '28px',
           { lineHeight: '30px', letterSpacing: '-0.02em', fontWeight: '700' },
         ],
+
+        // Échelle de console. Elle s'ajoute aux deux précédentes et ne les
+        // remplace pas — aucune page existante ne change de rendu.
+        //
+        // La console plateforme est le seul écran que l'utilisateur regarde en
+        // tant qu'opérateur et non en tant qu'école. Elle se lit comme un
+        // instrument : des chiffres grands et alignés, des étiquettes réduites
+        // à un cartouche. L'échelle dense (body 14/13) est calibrée pour un
+        // tableau de données, pas pour un chiffre qu'on lit de loin — le plus
+        // gros token disponible plafonnait à 24px.
+        //
+        // Aucune police n'est ajoutée : la voix vient du contraste entre les
+        // deux familles déjà auto-hébergées — JetBrains Mono pour les chiffres,
+        // Inter en micro-capitales espacées pour les étiquettes.
+        'console-eyebrow': [
+          '11px',
+          { lineHeight: '14px', letterSpacing: '0.09em', fontWeight: '600' },
+        ],
+        'console-figure': [
+          'clamp(1.75rem, 4.5vw, 2.5rem)',
+          { lineHeight: '1', letterSpacing: '-0.035em', fontWeight: '600' },
+        ],
+        'console-figure-sm': [
+          'clamp(1.375rem, 3.5vw, 1.75rem)',
+          { lineHeight: '1.05', letterSpacing: '-0.03em', fontWeight: '600' },
+        ],
       },
       borderRadius: {
         sm: '0.125rem',
@@ -204,6 +230,20 @@ const config: Config = {
           '0%, 100%': { opacity: '0.25' },
           '50%': { opacity: '1' },
         },
+        // Séquence d'ouverture de la console. Un seul mouvement orchestré, en
+        // cascade par `animation-delay` posé à l'appel — pas un effet par
+        // élément. `prefers-reduced-motion` est déjà neutralisé globalement
+        // dans `globals.css`, rien à prévoir ici.
+        'console-monte': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        // Le tracé se dessine. Le chemin porte `pathLength={1}`, donc le
+        // décalage va de 1 à 0 quelle que soit sa longueur réelle.
+        'trace-dessin': {
+          from: { strokeDashoffset: '1' },
+          to: { strokeDashoffset: '0' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 150ms ease-out',
@@ -220,6 +260,8 @@ const config: Config = {
         'conseil-in': 'conseil-in 240ms cubic-bezier(0.16, 1, 0.3, 1)',
         'conseil-out': 'conseil-out 180ms ease-in forwards',
         'orbit-fade': 'orbit-fade 1.6s ease-in-out infinite',
+        'console-monte': 'console-monte 420ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'trace-dessin': 'trace-dessin 900ms cubic-bezier(0.33, 1, 0.68, 1) both',
       },
       boxShadow: {
         floating: '0px 4px 12px rgba(9, 30, 66, 0.08)',

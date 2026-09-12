@@ -19,6 +19,23 @@ import { cn } from '@/lib/utils';
  *   l'information pour qui ne distingue pas le vert du rouge.
  * - **Une ligne de comparaison en clair** sous le chiffre. « 2 832 » ne dit
  *   rien ; « contre 3 294 le mois dernier » dit tout.
+ *
+ * Deux reprises du 2026-09-12 :
+ *
+ * - **L'intitule passe en cartouche**, micro-capitales espacees, et le chiffre
+ *   grandit. Les deux ne se separaient que par 13px contre 26px et un demi-gras
+ *   commun : trois elements — intitule, pastille, chiffre — s'y disputaient le
+ *   regard, et la carte n'avait pas de sujet. Un ecart franc le lui rend.
+ * - **Une carte cliquable le dit.** Elle se distinguait d'une carte inerte par
+ *   une ombre au survol, invisible avant de survoler et inexistante au clavier,
+ *   ou rien ne signalait meme le focus. Elle porte desormais une fleche, un
+ *   soulevement au survol et un anneau de focus.
+ *
+ * Le chiffre reste en Inter et non dans la fonte a chasse fixe : « 1 450 000 F »
+ * y prend un tiers de largeur en plus et deborderait de la colonne etroite
+ * d'une grille a deux colonnes sur telephone. L'alignement des chiffres est
+ * obtenu par `data-mono`, qui les passe en chasse tabulaire — voir la regle
+ * dans `globals.css`.
  */
 
 type Ton = 'primaire' | 'succes' | 'alerte' | 'neutre';
@@ -64,38 +81,52 @@ export function CarteMetrique({
       <div className="flex items-start justify-between gap-2 md:gap-3">
         <p
           className={cn(
-            'font-medium text-text-secondary',
-            compact ? 'text-touch-meta md:text-body-sm' : 'text-body-sm',
+            'text-console-eyebrow uppercase text-text-secondary',
+            // Le cartouche ne descend pas sous 11px : c'est le plancher de
+            // l'echelle, et des capitales espacees se lisent moins bien que
+            // du bas-de-casse a taille egale. On resserre donc l'interlettre
+            // plutot que le corps.
+            //
+            // La hauteur est reservee pour deux lignes : dans une grille a
+            // deux colonnes sur telephone, « REVENU RECURRENT » se coupe la ou
+            // « ECOLES » tient sur une, et les deux chiffres ne partageaient
+            // plus la meme ligne de base — le defaut saute aux yeux des que
+            // deux cartes se touchent.
+            compact && 'max-md:min-h-[28px] max-md:tracking-[0.06em]',
           )}
         >
           {label}
         </p>
-        <span
-          className={cn(
-            'shrink-0 rounded-xl',
-            PASTILLE[ton],
-            compact ? 'p-1.5 md:p-2' : 'p-2',
+        {/* Fleche et pastille forment un bloc. La fleche posee en absolu dans
+            un coin chevauchait la ligne de comparaison sur carte etroite ;
+            laissee seule dans la ligne, `justify-between` la renvoyait au
+            milieu, orpheline entre l'intitule et la pastille. */}
+        <span className="flex shrink-0 items-start gap-2">
+          {href && (
+            <ArrowUpRight
+              className="mt-1.5 size-4 text-text-secondary opacity-40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              aria-hidden
+            />
           )}
-        >
-          <Icone className="h-4 w-4" aria-hidden />
+          <span className={cn('rounded-lg', PASTILLE[ton], compact ? 'p-1.5 md:p-2' : 'p-2')}>
+            <Icone className="h-4 w-4" aria-hidden />
+          </span>
         </span>
       </div>
 
       <div
-        className={cn('flex flex-wrap items-baseline gap-2', compact ? 'mt-2 md:mt-3' : 'mt-3')}
+        className={cn('flex flex-wrap items-baseline gap-2', compact ? 'mt-2.5 md:mt-3' : 'mt-3')}
       >
         <span
           className={cn(
-            'font-semibold leading-none tracking-tight text-text-primary',
-            compact ? 'text-touch-figure md:text-[26px]' : 'text-[26px]',
+            'text-text-primary',
+            compact ? 'text-touch-figure md:text-console-figure-sm' : 'text-console-figure-sm',
           )}
           data-mono
         >
           {valeur}
         </span>
-        {variation !== null && variation !== undefined && (
-          <PiluleVariation variation={variation} />
-        )}
+        {variation !== null && variation !== undefined && <PiluleVariation variation={variation} />}
       </div>
 
       {comparaison && (
@@ -117,13 +148,21 @@ export function CarteMetrique({
   );
 
   const classes = cn(
-    'block rounded-2xl border border-surface-border bg-surface-container-lowest transition-shadow',
+    'block rounded-2xl border border-surface-border bg-surface-container-lowest',
     compact ? 'p-3.5 md:p-5' : 'p-5',
   );
 
   if (href) {
     return (
-      <Link href={href} className={cn(classes, 'hover:shadow-subtle')}>
+      <Link
+        href={href}
+        className={cn(
+          classes,
+          'group transition-all duration-200',
+          'hover:-translate-y-0.5 hover:border-primary-container/35 hover:shadow-floating',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        )}
+      >
         {contenu}
       </Link>
     );
@@ -131,20 +170,35 @@ export function CarteMetrique({
   return <div className={classes}>{contenu}</div>;
 }
 
-/** Pilule de variation : fleche + signe + pourcentage. */
-export function PiluleVariation({ variation }: { variation: number }) {
+/**
+ * Pilule de variation : fleche + signe + pourcentage.
+ *
+ * Le ton `sombre` sert au bandeau de la console. Les fonds clairs du ton par
+ * defaut y disparaitraient, et le rouge du systeme (#ba1a1a) descend sous le
+ * seuil de contraste une fois pose sur du bleu nuit.
+ */
+export function PiluleVariation({
+  variation,
+  ton = 'clair',
+}: {
+  variation: number;
+  ton?: 'clair' | 'sombre';
+}) {
   const monte = variation > 0;
   const plat = variation === 0;
   const Fleche = monte ? ArrowUpRight : ArrowDownRight;
+  const sombre = ton === 'sombre';
 
   return (
     <span
       className={cn(
         'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-body-sm font-medium',
-        plat && 'bg-surface-container text-text-secondary',
-        monte && 'bg-tertiary-fixed/60 text-tertiary',
-        !monte && !plat && 'bg-error-container text-error',
+        sombre && 'bg-white/12',
+        plat && (sombre ? 'text-white/70' : 'bg-surface-container text-text-secondary'),
+        monte && (sombre ? 'text-tertiary-fixed' : 'bg-tertiary-fixed/60 text-tertiary'),
+        !monte && !plat && (sombre ? 'text-[#ffb4ab]' : 'bg-error-container text-error'),
       )}
+      data-mono
     >
       {!plat && <Fleche className="h-3.5 w-3.5" aria-hidden />}
       {monte ? '+' : ''}

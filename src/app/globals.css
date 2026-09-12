@@ -56,6 +56,39 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Chiffres alignés.
+
+   `data-mono` est posé sur une centaine d'éléments — montants d'une colonne de
+   factures, moyennes d'un tableau de résultats, grands chiffres des tableaux de
+   bord — et **aucune règle ne le ciblait**. L'attribut ne faisait rien.
+
+   Le token `text-data-mono` de `tailwind.config.ts` porte le même nom mais
+   désigne autre chose : une taille de 12px. C'est probablement l'origine de la
+   confusion — l'attribut a été écrit en croyant qu'il déclenchait le style que
+   la classe portait.
+
+   Conséquence visible : Inter dessine par défaut des chiffres à chasse
+   proportionnelle, où le « 1 » est plus étroit que le « 8 ». Deux montants l'un
+   sous l'autre ne s'alignent donc pas, et une colonne de nombres ondule. C'est
+   exactement ce que ces cent occurrences voulaient empêcher.
+
+   `tnum` corrige l'alignement sans changer de famille : les chiffres passent à
+   chasse fixe, les lettres restent en Inter. Repasser toute l'application en
+   JetBrains Mono aurait été un autre projet, et pas forcément le bon — une
+   moyenne dans une phrase se lit mieux dans la police du texte.
+   --------------------------------------------------------------------------- */
+[data-mono] {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1,
+    'cv02',
+    'cv03',
+    'cv04',
+    'cv11';
+}
+
 @keyframes float-y {
   0%,
   100% {
