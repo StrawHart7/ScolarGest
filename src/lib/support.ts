@@ -66,6 +66,13 @@ export interface DemandeSupport {
   fichierChemin: string | null;
   /** Nom d'origine du fichier : le chemin de stockage est randomisé. */
   fichierNom: string | null;
+  /**
+   * Chemin du fichier joint **par le support à sa réponse** — la version
+   * corrigée, le plus souvent. Miroir de `fichierChemin`, sens inverse.
+   */
+  reponseFichierChemin: string | null;
+  /** Nom d'origine du fichier renvoyé par le support. */
+  reponseFichierNom: string | null;
   createdAt: string;
 }
 

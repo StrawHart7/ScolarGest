@@ -49,7 +49,7 @@ export type {
  */
 
 const CHAMPS =
-  'id, "etablissementId", "auteurNom", "auteurEmail", "auteurRole", categorie, sujet, message, "pageOrigine", statut, "reponseSupport", "repondueLe", "fichierChemin", "fichierNom", "createdAt"';
+  'id, "etablissementId", "auteurNom", "auteurEmail", "auteurRole", categorie, sujet, message, "pageOrigine", statut, "reponseSupport", "repondueLe", "fichierChemin", "fichierNom", "reponseFichierChemin", "reponseFichierNom", "createdAt"';
 
 const BUCKET_SUPPORT = 'support';
 
@@ -93,7 +93,7 @@ export async function creerDemandeSupport(
   // Le fichier est deverse AVANT la ligne : si le depot echoue, aucune demande
   // n'est creee, et l'ecole reessaie. L'ordre inverse laisserait une demande
   // annoncant une piece jointe absente, que le support reclamerait en vain.
-  const chemin = piece ? await deposerPieceJointe(ctx.etablissementId, piece) : null;
+  const chemin = piece ? await deposerPieceJointe(ctx.etablissementId, piece, 'support') : null;
 
   const { data, error } = await supabase
     .from('support_demande')
@@ -193,31 +193,75 @@ export async function repondreDemandeSupport(
   id: string,
   reponse: string,
   statut: StatutSupport,
+  piece?: PieceJointeSupport | null,
 ): Promise<void> {
   await requireRole();
   const supabase = createClient();
 
+  // `etablissementId` est relu ici et jamais recu : c'est lui qui prefixe le
+  // chemin de stockage. L'accepter en parametre laisserait le support deposer
+  // un fichier sous le dossier d'une autre ecole — la meme faille que du cote
+  // du tenant, avec un compte qui a le droit de lire toutes les demandes.
   const { data: avant, error: erreurLecture } = await supabase
     .from('support_demande')
-    .select('statut, sujet')
+    .select('statut, sujet, "etablissementId", "reponseFichierChemin"')
     .eq('id', id)
     .maybeSingle();
   if (erreurLecture) throw erreurLecture;
   if (!avant) throw new Error('Demande introuvable.');
+  const demande = avant as {
+    statut: string;
+    sujet: string;
+    etablissementId: string;
+    reponseFichierChemin: string | null;
+  };
+
+  // Le fichier part AVANT la ligne, comme a la creation : si le depot echoue,
+  // aucune reponse n'est enregistree et le support reessaie. L'ordre inverse
+  // afficherait a l'ecole une reponse annoncant un fichier qui n'existe pas.
+  const chemin = piece
+    ? await deposerPieceJointe(demande.etablissementId, piece, 'reponse')
+    : null;
+
+  // Une reponse se corrige, et le champ est prerempli a la reouverture :
+  // renvoyer une reponse sans rejoindre de fichier ne doit pas faire
+  // disparaitre celui qui etait deja la. Seul un nouveau depot remplace.
+  const champsFichier = piece
+    ? { reponseFichierChemin: chemin, reponseFichierNom: piece.nom }
+    : {};
 
   const { error } = await supabase
     .from('support_demande')
-    .update({ reponseSupport: reponse, repondueLe: new Date().toISOString(), statut })
+    .update({
+      reponseSupport: reponse,
+      repondueLe: new Date().toISOString(),
+      statut,
+      ...champsFichier,
+    })
     .eq('id', id);
   if (error) throw error;
+
+  // L'ancien fichier n'est supprime qu'une fois la ligne ecrite, et son echec
+  // n'annule rien : plus rien ne le designe, il est devenu inatteignable. Le
+  // laisser ferait grossir indefiniment un bucket prive sans que personne ne
+  // puisse le retrouver. L'invariant « pas de suppression dure » protege les
+  // donnees financieres et academiques historisees, pas un brouillon remplace.
+  if (piece && demande.reponseFichierChemin) {
+    const admin = createAdminClient();
+    await admin.storage.from(BUCKET_SUPPORT).remove([demande.reponseFichierChemin]);
+  }
 
   await auditLog({
     action: 'REPONDRE_DEMANDE_SUPPORT',
     module: 'support',
     objetType: 'DemandeSupport',
     objetId: id,
-    ancienneValeur: { statut: (avant as { statut: string }).statut },
-    nouvelleValeur: { statut, sujet: (avant as { sujet: string }).sujet },
+    ancienneValeur: { statut: demande.statut },
+    nouvelleValeur: {
+      statut,
+      sujet: demande.sujet,
+      fichierJoint: piece ? piece.nom : null,
+    },
   });
 }
 
@@ -265,6 +309,7 @@ export async function changerStatutDemandeSupport(
 async function deposerPieceJointe(
   etablissementId: string,
   piece: PieceJointeSupport,
+  sens: 'support' | 'reponse',
 ): Promise<string> {
   if (piece.contenu.byteLength > TAILLE_MAX_PIECE_JOINTE) {
     throw new Error('Fichier trop volumineux (10 Mo maximum).');
@@ -275,7 +320,7 @@ async function deposerPieceJointe(
 
   const extension = (piece.nom.split('.').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const suffixe = extension ? `.${extension}` : '';
-  const chemin = `${etablissementId}/support/${crypto.randomUUID()}${suffixe}`;
+  const chemin = `${etablissementId}/${sens}/${crypto.randomUUID()}${suffixe}`;
 
   const admin = createAdminClient();
   const { error } = await admin.storage
@@ -299,15 +344,44 @@ async function deposerPieceJointe(
  */
 export async function getLienPieceJointe(demandeId: string): Promise<string | null> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  return signerPieceJointe(ctx, demandeId, 'fichierChemin');
+}
+
+/**
+ * Lien de telechargement du fichier joint **par le support a sa reponse**.
+ *
+ * Meme garde et meme regle d'auteur que `getLienPieceJointe` : le fichier
+ * renvoye est la version corrigee de celui qu'une personne precise a envoye,
+ * et il en porte le contenu — une liste d'eleves, le plus souvent. Il n'y a
+ * aucune raison qu'il soit plus largement lisible que l'original.
+ */
+export async function getLienPieceJointeReponse(demandeId: string): Promise<string | null> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  return signerPieceJointe(ctx, demandeId, 'reponseFichierChemin');
+}
+
+/**
+ * Fabrique l'URL signee d'une des deux pieces jointes d'une demande.
+ *
+ * Le nom de colonne vient du code appelant et **jamais d'un parametre
+ * d'appel** : c'est une union fermee de deux litteraux, pas une chaine libre.
+ * Les deux fonctions publiques ci-dessus portent chacune leur garde de role,
+ * pour que le generateur de la matrice de permissions les voie.
+ */
+async function signerPieceJointe(
+  ctx: { role: string; userId: string },
+  demandeId: string,
+  colonne: 'fichierChemin' | 'reponseFichierChemin',
+): Promise<string | null> {
   const supabase = createClient();
 
   const { data, error } = await supabase
     .from('support_demande')
-    .select('"fichierChemin", "auteurId"')
+    .select(`"${colonne}", "auteurId"`)
     .eq('id', demandeId)
     .maybeSingle();
   if (error) throw error;
-  const demande = data as { fichierChemin: string | null; auteurId: string | null } | null;
+  const demande = data as Record<string, string | null> | null;
 
   // Un rôle école ne récupère que la pièce de ses propres demandes. La RLS
   // laisse passer toute l'école : sans ce test, l'écran ne montrerait que les
@@ -316,7 +390,7 @@ export async function getLienPieceJointe(demandeId: string): Promise<string | nu
   // lire, c'est son travail.
   if (ctx.role !== 'SUPER_ADMIN' && demande?.auteurId !== ctx.userId) return null;
 
-  const chemin = demande?.fichierChemin;
+  const chemin = demande?.[colonne];
   if (!chemin) return null;
 
   const admin = createAdminClient();

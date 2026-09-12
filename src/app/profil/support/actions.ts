@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { creerDemandeSupport } from '@/services/support';
+import { creerDemandeSupport, getLienPieceJointeReponse } from '@/services/support';
 
 export interface ResultatSupport {
   ok: boolean;
@@ -70,5 +70,36 @@ export async function envoyerDemandeSupportAction(
       if (typeof m === 'string' && m.trim() !== '') return { ok: false, message: m };
     }
     return { ok: false, message: 'Envoi impossible. Vérifiez votre connexion puis réessayez.' };
+  }
+}
+
+/**
+ * Lien de telechargement du fichier joint par le support a sa reponse.
+ *
+ * Emis a la demande plutot que rendu dans la page : l'URL signee expire au
+ * bout de cinq minutes, et une page mise en cache porterait un lien mort qui
+ * afficherait « fichier introuvable » sans rien expliquer.
+ *
+ * Seul l'identifiant de la demande est accepte. Le chemin de stockage est relu
+ * cote serveur — le recevoir en parametre ferait de cette action un lecteur
+ * universel du bucket.
+ */
+export async function lienPieceJointeReponseAction(
+  demandeId: string,
+): Promise<{ ok: boolean; url?: string; message?: string }> {
+  const valide = z.string().uuid().safeParse(demandeId);
+  if (!valide.success) return { ok: false, message: 'Demande invalide.' };
+  try {
+    const url = await getLienPieceJointeReponse(valide.data);
+    if (!url) return { ok: false, message: 'Aucun fichier joint a cette reponse.' };
+    return { ok: true, url };
+  } catch (e) {
+    // Les erreurs Supabase ne sont pas des `Error` — voir CLAUDE.md.
+    if (e instanceof Error) return { ok: false, message: e.message };
+    if (typeof e === 'object' && e !== null) {
+      const m = (e as { message?: unknown }).message;
+      if (typeof m === 'string' && m.trim() !== '') return { ok: false, message: m };
+    }
+    return { ok: false, message: 'Telechargement impossible. Reessayez.' };
   }
 }
