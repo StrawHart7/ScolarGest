@@ -189,6 +189,39 @@ immédiate des sessions. Connue et assumée.
 `reactiverUtilisateur` existe **parce que** la désactivation est devenue
 effective : sans elle, un clic de trop serait sans retour.
 
+### Un second facteur qu'on peut remplacer sans le connaître n'en est pas un
+
+Constaté le 2026-09-12. `definirPin` écrivait un nouveau hash sans jamais
+demander l'ancien. Or le PIN est ce qui garde les actions irréversibles —
+approuver des notes, activer une année, clôturer un cycle — et il était
+remplaçable **par la session même qu'il est censé protéger**.
+
+Une session détournée — poste partagé, jeton encore valide après un départ —
+pouvait donc se donner un nouveau PIN, puis franchir tout ce que le PIN garde.
+Le facteur ne protégeait pas contre la seule menace qui le justifie.
+
+Trois règles en sortent, valables pour tout secret remplaçable :
+
+- **L'ancien secret est exigé dès qu'il en existe un**, et c'est la présence du
+  hash en base qui le décide — jamais le formulaire. Masquer un champ n'empêche
+  pas un appel forgé de l'omettre : même raisonnement que `activerCycle`, la
+  liste informe, l'écriture décide.
+- **La première définition reste libre.** Exiger un ancien PIN quand il n'y en a
+  pas rendrait `/demarrage` infranchissable, l'essai démarrant précisément à la
+  pose du code.
+- **Une seule implémentation de la vérification.** `definirPin` délègue à
+  `exigerPin` au lieu de recomparer : deux chemins pour le même secret
+  divergeraient au premier ajustement, et c'est le plus ancien qu'on oublierait.
+
+`DEFINIR_PIN` et `MODIFIER_PIN` sont deux actions distinctes au journal. Une
+première définition est de la configuration, un remplacement est un geste de
+sécurité ; les confondre rend illisible la relecture d'un incident.
+
+**Reste ouvert** : rien ne limite les tentatives sur `exigerPin`. Six chiffres
+font un million d'essais, que bcrypt à douze tours ramène à une centaine
+d'heures en séquentiel — gênant, pas impossible. Cela vaut pour **toutes** les
+actions protégées par le PIN.
+
 ### Vérifier l'isolation entre écoles
 
 `npx tsx scripts/verifier-isolation.ts` monte deux écoles jetables et tente des

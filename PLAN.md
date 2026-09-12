@@ -2975,6 +2975,49 @@ zéro élève. C'est l'autre moitié du problème, non traitée.
 
 ---
 
+### Correctif — Le PIN exige l'ancien PIN
+
+**Statut** : livré le 2026-09-12, branche `SOKO`, **non fusionné**.
+
+**Constat** : `definirPin` remplaçait le PIN sans jamais demander l'ancien. Le
+PIN étant le second facteur des actions irréversibles, il était remplaçable par
+la session même qu'il protège — une session détournée pouvait s'en donner un
+nouveau puis approuver des notes, activer une année, clôturer un cycle.
+
+**Livré** : l'ancien PIN est exigé dès qu'un hash existe, la règle étant tenue
+par le service et non par le formulaire. La première définition reste libre,
+sinon `/demarrage` deviendrait infranchissable. La vérification est déléguée à
+`exigerPin`. Le journal distingue `DEFINIR_PIN` de `MODIFIER_PIN`.
+
+**DoD** : matrice inchangée — seule la signature bouge, pas la garde. Lint,
+typecheck, 413 tests.
+
+**Reste ouvert** : aucune limitation de tentatives sur `exigerPin`, ce qui vaut
+pour toutes les actions protégées par le PIN et non pour ce seul changement.
+Et l'écran `/profil` n'a pas été ouvert.
+
+---
+
+### Organisation — Deux branches permanentes
+
+**Statut** : en vigueur depuis le 2026-09-12, sur décision de l'utilisateur.
+
+Plus de branche par fonctionnalité : SOKO travaille sur `SOKO`, VERNI sur
+`VERNI`, quoi qu'il y ait à faire. Une branche dédiée ne se crée que sur demande
+expresse. Personne n'écrit jamais sur `main`, qui ne reçoit que des fusions et
+seulement sur aval explicite.
+
+**Ce que ça règle** : quarante-quatre branches distantes s'étaient accumulées,
+dont trente-sept déjà fusionnées, chacune immobilisant son dernier aperçu Vercel
+— la rétention conserve le dernier déploiement de toute branche vivante, quelle
+que soit la politique configurée. Ramenées à sept.
+
+**Ce que ça coûte** : deux branches de longue vie divergent. Rapatrier `main`
+après chaque fusion, et surveiller `matrice.instantane.txt`, qui devient le point
+de collision le plus probable.
+
+---
+
 ### Correctif — Stockage des fonctions Vercel
 
 **Statut** : livré le 2026-09-12.
