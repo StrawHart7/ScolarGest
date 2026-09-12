@@ -83,6 +83,27 @@ export function PinForm({ pinConfigure }: { pinConfigure: boolean }) {
             </DialogHeader>
 
             <DialogBody>
+              {/* Le champ n'apparaît que s'il y a un PIN à confirmer. La règle
+                  elle-même est tenue par le service : masquer le champ
+                  n'empêcherait pas un appel forgé de l'omettre. */}
+              {pinConfigure && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="ancienPin">PIN actuel</Label>
+                  <Input
+                    id="ancienPin"
+                    name="ancienPin"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    pattern="\d{6}"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <p className="text-body-sm text-text-secondary">
+                    Pour confirmer que c&apos;est bien vous.
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="pin">Nouveau PIN</Label>
                 <Input

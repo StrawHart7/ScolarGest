@@ -4,7 +4,7 @@ import type { Role } from './tenant';
 import { getTenantContext } from './tenant';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
-import { hashPin } from './pin';
+import { hashPin, exigerPin } from './pin';
 import { urlApplication } from '@/lib/url-app';
 
 export interface Utilisateur {
@@ -304,23 +304,64 @@ export async function getMonProfil(): Promise<MonProfil> {
 }
 
 /**
- * Sets or replaces the current user's step-up PIN. Restricted to the roles that
- * actually need it (Secrétaire approves notes; Directeur overrides on TERMINEE
- * years) — see Doc 03.
+ * Définit ou remplace le PIN de confirmation de l'utilisateur courant.
+ * Réservé aux rôles qui en ont l'usage — la Secrétaire approuve les notes, le
+ * Directeur passe outre sur une année TERMINEE. Voir doc 03.
+ *
+ * ## L'ancien PIN est exigé dès qu'il en existe un
+ *
+ * Le PIN est le second facteur des actions irréversibles : approuver des notes,
+ * activer une année, clôturer un cycle. Or il était **remplaçable sans le
+ * connaître**, par la session même qu'il est censé protéger. Une session
+ * détournée — poste partagé, jeton encore valide après un départ — pouvait donc
+ * se donner un nouveau PIN et franchir tout ce que le PIN garde. Le facteur ne
+ * protégeait rien contre la seule menace qui le justifie.
+ *
+ * ## La règle vit dans le service, pas dans l'écran
+ *
+ * Masquer le champ « PIN actuel » dans le formulaire n'empêcherait pas un appel
+ * forgé de l'omettre — même raisonnement que pour `activerCycle` et les gardes
+ * de rôle : la liste informe, l'écriture décide. C'est donc la présence d'un
+ * hash en base qui déclenche l'exigence, et rien d'autre.
+ *
+ * ## La vérification est déléguée à `exigerPin`
+ *
+ * Réécrire la comparaison ici ferait exister deux chemins de vérification du
+ * même secret, qui divergeraient au premier ajustement — une limitation de
+ * tentatives, par exemple. `exigerPin` lit le hash de l'appelant et lève : le
+ * comportement reste identique à celui de toutes les autres actions sensibles.
  */
-export async function definirPin(pin: string): Promise<void> {
+export async function definirPin(pin: string, ancienPin?: string): Promise<void> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
-  const hash = await hashPin(pin);
-
   const supabase = createClient();
+
+  const { data: compte, error: erreurCompte } = await supabase
+    .from('utilisateur')
+    .select('"pinApprobationHash"')
+    .eq('id', ctx.userId)
+    .single();
+  if (erreurCompte) throw erreurCompte;
+
+  const dejaConfigure = Boolean(compte.pinApprobationHash);
+  if (dejaConfigure) {
+    if (!ancienPin) {
+      throw new Error('Saisissez votre PIN actuel pour en définir un nouveau.');
+    }
+    await exigerPin(ancienPin, 'DIRECTEUR', 'SECRETAIRE');
+  }
+
+  const hash = await hashPin(pin);
   const { error } = await supabase
     .from('utilisateur')
     .update({ pinApprobationHash: hash })
     .eq('id', ctx.userId);
   if (error) throw error;
 
+  // Deux actions distinctes au journal : une première définition est un geste
+  // de configuration, un remplacement est un geste de sécurité. Les confondre
+  // rendrait illisible la relecture d'un incident.
   await auditLog({
-    action: 'DEFINIR_PIN',
+    action: dejaConfigure ? 'MODIFIER_PIN' : 'DEFINIR_PIN',
     module: 'identity',
     objetType: 'Utilisateur',
     objetId: ctx.userId,

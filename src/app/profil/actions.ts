@@ -6,6 +6,9 @@ import { definirPin } from '@/services/utilisateur';
 
 const schema = z
   .object({
+    // Facultatif ici, exigé par le service dès qu'un PIN existe : le formulaire
+    // ne peut pas décider seul, un appel forgé omettrait le champ.
+    ancienPin: z.string().optional(),
     pin: z.string().regex(/^\d{6}$/, 'Le PIN doit contenir exactement 6 chiffres'),
     confirmation: z.string(),
   })
@@ -18,7 +21,9 @@ export async function definirPinAction(
   _prevState: string | null,
   formData: FormData,
 ): Promise<string> {
+  const ancien = formData.get('ancienPin');
   const parsed = schema.safeParse({
+    ancienPin: typeof ancien === 'string' && ancien.length > 0 ? ancien : undefined,
     pin: formData.get('pin'),
     confirmation: formData.get('confirmation'),
   });
@@ -28,7 +33,7 @@ export async function definirPinAction(
   }
 
   try {
-    await definirPin(parsed.data.pin);
+    await definirPin(parsed.data.pin, parsed.data.ancienPin);
   } catch (e) {
     return e instanceof Error ? e.message : 'Erreur lors de la mise à jour du PIN';
   }
