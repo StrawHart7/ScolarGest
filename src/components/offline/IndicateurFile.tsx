@@ -29,6 +29,26 @@ export function IndicateurFile() {
   const pluriel = sync.enAttente > 1;
   const epuisees = sync.operations.filter((o) => o.tentatives >= TENTATIVES_AVANT_ABANDON);
 
+  /**
+   * Ce que le bandeau promet doit etre ce qui va se passer.
+   *
+   * Il disait « Envoi en cours des que possible » des que le navigateur se
+   * croyait en ligne — y compris pour une ecriture que le serveur avait refusee
+   * trois fois pour une raison qui ne changera pas (« Montant superieur au
+   * solde restant »). Constate en production le 2026-09-13 : la phrase etait
+   * fausse, et elle a fait attendre puis recliquer.
+   *
+   * Quatre etats, quatre phrases. L'ordre compte : ce qui se passe maintenant
+   * prime sur ce qui est promis.
+   */
+  const phrase = sync.enCours
+    ? ' Envoi en cours.'
+    : !enLigne
+      ? ` Elle${pluriel ? 's partiront' : ' partira'} au retour de la connexion.`
+      : epuisees.length === sync.enAttente
+        ? ` Le serveur ${pluriel ? 'les' : "l'"}a refusee${pluriel ? 's' : ''} : voir le detail.`
+        : ' Nouvelle tentative automatique dans un instant.';
+
   return (
     <div className="border-b border-surface-border bg-warning-container px-gutter py-2.5 md:px-container-pad">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -38,9 +58,7 @@ export function IndicateurFile() {
             {sync.enAttente} ecriture{pluriel ? 's' : ''}
           </strong>{' '}
           n&apos;{pluriel ? 'ont' : 'a'} pas encore ete envoyee{pluriel ? 's' : ''} au serveur.
-          {enLigne
-            ? ' Envoi en cours des que possible.'
-            : ' Elles partiront au retour de la connexion.'}
+          {phrase}
         </p>
 
         <div className="ms-auto flex items-center gap-2">

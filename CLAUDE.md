@@ -1883,6 +1883,51 @@ concernée » est le cas normal d'une correction à effet futur, mais c'est auss
 ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
 deux indistinguables.
 
+### Une file qui ne part pas tout de suite fait recliquer, et l'argent double
+
+Constaté en production le 2026-09-13 : **57 000 F encaissés deux fois**, à
+2,44 secondes d'intervalle, chacun avec sa propre clé d'idempotence — donc deux
+opérations parfaitement légitimes du point de vue du serveur.
+
+**La clé d'idempotence n'était pas en cause, et c'est le piège.** Le premier
+réflexe est d'accuser le mécanisme de rejeu. Il a fonctionné exactement comme
+écrit. Ce qui était cassé est en amont : **rien ne disait à l'utilisatrice que
+son écriture était passée.**
+
+`mettreEnFile` déposait et rafraîchissait l'affichage, sans jamais **tenter
+l'envoi**. Celui-ci n'avait lieu qu'à trois occasions : une **transition**
+hors-ligne → en-ligne, le filet de rattrapage toutes les cinq minutes, ou un
+clic manuel. Or l'écran met en file quand `navigator.onLine` dit faux — et il
+ment. Réseau réellement disponible, aucune transition, donc **rien ne partait**,
+pendant que le bandeau affichait « Envoi en cours dès que possible ».
+
+Jusqu'à cinq minutes d'une phrase fausse. La Comptable en a conclu que son
+versement n'était pas parti, et l'a resaisi.
+
+Trois règles en sortent :
+
+- **Une écriture mise en file part immédiatement**, sans attendre un événement.
+  Une tentative qui échoue coûte cinq secondes de recul ; une tentative qu'on ne
+  fait pas coûte un doublon. Et seule la tentative dit la vérité sur l'état du
+  réseau, jamais `navigator.onLine`.
+- **Un formulaire qui a déposé une écriture se verrouille.** Envoyée ou en
+  attente, elle **existe**. Resoumettre n'est jamais un rattrapage, c'est
+  toujours une seconde écriture. Le bouton se ferme, et le message dit lequel
+  des deux cas s'est produit — « enregistré » et « en attente » ne se
+  confondent pas.
+- **Un bandeau ne promet que ce qui va se passer.** « Envoi en cours dès que
+  possible » s'affichait aussi pour une écriture refusée trois fois pour une
+  raison qui ne changera pas (« Montant supérieur au solde restant »). Quatre
+  états, quatre phrases : envoi en cours, en attente de réseau, refusée par le
+  serveur, prochaine tentative.
+
+**Et la leçon de méthode.** Le diagnostic d'origine — le mien — était « la clé
+protège une soumission et non une intention ». C'est vrai, et ça n'aurait pas
+réparé le défaut : l'utilisateur aurait continué à voir une écriture en attente
+qui ne partait pas. **Chercher pourquoi quelqu'un a cliqué deux fois vaut mieux
+que rendre le second clic inoffensif.** C'est l'utilisateur qui a redressé le
+diagnostic.
+
 ### Un canal de signalement qui exige le réseau perd exactement ce qui compte
 
 Constaté en production le 2026-09-13, deux heures après la mise en ligne du

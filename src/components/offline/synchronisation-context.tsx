@@ -34,11 +34,26 @@ import { memoriserIdentite } from '@/lib/offline/identite-locale';
  * conversion explicite en exception.
  */
 
+export interface ResultatMiseEnFile {
+  cle: string;
+  /** `true` si l'ecriture est **partie pour de vrai** avant de rendre la main. */
+  envoyee: boolean;
+}
+
 interface CtxSynchronisation {
   enAttente: number;
   operations: OperationEnFile[];
-  /** Depose une ecriture dans la file et rend sa cle d'idempotence. */
-  mettreEnFile: (demande: Omit<DemandeMiseEnFile, 'userId' | 'etablissementId'>) => Promise<string>;
+  /**
+   * Depose une ecriture dans la file, **tente aussitot de l'envoyer**, et dit
+   * si elle est passee.
+   *
+   * Le retour a change le 2026-09-13, apres un versement encaisse deux fois en
+   * production. Voir `mettreEnFile` plus bas : rendre la seule cle laissait
+   * l'appelant annoncer « mis en attente » pour une ecriture deja enregistree.
+   */
+  mettreEnFile: (
+    demande: Omit<DemandeMiseEnFile, 'userId' | 'etablissementId'>,
+  ) => Promise<ResultatMiseEnFile>;
   /** Tente un envoi immediat. Sans effet s'il n'y a rien a envoyer. */
   synchroniser: () => Promise<void>;
   enCours: boolean;
@@ -122,13 +137,55 @@ export function SynchronisationProvider({
     }
   }, [userId, rafraichir]);
 
+  /**
+   * Depose puis **tente immediatement** l'envoi.
+   *
+   * ## Le defaut que cette tentative repare
+   *
+   * Cette fonction se contentait de deposer et de rafraichir l'affichage.
+   * L'envoi n'avait ensuite lieu qu'a trois occasions : une **transition**
+   * hors-ligne vers en-ligne, le filet de rattrapage toutes les cinq minutes,
+   * ou un clic sur « Envoyer maintenant ».
+   *
+   * Or l'ecran met en file quand `navigator.onLine` dit faux — et il ment. Si
+   * le reseau etait en realite disponible, aucune transition ne se produisait,
+   * donc **rien ne partait**, pendant que le bandeau affichait « Envoi en cours
+   * des que possible ». Jusqu'a cinq minutes d'une phrase fausse.
+   *
+   * C'est ce qui a coute un encaissement double le 2026-09-13 : la Comptable a
+   * vu son ecriture toujours en attente, en a conclu qu'elle n'etait pas
+   * passee, et a resoumis. Deux versements de 57 000 F a 2,44 secondes
+   * d'intervalle, chacun avec sa propre cle d'idempotence — donc deux
+   * operations legitimes du point de vue du serveur.
+   *
+   * Une tentative immediate coute peu quand elle echoue : le premier recul est
+   * de cinq secondes (`RECULS_MS`). Elle rapporte beaucoup quand elle
+   * reussit — le bandeau n'apparait jamais, et il n'y a rien qui invite a
+   * recliquer.
+   *
+   * **Limite connue** : si un vidage est deja en cours, `synchroniser` rend la
+   * main sans rien faire (le verrou), et `viderFile` a fige sa liste avant
+   * notre depot. L'ecriture attend alors le declencheur suivant, et
+   * `envoyee` vaut `false` — ce qui est la verite, donc l'appelant dit la
+   * bonne chose. La fenetre est etroite et honnetement annoncee plutot que
+   * masquee par une attente active.
+   */
   const mettreEnFile = React.useCallback(
     async (demande: Omit<DemandeMiseEnFile, 'userId' | 'etablissementId'>) => {
       const cle = await enfiler({ ...demande, userId, etablissementId });
-      await rafraichir();
-      return cle;
+
+      // Pas de `rafraichir()` avant la tentative : afficher le bandeau pour le
+      // retirer une seconde plus tard se lit comme un defaut d'affichage, pas
+      // comme un envoi reussi. `synchroniser` rafraichit a la fin.
+      await synchroniser();
+
+      // On relit la file plutot que de se fier au bilan de `viderFile` : seule
+      // l'absence de **cette** cle prouve que **cette** ecriture est partie.
+      // Un bilan agrege dirait « une envoyee » alors que c'en serait une autre.
+      const restantes = await listerFile(userId);
+      return { cle, envoyee: !restantes.some((o) => o.cle === cle) };
     },
-    [userId, etablissementId, rafraichir],
+    [userId, etablissementId, synchroniser],
   );
 
   React.useEffect(() => {

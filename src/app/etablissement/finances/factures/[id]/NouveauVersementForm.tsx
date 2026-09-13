@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,14 +20,17 @@ const MODES = [
   { value: 'AUTRE', label: 'Autre' },
 ];
 
-function SubmitButton({ horsLigne }: { horsLigne: boolean }) {
+function SubmitButton({ horsLigne, fige }: { horsLigne: boolean; fige: boolean }) {
   const { pending } = useFormStatus();
   // Le libelle dit ce qui va se passer, pas ce que le systeme fait : hors
   // ligne, l'argent n'est pas encaisse tant que rien n'est parti au serveur.
   // Ecrire « Valider l'encaissement » ferait croire l'operation terminee.
   const libelle = horsLigne ? "Mettre l'encaissement en attente" : "Valider l'encaissement";
   return (
-    <Button type="submit" disabled={pending}>
+    // `fige` : l'ecriture a ete deposee, donc elle existe. Un second clic ne
+    // rattraperait rien — il encaisserait une seconde fois. C'est exactement
+    // ce qui s'est produit le 2026-09-13.
+    <Button type="submit" disabled={pending || fige}>
       {pending ? 'Enregistrement...' : libelle}
     </Button>
   );
@@ -39,9 +43,12 @@ export function NouveauVersementForm({
   factureId: string;
   solde: number;
 }) {
+  const router = useRouter();
   const [error, formAction] = useFormState(enregistrerVersementAction, null);
   const [mode, setMode] = useState('ESPECES');
-  const [misEnFile, setMisEnFile] = useState(false);
+  // `null` tant que rien n'a ete depose. Ensuite l'ecriture existe, et le
+  // formulaire ne doit plus pouvoir en produire une seconde.
+  const [misEnFile, setMisEnFile] = useState<'envoye' | 'enAttente' | null>(null);
   const referenceRequise = mode !== 'ESPECES';
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
@@ -57,6 +64,20 @@ export function NouveauVersementForm({
    * saisi dans le meme formulaire serait pris pour un rejeu du precedent :
    * l'argent serait avale en silence. Le double-clic en ligne reste donc
    * couvert comme avant, pas davantage — c'est un chantier a part.
+   *
+   * ## Ce qui a change le 2026-09-13, apres un encaissement double
+   *
+   * `mettreEnFile` tente desormais l'envoi tout de suite et dit s'il est passe.
+   * Deux consequences ici :
+   *
+   * - **Le message ne ment plus.** Annoncer « mis en attente » pour une
+   *   ecriture deja enregistree etait la cause directe du doublon : la
+   *   Comptable a conclu que rien n'etait parti et a resoumis.
+   * - **Le formulaire se verrouille.** Une fois l'ecriture deposee — envoyee ou
+   *   non — elle **existe**. Resoumettre n'est jamais un rattrapage, c'est
+   *   toujours un second versement. Le bouton se ferme donc, et la page se
+   *   recharge quand l'encaissement est confirme, pour montrer le nouveau
+   *   solde plutot que de demander de le croire.
    */
   async function soumettre(donnees: FormData) {
     if (!horsLigne || !sync) {
@@ -64,7 +85,7 @@ export function NouveauVersementForm({
       return;
     }
     const montant = Number(donnees.get('montant') ?? 0);
-    await sync.mettreEnFile({
+    const { envoyee } = await sync.mettreEnFile({
       type: 'PAIEMENT',
       charge: {
         factureId: String(donnees.get('factureId') ?? ''),
@@ -75,7 +96,11 @@ export function NouveauVersementForm({
       },
       intitule: `Versement de ${montant.toLocaleString('fr-FR')} FCFA`,
     });
-    setMisEnFile(true);
+    setMisEnFile(envoyee ? 'envoye' : 'enAttente');
+    // Le serveur a bien enregistre : on montre le solde a jour. Sans cela
+    // l'ecran continue d'afficher l'ancien, ce qui est exactement le doute
+    // qui fait recliquer.
+    if (envoyee) router.refresh();
   }
 
   return (
@@ -145,16 +170,23 @@ export function NouveauVersementForm({
         </p>
       )}
 
-      {misEnFile && (
+      {misEnFile === 'envoye' && (
         <p className="rounded-xl bg-success-container px-4 py-3 text-body-sm text-text-primary">
-          Encaissement mis en attente. Il partira automatiquement des que la connexion
-          reviendra. Ne vous deconnectez pas avant : les ecritures en attente seraient
-          perdues.
+          Encaissement enregistre. Le solde ci-contre est a jour.
+        </p>
+      )}
+
+      {misEnFile === 'enAttente' && (
+        <p className="rounded-xl bg-warning-container px-4 py-3 text-body-sm text-text-primary">
+          Encaissement mis en attente : le serveur n&apos;a pas repondu. Il partira tout seul des
+          que la connexion reviendra, et le bandeau en haut de l&apos;ecran le suit. Ne le
+          resaisissez pas — il serait encaisse deux fois — et ne vous deconnectez pas avant :
+          les ecritures en attente seraient perdues.
         </p>
       )}
 
       <div className="flex items-center gap-3">
-        <SubmitButton horsLigne={horsLigne} />
+        <SubmitButton horsLigne={horsLigne} fige={misEnFile !== null} />
         {error && <p className="text-body-sm text-error">{error}</p>}
       </div>
     </form>
