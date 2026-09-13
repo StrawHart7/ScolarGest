@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import { emettreEvenement } from './telemetrie';
 
 export type ModePaiement = 'ESPECES' | 'CHEQUE' | 'VIREMENT' | 'MOBILE_MONEY' | 'AUTRE';
 export type StatutPaiement = 'PAYE' | 'PARTIEL' | 'IMPAYE' | 'ANNULE';
@@ -270,6 +271,15 @@ export async function enregistrerPaiement(
       soldeApres: resultat.solde,
       statutFacture: resultat.statut,
     },
+  });
+
+  // Télémétrie : **aucun montant**. Le statut de la facture après coup suffit
+  // à mesurer l'usage réel de la caisse, et un montant ferait de ce flux une
+  // copie partielle de la comptabilité de l'école — exactement ce que la
+  // console fondateur s'interdit de voir.
+  await emettreEvenement('paiement.enregistre', {
+    canal: input.modePaiement,
+    statut: resultat.statut,
   });
 
   return resultat;

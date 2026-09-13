@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import { emettreEvenement } from './telemetrie';
 
 export interface ResultatProjection {
   /** Lignes de programme dotées du barème national. */
@@ -176,6 +177,14 @@ export async function projeterReferentielNational(
       matieresCreees: resultatProgramme.matieresCreees,
       lignesProgrammeCreees: resultatProgramme.lignesCreees,
     },
+  });
+
+  // Le signal qui manque le plus à la Régie : combien d'écoles ont basculé sur
+  // le référentiel national, et combien de lignes leur restent en local.
+  await emettreEvenement('referentiel.projete', {
+    nombre: voulues.length,
+    taille: lignes.length - couvertes.size,
+    version: String(anneeReference),
   });
 
   return {
