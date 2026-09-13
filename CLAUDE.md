@@ -1690,6 +1690,258 @@ FedaPay**.
 `vercel_auth_enabled` renvoie un 401 avant d'atteindre le code. Il faut une
 exception de chemin sur `/api/fedapay/webhook`, ou tester en production.
 
+### La Régie : ce que le produit lui doit, et ce qu'il ne lui doit pas
+
+Migrations `20260913011738` à `20260913033201`, appliquées le 2026-09-13. La
+console fondateur vit dans un **dépôt séparé** (`ScolarGest-Regie`, avec son
+propre `CLAUDE.md`) et partage cette base. Le contrat entre les deux n'est pas
+du code, c'est le schéma.
+
+Elle est **en ligne** depuis le 2026-09-13 sur `regie.scolargest.com`, derrière
+l'authentification Vercel. Deux conséquences pour ce dépôt-ci : `signaler_erreur`
+et `evenement_global_publie` attendent leur consommateur côté produit (voir
+`PLAN.md`), et toute migration future doit tenir compte des droits du rôle
+`regie` décrits ci-dessous.
+
+**Le principe, avant tout le reste** : la Régie n'est jamais sur le chemin
+critique d'une école. Aucune route du produit ne l'appelle ; ce qu'elle publie
+— référentiel, annonces, drapeaux — vit dans `public` et se lit sans elle.
+`controle` ne porte aucune clé étrangère vers `public`, délibérément : la
+télémétrie ne doit rien contraindre dans le produit.
+
+**La frontière est une requête, pas une consigne.** Le rôle `regie` n'a aucun
+droit sur `eleve`, `note`, `facture_eleve`, `paiement`, `inscription`,
+`document`, `responsable`, `utilisateur`, `etablissement` ni `support_demande`.
+Ce qu'il peut toucher est déclaré **en donnée** dans
+`controle.frontiere_autorisee`, et `public.regie_frontiere_debordements()` doit
+rendre zéro ligne en permanence — `scripts/verifier-frontiere-regie.ts` le
+rejoue. Le contrôle porte **dans les deux sens** : il échoue aussi si la Régie
+ne peut pas lire ce qu'on lui déclare, sans quoi un rôle inerte passerait tous
+les tests de non-accès.
+
+Trois modes, et le second est le plus important : `LECTURE`, `ECRITURE`
+(SELECT/INSERT/UPDATE — **jamais DELETE**, parce qu'une valeur nationale
+erronée se ferme par `valableJusqua` au lieu de s'effacer), et
+`ECRITURE_SUPPRESSION`, réservé aux tables de réglage courant.
+
+**`PUBLIC` n'a plus `EXECUTE` sur les fonctions de `public`**, ni sur les
+existantes ni par défaut. C'est le point qui rendait tout le reste décoratif :
+tout rôle est membre de `PUBLIC`, donc `regie` pouvait appeler les neuf
+fonctions `SECURITY DEFINER` du produit, qui s'exécutent avec les droits de
+leur propriétaire. Conséquence pour toute migration future : les
+`default privileges` de Supabase continuent d'accorder `anon`,
+`authenticated` et `service_role` nominativement — rien à faire de plus — mais
+ne jamais compter sur `PUBLIC`.
+
+**La RLS s'applique aussi à `regie`.** Un `grant insert, update` sur une table
+dont la seule policy est une lecture ne produit rien, **et le refus est
+silencieux** : l'écran aurait affiché « enregistré » sur un référentiel
+inchangé. D'où les policies `*_regie` et le contrôle (g), qui échoue si une
+table en écriture n'en a pas.
+
+**Trois fonctions nouvelles dans `public`**, toutes `SECURITY DEFINER` et
+toutes lisant l'établissement du JWT plutôt que de le recevoir :
+
+- `emettre_evenement(type, meta)` — `meta` ne transporte **jamais** de contenu.
+  Vocabulaire fermé, valeurs scalaires, chaînes bornées à 64 caractères, tenu
+  par `controle.meta_sans_contenu` en contrainte `CHECK`. Le miroir TypeScript
+  est `src/lib/telemetrie.ts`, et un test lit la migration réelle pour que les
+  deux ne divergent pas.
+- `signaler_erreur(empreinte, nom, route, code)` — **ni message ni trace** :
+  un message d'erreur cite volontiers la valeur fautive, et les erreurs
+  Supabase le font systématiquement dans `details` et `hint`. Sentry a le
+  détail, la Régie a le dénombrement. Débit borné en base, pas côté client —
+  c'est le client qui déraille quand une page boucle.
+- `drapeau_actif(code)` — ordre : arrêt, puis décision par école, puis
+  pourcentage déterministe sur `(code, école)`, puis défaut. Un drapeau inconnu
+  rend `false` sans lever, ce qui est l'état entre le déploiement du code et la
+  création du drapeau.
+
+**`src/services/telemetrie.ts` ne lève jamais**, par conception et non par
+tolérance : perdre un événement ne coûte rien, perdre un encaissement coûte une
+journée de caisse. C'est la seule fonction du dépôt dans ce cas avec
+`journaliserConnexion`.
+
+**Les agrégats sortent par des vues matérialisées**, pas par un droit de
+lecture. `controle.mv_sante_ecole` et `mv_revenu` sont possédées par
+`postgres`, donc calculées hors RLS — vérifié que `relforcerowsecurity` vaut
+`false` sur les quatorze tables lues, sans quoi elles auraient été
+**silencieusement vides**. Rafraîchies par `controle.rafraichir_agregats()`,
+déclenchée par l'affichage faute de `pg_cron` sur ce projet. **Pas de
+`concurrently`** : la forme concurrente ne s'exécute pas dans un bloc
+transactionnel, donc pas depuis une fonction.
+
+### Un contrôle de vraisemblance porte sur le contenu, pas sur le cardinal
+
+`mv_sante_ecole` retenait l'année scolaire de `dateDebut` la plus récente. Une
+école prépare l'année suivante avant de clore la courante : la plus récente est
+donc régulièrement une année **à venir**, vide par nature. « Les Victorieux »
+s'affichait à 0 classe et 0 élève avec 286 inscrits en base.
+
+Le contrôle posé dans la migration vérifiait que la vue comptait autant de
+lignes que `etablissement`. Il a passé : il y avait bien cinq lignes, toutes
+fausses. Le défaut ne produit ni erreur ni ligne manquante — il produit des
+**zéros crédibles**, et un zéro crédible se croit.
+
+Deux règles :
+
+- **« La plus récente » n'est pas « la courante ».** Tout agrégat se cale sur
+  `statut = 'ACTIVE'`, avec un départage total (`id` en dernier critère) sans
+  quoi `distinct on` change de réponse d'un rafraîchissement à l'autre.
+- **Un contrôle de vraisemblance compare des valeurs**, jamais des cardinaux.
+  Le bon est ici « existe-t-il une école annoncée à zéro inscription qui en a
+  dans son année ACTIVE », formulé sans nommer personne.
+
+### Un contrôle positif doit porter sur le même cas que ce qu'on teste
+
+Le 2026-09-13, j'ai affirmé qu'un sous-domaine fraîchement créé n'existait pas,
+en m'appuyant sur `nslookup` interrogé **directement contre le serveur qui fait
+autorité**, donc sans cache possible. Et pour écarter le doute sur la méthode,
+j'avais vérifié que le même serveur répondait correctement pour
+`scolargest.com` et `www`.
+
+Le sous-domaine existait. Le réseau de l'environnement intercepte le DNS en UDP
+et rendait un `NXDOMAIN` fabriqué ; la résolution par DNS-over-HTTPS le
+confirmait en une requête.
+
+**Le contrôle positif ne valait rien** : les deux noms qui répondaient étaient
+anciens, donc déjà connus du chemin qui mentait. Vérifier qu'un ancien nom
+résout ne dit rien sur un nom créé il y a dix minutes.
+
+La règle : un contrôle positif doit porter sur un cas **de la même nature** que
+celui qu'on teste — même fraîcheur, même chemin, même type d'objet. Sinon il ne
+valide pas la méthode, il valide le cache.
+
+Et le corollaire, plus général : quand une mesure contredit une observation
+directe de l'utilisateur, c'est la mesure qu'on soupçonne d'abord.
+
+### `PUBLIC` garde `EXECUTE` dans **tous** les schémas, pas seulement `public`
+
+M0 avait fermé le défaut côté `public` : toute fonction nouvelle accorde
+`EXECUTE` à `PUBLIC`, et tout rôle est membre de `PUBLIC`, donc `regie` pouvait
+appeler les 28 fonctions du produit. Le même défaut vivait dans `controle`, et
+personne ne l'avait vu — parce que la branche (d) du contrôle de frontière ne
+regardait que `public`.
+
+**Un contrôle ne protège que ce qu'il regarde.** Les quatre fonctions de
+`controle` étaient toutes appelables par la Régie ; aucune n'était dangereuse,
+mais rien n'aurait signalé la cinquième. La réponse n'est pas de révoquer — les
+quatre portaient déjà une autorisation nominative, la révocation de `PUBLIC`
+n'aurait donc rien changé — mais de déclarer : `controle.fonction_autorisee`
+liste ce qui est permis, et la branche (h) signale tout le reste.
+
+C'est le même geste que `controle.frontiere_autorisee` pour les tables : **ce
+qui est autorisé est une donnée, pas un commentaire**, et le contrôle compare.
+
+### Une correction du référentiel national atteint les écoles par conséquence, pas par appel
+
+Migration `20260913112647`. La Régie corrige une valeur du barème national ; la
+correction doit rejoindre les `coefficient_matiere` des écoles. Le réflexe est
+d'exposer une fonction et de la laisser l'appeler. Trois raisons de ne pas le
+faire, et la troisième est structurelle :
+
+- la Régie n'a **aucun** droit sur `coefficient_matiere`, et ne doit pas en
+  gagner — ce sont les coefficients d'une école, donc du contenu ;
+- la branche (d) du contrôle de frontière refuse qu'une fonction de `public`
+  soit exécutable par elle : lui ouvrir une exception reviendrait à percer le
+  contrôle pour y faire passer ce contre quoi il protège ;
+- **la propagation n'est pas un geste de la Régie, c'est une conséquence de
+  l'écriture qu'elle a le droit de faire.** Écrite comme déclencheur, elle vaut
+  pour n'importe quel auteur — la Régie, une migration, un script — et elle
+  vit dans la même transaction que la correction : les deux aboutissent, ou
+  aucune des deux.
+
+Deux refus durs, qui sont la vraie limite : **une année clôturée ne bouge
+jamais** (ses bulletins ont été remis aux familles), et **une ligne `LOCAL` non
+plus** — projeter est une décision de l'école, reprojeter est une correction qui
+suit son lignage. Confondre les deux ferait qu'une correction de barème
+adopterait, au passage, des cellules que l'école avait gardées.
+
+**Le déclencheur part deux fois** sur une correction, puisque `corrigerCoefficient`
+ferme puis ouvre. Au premier départ la nouvelle ligne n'existe pas : la
+reprojection ne trouve rien et n'écrit rien — surtout pas un effacement.
+Conséquence à garder : **fermer une ligne sans en ouvrir une autre ne réécrit
+rien**, et les écoles gardent la dernière valeur connue. Un coefficient absent
+vaudrait zéro dans le moteur et retirerait la matière du bulletin.
+
+### Une promesse écrite dans l'interface est du code
+
+« Les années déjà projetées par les écoles ne bougent pas » était vraie, et
+écrite à **trois** endroits : le message de succès de l'action de correction, le
+texte d'aide du formulaire de la Régie, et la prose de
+`src/services/referentiel-national.ts`. La reprojection l'a rendue fausse le
+même jour, aux trois endroits.
+
+Une phrase qui décrit un comportement se périme exactement comme une ligne de
+code, sauf que rien ne la compile. Quand un mécanisme change, **chercher ce que
+le produit en disait** fait partie du changement — `grep` sur la promesse, pas
+seulement sur la fonction. Une phrase périmée est pire que pas de phrase : elle
+rassure sur exactement ce qui vient de changer.
+
+Corollaire tenu ici : le cas zéro **se dit**. « Aucune école n'était
+concernée » est le cas normal d'une correction à effet futur, mais c'est aussi
+ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
+deux indistinguables.
+
+### Ce qui sort du produit se décide par liste blanche
+
+`normaliserRoute` (`src/lib/telemetrie.ts`) réduit un chemin d'URL avant qu'il
+ne parte dans le plan de contrôle de la Régie. Le premier jet masquait ce qui
+**ressemblait** à un identifiant — un UUID, une suite de chiffres. C'est le
+mauvais sens : un segment inattendu passait alors tel quel, et
+`/etablissement/eleves/Jean%20Dupont` aurait fait sortir un nom d'élève sans
+qu'aucune règle écrite ne soit enfreinte.
+
+La règle est donc inversée : un segment est **gardé** s'il ressemble à un nom
+d'écran (`^[a-z][a-z-]{0,39}$`), et masqué sinon. Le prix est une route moins
+précise le jour où une convention de nommage change ; le gain est qu'aucune
+donnée d'école ne peut sortir par ce chemin, quelle que soit l'URL demandée.
+
+**Une liste blanche calibrée sur l'existant doit être tenue par un test qui lit
+l'existant.** Celui-ci reconstruit les 54 routes statiques depuis l'arborescence
+de `src/app` et vérifie qu'aucune n'est déformée — sans quoi un futur
+`/rapports/2026` partirait à la Régie sous `/rapports/:id` sans que rien ne le
+signale. Il porte aussi un **contrôle positif** : si le parcours ne trouve
+aucune route, le test passerait sans rien éprouver.
+
+La normalisation sert une seconde fin, aussi importante : `controle.erreur`
+groupe par empreinte, et l'empreinte porte la route. Sans elle, un seul défaut
+sur la fiche élève produirait **une ligne par élève consulté**.
+
+Même famille que `cheminSansParametres` (`src/lib/support-incident.ts`), qui
+retire la query string : sur une liste, `?q=` porte la recherche libre, donc le
+plus souvent un nom d'élève.
+
+### Un repère nommé d'après son premier usage devient faux au second
+
+`PanneauConseil` cherchait `[data-bandeau="abonnement"]` pour savoir s'il devait
+se taire sur téléphone. Le jour où un second bandeau est apparu dans le layout
+— les annonces de la Régie, le 2026-09-13 — la bannière s'est remise à le
+recouvrir, **en silence** : la condition était toujours vraie du point de vue du
+code, et fausse du point de vue de l'écran.
+
+Le sélecteur est donc `[data-bandeau]`, sans valeur. Ce que la garde veut dire
+est « il y a déjà quelque chose à cet endroit », pas « il y a le bandeau
+d'abonnement ». Tout nouveau bandeau du layout porte l'attribut ; il n'y a rien
+d'autre à faire.
+
+### Le journal des migrations est partagé, donc une branche les porte toutes
+
+`npx supabase db push` a refusé de partir sur `SOKO` : la base portait
+`20260912165732_support_reponse_piece_jointe`, appliquée par une autre session,
+dont le fichier vivait sur `feat/soko-piece-jointe-reponse`. La base étant
+partagée, **toute branche qui veut pousser doit porter tous les fichiers déjà
+appliqués**, y compris ceux d'une fonctionnalité qui n'est pas la sienne. La
+parade est de reprendre le fichier seul (`git checkout <branche> -- <chemin>`),
+sans le code qui l'accompagne.
+
+**Ne pas suivre la suggestion du CLI**, qui propose
+`supabase migration repair --status reverted <version>`. Les colonnes existent
+réellement : les marquer « revertées » ferait mentir le journal sur l'état du
+schéma, et le prochain `db push` tenterait de les recréer. Le CLI ne peut pas
+distinguer « fichier absent » de « migration à annuler », et il suggère par
+défaut la plus destructrice des deux.
+
 ## Organisation : deux agents nommés
 
 Le travail se répartit entre **deux sessions parallèles**, chacune avec un nom

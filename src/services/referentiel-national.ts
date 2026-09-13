@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import { emettreEvenement } from './telemetrie';
 
 export interface ResultatProjection {
   /** Lignes de programme dotées du barème national. */
@@ -36,10 +37,21 @@ function anneeDeReference(dateDebut: string): number {
  *
  * Les lecteurs — `resultats-classe`, `rapport`, le bulletin — continuent de
  * lire `coefficient_matiere` avec exactement la même requête qu'avant. Aucun
- * d'eux n'est modifié, donc **aucun bulletin ne peut changer de valeur par
- * effet de bord**, et l'historisation est automatique : une année close n'est
- * jamais reprojetée. Voir la migration `20260912160000` pour l'alternative
- * écartée.
+ * d'eux n'est modifié, et l'historisation est automatique : une année close
+ * n'est jamais reprojetée. Voir la migration `20260912160000` pour
+ * l'alternative écartée.
+ *
+ * **Cette prose a été corrigée le 2026-09-13.** Elle affirmait qu'« aucun
+ * bulletin ne peut changer de valeur par effet de bord ». Ce n'est plus vrai :
+ * depuis H6, une correction du barème national est **reprojetée** dans les
+ * années non clôturées par le déclencheur `trg_reprojeter_bareme` (migration
+ * `20260913112647`). C'est le but — une école rattachée au référentiel doit
+ * suivre ses corrections — mais la phrase devait être reformulée plutôt que
+ * laissée en place : c'est exactement celle qu'on relira le jour où quelqu'un
+ * cherchera pourquoi un coefficient a bougé tout seul.
+ *
+ * Ce qui reste garanti, et qui est la vraie limite : **une année clôturée ne
+ * bouge jamais**, et une ligne `LOCAL` non plus.
  *
  * ## Pourquoi la clé service-role
  *
@@ -176,6 +188,14 @@ export async function projeterReferentielNational(
       matieresCreees: resultatProgramme.matieresCreees,
       lignesProgrammeCreees: resultatProgramme.lignesCreees,
     },
+  });
+
+  // Le signal qui manque le plus à la Régie : combien d'écoles ont basculé sur
+  // le référentiel national, et combien de lignes leur restent en local.
+  await emettreEvenement('referentiel.projete', {
+    nombre: voulues.length,
+    taille: lignes.length - couvertes.size,
+    version: String(anneeReference),
   });
 
   return {

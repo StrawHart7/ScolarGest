@@ -115,10 +115,13 @@ export function PanneauConseil({ role }: { role?: string }) {
     if (pathname.startsWith('/demarrage')) return;
     if (demande.current) return;
 
-    // La bannière mobile est en `fixed` sous l'en-tête et recouvrirait le
-    // bandeau d'abonnement, qui annonce une perte d'écriture imminente. Elle
-    // lui cède donc le pas — mais la garde doit se poser **ici**, avant la
-    // demande, et non au rendu.
+    // La bannière mobile est en `fixed` sous l'en-tête et recouvrirait les
+    // bandeaux du layout. Elle leur cède donc le pas — mais la garde doit se
+    // poser **ici**, avant la demande, et non au rendu.
+    //
+    // Le repère est `[data-bandeau]`, sans valeur : il en existe deux depuis
+    // le 2026-09-13, l'abonnement et les annonces de la Régie. Nommer le
+    // premier laissait la bannière recouvrir le second en silence.
     //
     // Posée au rendu, elle produisait exactement la vue fantôme que ce
     // composant cherche à éviter : `demanderConseil` marque `vuLe` côté
@@ -134,7 +137,7 @@ export function PanneauConseil({ role }: { role?: string }) {
     // pas, la carte de bureau n'a jamais été masquée. Sans elle, un poste de
     // bureau perdrait ses conseils pendant tout l'essai.
     const petitEcran = window.matchMedia('(max-width: 767px)').matches;
-    if (petitEcran && document.querySelector('[data-bandeau="abonnement"]')) return;
+    if (petitEcran && document.querySelector('[data-bandeau]')) return;
 
     const minuteur = setTimeout(() => {
       // La garde est relue **ici**, et pas seulement à l'entrée de l'effet.

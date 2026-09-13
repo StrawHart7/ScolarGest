@@ -3274,3 +3274,200 @@ défaut.
 À lui attribuer, ou à coordonner.
 
 ---
+
+### Fonctionnalité — Régie : le plan de contrôle, côté produit
+
+**Statut** : ✅ livrée le 2026-09-13, branche `SOKO`. Six migrations —
+`socle_regie`, `commande_regie`, `erreurs_regie`, `agregats_regie`,
+`frontiere_suppression`, `agregats_annee_active` — **toutes appliquées sur la
+base réelle**.
+
+La console elle-même vit dans un dépôt séparé, `ScolarGest-Regie`
+(`github.com/StrawHart7/ScolarGest-Regie`), **déployée et en ligne** sur
+`regie.scolargest.com` : DNS et TLS vérifiés, authentification Vercel active
+sur tous les déploiements, huit écrans, deux facteurs, élévation minutée.
+
+**Objectif** : donner à la console fondateur de quoi voir la plateforme et lui
+parler, sans jamais lui donner accès au contenu des écoles.
+
+**Ce qui a été fait, côté produit** :
+
+- **Schéma `controle`**, invisible de PostgREST, sans aucune clé étrangère vers
+  `public` : le produit doit pouvoir vivre sans lui, et une trace doit survivre
+  à son sujet.
+- **Rôle Postgres `regie`**, créé sans mot de passe donc inerte jusqu'à ce que
+  quelqu'un lui en pose un hors migration. Ses droits sur `public` tiennent en
+  neuf lignes, déclarées en **donnée** dans `controle.frontiere_autorisee` et
+  non en commentaire.
+- **`public.regie_frontiere_debordements()`** : sept contrôles, doit rendre
+  zéro ligne en permanence. Rejoué par `scripts/verifier-frontiere-regie.ts`
+  ici et par `npm run frontiere` côté Régie.
+- **`public.emettre_evenement(type, meta)`** et **`public.signaler_erreur(...)`**,
+  `SECURITY DEFINER`, qui lisent l'établissement et le rôle du JWT et ne les
+  reçoivent jamais. `src/services/telemetrie.ts` ne lève jamais.
+- **`public.drapeau` / `drapeau_etablissement` / `drapeau_actif(code)`** : arrêt,
+  ciblage, pourcentage déterministe. Premier consommateur réel :
+  `projeterReferentielNational`.
+- **`public.evenement_global_publie`** : annonces aux écoles, lisibles seulement
+  une fois publiées. **Le produit ne les affiche pas encore** — la table est
+  écrite et lue par la Régie, le bandeau côté école reste à faire.
+- **`controle.mv_sante_ecole` / `mv_revenu`** : agrégats calculés par une
+  fonction `SECURITY DEFINER`, dont la Régie ne fait qu'un `SELECT`.
+
+**Ce qui reste, côté produit** :
+
+- [x] **Le bandeau d'annonce côté école** — fait le 2026-09-13.
+      `BandeauAnnonce` est monté dans `AppLayout`, sous celui de l'abonnement :
+      une perte d'écriture imminente passe avant une annonce. Il ne se ferme
+      pas, comme les deux autres bandeaux du produit — une annonce porte sa
+      propre fenêtre, que la Régie peut raccourcir, et le mécanisme de
+      fermeture existe donc déjà du bon côté.
+- [x] **`signaler_erreur` est appelé** — fait le 2026-09-13, depuis
+      `src/app/error.tsx`, à côté de Sentry et jamais sur un refus d'accès.
+      Ni message ni trace ne partent : un nom de classe d'erreur, une route
+      normalisée, le `digest` de Next.
+- [x] **Reprojection d'une correction nationale** — faite le 2026-09-13,
+      migration `20260913112647`. Un déclencheur sur `coefficient_officiel`
+      reprojette la valeur corrigée dans les années non clôturées. Ce n'est
+      pas la Régie qui l'exécute : elle n'a aucun droit sur
+      `coefficient_matiere` et n'en gagne aucun.
+
+**DoD** — `verifier-frontiere-regie.ts` muet dans les deux sens, 444 tests
+verts, typecheck et lint verts, aucun comportement du produit modifié, console
+atteignable et fermée.
+
+---
+
+### Fonctionnalité — Régie : brancher les deux écrans muets
+
+**Statut** : ✅ livrée le 2026-09-13, branche `SOKO`. **Aucune migration** —
+tout ce qu'il fallait en base existait depuis la veille ; ce qui manquait était
+un appelant.
+
+**Objectif** : la Régie avait deux écrans qui ne pouvaient rien montrer, faute
+de quoi que ce soit pour les alimenter. Pour les erreurs, c'était le pire des
+cas : un écran vide s'y lit « rien ne casse ».
+
+**Livré** :
+
+- `src/app/error.tsx` appelle `signaler_erreur` par une Server Action
+  (`src/app/erreur-actions.ts`), à côté de Sentry et **jamais** sur un refus
+  d'accès — ce n'est pas un incident, c'est le produit qui fait son travail.
+- `normaliserRoute()` dans `src/lib/telemetrie.ts`, plus son garde-fou : un
+  test qui reconstruit les **54 routes statiques réelles** depuis l'arborescence
+  de `src/app` et vérifie qu'aucune n'est déformée.
+- `BandeauAnnonce` dans `AppLayout`, nourri par `listAnnoncesEnCours()`, filtré
+  par cycle. `src/lib/annonce.ts` porte la décision, sans dépendance et testée.
+- Le repère de `PanneauConseil` passe de `[data-bandeau="abonnement"]` à
+  `[data-bandeau]` : il en existe deux maintenant, et nommer le premier laissait
+  la bannière mobile recouvrir le second **en silence**.
+
+**Vérifié par le chemin réel**, en base, dans une transaction annulée : une
+session `authenticated` voit une annonce publiée dans sa fenêtre (1), ne voit
+pas un brouillon (0), ne voit pas une annonce expirée (0), et **ne peut pas en
+écrire une** alors qu'elle en détient le privilège `INSERT`. Ce dernier point
+valait d'être constaté plutôt que déduit : les privilèges par défaut de
+Supabase accordent l'écriture à `authenticated` sur toute table neuve de
+`public`, et c'est la seule RLS qui refuse.
+
+**Un constat laissé ouvert** : `public.drapeau_actif(text)` est exécutable par
+`anon`, contrairement à ses deux fonctions sœurs qui le lui refusent
+expressément. Sa migration révoque `public` mais pas `anon`, qui garde donc le
+droit reçu des privilèges par défaut. Sans conséquence — hors session, la
+fonction rend le défaut d'un drapeau, et le catalogue est déjà en lecture
+publique — mais c'est une incohérence, et elle se corrige d'une ligne quand une
+migration passera par là.
+
+**Reste ouvert** : les deux écrans sont branchés mais **n'ont encore rien
+affiché**. `controle.erreur` et `evenement_global_publie` sont à zéro ligne, et
+`controle.evenement` aussi — personne n'a utilisé le produit depuis la mise en
+ligne d'hier. La vérification à l'œil reste due, des deux côtés.
+
+**DoD** — lint, typecheck et 454 tests verts, matrice régénérée et son diff
+relu (deux lignes ajoutées, aucune modifiée), frontière de la Régie toujours
+muette, aucun comportement existant modifié.
+
+---
+
+### Fonctionnalité — Régie : H6, la correction nationale atteint les écoles
+
+**Statut** : ✅ écrite et éprouvée le 2026-09-13, branche `SOKO`. Migration
+`20260913112647_reprojection_bareme_national.sql`, **pas encore appliquée** —
+l'application sur la base partagée revient à l'utilisateur.
+
+**Le défaut** : `projeterReferentielNational` lit le barème **au moment où
+l'école projette**, et rien ne rejouait cette lecture. Une école ayant projeté
+en septembre gardait indéfiniment une valeur fautive tout en étant marquée
+`referentielNational = true` : le produit affirmait suivre un référentiel qu'il
+ne suivait plus.
+
+**La décision de conception** : un **déclencheur**, pas un appel de la Régie.
+
+- La Régie n'a aucun droit sur `coefficient_matiere`, et ne doit pas en gagner.
+- La branche (d) du contrôle de frontière **refuse** qu'une fonction de
+  `public` soit exécutable par la Régie. Lui ouvrir une exception reviendrait
+  à percer le contrôle pour y faire passer ce contre quoi il protège.
+- La propagation n'est pas un geste de la Régie : c'est une **conséquence** de
+  l'écriture qu'elle a le droit de faire. Écrite ainsi, elle vaut pour
+  n'importe quel auteur et vit dans la même transaction que la correction.
+
+**Un trou trouvé en chemin, fermé au passage** : la branche (d) ne regardait que
+`public`. Or toute fonction nouvelle accorde `EXECUTE` à `PUBLIC`, dont la Régie
+est membre — les quatre fonctions de `controle` lui étaient donc ouvertes, sans
+que rien ne le dise. Nouvelle branche (h) plus `controle.fonction_autorisee` :
+ce qui est permis se déclare en donnée, comme partout ailleurs dans ce système.
+
+**Éprouvée par le chemin réel**, sur la base réelle, dans une transaction
+annulée : coefficient d'école **2 → 3** après la correction nationale, **revenu
+à 2** après la défaite, une trace écrite dans `controle.reprojection`, et la
+branche (h) muette. La base a été recomptée après : 85 coefficients officiels,
+85 lignes nationales, aucune trace d'épreuve.
+
+**Deux pièges payés en écrivant le bloc d'épreuve**, tous deux avant application :
+
+- `coefficient_matiere` pointe vers `coefficient_officiel` par une clé
+  étrangère **sans cascade**. Supprimer la ligne d'épreuve pendant qu'une école
+  la référence aurait fait échouer la migration entière.
+- La contrainte `valableJusqua > valableDe` interdit de fermer une ligne à son
+  propre millésime. On ne peut donc pas défaire une correction en la fermant :
+  il faut **repousser** sa borne basse.
+
+**La même promesse périmée, écrite à trois endroits** : « les années déjà
+projetées ne bougent pas » vivait dans le message de succès de l'action, dans le
+texte du formulaire de la Régie, et dans la prose de
+`referentiel-national.ts`. Les trois disaient vrai la veille et faux le
+lendemain. Les trois sont corrigées.
+
+**Reste à faire** : appliquer la migration (`npx supabase db push`), puis
+observer un cycle réel depuis l'écran « Référentiel » de la Régie.
+
+**DoD** — lint, typecheck et 454 tests verts côté produit ; lint, typecheck et
+tests verts côté Régie ; migration jouée à blanc de bout en bout sur la base
+réelle ; aucune écriture laissée derrière.
+
+---
+
+### Constat — compter les lignes ne dit rien de ce qu'elles contiennent
+
+`agregats_regie` portait un contrôle de vraisemblance : refuser de s'appliquer
+si `mv_sante_ecole` ne comptait pas autant de lignes que `etablissement`. Il a
+passé. Les cinq lignes étaient pourtant **toutes fausses** — la vue retenait
+l'année scolaire de `dateDebut` la plus récente, qui est régulièrement une
+année à venir, vide par nature. « Les Victorieux » s'affichait à 0 classe et
+0 élève avec 286 inscrits en base, et le total plateforme tombait à zéro.
+
+Le défaut ne produit ni erreur, ni page blanche, ni ligne manquante : il
+produit des **zéros crédibles**, et un zéro crédible se croit.
+
+Deux règles en sortent :
+
+- Un contrôle de vraisemblance porte sur le **contenu**, jamais sur le cardinal.
+  Le nouveau cherche une école que la vue annonce à zéro inscription alors
+  qu'elle en a dans son année ACTIVE — formulé sans nommer personne, donc
+  toujours vrai.
+- « La plus récente » n'est pas « la courante ». Le produit raisonne sur
+  `statut = 'ACTIVE'` depuis toujours ; tout agrégat doit s'y aligner, avec un
+  départage **total** (`id` en dernier critère) sans quoi `distinct on` change
+  de réponse d'un rafraîchissement à l'autre.
+
+---

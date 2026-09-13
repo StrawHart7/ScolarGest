@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import { emettreEvenement } from './telemetrie';
 import { getTenantContext } from './tenant';
 import { getDonneesBulletin } from './bulletin-donnees';
 import { getClasse } from './classe';
@@ -171,6 +172,11 @@ export async function genererBulletin(
     objetId: document.id,
     nouvelleValeur: { reference, eleveId, classeId, periode, anneeScolaireId, perimes },
   });
+
+  // Télémétrie : le fait, jamais son contenu. Ni l'élève, ni la classe, ni la
+  // moyenne — seulement qu'un bulletin a été édité, et pour quelle période.
+  // Voir `src/services/telemetrie.ts` : cet appel ne peut pas lever.
+  await emettreEvenement('bulletin.genere', { periode, nombre: perimes });
 
   return document;
 }

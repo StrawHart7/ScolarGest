@@ -7,6 +7,8 @@ import { ShieldAlert, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignalerIncident } from '@/components/erreur/SignalerIncident';
+import { normaliserRoute } from '@/lib/telemetrie';
+import { signalerErreurAction } from '@/app/erreur-actions';
 
 /**
  * Frontière d'erreur de l'espace applicatif.
@@ -22,6 +24,23 @@ import { SignalerIncident } from '@/components/erreur/SignalerIncident';
  * réessayer puis d'alerter.
  */
 
+/**
+ * Les empreintes déjà signalées pendant ce chargement de page.
+ *
+ * La base borne déjà le débit — une occurrence par minute et par école — mais
+ * elle incrémente le compteur d'occurrences à **chaque** appel, délibérément :
+ * ce compteur doit dire la vérité. C'est donc ici qu'on évite de l'appeler pour
+ * rien, quand React remonte la frontière ou qu'un utilisateur clique
+ * « Réessayer » sur une panne qui se reproduit à l'identique.
+ *
+ * Le plafond est un coupe-circuit et non une commodité : vingt défauts
+ * distincts sur un seul chargement ne sont plus des incidents à compter, c'est
+ * une page qui part en vrille, et continuer à écrire ne renseignerait plus
+ * personne.
+ */
+const dejaSignalees = new Set<string>();
+const PLAFOND_SIGNALEMENTS = 20;
+
 /** Message des gardes de `requireRole`, voir `src/services/authorization.ts`. */
 const MOTIF_ACCES = /accès refusé|acces refuse/i;
 
@@ -36,9 +55,39 @@ export default function Erreur({
 
   React.useEffect(() => {
     // Un refus d'accès n'est pas un incident : c'est le produit qui fait son
-    // travail. Le remonter à Sentry noierait les vraies pannes sous le bruit
-    // de chaque utilisateur qui tape une URL à laquelle il n'a pas droit.
-    if (!refusAcces) Sentry.captureException(error);
+    // travail. Le remonter noierait les vraies pannes sous le bruit de chaque
+    // utilisateur qui tape une URL à laquelle il n'a pas droit. Vaut pour
+    // Sentry comme pour la Régie.
+    if (refusAcces) return;
+
+    Sentry.captureException(error);
+
+    // Sentry garde le détail d'une panne ; la Régie en tient le dénombrement —
+    // combien d'écoles distinctes, depuis quand, corrélé au flux d'événements
+    // et aux drapeaux. Ce ne sont pas deux copies du même outil, et c'est
+    // pourquoi rien de ce qui part ici ne porte de message ni de trace.
+    //
+    // Tant que cet appel n'existait pas, l'écran « Erreurs » de la Régie était
+    // structurellement vide — et un écran vide s'y lit « rien ne casse ».
+    const route = normaliserRoute(
+      typeof window === 'undefined' ? '/' : window.location.pathname,
+    );
+    const cle = [error.name, route, error.digest ?? ''].join('|');
+
+    if (dejaSignalees.has(cle) || dejaSignalees.size >= PLAFOND_SIGNALEMENTS) return;
+    dejaSignalees.add(cle);
+
+    // L'appel est laissé flottant, contrairement à `emettreEvenement` : on est
+    // dans un effet de composant, pas dans une fonction serverless qu'une
+    // réponse rendue ferait tuer. Et son échec ne doit rien changer à l'écran,
+    // d'où le `catch` vide — la promesse rejetée d'un effet remonterait sinon
+    // en erreur non gérée dans la page qui sert justement à afficher une
+    // erreur.
+    void signalerErreurAction({
+      nom: error.name,
+      chemin: route,
+      reference: error.digest ?? null,
+    }).catch(() => {});
   }, [error, refusAcces]);
 
   return (
