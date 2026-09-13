@@ -1883,6 +1883,34 @@ concernée » est le cas normal d'une correction à effet futur, mais c'est auss
 ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
 deux indistinguables.
 
+### Le verrou d'abonnement laisse passer quand il ne sait pas
+
+Les journaux montrent une à quatre réponses `504` par heure, à toute heure et
+hors de toute activité de développement : c'est la passerelle sous charge, pas
+un défaut du produit.
+
+Le middleware ne récupérait pas `error` sur ses deux lectures. Un `504` y donnait
+`data = null`, donc une école payante était évaluée comme n'ayant ni abonnement
+ni essai — comme une école neuve. **Le verrou ne plantait pas : il se
+trompait**, ce qui est pire.
+
+Deux décisions, et la seconde n'est pas symétrique :
+
+- **Une lecture se rejoue une fois** (`src/lib/reessayer.ts`). Rejouer une
+  lecture ne coûte rien ; une écriture rejouée encaisse deux fois. La fonction
+  s'appelle `reessayerLecture` pour que personne ne l'emploie ailleurs — les
+  écritures ont leur clé d'idempotence, et ce n'est pas un substitut.
+- **Au second échec, on laisse passer sans rien conclure.** Fermer enfermerait
+  dehors une école à jour de ses paiements à cause d'un à-coup
+  d'infrastructure ; laisser passer donne au pire une requête de grâce à une
+  école bloquée. Ce verrou est une **barrière de facturation**, pas une barrière
+  d'authentification : l'identité reste vérifiée par Supabase Auth et les
+  données par la RLS. Le raisonnement s'inverserait sur un verrou d'accès aux
+  données — ne pas recopier ce choix ailleurs sans le refaire.
+
+Et rien n'est mis en cache dans ces cas-là : un verdict faux mémorisé durerait
+une minute au lieu d'une requête.
+
 ### Sous RLS, un index absent ne coûte pas une lenteur : il coûte un délai dépassé
 
 Le 2026-09-13, `/dashboard` tombait par intermittence et un rechargement

@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { evaluerAcces, ecritureAutorisee } from '@/services/abonnement-acces';
+import { reessayerLecture } from '@/lib/reessayer';
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/update-password', '/auth/callback'];
 
@@ -171,20 +172,46 @@ async function gardeAbonnement(
   // même titre qu'un abonnement payé. Omettre la seconde requête ici
   // refuserait toute saisie à une école pourtant en essai — et le middleware
   // étant le verrou dur, aucun écran ne pourrait rattraper l'erreur.
-  const [{ data }, { data: etab }] = await Promise.all([
-    supabase
-      .from('abonnement_etablissement')
-      .select('statut, "dateFin"')
-      .eq('etablissementId', meta.etablissement_id)
-      .order('dateFin', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('etablissement')
-      .select('"essaiDebuteLe", "essaiFinLe", "suspenduLe", "motifSuspension"')
-      .eq('id', meta.etablissement_id)
-      .maybeSingle(),
+  const [abonnementLu, etabLu] = await Promise.all([
+    reessayerLecture(async () =>
+      supabase
+        .from('abonnement_etablissement')
+        .select('statut, "dateFin"')
+        .eq('etablissementId', meta.etablissement_id)
+        .order('dateFin', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ),
+    reessayerLecture(async () =>
+      supabase
+        .from('etablissement')
+        .select('"essaiDebuteLe", "essaiFinLe", "suspenduLe", "motifSuspension"')
+        .eq('id', meta.etablissement_id)
+        .maybeSingle(),
+    ),
   ]);
+
+  // **Si la lecture échoue, on laisse passer sans rien conclure.**
+  //
+  // Ces deux requêtes rendaient `null` en silence quand la base répondait 504
+  // — une à quatre fois par heure d'après les journaux, à toute heure. Une
+  // école payante était alors évaluée comme n'ayant ni abonnement ni essai,
+  // c'est-à-dire comme une école neuve. Le verrou ne plantait pas : il se
+  // trompait.
+  //
+  // Entre les deux erreurs possibles, le choix n'est pas symétrique. Fermer
+  // enfermerait dehors une école à jour de ses paiements à cause d'un à-coup
+  // d'infrastructure. Laisser passer donne au pire une requête de grâce à une
+  // école bloquée — et ce verrou est une **barrière de facturation**, pas une
+  // barrière d'authentification : l'identité reste vérifiée par Supabase Auth,
+  // et les données restent protégées par la RLS.
+  //
+  // On ne mémorise rien dans le cookie de cache : la prochaine requête
+  // retentera. Un verdict faux mis en cache durerait une minute.
+  if (abonnementLu.error || etabLu.error) return RIEN;
+
+  const data = abonnementLu.data;
+  const etab = etabLu.data;
 
   const ligneEtab = etab as {
     essaiDebuteLe: string | null;
