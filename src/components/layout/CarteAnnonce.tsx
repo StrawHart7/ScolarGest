@@ -8,9 +8,12 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { marquerAnnonceLueAction } from '@/app/annonce-actions';
 import { useSidebarCollapse } from './sidebar-collapse';
 
 /**
@@ -258,6 +261,29 @@ export function CarteAnnonce({
   // rende la carte ou le bandeau.
   const { replie } = useSidebarCollapse();
   const [ouverte, setOuverte] = React.useState<AnnonceAffichee | null>(null);
+  const [enCours, demarrerTransition] = React.useTransition();
+
+  /**
+   * « Marquer comme lu » : on écarte pour soi, pas pour l'école.
+   *
+   * Le lecteur reste ouvert pendant l'écriture, bouton en attente. Le fermer
+   * tout de suite laisserait la carte encore à l'écran une fraction de seconde
+   * — le temps de la revalidation du layout — et ce clignotement se lit comme
+   * un geste qui n'a pas pris. La transition couvre l'action **et** sa
+   * revalidation : quand elle rend la main, la carte a déjà disparu derrière
+   * le lecteur, et les deux s'effacent ensemble.
+   *
+   * `marquerAnnonceLueAction` ne lève jamais et ne rend rien : si l'écriture
+   * échoue, l'annonce est simplement toujours là au rendu suivant. Il n'y a
+   * donc pas de message d'erreur à prévoir ici — c'est délibéré côté service,
+   * et le repli est visible.
+   */
+  function marquerLue(annonce: AnnonceAffichee) {
+    demarrerTransition(async () => {
+      await marquerAnnonceLueAction(annonce.id);
+      setOuverte(null);
+    });
+  }
 
   // Déstructuré et non indexé : `noUncheckedIndexedAccess` est actif, et il a
   // raison — c'est la garde de liste vide qui manquait.
@@ -289,6 +315,52 @@ export function CarteAnnonce({
               </p>
               <p className="text-body-sm text-text-secondary">{ouverte.finitLeLabel}</p>
             </DialogBody>
+
+            {/*
+              Le geste d'écarter vit ici, et nulle part ailleurs.
+
+              La carte de la barre latérale ne se ferme toujours pas : c'est ce
+              qui donne à une annonce sa durée. Ce qui change, c'est qu'il faut
+              avoir **ouvert** pour pouvoir écarter — refuser ce geste à
+              quelqu'un qui vient de tout lire transforme l'information en
+              décor, et on apprend vite à sauter le décor.
+
+              En pied de modale, en `ghost`, après le message : on ne le
+              rencontre qu'une fois arrivé au bout. « Discret » veut dire ça —
+              pas petit, pas caché, simplement pas ce qu'on voit en premier.
+
+              « Marquer comme lu » et non « Ne plus afficher » : le second est
+              ambigu sur sa portée — cette annonce, ou toutes ? Le premier
+              énonce un fait que la personne peut assumer, et c'est exactement
+              ce que la ligne écrite en base contient. La conséquence, elle,
+              est dite par la phrase à gauche, qui règle la seule question que
+              ce bouton pose vraiment : est-ce que j'écarte pour mes collègues
+              aussi ?
+            */}
+            {/* `justify-end` du pied est conservé, et la phrase est poussée à
+                gauche par `mr-auto` plutôt que par `justify-between` : sur un
+                téléphone, la phrase et le bouton ne tiennent pas sur la même
+                ligne, et `justify-between` renvoyait alors le bouton à gauche
+                de la seconde ligne, décalé de tout le reste de la modale. */}
+            <DialogFooter className="gap-x-4">
+              {/* Mesuré : « Elle disparaîtra de votre écran, pas de celui de
+                  vos collègues » demande 376px, et faisait passer le bouton à
+                  la ligne jusque sur un écran de bureau — un pied de modale à
+                  83px de haut pour une action qui doit rester discrète. La
+                  version courte tient sur une ligne à 512px et dit la même
+                  chose : « seulement » porte la portée à lui seul. */}
+              <p className="mr-auto min-w-0 text-body-sm text-text-secondary">
+                Elle disparaîtra pour vous seulement.
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                chargement={enCours}
+                onClick={() => marquerLue(ouverte)}
+              >
+                Marquer comme lu
+              </Button>
+            </DialogFooter>
           </>
         )}
       </DialogContent>
