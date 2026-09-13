@@ -3316,12 +3316,16 @@ parler, sans jamais lui donner accès au contenu des écoles.
 
 **Ce qui reste, côté produit** :
 
-- [ ] **Le bandeau d'annonce côté école.** La Régie peut publier dans
-      `evenement_global_publie` ; rien ne l'affiche. Tant que ce n'est pas fait,
-      l'écran « Annonces » de la Régie écrit dans le vide.
-- [ ] **`signaler_erreur` n'est appelé par personne.** `src/app/error.tsx` doit
-      l'appeler, en plus de Sentry — sinon l'écran « Erreurs » reste
-      structurellement vide, et son vide se lit comme « rien ne casse ».
+- [x] **Le bandeau d'annonce côté école** — fait le 2026-09-13.
+      `BandeauAnnonce` est monté dans `AppLayout`, sous celui de l'abonnement :
+      une perte d'écriture imminente passe avant une annonce. Il ne se ferme
+      pas, comme les deux autres bandeaux du produit — une annonce porte sa
+      propre fenêtre, que la Régie peut raccourcir, et le mécanisme de
+      fermeture existe donc déjà du bon côté.
+- [x] **`signaler_erreur` est appelé** — fait le 2026-09-13, depuis
+      `src/app/error.tsx`, à côté de Sentry et jamais sur un refus d'accès.
+      Ni message ni trace ne partent : un nom de classe d'erreur, une route
+      normalisée, le `digest` de Next.
 - [ ] **Reprojection d'une correction nationale** sur les années non closes.
       C'est `H6` du plan de la Régie, et le seul geste qui manque pour qu'une
       correction de barème atteigne les écoles.
@@ -3329,6 +3333,57 @@ parler, sans jamais lui donner accès au contenu des écoles.
 **DoD** — `verifier-frontiere-regie.ts` muet dans les deux sens, 444 tests
 verts, typecheck et lint verts, aucun comportement du produit modifié, console
 atteignable et fermée.
+
+---
+
+### Fonctionnalité — Régie : brancher les deux écrans muets
+
+**Statut** : ✅ livrée le 2026-09-13, branche `SOKO`. **Aucune migration** —
+tout ce qu'il fallait en base existait depuis la veille ; ce qui manquait était
+un appelant.
+
+**Objectif** : la Régie avait deux écrans qui ne pouvaient rien montrer, faute
+de quoi que ce soit pour les alimenter. Pour les erreurs, c'était le pire des
+cas : un écran vide s'y lit « rien ne casse ».
+
+**Livré** :
+
+- `src/app/error.tsx` appelle `signaler_erreur` par une Server Action
+  (`src/app/erreur-actions.ts`), à côté de Sentry et **jamais** sur un refus
+  d'accès — ce n'est pas un incident, c'est le produit qui fait son travail.
+- `normaliserRoute()` dans `src/lib/telemetrie.ts`, plus son garde-fou : un
+  test qui reconstruit les **54 routes statiques réelles** depuis l'arborescence
+  de `src/app` et vérifie qu'aucune n'est déformée.
+- `BandeauAnnonce` dans `AppLayout`, nourri par `listAnnoncesEnCours()`, filtré
+  par cycle. `src/lib/annonce.ts` porte la décision, sans dépendance et testée.
+- Le repère de `PanneauConseil` passe de `[data-bandeau="abonnement"]` à
+  `[data-bandeau]` : il en existe deux maintenant, et nommer le premier laissait
+  la bannière mobile recouvrir le second **en silence**.
+
+**Vérifié par le chemin réel**, en base, dans une transaction annulée : une
+session `authenticated` voit une annonce publiée dans sa fenêtre (1), ne voit
+pas un brouillon (0), ne voit pas une annonce expirée (0), et **ne peut pas en
+écrire une** alors qu'elle en détient le privilège `INSERT`. Ce dernier point
+valait d'être constaté plutôt que déduit : les privilèges par défaut de
+Supabase accordent l'écriture à `authenticated` sur toute table neuve de
+`public`, et c'est la seule RLS qui refuse.
+
+**Un constat laissé ouvert** : `public.drapeau_actif(text)` est exécutable par
+`anon`, contrairement à ses deux fonctions sœurs qui le lui refusent
+expressément. Sa migration révoque `public` mais pas `anon`, qui garde donc le
+droit reçu des privilèges par défaut. Sans conséquence — hors session, la
+fonction rend le défaut d'un drapeau, et le catalogue est déjà en lecture
+publique — mais c'est une incohérence, et elle se corrige d'une ligne quand une
+migration passera par là.
+
+**Reste ouvert** : les deux écrans sont branchés mais **n'ont encore rien
+affiché**. `controle.erreur` et `evenement_global_publie` sont à zéro ligne, et
+`controle.evenement` aussi — personne n'a utilisé le produit depuis la mise en
+ligne d'hier. La vérification à l'œil reste due, des deux côtés.
+
+**DoD** — lint, typecheck et 454 tests verts, matrice régénérée et son diff
+relu (deux lignes ajoutées, aucune modifiée), frontière de la Régie toujours
+muette, aucun comportement existant modifié.
 
 ---
 

@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
-import { nettoyerMeta, type MetaEvenement, type TypeEvenement } from '@/lib/telemetrie';
+import { createHash } from 'node:crypto';
+import {
+  nettoyerMeta,
+  normaliserRoute,
+  type MetaEvenement,
+  type TypeEvenement,
+} from '@/lib/telemetrie';
 
 /**
  * Émission d'un événement vers le plan de contrôle de la Régie.
@@ -93,5 +99,81 @@ export async function emettreEvenement(
     if (error) signalerUneFois(type, error);
   } catch (cause) {
     signalerUneFois(type, cause);
+  }
+}
+
+/** Bornes miroir de `public.signaler_erreur`, qui tronque aux mêmes valeurs. */
+const MAX_NOM = 120;
+const MAX_CODE = 40;
+
+/**
+ * Signale une erreur applicative au plan de contrôle.
+ *
+ * ## Ce que la Régie reçoit, et ce qu'elle ne reçoit pas
+ *
+ * Trois champs : un nom de classe d'erreur, une route normalisée, et le
+ * `digest` de Next. **Ni message, ni pile d'appels** — `erreurs_regie` explique
+ * pourquoi : un message Supabase cite la valeur fautive dans `details` et
+ * `hint`, donc un nom d'élève ou un montant. Sentry a le détail ; la Régie a le
+ * dénombrement, et les deux ne se confondent pas.
+ *
+ * Le `digest` mérite un mot : c'est une empreinte calculée par Next, et **le
+ * seul identifiant commun** entre ce que l'utilisateur voit à l'écran, ce que
+ * le support reçoit, ce que Sentry enregistre et ce que la Régie compte. Il ne
+ * porte aucune donnée.
+ *
+ * ## L'empreinte est calculée ici, pas reçue
+ *
+ * Elle vient du serveur, à partir des trois champs déjà bornés. La recevoir de
+ * l'appelant laisserait n'importe quelle session choisir dans quel groupe
+ * ranger son erreur — donc fabriquer trois cents incidents distincts, ou au
+ * contraire faire passer le sien pour un incident connu et déjà mis en
+ * sourdine.
+ *
+ * ## Pourquoi pas un événement de plus
+ *
+ * `emettre_evenement` aurait pu porter la même information, et le vocabulaire
+ * contenait d'ailleurs un type `erreur.applicative` — retiré avec ce
+ * changement. Deux raisons de ne pas l'employer : le fait serait compté deux
+ * fois, et surtout **le flux d'événements n'a aucune borne de débit**. Une page
+ * prise dans une boucle de rechargement y déverserait des centaines de lignes
+ * par minute, au moment précis où le cockpit doit rester lisible.
+ * `signaler_erreur` borne en base à une occurrence par minute et par école.
+ *
+ * Ne lève jamais, pour la même raison que `emettreEvenement` : la page d'erreur
+ * est le dernier écran utilisable, et une télémétrie qui la ferait tomber
+ * remplacerait un incident par une panne.
+ */
+export async function signalerErreurApplicative(incident: {
+  nom?: string | null;
+  chemin?: string | null;
+  reference?: string | null;
+}): Promise<void> {
+  try {
+    await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+
+    const nom = (incident.nom ?? '').trim().slice(0, MAX_NOM) || 'Error';
+    const route = normaliserRoute(incident.chemin);
+    const code = (incident.reference ?? '').trim().slice(0, MAX_CODE) || null;
+
+    // Le séparateur ne peut apparaître dans aucun des trois champs : un nom
+    // de classe est un identifiant, une route normalisée ne contient que des
+    // minuscules, des tirets et `:id`, un digest est hexadécimal. Sans lui,
+    // ('Ab', 'c') et ('A', 'bc') donneraient la même empreinte, donc deux
+    // défauts distincts rangés sous la même ligne.
+    const empreinte = createHash('sha256')
+      .update([nom, route, code ?? ''].join('|'))
+      .digest('hex');
+
+    const supabase = createClient();
+    const { error } = await supabase.rpc('signaler_erreur', {
+      p_empreinte: empreinte,
+      p_nom: nom,
+      p_route: route,
+      p_code: code,
+    });
+    if (error) signalerUneFois("signalement d'erreur", error);
+  } catch (cause) {
+    signalerUneFois("signalement d'erreur", cause);
   }
 }

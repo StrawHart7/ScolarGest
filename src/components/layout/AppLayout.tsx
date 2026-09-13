@@ -1,6 +1,7 @@
 import { Sidebar, type SidebarItem } from './Sidebar';
 import { Header } from './Header';
 import { AbonnementBanner } from './AbonnementBanner';
+import { BandeauAnnonce } from './BandeauAnnonce';
 import { RappelFinEssai } from './RappelFinEssai';
 import { BottomNav } from './BottomNav';
 import { BulleSupport } from './BulleSupport';
@@ -45,6 +46,11 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
           <ContenuDecale>
             <Header schoolName={schoolName} role={role} userName={userName} />
             <AbonnementBanner />
+            {/*
+              Après l'abonnement, délibérément : une perte d'écriture
+              imminente passe avant une annonce de la plateforme.
+            */}
+            <BandeauAnnonce />
             <IndicateurFile />
             <RappelFinEssai />
             {/*

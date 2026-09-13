@@ -1815,6 +1815,48 @@ valide pas la méthode, il valide le cache.
 Et le corollaire, plus général : quand une mesure contredit une observation
 directe de l'utilisateur, c'est la mesure qu'on soupçonne d'abord.
 
+### Ce qui sort du produit se décide par liste blanche
+
+`normaliserRoute` (`src/lib/telemetrie.ts`) réduit un chemin d'URL avant qu'il
+ne parte dans le plan de contrôle de la Régie. Le premier jet masquait ce qui
+**ressemblait** à un identifiant — un UUID, une suite de chiffres. C'est le
+mauvais sens : un segment inattendu passait alors tel quel, et
+`/etablissement/eleves/Jean%20Dupont` aurait fait sortir un nom d'élève sans
+qu'aucune règle écrite ne soit enfreinte.
+
+La règle est donc inversée : un segment est **gardé** s'il ressemble à un nom
+d'écran (`^[a-z][a-z-]{0,39}$`), et masqué sinon. Le prix est une route moins
+précise le jour où une convention de nommage change ; le gain est qu'aucune
+donnée d'école ne peut sortir par ce chemin, quelle que soit l'URL demandée.
+
+**Une liste blanche calibrée sur l'existant doit être tenue par un test qui lit
+l'existant.** Celui-ci reconstruit les 54 routes statiques depuis l'arborescence
+de `src/app` et vérifie qu'aucune n'est déformée — sans quoi un futur
+`/rapports/2026` partirait à la Régie sous `/rapports/:id` sans que rien ne le
+signale. Il porte aussi un **contrôle positif** : si le parcours ne trouve
+aucune route, le test passerait sans rien éprouver.
+
+La normalisation sert une seconde fin, aussi importante : `controle.erreur`
+groupe par empreinte, et l'empreinte porte la route. Sans elle, un seul défaut
+sur la fiche élève produirait **une ligne par élève consulté**.
+
+Même famille que `cheminSansParametres` (`src/lib/support-incident.ts`), qui
+retire la query string : sur une liste, `?q=` porte la recherche libre, donc le
+plus souvent un nom d'élève.
+
+### Un repère nommé d'après son premier usage devient faux au second
+
+`PanneauConseil` cherchait `[data-bandeau="abonnement"]` pour savoir s'il devait
+se taire sur téléphone. Le jour où un second bandeau est apparu dans le layout
+— les annonces de la Régie, le 2026-09-13 — la bannière s'est remise à le
+recouvrir, **en silence** : la condition était toujours vraie du point de vue du
+code, et fausse du point de vue de l'écran.
+
+Le sélecteur est donc `[data-bandeau]`, sans valeur. Ce que la garde veut dire
+est « il y a déjà quelque chose à cet endroit », pas « il y a le bandeau
+d'abonnement ». Tout nouveau bandeau du layout porte l'attribut ; il n'y a rien
+d'autre à faire.
+
 ### Le journal des migrations est partagé, donc une branche les porte toutes
 
 `npx supabase db push` a refusé de partir sur `SOKO` : la base portait

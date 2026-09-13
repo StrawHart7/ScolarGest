@@ -42,8 +42,7 @@ export type TypeEvenement =
   | 'paiement.enregistre'
   | 'abonnement.souscrit'
   | 'referentiel.projete'
-  | 'support.demande'
-  | 'erreur.applicative';
+  | 'support.demande';
 
 /**
  * Les seules clés qu'un événement peut porter.
@@ -129,4 +128,64 @@ export function nettoyerMeta(brut: MetaEvenement | undefined): MetaNettoyee {
   }
 
   return { meta, rejets };
+}
+
+/**
+ * Longueur maximale d'une route inscrite dans le plan de contrôle.
+ *
+ * `controle.erreur.route` est tronquée à 160 par la fonction SQL ; on borne
+ * plus bas ici pour que la troncature soit une décision de ce fichier, visible
+ * et testée, et non un effet de bord invisible côté base.
+ */
+export const LONGUEUR_MAX_ROUTE = 120;
+
+/**
+ * Un segment d'URL qui désigne un **écran** : minuscules et tirets, commençant
+ * par une lettre. C'est exactement la forme des routes de ce dépôt — vérifié
+ * sur les neuf segments dynamiques existants, tous des identifiants, et sur
+ * l'intégralité des segments statiques, dont aucun ne porte de chiffre.
+ */
+const SEGMENT_ECRAN = /^[a-z][a-z-]{0,39}$/;
+
+/**
+ * Réduit un chemin d'URL à ce que la Régie a le droit de voir.
+ *
+ * ## Pourquoi une liste blanche et non une liste noire
+ *
+ * Le premier jet masquait ce qui *ressemblait* à un identifiant — un UUID, une
+ * suite de chiffres. C'est le mauvais sens : un segment inattendu passait
+ * alors tel quel. `/etablissement/eleves/Jean%20Dupont` n'est pas une route de
+ * ce produit, mais rien n'empêche une URL tapée à la main d'y ressembler, et
+ * le nom serait parti dans le plan de contrôle sans qu'aucune règle écrite ne
+ * soit enfreinte — exactement le défaut que `erreurs_regie` ferme en refusant
+ * de stocker les messages.
+ *
+ * Ici l'inconnu est masqué par défaut. Le prix est une route moins précise le
+ * jour où une convention de nommage change ; le gain est qu'aucune donnée
+ * d'école ne peut sortir par ce chemin, quelle que soit l'URL demandée.
+ *
+ * ## Le second usage, qui compte autant
+ *
+ * `controle.erreur` groupe par empreinte, et l'empreinte porte la route. Sans
+ * normalisation, un seul défaut sur la fiche élève produirait **une ligne par
+ * élève consulté** : la table gonflerait, et l'écran « Erreurs » afficherait
+ * trois cents incidents distincts là où il y en a un.
+ */
+export function normaliserRoute(chemin: string | null | undefined): string {
+  if (typeof chemin !== 'string') return '/';
+
+  // La query string est l'endroit où atterrissent les données de l'école : sur
+  // une liste, `?q=` porte la recherche libre, donc le plus souvent un nom
+  // d'élève. Même raisonnement que `cheminSansParametres` côté support.
+  const sansParametres = chemin.split('#')[0]?.split('?')[0] ?? '';
+  const propre = sansParametres.trim();
+  if (propre === '' || propre === '/') return '/';
+
+  const segments = propre
+    .split('/')
+    .filter((segment) => segment !== '')
+    .map((segment) => (SEGMENT_ECRAN.test(segment) ? segment : ':id'));
+
+  const route = `/${segments.join('/')}`;
+  return route.length > LONGUEUR_MAX_ROUTE ? route.slice(0, LONGUEUR_MAX_ROUTE) : route;
 }
