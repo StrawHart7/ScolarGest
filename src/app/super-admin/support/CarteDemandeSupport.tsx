@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Clock, MapPin, Paperclip } from 'lucide-react';
+import { Mail, Clock, MapPin, Paperclip, Download, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import {
   libelleCategorie,
   LIBELLES_STATUT_SUPPORT,
+  EXTENSIONS_PIECE_JOINTE,
   type DemandeSupportPlateforme,
   type StatutSupport,
 } from '@/lib/support';
@@ -17,6 +18,7 @@ import {
   repondreAction,
   changerStatutSupportAction,
   lienPieceJointeAction,
+  lienPieceJointeReponseAction,
 } from './actions';
 
 const TON: Record<StatutSupport, 'neutral' | 'primary' | 'success' | 'warning'> = {
@@ -62,10 +64,23 @@ export function CarteDemandeSupport({
   const [ouvert, setOuvert] = React.useState(false);
   const [enCours, setEnCours] = React.useState(false);
   const [erreur, setErreur] = React.useState<string | null>(null);
+  const [fichier, setFichier] = React.useState<File | null>(null);
+  const champFichier = React.useRef<HTMLInputElement>(null);
 
   async function telechargerPieceJointe() {
+    await ouvrirLienSigne(() => lienPieceJointeAction(demande.id));
+  }
+
+  /** Relire le fichier qu'on a soi-meme renvoye a l'ecole. */
+  async function telechargerReponseJointe() {
+    await ouvrirLienSigne(() => lienPieceJointeReponseAction(demande.id));
+  }
+
+  async function ouvrirLienSigne(
+    appel: () => Promise<{ ok: boolean; url?: string; message?: string }>,
+  ) {
     setErreur(null);
-    const resultat = await appeler(() => lienPieceJointeAction(demande.id));
+    const resultat = await appeler(appel);
     if (!resultat || !resultat.ok || !resultat.url) {
       setErreur(resultat?.message ?? 'Lien indisponible. Reessayez.');
       return;
@@ -88,7 +103,16 @@ export function CarteDemandeSupport({
   async function envoyerReponse(cible: StatutSupport) {
     setErreur(null);
     setEnCours(true);
-    const resultat = await appeler(() => repondreAction(demande.id, reponse, cible));
+    // `FormData` parce qu'un fichier voyage avec la réponse. La clé `fichier`
+    // n'est ajoutée que s'il y en a un : une entrée vide serait reçue comme un
+    // `File` de taille nulle côté serveur.
+    const formData = new FormData();
+    formData.set('id', demande.id);
+    formData.set('reponse', reponse);
+    formData.set('statut', cible);
+    if (fichier) formData.set('fichier', fichier);
+
+    const resultat = await appeler(() => repondreAction(formData));
     setEnCours(false);
     if (!resultat || !resultat.ok) {
       setErreur(resultat?.message ?? 'Connexion interrompue. Votre réponse est conservée.');
@@ -96,7 +120,15 @@ export function CarteDemandeSupport({
     }
     setStatut(cible);
     setOuvert(false);
+    retirerFichier();
     router.refresh();
+  }
+
+  function retirerFichier() {
+    setFichier(null);
+    // Le champ natif garde sa valeur : sans cette remise à zéro, rechoisir le
+    // même fichier après l'avoir retiré n'émettrait aucun `change`.
+    if (champFichier.current) champFichier.current.value = '';
   }
 
   async function changerStatut(cible: StatutSupport) {
@@ -194,6 +226,16 @@ export function CarteDemandeSupport({
           <p className="mt-1 whitespace-pre-wrap text-body-sm leading-relaxed text-text-primary">
             {demande.reponseSupport}
           </p>
+          {demande.reponseFichierChemin && (
+            <button
+              type="button"
+              onClick={telechargerReponseJointe}
+              className="mt-2 inline-flex items-center gap-1.5 text-body-sm font-medium text-primary-container hover:underline"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden />
+              {demande.reponseFichierNom ?? 'Fichier envoyé'}
+            </button>
+          )}
         </div>
       )}
 
@@ -206,6 +248,56 @@ export function CarteDemandeSupport({
             maxLength={4000}
             placeholder="Réponse visible par l’école sur sa page Support."
           />
+
+          {/*
+            Le champ natif est masqué et déclenché par un bouton : `<input
+            type="file">` ne se met pas au style du produit, et c'est le même
+            parti que pour `<select>` et `<input type="date">` (voir CLAUDE.md).
+            Il reste un vrai champ de formulaire, pas une zone de dépôt
+            réinventée.
+          */}
+          <input
+            ref={champFichier}
+            type="file"
+            accept={EXTENSIONS_PIECE_JOINTE}
+            className="sr-only"
+            onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
+          />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={enCours}
+              onClick={() => champFichier.current?.click()}
+            >
+              <Paperclip className="h-4 w-4" aria-hidden />
+              {fichier ? 'Changer le fichier' : 'Joindre un fichier'}
+            </Button>
+
+            {fichier && (
+              <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-surface-border bg-surface-container-low px-2.5 py-1 text-body-sm text-text-secondary">
+                <span className="truncate">{fichier.name}</span>
+                <button
+                  type="button"
+                  onClick={retirerFichier}
+                  aria-label={`Retirer ${fichier.name}`}
+                  className="shrink-0 rounded text-text-secondary hover:text-text-primary"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </span>
+            )}
+
+            {!fichier && demande.reponseFichierNom && (
+              // Sans cette ligne, rejoindre la réponse pour corriger une phrase
+              // laisserait croire que le fichier déjà envoyé a disparu.
+              <span className="text-body-sm text-text-secondary">
+                Déjà envoyé : {demande.reponseFichierNom}
+              </span>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { listMesDemandesSupport } from '@/services/support';
 import { libelleCategorie, LIBELLES_STATUT_SUPPORT, type StatutSupport } from '@/lib/support';
 import { FormulaireSupport } from './FormulaireSupport';
+import { BoutonFichierReponse } from './BoutonFichierReponse';
 
 export const metadata = { title: 'Contacter le support' };
 
@@ -129,6 +130,12 @@ export default async function SupportPage({
                       <p className="mt-1 whitespace-pre-wrap text-body-sm leading-relaxed text-text-primary">
                         {demande.reponseSupport}
                       </p>
+                      {demande.reponseFichierChemin && (
+                        <BoutonFichierReponse
+                          demandeId={demande.id}
+                          nomFichier={demande.reponseFichierNom}
+                        />
+                      )}
                     </div>
                   )}
                 </article>
