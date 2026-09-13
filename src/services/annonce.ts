@@ -45,25 +45,99 @@ export async function listAnnoncesEnCours(): Promise<AnnonceEnCours[]> {
     .not('publieLe', 'is', null)
     .lte('debuteLe', maintenant)
     .gt('finitLe', maintenant)
-    // La plus récemment ouverte en tête : c'est celle que le lecteur n'a pas
-    // encore vue. Une annonce qui traîne depuis deux semaines a déjà été lue,
-    // ou ne le sera jamais.
-    .order('debuteLe', { ascending: false })
-    .limit(MAX_ANNONCES_AFFICHEES + 1);
+    // **La plus périssable en tête.** L'ordre décide maintenant laquelle est
+    // mise en avant : depuis la refonte de la barre latérale, la première garde
+    // sa carte et la suivante devient une rangée d'une ligne.
+    //
+    // Trier par date d'ouverture mettait en avant la plus ancienne — celle
+    // qu'on a déjà vue quatre jours de suite — et reléguait une maintenance
+    // prévue ce soir. La date de fin la plus proche est le bon critère, et il
+    // se passe d'une hiérarchie entre les types : une maintenance a une fenêtre
+    // courte par nature, elle passe devant toute seule.
+    .order('finitLe', { ascending: true })
+    // De la marge : on filtre ensuite par cycle **et** par ce que la personne a
+    // déjà écarté. Demander le strict nécessaire rendrait une liste vide à
+    // quelqu'un qui a lu la première d'une série.
+    .limit(MAX_ANNONCES_AFFICHEES + 6);
   if (error) throw error;
 
-  const annonces = (data ?? []) as unknown as AnnonceEnCours[];
+  const candidates = (data ?? []) as unknown as AnnonceEnCours[];
+  if (candidates.length === 0) return [];
 
   // Aucune annonce ciblée : inutile d'aller lire les cycles de l'école. Ce
   // bandeau est rendu sur **toutes** les pages de l'espace applicatif, et le
   // cas ordinaire — rien à annoncer, ou une annonce générale — ne doit coûter
   // qu'une seule requête.
-  const cible = annonces.some((annonce) => annonce.cycleId !== null);
+  const cible = candidates.some((annonce) => annonce.cycleId !== null);
   const cyclesActifs = cible && ctx.etablissementId ? await lireCyclesActifs(ctx.etablissementId) : [];
 
-  return annonces
-    .filter((annonce) => annonceConcerneEcole(annonce, cyclesActifs))
-    .slice(0, MAX_ANNONCES_AFFICHEES);
+  const pourCetteEcole = candidates.filter((annonce) =>
+    annonceConcerneEcole(annonce, cyclesActifs),
+  );
+  if (pourCetteEcole.length === 0) return [];
+
+  const lues = await lecturesDe(
+    ctx.userId,
+    pourCetteEcole.map((a) => a.id),
+  );
+
+  return pourCetteEcole.filter((a) => !lues.has(a.id)).slice(0, MAX_ANNONCES_AFFICHEES);
+}
+
+/**
+ * Ce que **cette personne** a déjà écarté.
+ *
+ * Par personne et non par école, délibérément : si la Directrice écarte « les
+ * épreuves du BAC commencent lundi », la Secrétaire et le Comptable ne doivent
+ * pas la perdre. Le raisonnement complet est dans la migration
+ * `20260913150152`.
+ *
+ * La requête est bornée aux annonces qu'on vient de lire : la liste des marques
+ * d'une personne grandit avec le temps, celle des annonces en cours non.
+ */
+async function lecturesDe(userId: string, annonceIds: string[]): Promise<Set<string>> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('annonce_lue')
+    .select('"evenementGlobalId"')
+    .eq('userId', userId)
+    .in('evenementGlobalId', annonceIds);
+  if (error) throw error;
+  return new Set(
+    (data ?? []).map((l) => (l as { evenementGlobalId: string }).evenementGlobalId),
+  );
+}
+
+/**
+ * « J'ai lu. »
+ *
+ * Le geste n'existe **qu'au bas du lecteur plein texte** : il faut avoir ouvert
+ * pour pouvoir écarter. La carte de la barre latérale, elle, ne se ferme
+ * toujours pas — c'est ce qui donne à une annonce sa durée.
+ *
+ * `on conflict do nothing` : marquer deux fois n'est pas une faute, c'est un
+ * double clic. Lever ici afficherait une erreur pour un geste qui a abouti.
+ *
+ * L'établissement n'est pas reçu de l'appelant : il vient du contexte tenant,
+ * et la policy le revérifie contre le JWT. Une école ne gonfle pas le compteur
+ * de lecture d'une autre.
+ */
+export async function marquerAnnonceLue(evenementGlobalId: string): Promise<void> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  if (!ctx.etablissementId) return;
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('annonce_lue')
+    .upsert(
+      {
+        evenementGlobalId,
+        userId: ctx.userId,
+        etablissementId: ctx.etablissementId,
+      },
+      { onConflict: 'evenementGlobalId,userId', ignoreDuplicates: true },
+    );
+  if (error) throw error;
 }
 
 /**

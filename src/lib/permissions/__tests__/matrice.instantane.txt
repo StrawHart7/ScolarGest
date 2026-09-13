@@ -36,6 +36,7 @@ annee-scolaire.createAnneeScolaire = SUPER_ADMIN+DIRECTEUR
 annee-scolaire.getAnneeScolaire = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 annee-scolaire.listAnneesScolaires = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 annonce.listAnnoncesEnCours = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
+annonce.marquerAnnonceLue = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 audit.auditLog = AUTHENTIFIE
 audit.journaliserConnexion = AUCUNE
 authorization.requireRole = DYNAMIQUE

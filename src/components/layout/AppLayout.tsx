@@ -13,6 +13,7 @@ import { cheminsAccessibles } from '@/lib/navigation';
 import type { Role } from '@/services/tenant';
 import { Synchronisation } from '@/components/offline/Synchronisation';
 import { IndicateurFile } from '@/components/offline/IndicateurFile';
+import { RejeuSignalements } from '@/components/erreur/RejeuSignalements';
 
 export interface AppLayoutProps {
   items: SidebarItem[];
@@ -73,6 +74,13 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
               {children}
             </main>
           </ContenuDecale>
+          {/*
+            Ne rend rien. Vide le dépôt des signalements d'erreur qui n'avaient
+            pas pu partir — typiquement ceux dont la panne **était** le réseau.
+            Monté ici et pas sur un écran : il doit se vider à la première page
+            qui s'affiche normalement, quelle qu'elle soit.
+          */}
+          <RejeuSignalements />
           <BottomNav items={items} />
           <BulleSupport role={role} />
           {/*

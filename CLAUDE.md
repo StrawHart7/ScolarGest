@@ -1883,6 +1883,199 @@ concernée » est le cas normal d'une correction à effet futur, mais c'est auss
 ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
 deux indistinguables.
 
+### Le verrou d'abonnement laisse passer quand il ne sait pas
+
+Les journaux montrent une à quatre réponses `504` par heure, à toute heure et
+hors de toute activité de développement : c'est la passerelle sous charge, pas
+un défaut du produit.
+
+Le middleware ne récupérait pas `error` sur ses deux lectures. Un `504` y donnait
+`data = null`, donc une école payante était évaluée comme n'ayant ni abonnement
+ni essai — comme une école neuve. **Le verrou ne plantait pas : il se
+trompait**, ce qui est pire.
+
+Deux décisions, et la seconde n'est pas symétrique :
+
+- **Une lecture se rejoue une fois** (`src/lib/reessayer.ts`). Rejouer une
+  lecture ne coûte rien ; une écriture rejouée encaisse deux fois. La fonction
+  s'appelle `reessayerLecture` pour que personne ne l'emploie ailleurs — les
+  écritures ont leur clé d'idempotence, et ce n'est pas un substitut.
+- **Au second échec, on laisse passer sans rien conclure.** Fermer enfermerait
+  dehors une école à jour de ses paiements à cause d'un à-coup
+  d'infrastructure ; laisser passer donne au pire une requête de grâce à une
+  école bloquée. Ce verrou est une **barrière de facturation**, pas une barrière
+  d'authentification : l'identité reste vérifiée par Supabase Auth et les
+  données par la RLS. Le raisonnement s'inverserait sur un verrou d'accès aux
+  données — ne pas recopier ce choix ailleurs sans le refaire.
+
+Et rien n'est mis en cache dans ces cas-là : un verdict faux mémorisé durerait
+une minute au lieu d'une requête.
+
+### Sous RLS, un index absent ne coûte pas une lenteur : il coûte un délai dépassé
+
+Le 2026-09-13, `/dashboard` tombait par intermittence et un rechargement
+suffisait. Diagnostiqué **par les journaux de la base**, pas par le code.
+
+Le décompte des notes en attente expirait (`57014`). `EXPLAIN` sur la requête
+nue, **sans RLS** :
+
+    Seq Scan on note  (actual time=281.687..281.687 rows=0)
+      Rows Removed by Filter: 28131
+    Execution Time: 283.092 ms
+
+283 ms pour rendre **zéro ligne**, parce que `note.statut` n'avait aucun index.
+Ce serait tolérable dans une base ordinaire. Ici la policy `note_lecture` ajoute
+**par ligne** un `EXISTS (select 1 from evaluation join classe ...)` : le
+parcours de 28 131 lignes devient 28 131 sous-plans corrélés, et la requête
+dépasse le délai.
+
+**C'est le multiplicateur à retenir.** Les tables les plus protégées par la RLS
+— notes, paiements — sont aussi les plus grosses, et c'est précisément là que
+l'absence d'index se paie au carré. Après l'index partiel : **0,122 ms**, un
+buffer au lieu de 420.
+
+**Partiel, et pourquoi.** Les statuts réels sont `VALIDE` (27 793) et
+`BROUILLON` (338) ; `SOUMISE` et `EN_ATTENTE` sont des états de passage dans un
+circuit de validation, donc une minorité structurelle. Un index complet
+indexerait 28 000 lignes pour en servir trois et se réécrirait à chaque
+validation de note.
+
+### Une liste d'identifiants dans une URL est une bombe à retardement
+
+Même journée, même écran. Le tableau de bord lisait les évaluations de l'école
+puis comptait les notes avec `.in('evaluationId', evaluationIds)`. Sur cette
+école : **1 340 évaluations, soit 52 Ko d'URL**, refusés par la passerelle en
+`400`.
+
+Le défaut est invisible sur une école neuve et permanent sur une vraie : il
+grandit avec la donnée. **Filtrer par la relation** (`evaluation!inner` sur
+`classeId`, quatorze valeurs) ne dépend plus de rien qui grandisse.
+
+Règle : dès qu'un `.in(...)` reçoit une liste dont la taille suit les données
+d'une école, c'est une jointure imbriquée qu'il faut écrire, pas une liste.
+
+### Une requête dont on ne lit pas l'erreur rend un zéro crédible
+
+`const { data } = await supabase.from(...)` **avale l'erreur**. `data` vaut
+`null`, et le code continue avec zéro.
+
+`bilanCloture` en portait deux : `from('facture')` (la table s'appelle
+`facture_eleve`, réponse 404) et `paiement` filtré sur `etablissementId` (la
+colonne n'existe pas, réponse 400 — piège déjà écrit dans ce fichier, et refait).
+L'écran annonçait donc **0 facture non soldée** et **0 F à recouvrer** à un
+Directeur sur le point de clôturer une année — geste irréversible.
+
+Ni l'une ni l'autre n'a jamais levé, donc aucune alerte, aucun Sentry, aucune
+ligne dans la Régie. **Un défaut qui lève se corrige ; un défaut qui rend zéro
+se croit.** Toute lecture Supabase récupère `error` et lève, sans exception —
+même quand le retour est « seulement » un compteur d'affichage.
+
+### Les journaux de la base disent ce que le code ne montre pas
+
+Ces trois défauts ont été trouvés en lisant `edge_logs`, `postgres_logs` et
+`postgrest_logs`, pas en relisant les services. Deux d'entre eux étaient
+**invisibles dans le code** : il fallait connaître le nom réel d'une table et
+l'absence réelle d'une colonne.
+
+Devant une page qui tombe par intermittence, l'ordre utile est : journaux de la
+base d'abord, `EXPLAIN` ensuite, code en dernier. Et vérifier **quand** les
+erreurs surviennent : les `504` de ce jour-là apparaissaient aussi la veille à
+16h, 20h et minuit — donc hors de toute activité de développement, ce qui les
+disqualifie comme conséquence d'un déploiement.
+
+### Une file qui ne part pas tout de suite fait recliquer, et l'argent double
+
+Constaté en production le 2026-09-13 : **57 000 F encaissés deux fois**, à
+2,44 secondes d'intervalle, chacun avec sa propre clé d'idempotence — donc deux
+opérations parfaitement légitimes du point de vue du serveur.
+
+**La clé d'idempotence n'était pas en cause, et c'est le piège.** Le premier
+réflexe est d'accuser le mécanisme de rejeu. Il a fonctionné exactement comme
+écrit. Ce qui était cassé est en amont : **rien ne disait à l'utilisatrice que
+son écriture était passée.**
+
+`mettreEnFile` déposait et rafraîchissait l'affichage, sans jamais **tenter
+l'envoi**. Celui-ci n'avait lieu qu'à trois occasions : une **transition**
+hors-ligne → en-ligne, le filet de rattrapage toutes les cinq minutes, ou un
+clic manuel. Or l'écran met en file quand `navigator.onLine` dit faux — et il
+ment. Réseau réellement disponible, aucune transition, donc **rien ne partait**,
+pendant que le bandeau affichait « Envoi en cours dès que possible ».
+
+Jusqu'à cinq minutes d'une phrase fausse. La Comptable en a conclu que son
+versement n'était pas parti, et l'a resaisi.
+
+Trois règles en sortent :
+
+- **Une écriture mise en file part immédiatement**, sans attendre un événement.
+  Une tentative qui échoue coûte cinq secondes de recul ; une tentative qu'on ne
+  fait pas coûte un doublon. Et seule la tentative dit la vérité sur l'état du
+  réseau, jamais `navigator.onLine`.
+- **Un formulaire qui a déposé une écriture se verrouille.** Envoyée ou en
+  attente, elle **existe**. Resoumettre n'est jamais un rattrapage, c'est
+  toujours une seconde écriture. Le bouton se ferme, et le message dit lequel
+  des deux cas s'est produit — « enregistré » et « en attente » ne se
+  confondent pas.
+- **Un bandeau ne promet que ce qui va se passer.** « Envoi en cours dès que
+  possible » s'affichait aussi pour une écriture refusée trois fois pour une
+  raison qui ne changera pas (« Montant supérieur au solde restant »). Quatre
+  états, quatre phrases : envoi en cours, en attente de réseau, refusée par le
+  serveur, prochaine tentative.
+
+**Et la leçon de méthode.** Le diagnostic d'origine — le mien — était « la clé
+protège une soumission et non une intention ». C'est vrai, et ça n'aurait pas
+réparé le défaut : l'utilisateur aurait continué à voir une écriture en attente
+qui ne partait pas. **Chercher pourquoi quelqu'un a cliqué deux fois vaut mieux
+que rendre le second clic inoffensif.** C'est l'utilisateur qui a redressé le
+diagnostic.
+
+### Un canal de signalement qui exige le réseau perd exactement ce qui compte
+
+Constaté en production le 2026-09-13, deux heures après la mise en ligne du
+signalement d'erreur vers la Régie. Chronologie réelle :
+
+| heure | fait |
+|---|---|
+| 12:43:31 | erreur sur une fiche de facture, message **« Failed to fetch »** |
+| 12:45:27 | signalement au support, **reçu** |
+| 12:47:00 | encaissement réussi, `paiement.enregistre` **reçu** |
+| — | écran « Erreurs » de la Régie : **0** |
+
+La chaîne était saine — vérifié en appelant `signaler_erreur` avec une session
+`COMPTABLE` forgée : une erreur, une occurrence, une école, route normalisée.
+Le code de `error.tsx` était juste. Ce qui manquait était ailleurs :
+**`signalerErreurAction` est une Server Action, donc un appel réseau, lancé au
+moment précis où le réseau venait de tomber.** Il a échoué, et il est avalé par
+conception pour ne pas casser la page d'erreur.
+
+**Le biais est pire que la perte.** Au Togo, le courant saute trois à six
+heures ; l'appareil tient, c'est le réseau qui disparaît. Un canal qui perd
+systématiquement les pannes réseau ne rapporte que les incidents survenus quand
+tout allait bien — la classe la moins intéressante — et l'écran donne une image
+fausse de ce qui casse, pas seulement une image incomplète.
+
+La leçon était **déjà écrite** dans ce fichier, pour le bouton « Signaler au
+support » : un signalement qui exige le réseau échoue exactement quand il sert.
+Celui-là s'en protège par la file hors ligne. La télémétrie ne s'en protégeait
+pas, parce que j'ai relu la règle comme une règle sur le **support** et non sur
+les **canaux sortants**. Documenter un piège n'empêche pas de le refaire, y
+compris dans le fichier qui le documente.
+
+**Le repli n'est pas la file d'écritures différées**, délibérément : celle-ci
+transporte des encaissements, et la télémétrie n'a pas à concourir avec de
+l'argent pour la même fenêtre de réseau. `src/lib/signalement-differe.ts` est un
+dépôt minuscule en `localStorage`, sans garantie, vidé par `RejeuSignalements`
+au premier écran qui s'affiche normalement.
+
+Deux décisions qui vont avec :
+
+- **Le dépôt se vide avant l'envoi, pas après.** Deux onglets qui reviennent en
+  ligne ensemble compteraient sinon l'incident deux fois, sur un écran dont le
+  seul rôle est de dénombrer. Perdre un signalement sur une collision vaut
+  mieux.
+- **Un signalement rejoué porte l'heure du rejeu**, pas celle de l'erreur : la
+  fonction SQL ne reçoit pas de date. Au-delà de douze heures on le jette,
+  plutôt que de faire croire à un incident qui vient de se produire.
+
 ### Ce qui sort du produit se décide par liste blanche
 
 `normaliserRoute` (`src/lib/telemetrie.ts`) réduit un chemin d'URL avant qu'il
