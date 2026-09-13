@@ -2,6 +2,7 @@ import { Sidebar, type SidebarItem } from './Sidebar';
 import { Header } from './Header';
 import { AbonnementBanner } from './AbonnementBanner';
 import { BandeauAnnonce } from './BandeauAnnonce';
+import { AnnoncesSidebar } from './AnnoncesSidebar';
 import { RappelFinEssai } from './RappelFinEssai';
 import { BottomNav } from './BottomNav';
 import { BulleSupport } from './BulleSupport';
@@ -42,13 +43,22 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
       >
       <SidebarCollapseProvider>
         <div className="min-h-screen bg-surface">
-          <Sidebar items={items} />
+          {/*
+            L'annonce de la plateforme est rendue ici, au serveur, puis passée
+            en créneau : `Sidebar` est un composant client et ne peut pas lire
+            en base. Voir `AnnoncesSidebar`.
+          */}
+          <Sidebar items={items} annonces={<AnnoncesSidebar />} />
           <ContenuDecale>
             <Header schoolName={schoolName} role={role} userName={userName} />
             <AbonnementBanner />
             {/*
               Après l'abonnement, délibérément : une perte d'écriture
               imminente passe avant une annonce de la plateforme.
+
+              Ne rend rien à partir de `md` — l'annonce y vit dans la barre
+              latérale. Ce bandeau est le rendu du téléphone, où il n'y a pas
+              de barre latérale.
             */}
             <BandeauAnnonce />
             <IndicateurFile />
