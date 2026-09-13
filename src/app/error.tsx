@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignalerIncident } from '@/components/erreur/SignalerIncident';
 import { normaliserRoute } from '@/lib/telemetrie';
+import { deposer } from '@/lib/signalement-differe';
 import { signalerErreurAction } from '@/app/erreur-actions';
 
 /**
@@ -79,15 +80,28 @@ export default function Erreur({
 
     // L'appel est laissé flottant, contrairement à `emettreEvenement` : on est
     // dans un effet de composant, pas dans une fonction serverless qu'une
-    // réponse rendue ferait tuer. Et son échec ne doit rien changer à l'écran,
-    // d'où le `catch` vide — la promesse rejetée d'un effet remonterait sinon
-    // en erreur non gérée dans la page qui sert justement à afficher une
-    // erreur.
+    // réponse rendue ferait tuer. Et son échec ne doit rien changer à l'écran —
+    // la promesse rejetée d'un effet remonterait sinon en erreur non gérée dans
+    // la page qui sert justement à afficher une erreur.
+    //
+    // **Mais l'échec ne se jette plus.** Constaté en production le 2026-09-13 :
+    // une erreur « Failed to fetch » à 12:43, le réseau revenu à 12:47, et la
+    // Régie restée à zéro. Cet appel est une Server Action, donc un appel
+    // réseau, lancé au moment précis où le réseau vient de tomber — c'est-à-dire
+    // très exactement le cas où il y avait quelque chose à signaler. Le
+    // signalement est donc déposé, et rejoué au prochain chargement réussi.
     void signalerErreurAction({
       nom: error.name,
       chemin: route,
       reference: error.digest ?? null,
-    }).catch(() => {});
+    }).catch(() => {
+      deposer({
+        nom: error.name,
+        chemin: route,
+        reference: error.digest ?? null,
+        quand: Date.now(),
+      });
+    });
   }, [error, refusAcces]);
 
   return (

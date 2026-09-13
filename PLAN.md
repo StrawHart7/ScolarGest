@@ -3447,6 +3447,44 @@ réelle ; aucune écriture laissée derrière.
 
 ---
 
+### Constat — le premier signalement réel n'est jamais arrivé
+
+Deux heures après la mise en ligne, une erreur réelle est survenue chez une
+Comptable de « Les Victorieux », sur une fiche de facture. Elle a été signalée
+au support et reçue ; un encaissement a réussi quatre minutes plus tard et son
+événement de télémétrie est arrivé. L'écran « Erreurs » de la Régie est resté
+à **0**.
+
+**Ce qui a été vérifié avant de conclure**, parce que trois causes possibles se
+ressemblent :
+
+- la fonction `signaler_erreur` répond correctement à une session `COMPTABLE`
+  forgée — une erreur, une occurrence, une école, route normalisée ;
+- `controle.evenement` a reçu un `paiement.enregistre` réel à 12:47, donc la
+  chaîne produit-base fonctionne de bout en bout ;
+- le code de `src/app/error.tsx` appelle bien l'action, et la garde de refus
+  d'accès ne peut pas l'écarter — « Failed to fetch » n'y correspond pas.
+
+Il ne restait qu'une explication : **le message d'erreur était « Failed to
+fetch »**, et le signalement passe par une Server Action, donc par le réseau
+qui venait de tomber. Il a échoué, et il était avalé sans repli.
+
+**Corrigé** : `src/lib/signalement-differe.ts` (dépôt `localStorage`, borné,
+testé, ne lève jamais) plus `RejeuSignalements`, monté dans `AppLayout`, qui le
+vide au premier écran affiché normalement. **Pas** la file d'écritures
+différées : elle transporte des encaissements, et la télémétrie n'a pas à
+concourir avec de l'argent pour la même fenêtre de réseau.
+
+Le test a été éprouvé en **réintroduisant le défaut** : sans la garde sur
+`localStorage`, deux des sept cas tombent.
+
+La leçon complète est dans `CLAUDE.md`, « Un canal de signalement qui exige le
+réseau perd exactement ce qui compte ». Elle y était déjà écrite pour le
+support ; je l'avais lue comme une règle sur le support et non sur les canaux
+sortants.
+
+---
+
 ### Constat — compter les lignes ne dit rien de ce qu'elles contiennent
 
 `agregats_regie` portait un contrôle de vraisemblance : refuser de s'appliquer

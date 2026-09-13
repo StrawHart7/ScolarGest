@@ -1883,6 +1883,54 @@ concernée » est le cas normal d'une correction à effet futur, mais c'est auss
 ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
 deux indistinguables.
 
+### Un canal de signalement qui exige le réseau perd exactement ce qui compte
+
+Constaté en production le 2026-09-13, deux heures après la mise en ligne du
+signalement d'erreur vers la Régie. Chronologie réelle :
+
+| heure | fait |
+|---|---|
+| 12:43:31 | erreur sur une fiche de facture, message **« Failed to fetch »** |
+| 12:45:27 | signalement au support, **reçu** |
+| 12:47:00 | encaissement réussi, `paiement.enregistre` **reçu** |
+| — | écran « Erreurs » de la Régie : **0** |
+
+La chaîne était saine — vérifié en appelant `signaler_erreur` avec une session
+`COMPTABLE` forgée : une erreur, une occurrence, une école, route normalisée.
+Le code de `error.tsx` était juste. Ce qui manquait était ailleurs :
+**`signalerErreurAction` est une Server Action, donc un appel réseau, lancé au
+moment précis où le réseau venait de tomber.** Il a échoué, et il est avalé par
+conception pour ne pas casser la page d'erreur.
+
+**Le biais est pire que la perte.** Au Togo, le courant saute trois à six
+heures ; l'appareil tient, c'est le réseau qui disparaît. Un canal qui perd
+systématiquement les pannes réseau ne rapporte que les incidents survenus quand
+tout allait bien — la classe la moins intéressante — et l'écran donne une image
+fausse de ce qui casse, pas seulement une image incomplète.
+
+La leçon était **déjà écrite** dans ce fichier, pour le bouton « Signaler au
+support » : un signalement qui exige le réseau échoue exactement quand il sert.
+Celui-là s'en protège par la file hors ligne. La télémétrie ne s'en protégeait
+pas, parce que j'ai relu la règle comme une règle sur le **support** et non sur
+les **canaux sortants**. Documenter un piège n'empêche pas de le refaire, y
+compris dans le fichier qui le documente.
+
+**Le repli n'est pas la file d'écritures différées**, délibérément : celle-ci
+transporte des encaissements, et la télémétrie n'a pas à concourir avec de
+l'argent pour la même fenêtre de réseau. `src/lib/signalement-differe.ts` est un
+dépôt minuscule en `localStorage`, sans garantie, vidé par `RejeuSignalements`
+au premier écran qui s'affiche normalement.
+
+Deux décisions qui vont avec :
+
+- **Le dépôt se vide avant l'envoi, pas après.** Deux onglets qui reviennent en
+  ligne ensemble compteraient sinon l'incident deux fois, sur un écran dont le
+  seul rôle est de dénombrer. Perdre un signalement sur une collision vaut
+  mieux.
+- **Un signalement rejoué porte l'heure du rejeu**, pas celle de l'erreur : la
+  fonction SQL ne reçoit pas de date. Au-delà de douze heures on le jette,
+  plutôt que de faire croire à un incident qui vient de se produire.
+
 ### Ce qui sort du produit se décide par liste blanche
 
 `normaliserRoute` (`src/lib/telemetrie.ts`) réduit un chemin d'URL avant qu'il
