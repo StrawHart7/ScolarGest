@@ -3277,12 +3277,15 @@ défaut.
 
 ### Fonctionnalité — Régie : le plan de contrôle, côté produit
 
-**Statut** : ✅ livrée le 2026-09-13, branche `SOKO`. Migrations
-`20260913011738_socle_regie`, `20260913013344_commande_regie`,
-`20260913013349_erreurs_regie`, `20260913013355_agregats_regie`,
-`20260913033026_frontiere_suppression`, `20260913033201_agregats_annee_active`
-— **toutes appliquées**. La console elle-même vit dans un dépôt séparé,
-`D:\StrawHart\Business\ScolarGest-Regie`.
+**Statut** : ✅ livrée le 2026-09-13, branche `SOKO`. Six migrations —
+`socle_regie`, `commande_regie`, `erreurs_regie`, `agregats_regie`,
+`frontiere_suppression`, `agregats_annee_active` — **toutes appliquées sur la
+base réelle**.
+
+La console elle-même vit dans un dépôt séparé, `ScolarGest-Regie`
+(`github.com/StrawHart7/ScolarGest-Regie`), **déployée et en ligne** sur
+`regie.scolargest.com` : DNS et TLS vérifiés, authentification Vercel active
+sur tous les déploiements, huit écrans, deux facteurs, élévation minutée.
 
 **Objectif** : donner à la console fondateur de quoi voir la plateforme et lui
 parler, sans jamais lui donner accès au contenu des écoles.
@@ -3311,16 +3314,21 @@ parler, sans jamais lui donner accès au contenu des écoles.
 - **`controle.mv_sante_ecole` / `mv_revenu`** : agrégats calculés par une
   fonction `SECURITY DEFINER`, dont la Régie ne fait qu'un `SELECT`.
 
-**Ce qui reste** :
+**Ce qui reste, côté produit** :
 
-- [ ] Le bandeau d'annonce côté école, qui consomme `evenement_global_publie`.
-- [ ] `signaler_erreur` n'est appelé par personne : `src/app/error.tsx` doit
-      l'appeler, en plus de Sentry.
-- [ ] Le rôle `regie` n'a pas de mot de passe : la Régie ne peut pas encore se
-      connecter.
+- [ ] **Le bandeau d'annonce côté école.** La Régie peut publier dans
+      `evenement_global_publie` ; rien ne l'affiche. Tant que ce n'est pas fait,
+      l'écran « Annonces » de la Régie écrit dans le vide.
+- [ ] **`signaler_erreur` n'est appelé par personne.** `src/app/error.tsx` doit
+      l'appeler, en plus de Sentry — sinon l'écran « Erreurs » reste
+      structurellement vide, et son vide se lit comme « rien ne casse ».
+- [ ] **Reprojection d'une correction nationale** sur les années non closes.
+      C'est `H6` du plan de la Régie, et le seul geste qui manque pour qu'une
+      correction de barème atteigne les écoles.
 
-**DoD** — `verifier-frontiere-regie.ts` muet, 444 tests verts, typecheck et
-lint verts, aucun comportement du produit modifié.
+**DoD** — `verifier-frontiere-regie.ts` muet dans les deux sens, 444 tests
+verts, typecheck et lint verts, aucun comportement du produit modifié, console
+atteignable et fermée.
 
 ---
 

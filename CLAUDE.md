@@ -1693,8 +1693,15 @@ exception de chemin sur `/api/fedapay/webhook`, ou tester en production.
 ### La Régie : ce que le produit lui doit, et ce qu'il ne lui doit pas
 
 Migrations `20260913011738` à `20260913033201`, appliquées le 2026-09-13. La
-console fondateur vit dans un **dépôt séparé** (`ScolarGest-Regie`) et partage
-cette base. Le contrat entre les deux n'est pas du code, c'est le schéma.
+console fondateur vit dans un **dépôt séparé** (`ScolarGest-Regie`, avec son
+propre `CLAUDE.md`) et partage cette base. Le contrat entre les deux n'est pas
+du code, c'est le schéma.
+
+Elle est **en ligne** depuis le 2026-09-13 sur `regie.scolargest.com`, derrière
+l'authentification Vercel. Deux conséquences pour ce dépôt-ci : `signaler_erreur`
+et `evenement_global_publie` attendent leur consommateur côté produit (voir
+`PLAN.md`), et toute migration future doit tenir compte des droits du rôle
+`regie` décrits ci-dessous.
 
 **Le principe, avant tout le reste** : la Régie n'est jamais sur le chemin
 critique d'une école. Aucune route du produit ne l'appelle ; ce qu'elle publie
@@ -1784,6 +1791,29 @@ Deux règles :
 - **Un contrôle de vraisemblance compare des valeurs**, jamais des cardinaux.
   Le bon est ici « existe-t-il une école annoncée à zéro inscription qui en a
   dans son année ACTIVE », formulé sans nommer personne.
+
+### Un contrôle positif doit porter sur le même cas que ce qu'on teste
+
+Le 2026-09-13, j'ai affirmé qu'un sous-domaine fraîchement créé n'existait pas,
+en m'appuyant sur `nslookup` interrogé **directement contre le serveur qui fait
+autorité**, donc sans cache possible. Et pour écarter le doute sur la méthode,
+j'avais vérifié que le même serveur répondait correctement pour
+`scolargest.com` et `www`.
+
+Le sous-domaine existait. Le réseau de l'environnement intercepte le DNS en UDP
+et rendait un `NXDOMAIN` fabriqué ; la résolution par DNS-over-HTTPS le
+confirmait en une requête.
+
+**Le contrôle positif ne valait rien** : les deux noms qui répondaient étaient
+anciens, donc déjà connus du chemin qui mentait. Vérifier qu'un ancien nom
+résout ne dit rien sur un nom créé il y a dix minutes.
+
+La règle : un contrôle positif doit porter sur un cas **de la même nature** que
+celui qu'on teste — même fraîcheur, même chemin, même type d'objet. Sinon il ne
+valide pas la méthode, il valide le cache.
+
+Et le corollaire, plus général : quand une mesure contredit une observation
+directe de l'utilisateur, c'est la mesure qu'on soupçonne d'abord.
 
 ### Le journal des migrations est partagé, donc une branche les porte toutes
 
