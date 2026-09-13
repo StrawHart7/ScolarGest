@@ -1815,6 +1815,74 @@ valide pas la méthode, il valide le cache.
 Et le corollaire, plus général : quand une mesure contredit une observation
 directe de l'utilisateur, c'est la mesure qu'on soupçonne d'abord.
 
+### `PUBLIC` garde `EXECUTE` dans **tous** les schémas, pas seulement `public`
+
+M0 avait fermé le défaut côté `public` : toute fonction nouvelle accorde
+`EXECUTE` à `PUBLIC`, et tout rôle est membre de `PUBLIC`, donc `regie` pouvait
+appeler les 28 fonctions du produit. Le même défaut vivait dans `controle`, et
+personne ne l'avait vu — parce que la branche (d) du contrôle de frontière ne
+regardait que `public`.
+
+**Un contrôle ne protège que ce qu'il regarde.** Les quatre fonctions de
+`controle` étaient toutes appelables par la Régie ; aucune n'était dangereuse,
+mais rien n'aurait signalé la cinquième. La réponse n'est pas de révoquer — les
+quatre portaient déjà une autorisation nominative, la révocation de `PUBLIC`
+n'aurait donc rien changé — mais de déclarer : `controle.fonction_autorisee`
+liste ce qui est permis, et la branche (h) signale tout le reste.
+
+C'est le même geste que `controle.frontiere_autorisee` pour les tables : **ce
+qui est autorisé est une donnée, pas un commentaire**, et le contrôle compare.
+
+### Une correction du référentiel national atteint les écoles par conséquence, pas par appel
+
+Migration `20260913112647`. La Régie corrige une valeur du barème national ; la
+correction doit rejoindre les `coefficient_matiere` des écoles. Le réflexe est
+d'exposer une fonction et de la laisser l'appeler. Trois raisons de ne pas le
+faire, et la troisième est structurelle :
+
+- la Régie n'a **aucun** droit sur `coefficient_matiere`, et ne doit pas en
+  gagner — ce sont les coefficients d'une école, donc du contenu ;
+- la branche (d) du contrôle de frontière refuse qu'une fonction de `public`
+  soit exécutable par elle : lui ouvrir une exception reviendrait à percer le
+  contrôle pour y faire passer ce contre quoi il protège ;
+- **la propagation n'est pas un geste de la Régie, c'est une conséquence de
+  l'écriture qu'elle a le droit de faire.** Écrite comme déclencheur, elle vaut
+  pour n'importe quel auteur — la Régie, une migration, un script — et elle
+  vit dans la même transaction que la correction : les deux aboutissent, ou
+  aucune des deux.
+
+Deux refus durs, qui sont la vraie limite : **une année clôturée ne bouge
+jamais** (ses bulletins ont été remis aux familles), et **une ligne `LOCAL` non
+plus** — projeter est une décision de l'école, reprojeter est une correction qui
+suit son lignage. Confondre les deux ferait qu'une correction de barème
+adopterait, au passage, des cellules que l'école avait gardées.
+
+**Le déclencheur part deux fois** sur une correction, puisque `corrigerCoefficient`
+ferme puis ouvre. Au premier départ la nouvelle ligne n'existe pas : la
+reprojection ne trouve rien et n'écrit rien — surtout pas un effacement.
+Conséquence à garder : **fermer une ligne sans en ouvrir une autre ne réécrit
+rien**, et les écoles gardent la dernière valeur connue. Un coefficient absent
+vaudrait zéro dans le moteur et retirerait la matière du bulletin.
+
+### Une promesse écrite dans l'interface est du code
+
+« Les années déjà projetées par les écoles ne bougent pas » était vraie, et
+écrite à **trois** endroits : le message de succès de l'action de correction, le
+texte d'aide du formulaire de la Régie, et la prose de
+`src/services/referentiel-national.ts`. La reprojection l'a rendue fausse le
+même jour, aux trois endroits.
+
+Une phrase qui décrit un comportement se périme exactement comme une ligne de
+code, sauf que rien ne la compile. Quand un mécanisme change, **chercher ce que
+le produit en disait** fait partie du changement — `grep` sur la promesse, pas
+seulement sur la fonction. Une phrase périmée est pire que pas de phrase : elle
+rassure sur exactement ce qui vient de changer.
+
+Corollaire tenu ici : le cas zéro **se dit**. « Aucune école n'était
+concernée » est le cas normal d'une correction à effet futur, mais c'est aussi
+ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
+deux indistinguables.
+
 ### Ce qui sort du produit se décide par liste blanche
 
 `normaliserRoute` (`src/lib/telemetrie.ts`) réduit un chemin d'URL avant qu'il

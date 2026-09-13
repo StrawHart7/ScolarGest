@@ -3326,9 +3326,11 @@ parler, sans jamais lui donner accès au contenu des écoles.
       `src/app/error.tsx`, à côté de Sentry et jamais sur un refus d'accès.
       Ni message ni trace ne partent : un nom de classe d'erreur, une route
       normalisée, le `digest` de Next.
-- [ ] **Reprojection d'une correction nationale** sur les années non closes.
-      C'est `H6` du plan de la Régie, et le seul geste qui manque pour qu'une
-      correction de barème atteigne les écoles.
+- [x] **Reprojection d'une correction nationale** — faite le 2026-09-13,
+      migration `20260913112647`. Un déclencheur sur `coefficient_officiel`
+      reprojette la valeur corrigée dans les années non clôturées. Ce n'est
+      pas la Régie qui l'exécute : elle n'a aucun droit sur
+      `coefficient_matiere` et n'en gagne aucun.
 
 **DoD** — `verifier-frontiere-regie.ts` muet dans les deux sens, 444 tests
 verts, typecheck et lint verts, aucun comportement du produit modifié, console
@@ -3384,6 +3386,64 @@ ligne d'hier. La vérification à l'œil reste due, des deux côtés.
 **DoD** — lint, typecheck et 454 tests verts, matrice régénérée et son diff
 relu (deux lignes ajoutées, aucune modifiée), frontière de la Régie toujours
 muette, aucun comportement existant modifié.
+
+---
+
+### Fonctionnalité — Régie : H6, la correction nationale atteint les écoles
+
+**Statut** : ✅ écrite et éprouvée le 2026-09-13, branche `SOKO`. Migration
+`20260913112647_reprojection_bareme_national.sql`, **pas encore appliquée** —
+l'application sur la base partagée revient à l'utilisateur.
+
+**Le défaut** : `projeterReferentielNational` lit le barème **au moment où
+l'école projette**, et rien ne rejouait cette lecture. Une école ayant projeté
+en septembre gardait indéfiniment une valeur fautive tout en étant marquée
+`referentielNational = true` : le produit affirmait suivre un référentiel qu'il
+ne suivait plus.
+
+**La décision de conception** : un **déclencheur**, pas un appel de la Régie.
+
+- La Régie n'a aucun droit sur `coefficient_matiere`, et ne doit pas en gagner.
+- La branche (d) du contrôle de frontière **refuse** qu'une fonction de
+  `public` soit exécutable par la Régie. Lui ouvrir une exception reviendrait
+  à percer le contrôle pour y faire passer ce contre quoi il protège.
+- La propagation n'est pas un geste de la Régie : c'est une **conséquence** de
+  l'écriture qu'elle a le droit de faire. Écrite ainsi, elle vaut pour
+  n'importe quel auteur et vit dans la même transaction que la correction.
+
+**Un trou trouvé en chemin, fermé au passage** : la branche (d) ne regardait que
+`public`. Or toute fonction nouvelle accorde `EXECUTE` à `PUBLIC`, dont la Régie
+est membre — les quatre fonctions de `controle` lui étaient donc ouvertes, sans
+que rien ne le dise. Nouvelle branche (h) plus `controle.fonction_autorisee` :
+ce qui est permis se déclare en donnée, comme partout ailleurs dans ce système.
+
+**Éprouvée par le chemin réel**, sur la base réelle, dans une transaction
+annulée : coefficient d'école **2 → 3** après la correction nationale, **revenu
+à 2** après la défaite, une trace écrite dans `controle.reprojection`, et la
+branche (h) muette. La base a été recomptée après : 85 coefficients officiels,
+85 lignes nationales, aucune trace d'épreuve.
+
+**Deux pièges payés en écrivant le bloc d'épreuve**, tous deux avant application :
+
+- `coefficient_matiere` pointe vers `coefficient_officiel` par une clé
+  étrangère **sans cascade**. Supprimer la ligne d'épreuve pendant qu'une école
+  la référence aurait fait échouer la migration entière.
+- La contrainte `valableJusqua > valableDe` interdit de fermer une ligne à son
+  propre millésime. On ne peut donc pas défaire une correction en la fermant :
+  il faut **repousser** sa borne basse.
+
+**La même promesse périmée, écrite à trois endroits** : « les années déjà
+projetées ne bougent pas » vivait dans le message de succès de l'action, dans le
+texte du formulaire de la Régie, et dans la prose de
+`referentiel-national.ts`. Les trois disaient vrai la veille et faux le
+lendemain. Les trois sont corrigées.
+
+**Reste à faire** : appliquer la migration (`npx supabase db push`), puis
+observer un cycle réel depuis l'écran « Référentiel » de la Régie.
+
+**DoD** — lint, typecheck et 454 tests verts côté produit ; lint, typecheck et
+tests verts côté Régie ; migration jouée à blanc de bout en bout sur la base
+réelle ; aucune écriture laissée derrière.
 
 ---
 
