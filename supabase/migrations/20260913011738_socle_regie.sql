@@ -395,6 +395,34 @@ grant select on public.serie to regie;
 
 
 -- ============================================================
+-- 7 bis. Le droit ne suffit pas : il faut aussi une policy
+-- ============================================================
+-- Les trois tables de référentiel ont la RLS activée et **une seule policy,
+-- de lecture**. Un `grant insert, update` dessus ne produit donc rien : la
+-- politique manquante fait filtrer l'écriture.
+--
+-- Et le filtrage est **silencieux**. « La RLS ne lève pas sur un UPDATE ni un
+-- DELETE : elle filtre les lignes » — un refus revient sans erreur et sans
+-- ligne touchée. L'éditeur de référentiel de la Régie aurait affiché
+-- « enregistré » sur un écran où rien n'aurait bougé, et le défaut se serait
+-- découvert des semaines plus tard, sur un barème qu'on croyait corrigé.
+--
+-- Les policies existantes ne sont pas touchées : elles sont permissives, donc
+-- celles-ci s'y ajoutent au lieu de les remplacer. Une école ne gagne rien.
+create policy matiere_officielle_regie on public.matiere_officielle
+  for all to regie using (true) with check (true);
+
+create policy coefficient_officiel_regie on public.coefficient_officiel
+  for all to regie using (true) with check (true);
+
+create policy calendrier_national_regie on public.calendrier_national
+  for all to regie using (true) with check (true);
+
+-- `cycle`, `niveau` et `serie` restent en lecture seule : leur policy publique
+-- de lecture suffit, et la Régie n'a de toute façon pas le droit d'y écrire.
+
+
+-- ============================================================
 -- 8. Le contrôle de la frontière, en une requête
 -- ============================================================
 -- C'est la pièce qui transforme une promesse en fait vérifiable. Elle est
@@ -526,7 +554,26 @@ begin
   select 'frontière ' || f."nomTable", 'INTROUVABLE',
          'controle.frontiere_autorisee nomme une table absente de public'
   from controle.frontiere_autorisee f
-  where to_regclass('public.' || quote_ident(f."nomTable")) is null;
+  where to_regclass('public.' || quote_ident(f."nomTable")) is null
+
+  union all
+
+  -- (g) Le droit ne suffit pas quand la RLS est active : il faut une policy
+  -- qui nomme `regie`. Sans elle, l'écriture est filtrée **sans erreur** — la
+  -- Régie afficherait « enregistré » sur un référentiel inchangé. Ce contrôle
+  -- existe parce que le défaut a bien failli être livré.
+  select 'policy manquante ' || f."nomTable", 'RLS',
+         'Table en ECRITURE avec RLS active mais aucune policy pour le rôle regie : les écritures seront filtrées en silence'
+  from controle.frontiere_autorisee f
+  join pg_class c on c.oid = to_regclass('public.' || quote_ident(f."nomTable"))
+  where f.mode = 'ECRITURE'
+    and c.relrowsecurity
+    and not exists (
+      select 1 from pg_policy p
+      where p.polrelid = c.oid
+        and p.polcmd in ('*', 'a', 'w')
+        and (select oid from pg_roles where rolname = 'regie') = any(p.polroles)
+    );
 end;
 $fn$;
 
