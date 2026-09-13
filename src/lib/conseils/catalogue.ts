@@ -239,8 +239,14 @@ export const CATALOGUE: Conseil[] = [
   {
     id: 'eleves',
     titre: 'Inscrivez vos élèves',
-    texte: 'Une classe sans élève ne produit ni bulletin ni facture.',
-    action: { label: 'Ajouter un élève', href: '/etablissement/eleves' },
+    // L'action menait au formulaire unitaire. Une école arrive avec deux à
+    // quatre cents élèves déjà dans un tableur : lui proposer « Ajouter un
+    // élève » en premier, c'est lui proposer trois cents formulaires. La saisie
+    // à la main reste offerte sur la liste, pour l'élève qui arrive en cours
+    // d'année — elle n'est simplement plus le geste mis en avant.
+    texte:
+      "Une classe sans élève ne produit ni bulletin ni facture. Si votre liste est déjà dans un tableur, l'import vous évite de tout ressaisir.",
+    action: { label: 'Importer votre liste', href: '/etablissement/eleves/import' },
     roles: ADMIN,
     famille: 'FONDATION',
     prerequis: ['classes'],
