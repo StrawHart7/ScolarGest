@@ -189,24 +189,36 @@ async function statsAcademique(
   let evaluations = 0;
   let notesEnAttente = 0;
   if (classeIds.length > 0) {
-    const { data: evals, count } = await supabase
+    // `head: true` : on ne veut que le nombre. La version precedente ramenait
+    // les 1 340 lignes pour n'en garder que les identifiants, et ceux-ci
+    // servaient ensuite a fabriquer une URL de 52 Ko — voir juste en dessous.
+    const { count, error: erreurEvals } = await supabase
       .from('evaluation')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .in('classeId', classeIds);
+    if (erreurEvals) throw erreurEvals;
     evaluations = count ?? 0;
 
-    const evaluationIds = ((evals ?? []) as { id: string }[]).map((e) => e.id);
-    if (evaluationIds.length > 0) {
-      // « Notes à approuver » couvre les deux files que traite la Secrétaire :
-      // les soumissions initiales (SOUMISE) et les demandes de correction
-      // (EN_ATTENTE) sur des notes déjà validées.
-      const { count: enAttente } = await supabase
-        .from('note')
-        .select('*', { count: 'exact', head: true })
-        .in('evaluationId', evaluationIds)
-        .in('statut', ['SOUMISE', 'EN_ATTENTE']);
-      notesEnAttente = enAttente ?? 0;
-    }
+    // « Notes à approuver » couvre les deux files que traite la Secrétaire :
+    // les soumissions initiales (SOUMISE) et les demandes de correction
+    // (EN_ATTENTE) sur des notes déjà validées.
+    //
+    // **Le filtre porte sur les classes, pas sur les évaluations.** La version
+    // précédente listait chaque identifiant d'évaluation dans l'URL : sur cette
+    // école, 1 340 évaluations font **52 Ko d'URL**, que la passerelle refuse
+    // par un 400. L'erreur était avalée — `enAttente` valait `null`, donc le
+    // compteur affichait 0 — et le défaut empirait avec la taille de l'école :
+    // invisible sur une école neuve, permanent sur une vraie.
+    //
+    // Quatorze classes contre mille trois cent quarante évaluations, et le
+    // décompte ne dépend plus du nombre d'évaluations saisies dans l'année.
+    const { count: enAttente, error: erreurEnAttente } = await supabase
+      .from('note')
+      .select('id, evaluation:evaluation!inner("classeId")', { count: 'exact', head: true })
+      .in('evaluation.classeId', classeIds)
+      .in('statut', ['SOUMISE', 'EN_ATTENTE']);
+    if (erreurEnAttente) throw erreurEnAttente;
+    notesEnAttente = enAttente ?? 0;
   }
 
   const { count: bulletins } = await supabase

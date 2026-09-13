@@ -1883,6 +1883,78 @@ concernée » est le cas normal d'une correction à effet futur, mais c'est auss
 ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
 deux indistinguables.
 
+### Sous RLS, un index absent ne coûte pas une lenteur : il coûte un délai dépassé
+
+Le 2026-09-13, `/dashboard` tombait par intermittence et un rechargement
+suffisait. Diagnostiqué **par les journaux de la base**, pas par le code.
+
+Le décompte des notes en attente expirait (`57014`). `EXPLAIN` sur la requête
+nue, **sans RLS** :
+
+    Seq Scan on note  (actual time=281.687..281.687 rows=0)
+      Rows Removed by Filter: 28131
+    Execution Time: 283.092 ms
+
+283 ms pour rendre **zéro ligne**, parce que `note.statut` n'avait aucun index.
+Ce serait tolérable dans une base ordinaire. Ici la policy `note_lecture` ajoute
+**par ligne** un `EXISTS (select 1 from evaluation join classe ...)` : le
+parcours de 28 131 lignes devient 28 131 sous-plans corrélés, et la requête
+dépasse le délai.
+
+**C'est le multiplicateur à retenir.** Les tables les plus protégées par la RLS
+— notes, paiements — sont aussi les plus grosses, et c'est précisément là que
+l'absence d'index se paie au carré. Après l'index partiel : **0,122 ms**, un
+buffer au lieu de 420.
+
+**Partiel, et pourquoi.** Les statuts réels sont `VALIDE` (27 793) et
+`BROUILLON` (338) ; `SOUMISE` et `EN_ATTENTE` sont des états de passage dans un
+circuit de validation, donc une minorité structurelle. Un index complet
+indexerait 28 000 lignes pour en servir trois et se réécrirait à chaque
+validation de note.
+
+### Une liste d'identifiants dans une URL est une bombe à retardement
+
+Même journée, même écran. Le tableau de bord lisait les évaluations de l'école
+puis comptait les notes avec `.in('evaluationId', evaluationIds)`. Sur cette
+école : **1 340 évaluations, soit 52 Ko d'URL**, refusés par la passerelle en
+`400`.
+
+Le défaut est invisible sur une école neuve et permanent sur une vraie : il
+grandit avec la donnée. **Filtrer par la relation** (`evaluation!inner` sur
+`classeId`, quatorze valeurs) ne dépend plus de rien qui grandisse.
+
+Règle : dès qu'un `.in(...)` reçoit une liste dont la taille suit les données
+d'une école, c'est une jointure imbriquée qu'il faut écrire, pas une liste.
+
+### Une requête dont on ne lit pas l'erreur rend un zéro crédible
+
+`const { data } = await supabase.from(...)` **avale l'erreur**. `data` vaut
+`null`, et le code continue avec zéro.
+
+`bilanCloture` en portait deux : `from('facture')` (la table s'appelle
+`facture_eleve`, réponse 404) et `paiement` filtré sur `etablissementId` (la
+colonne n'existe pas, réponse 400 — piège déjà écrit dans ce fichier, et refait).
+L'écran annonçait donc **0 facture non soldée** et **0 F à recouvrer** à un
+Directeur sur le point de clôturer une année — geste irréversible.
+
+Ni l'une ni l'autre n'a jamais levé, donc aucune alerte, aucun Sentry, aucune
+ligne dans la Régie. **Un défaut qui lève se corrige ; un défaut qui rend zéro
+se croit.** Toute lecture Supabase récupère `error` et lève, sans exception —
+même quand le retour est « seulement » un compteur d'affichage.
+
+### Les journaux de la base disent ce que le code ne montre pas
+
+Ces trois défauts ont été trouvés en lisant `edge_logs`, `postgres_logs` et
+`postgrest_logs`, pas en relisant les services. Deux d'entre eux étaient
+**invisibles dans le code** : il fallait connaître le nom réel d'une table et
+l'absence réelle d'une colonne.
+
+Devant une page qui tombe par intermittence, l'ordre utile est : journaux de la
+base d'abord, `EXPLAIN` ensuite, code en dernier. Et vérifier **quand** les
+erreurs surviennent : les `504` de ce jour-là apparaissaient aussi la veille à
+16h, 20h et minuit — donc hors de toute activité de développement, ce qui les
+disqualifie comme conséquence d'un déploiement.
+
 ### Une file qui ne part pas tout de suite fait recliquer, et l'argent double
 
 Constaté en production le 2026-09-13 : **57 000 F encaissés deux fois**, à

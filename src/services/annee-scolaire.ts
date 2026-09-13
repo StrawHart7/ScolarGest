@@ -133,29 +133,57 @@ export interface BilanCloture {
  * Volontairement informatif et non bloquant : c'est au Directeur de décider
  * s'il clôture avec des impayés (fréquent) ou des notes en attente. Le lui
  * cacher serait pire que le lui laisser trancher.
+ *
+ * ## Trois défauts corrigés le 2026-09-13, dont deux muets
+ *
+ * Trouvés dans les journaux de la base, pas dans le code — c'est le genre de
+ * défaut qu'aucune relecture n'attrape :
+ *
+ * - `from('facture')` : **la table s'appelle `facture_eleve`**. PostgREST
+ *   répondait 404.
+ * - `paiement` filtré sur `etablissementId` : **cette colonne n'existe pas**
+ *   sur cette table, pas plus que sur `note` ou `evaluation`. Le piège est
+ *   écrit dans `CLAUDE.md` et il a été refait ici. Réponse 400.
+ * - le décompte des notes expirait faute d'index — voir la migration
+ *   `20260913141655`.
+ *
+ * **Et aucune des deux premières ne levait**, parce que le code ne récupérait
+ * pas `error`. `factures` et `paiements` valaient `null`, donc l'écran
+ * annonçait `0 facture non soldée` et `0 F à recouvrer` — à un Directeur sur
+ * le point de clôturer une année, geste **irréversible**. Une requête qui
+ * échoue doit lever ; un zéro crédible est le pire des retours.
+ *
+ * Le montant réglé passe par une jointure imbriquée sur `facture_eleve` et non
+ * par une liste d'identifiants : cette école a 1 340 évaluations et 286
+ * factures, et une liste d'identifiants dans l'URL est une bombe à retardement
+ * — c'est exactement ce qui cassait le tableau de bord au même moment.
  */
 export async function bilanCloture(anneeScolaireId: string): Promise<BilanCloture> {
   const ctx = await requireRole('DIRECTEUR');
   const supabase = createClient();
 
-  const { count: notesEnAttente } = await supabase
+  const { count: notesEnAttente, error: erreurNotes } = await supabase
     .from('note')
     .select('id, evaluation:evaluation!inner("anneeScolaireId")', { count: 'exact', head: true })
     .eq('statut', 'EN_ATTENTE')
     .eq('evaluation.anneeScolaireId', anneeScolaireId);
+  if (erreurNotes) throw erreurNotes;
 
-  const { data: factures } = await supabase
-    .from('facture')
+  const { data: factures, error: erreurFactures } = await supabase
+    .from('facture_eleve')
     .select('id, "montantTotal", statut')
     .eq('etablissementId', ctx.etablissementId)
     .eq('anneeScolaireId', anneeScolaireId)
     .in('statut', ['IMPAYE', 'PARTIEL']);
+  if (erreurFactures) throw erreurFactures;
 
-  const { data: paiements } = await supabase
+  const { data: paiements, error: erreurPaiements } = await supabase
     .from('paiement')
-    .select('montant, "factureId", statut')
-    .eq('etablissementId', ctx.etablissementId)
+    .select('montant, "factureId", facture:facture_eleve!inner("anneeScolaireId","etablissementId")')
+    .eq('facture.anneeScolaireId', anneeScolaireId)
+    .eq('facture.etablissementId', ctx.etablissementId)
     .neq('statut', 'ANNULE');
+  if (erreurPaiements) throw erreurPaiements;
 
   const payeParFacture = new Map<string, number>();
   for (const p of (paiements ?? []) as { montant: number; factureId: string }[]) {
