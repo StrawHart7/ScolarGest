@@ -234,18 +234,26 @@ export default async function SuiviPaiementsPage({
                     <TableRow>
                       <TriColonne cle="eleve">Nom de l&apos;élève</TriColonne>
                       <TriColonne cle="classe">Classe</TriColonne>
-                      {/* L'unité était déclarée une seule fois, dans la
-                          parenthèse de la ligne de totaux — qui vient de
-                          disparaître. Sans elle, trois colonnes de nombres nus
-                          sur un écran de recouvrement. */}
+                      {/* Pas de « (FCFA) » dans ces trois intitulés.
+                          Mesuré : le suffixe coûte 135px et fait passer le
+                          tableau de 876 à 1011px, pour 972px disponibles sur un
+                          écran de 1280 — les deux dernières colonnes sortaient
+                          du cadre. Un écran de 1920 à 150 % d'agrandissement,
+                          ce qui est le réglage par défaut de beaucoup de
+                          portables, vaut précisément 1280.
+
+                          L'unité n'est pas perdue : la bande de totaux la
+                          répète trois fois, en gros, juste au-dessus. La
+                          déclarer une quatrième fois par colonne coûtait une
+                          colonne entière. */}
                       <TriColonne cle="total" numerique>
-                        Total dû (FCFA)
+                        Total dû
                       </TriColonne>
                       <TriColonne cle="paye" numerique>
-                        Payé (FCFA)
+                        Payé
                       </TriColonne>
                       <TriColonne cle="solde" numerique>
-                        Reste à recouvrer (FCFA)
+                        Reste à recouvrer
                       </TriColonne>
                       <TriColonne cle="statut">Statut</TriColonne>
                     </TableRow>
