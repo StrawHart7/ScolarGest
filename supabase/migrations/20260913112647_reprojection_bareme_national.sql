@@ -238,6 +238,23 @@ begin
 end;
 $fn$;
 
+-- Une fonction de déclencheur est une fonction de `public` comme une autre, et
+-- `PUBLIC` en reçoit `EXECUTE` à la création — donc la Régie aussi. Oubli
+-- commis ici même, et **attrapé par le bloc d'épreuve de cette migration** :
+-- la branche (d) a refusé l'application et tout a été annulé.
+--
+-- L'appeler directement ne mènerait à rien — PostgreSQL refuse d'exécuter une
+-- fonction `returns trigger` hors du contexte d'un déclencheur — mais la
+-- branche (d) ne fait aucune exception, délibérément : juger au cas par cas ce
+-- qui est « inoffensif » est précisément ce qui laisse passer la fois de trop.
+--
+-- La révocation ne casse pas le déclencheur : PostgreSQL vérifie `EXECUTE` à
+-- la création du déclencheur, pas à chaque déclenchement, et la fonction
+-- appartient au propriétaire des tables. Le bloc d'épreuve plus bas le
+-- constate en provoquant une vraie reprojection.
+revoke all on function public.fn_reprojeter_bareme() from public;
+revoke all on function public.fn_reprojeter_bareme() from anon, authenticated;
+
 create trigger trg_reprojeter_bareme
   after insert or update of coefficient, confiance, "valableDe", "valableJusqua"
   on public.coefficient_officiel
