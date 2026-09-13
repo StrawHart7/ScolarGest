@@ -51,7 +51,20 @@ function LienSidebar({
   );
 }
 
-export function Sidebar({ items }: { items: SidebarItem[] }) {
+export function Sidebar({
+  items,
+  annonces,
+}: {
+  items: SidebarItem[];
+  /**
+   * Créneau pour les annonces de la plateforme (`AnnoncesSidebar`).
+   *
+   * Un créneau et non des données : cette barre est un composant client, elle
+   * ne peut rien lire en base. Le serveur rend le sous-arbre, elle lui donne sa
+   * place — exactement ce que permet un `ReactNode` en props.
+   */
+  annonces?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const { replie, basculer } = useSidebarCollapse();
 
@@ -125,6 +138,20 @@ export function Sidebar({ items }: { items: SidebarItem[] }) {
           ))}
         </ul>
       </nav>
+
+      {/*
+        L'annonce se pose entre la navigation et le pied, et non à la toute fin.
+
+        Deux raisons. La navigation défile (`flex-1 overflow-y-auto`) : posée
+        dedans, l'annonce sortirait de l'écran d'un rôle qui a beaucoup
+        d'entrées — le Directeur en a onze. Et le pied porte Paramètres, Aide et
+        Support, trois destinations permanentes : glisser un message de la
+        plateforme au milieu d'elles ferait prendre l'un pour l'autre.
+
+        Elle vient donc juste au-dessus, adossée au trait du pied : toujours
+        visible, jamais confondue avec un lien.
+      */}
+      {annonces}
 
       {/* Paramètres et Aide restent accessibles sans faire défiler la navigation. */}
       <div className="border-t border-surface-border px-3 py-3">

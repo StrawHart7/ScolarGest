@@ -78,40 +78,54 @@ export function CarteMetrique({
 }: CarteMetriqueProps) {
   const contenu = (
     <>
-      <div className="flex items-start justify-between gap-2 md:gap-3">
-        <p
-          className={cn(
-            'text-console-eyebrow uppercase text-text-secondary',
-            // Le cartouche ne descend pas sous 11px : c'est le plancher de
-            // l'echelle, et des capitales espacees se lisent moins bien que
-            // du bas-de-casse a taille egale. On resserre donc l'interlettre
-            // plutot que le corps.
-            //
-            // La hauteur est reservee pour deux lignes : dans une grille a
-            // deux colonnes sur telephone, « REVENU RECURRENT » se coupe la ou
-            // « ECOLES » tient sur une, et les deux chiffres ne partageaient
-            // plus la meme ligne de base — le defaut saute aux yeux des que
-            // deux cartes se touchent.
-            compact && 'max-md:min-h-[28px] max-md:tracking-[0.06em]',
-          )}
+      {/*
+        Pastille a gauche, intitule a sa droite, rien d'autre sur la ligne.
+
+        La version precedente mettait l'intitule a gauche et un bloc
+        « fleche + pastille » a droite, avec l'intitule en capitales espacees
+        (`console-eyebrow`, 11px, 0,09em). Deux defauts s'additionnaient, et
+        l'utilisateur les a vus en premier — les etiquettes cassaient sur deux
+        lignes et la rangee poussait le reste de la page hors de l'ecran.
+
+        Mesure a 1280px CSS (soit 1920 physiques a 150 %, le reglage par defaut
+        de beaucoup de portables), carte de 231px :
+
+          budget de l'intitule, ancienne disposition : 121px
+          « ENCAISSE CETTE ANNEE » en capitales       : 154px  -> deux lignes
+          « Encaissé cette année » en casse normale   : 132px  -> deux lignes
+          budget, pastille a gauche et sans fleche    : 132px  -> une ligne
+
+        Les capitales etaient donc le gros du probleme — plus larges de 17 a
+        25 % que la casse normale malgre un corps plus petit — mais **pas la
+        totalite** : la casse normale seule ne suffisait pas, et ne gagnait
+        aucun pixel de hauteur. Il fallait aussi rendre a l'intitule la place
+        que le bloc d'icones lui prenait.
+
+        La fleche `ArrowUpRight` disparait : c'est elle qui coutait les 24px
+        manquants. Ce qu'elle disait — « cette carte mene quelque part » — est
+        deja dit par le soulevement au survol, la bordure qui se teinte et
+        l'anneau de focus. Elle avait deja coute un defaut, documente plus haut
+        dans l'historique de ce fichier : posee en absolu elle chevauchait la
+        ligne de comparaison, posee dans la rangee elle flottait au milieu.
+      */}
+      <div className={cn('flex items-center gap-2.5', compact && 'max-md:min-h-[36px]')}>
+        <span
+          className={cn('shrink-0 rounded-lg', PASTILLE[ton], compact ? 'p-1.5 md:p-2' : 'p-2')}
         >
-          {label}
-        </p>
-        {/* Fleche et pastille forment un bloc. La fleche posee en absolu dans
-            un coin chevauchait la ligne de comparaison sur carte etroite ;
-            laissee seule dans la ligne, `justify-between` la renvoyait au
-            milieu, orpheline entre l'intitule et la pastille. */}
-        <span className="flex shrink-0 items-start gap-2">
-          {href && (
-            <ArrowUpRight
-              className="mt-1.5 size-4 text-text-secondary opacity-40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-              aria-hidden
-            />
-          )}
-          <span className={cn('rounded-lg', PASTILLE[ton], compact ? 'p-1.5 md:p-2' : 'p-2')}>
-            <Icone className="h-4 w-4" aria-hidden />
-          </span>
+          <Icone className="h-4 w-4" aria-hidden />
         </span>
+        {/*
+          Casse normale, pas un cartouche. `DESIGN.md` reserve
+          `label-md uppercase` aux **en-tetes de colonnes** ; c'est la meme
+          regle que celle deja ecrite pour les etiquettes de formulaire, et
+          elle vaut ici pour la meme raison.
+
+          La hauteur est reservee pour deux lignes en mode resserre : dans une
+          grille a deux colonnes sur telephone, « Encaissé cette année » se
+          coupe la ou « Écoles » tient sur une, et les deux chiffres ne
+          partageraient plus la meme ligne de base.
+        */}
+        <p className="min-w-0 text-body-sm font-medium text-text-secondary">{label}</p>
       </div>
 
       <div
