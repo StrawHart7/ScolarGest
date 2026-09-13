@@ -2,6 +2,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { TypeOperation } from './operations';
+import { oublierIdentite } from './identite-locale';
 
 /**
  * Ouverture unique de la base locale.
@@ -122,6 +123,11 @@ export function ouvrirBase(): Promise<IDBPDatabase<BaseLocale>> {
  * `DeconnexionButton`).
  */
 export async function effacerToutLeLocal(): Promise<void> {
+  // La derniere identite connue designe le casier de la file qu'on vide juste
+  // apres : la laisser derriere ferait deposer le signalement du compte suivant
+  // dans le casier du precedent.
+  oublierIdentite();
+
   try {
     const db = await ouvrirBase();
     await Promise.all([
