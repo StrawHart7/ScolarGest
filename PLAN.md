@@ -3485,6 +3485,137 @@ sortants.
 
 ---
 
+### Constat — un versement encaissé deux fois, et la cause n'était pas l'idempotence
+
+2026-09-13, en production. **57 000 F comptés deux fois** chez un élève de
+« Les Victorieux », à 2,44 secondes d'intervalle, chacun avec **sa propre clé
+d'idempotence** — donc deux opérations légitimes du point de vue du serveur.
+
+**Le premier diagnostic était juste et inutile.** J'ai accusé la clé : elle
+protège une *soumission* et non une *intention*. Vrai, et ça n'aurait rien
+réparé — la Comptable aurait continué de voir une écriture en attente qui ne
+part pas. C'est l'utilisateur qui a redressé le diagnostic : « rien ne dit que
+la transaction a été confirmée, donc on reclique ».
+
+**La vraie cause** : `mettreEnFile` déposait et rafraîchissait l'affichage sans
+**jamais tenter l'envoi**. Celui-ci n'avait lieu qu'à une transition
+hors-ligne vers en-ligne, au filet de rattrapage de cinq minutes, ou sur un
+clic. Or l'écran met en file quand `navigator.onLine` dit faux — et il ment.
+Réseau disponible, aucune transition, **rien ne partait**, pendant que le
+bandeau affichait « Envoi en cours dès que possible ».
+
+**Corrigé** : l'écriture part immédiatement et `mettreEnFile` rend
+`{cle, envoyee}` ; le formulaire se verrouille après dépôt et distingue
+« enregistré » de « en attente » ; le bandeau a quatre états au lieu d'une
+promesse unique.
+
+**Les deux versements restent en base**, sur décision de l'utilisateur. Le
+balayage complet ne trouve qu'une autre facture à signature voisine — quatre
+versements de 1 000 F espacés de 64 à 163 s, ce qui ressemble à une saisie de
+test.
+
+**Reste ouvert** : aucun geste pour écarter une écriture que le serveur refuse
+définitivement. Elle reste en file jusqu'à la déconnexion.
+
+---
+
+### Constat — l'après-midi des défauts silencieux
+
+Quatre défauts trouvés le 2026-09-13 **dans les journaux de la base**, pas en
+relisant le code. Deux d'entre eux y étaient invisibles : il fallait connaître
+le nom réel d'une table et l'absence réelle d'une colonne.
+
+**L'index manquant, et le multiplicateur de la RLS.** Le décompte des notes en
+attente expirait. `EXPLAIN` sans RLS : **283 ms pour rendre zéro ligne**, en
+parcourant les 28 131 notes faute d'index sur `note.statut`. Tolérable
+ailleurs ; ici la policy ajoute un `EXISTS` **par ligne**. Index partiel
+(migration `20260913141655`) : **0,122 ms**, un buffer au lieu de 420.
+
+**52 Ko d'URL.** Le tableau de bord listait les 1 340 identifiants d'évaluation
+de l'école pour compter les notes à approuver. Refusé en 400, erreur avalée,
+compteur à zéro. Invisible sur une école neuve, permanent sur une vraie. Le
+filtre passe par la relation : quatorze classes.
+
+**Deux zéros crédibles avant un geste irréversible.** `bilanCloture`
+interrogeait `facture` (la table s'appelle `facture_eleve`) et filtrait
+`paiement` sur `etablissementId` (colonne inexistante). Aucune ne levait —
+`error` n'était pas récupéré. L'écran annonçait **0 facture non soldée, 0 F à
+recouvrer** au Directeur sur le point de clôturer une année.
+
+**Le verrou d'abonnement se trompait en silence.** Même défaut dans le
+middleware : un `504` y donnait `data = null`, donc une école payante évaluée
+comme neuve. `src/lib/reessayer.ts` rejoue **une** lecture, et au second échec
+on laisse passer sans conclure — c'est une barrière de facturation, pas
+d'authentification.
+
+**Ce qui n'était pas un défaut** : j'ai annoncé que l'instrumentation de la
+Régie désignait la mauvaise page. Faux — les `504` frappent des lectures du
+layout, présentes partout. Et ils ne viennent pas des déploiements : ils
+apparaissent aussi la veille à 16h, 20h et minuit. 1 à 4 par heure, trait de
+l'infrastructure.
+
+---
+
+### Fonctionnalité — Régie : le suivi, et les primitives enfin éprouvées
+
+**Statut** : ✅ livrée le 2026-09-13. Dépôt `ScolarGest-Regie`, aucune migration.
+
+`controle.note_ecole` et `controle.tache` existaient depuis les agrégats **sans
+lecteur ni écrivain**. Elles ont leurs écrans : notes et gestes sur la fiche
+d'école, gestes ouverts sur le cockpit.
+
+Trois décisions : **pas d'élévation** — elle protège ce qui touche une école, et
+une note privée ne touche rien ; l'exiger apprendrait à la laisser ouverte en
+permanence. **Pas de journal** — `controle.journal` est chaîné, y verser des
+pense-bêtes noierait les corrections de barème. **Deux issues pour un geste**,
+fait ou abandonné, aucune ne supprimant la ligne.
+
+**Le défaut attrapé avant de déployer** : le premier jet joignait
+`public.etablissement` pour le nom de l'école. `regie` n'a **aucun** droit
+dessus — tous ses écrans passent par `controle.mv_sante_ecole`. La requête
+aurait planté le cockpit.
+
+**Et le TOTP est éprouvé.** Écrit à la main dans ce dépôt et défendu comme
+« vérifiable en une lecture » — c'était une affirmation sans test. Les **six
+vecteurs de l'annexe B de la RFC 6238** en font un fait, plus la dérive
+tolérée, la saisie humaine, et le compteur au-delà de 2^31 fenêtres.
+
+---
+
+### Fonctionnalité — Annonces : la lecture devient une donnée
+
+**Statut** : ✅ livrée le 2026-09-13, migration `20260913150152`. L'affichage vit
+sur la branche `VERNI`, en attente d'aval.
+
+L'annonce ne se ferme pas depuis la barre latérale — c'est ce qui lui donne sa
+durée. Mais au bas du **lecteur plein texte**, un bouton « ne plus afficher » :
+il faut avoir ouvert pour pouvoir écarter, et refuser ce geste à quelqu'un qui
+vient de tout lire transforme l'information en décor.
+
+**Par personne, pas par école.** Si la Directrice écarte, la Secrétaire voit
+toujours. Le compteur d'écoles se déduit des personnes ; l'inverse ne se
+rattrape pas. Ni `update` ni `delete` : « j'ai lu » est un fait daté, et une
+ligne effaçable rendrait le KPI révisable par ceux qu'il compte.
+
+**Le KPI** : `controle.v_annonce_lecture`, trois dénombrements et aucun
+identifiant, avec le dénominateur — « 3 / 5 écoles » se lit, « 3 écoles » ne
+dit rien. La vue vit dans `controle` : la poser dans `public` aurait exigé de la
+déclarer dans `frontiere_autorisee`, donc de faire passer pour un accès au
+produit ce qui est un agrégat du plan de contrôle.
+
+**L'ordre d'affichage change** : `finitLe` croissant, la plus périssable
+d'abord. L'ancien tri promouvait la plus ancienne — celle qu'on a déjà vue
+quatre jours — et reléguait une maintenance prévue le soir même.
+
+**Côté Régie, deux ajouts** : l'écran des annonces montre la portée réelle, et
+`Fraicheur` garde l'écran à jour — rafraîchissement au retour sur l'onglet,
+puis toutes les trente secondes onglet visible, **jamais pendant une saisie**,
+avec l'âge de l'information affiché en clair. Un écran rendu côté serveur est
+un instantané, et on cherchait des défauts qui n'étaient qu'une page pas
+rechargée.
+
+---
+
 ### Constat — compter les lignes ne dit rien de ce qu'elles contiennent
 
 `agregats_regie` portait un contrôle de vraisemblance : refuser de s'appliquer

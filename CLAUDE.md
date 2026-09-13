@@ -312,6 +312,19 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
+**Active branches** (2026-09-13) :
+- `SOKO` — ✅ fusionnée sur `main` tout au long du 2026-09-13, agent SOKO. La
+  Régie est complète et en ligne ; côté produit : télémétrie branchée, bandeau
+  d'annonce, signalement d'erreur avec dépôt différé, reprojection du barème
+  national, index `note_a_traiter`, `annonce_lue`, et quatre défauts silencieux
+  corrigés (voir `PLAN.md`). Migrations `20260913011738` à `20260913150152`,
+  **toutes appliquées**.
+- `VERNI` — **poussée, non fusionnée** (2026-09-13), agent VERNI : l'annonce
+  passe dans un cadre de la barre latérale à partir de `md`, le bandeau du flux
+  reste sur téléphone, et la seconde annonce devient une rangée d'une ligne pour
+  ne pas manger la moitié de l'écran. Aucune migration. **En attente de l'aval
+  de l'utilisateur**, et il lui reste à poser le bouton « ne plus afficher » au
+  bas du lecteur (l'action `marquerAnnonceLueAction` l'attend).
 **Active branches** (2026-09-12) :
 - `docs/soko-cadre-reglementaire` — ✅ terminée et mergée sur `main`
   (2026-09-12), agent SOKO : le référentiel national fait autorité — matières,
@@ -1882,6 +1895,43 @@ Corollaire tenu ici : le cas zéro **se dit**. « Aucune école n'était
 concernée » est le cas normal d'une correction à effet futur, mais c'est aussi
 ce qu'on verrait si la reprojection était cassée. Taire le zéro rendrait les
 deux indistinguables.
+
+### Une annonce se lit par une personne, et se compte par école
+
+Migration `20260913150152`. L'annonce ne se ferme pas depuis la barre latérale —
+c'est ce qui lui donne sa durée. Mais au bas du **lecteur plein texte**, un
+bouton « ne plus afficher » : il faut avoir ouvert pour pouvoir écarter, et
+refuser ce geste à quelqu'un qui vient de tout lire transforme l'information en
+décor. On apprend vite à sauter le décor.
+
+**La marque est posée par personne, jamais par école.** C'était le point qui
+décidait du modèle : si la Directrice écarte « les épreuves du BAC commencent
+lundi », la Secrétaire et le Comptable ne la verront jamais, et personne ne
+saura qu'ils ne l'ont pas vue. Le compteur d'écoles se déduit très bien des
+personnes ; l'inverse ne se rattrape pas.
+
+**Ni `update` ni `delete`.** « J'ai lu » est un fait daté, pas un réglage. Une
+ligne effaçable rendrait le compteur de la Régie révisable par ceux qu'il
+compte.
+
+**Le dénominateur fait partie du KPI.** `controle.v_annonce_lecture` rend
+`nbLecteurs`, `nbEcoles` **et** `ecolesConcernees` : « 3 écoles ont lu » ne veut
+rien dire sans savoir si l'annonce en visait cinq ou deux cents.
+
+**La vue vit dans `controle`, pas dans `public`.** La branche (a) du contrôle de
+frontière n'inspecte que `public` : y poser une vue lisible par la Régie aurait
+exigé de la déclarer dans `frontiere_autorisee`, donc de faire passer pour un
+accès au produit ce qui est un agrégat du plan de contrôle. Une vue s'exécute
+sous les droits de son propriétaire — la Régie n'hérite d'aucun accès à
+`public.annonce_lue`, qui nomme des personnes.
+
+**L'ordre d'affichage est devenu une décision.** Depuis que la première annonce
+garde sa carte et que la suivante devient une rangée d'une ligne, le tri décide
+de la mise en avant. C'est `finitLe` croissant — **la plus périssable d'abord**.
+Trier par date d'ouverture promouvait la plus ancienne, celle qu'on a déjà vue
+quatre jours, et reléguait une maintenance prévue le soir même. Pas de
+hiérarchie entre les types : une maintenance a une fenêtre courte par nature,
+elle passe devant toute seule.
 
 ### Le verrou d'abonnement laisse passer quand il ne sait pas
 
