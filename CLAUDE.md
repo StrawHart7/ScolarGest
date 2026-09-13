@@ -1690,6 +1690,118 @@ FedaPay**.
 `vercel_auth_enabled` renvoie un 401 avant d'atteindre le code. Il faut une
 exception de chemin sur `/api/fedapay/webhook`, ou tester en production.
 
+### La Régie : ce que le produit lui doit, et ce qu'il ne lui doit pas
+
+Migrations `20260913011738` à `20260913033201`, appliquées le 2026-09-13. La
+console fondateur vit dans un **dépôt séparé** (`ScolarGest-Regie`) et partage
+cette base. Le contrat entre les deux n'est pas du code, c'est le schéma.
+
+**Le principe, avant tout le reste** : la Régie n'est jamais sur le chemin
+critique d'une école. Aucune route du produit ne l'appelle ; ce qu'elle publie
+— référentiel, annonces, drapeaux — vit dans `public` et se lit sans elle.
+`controle` ne porte aucune clé étrangère vers `public`, délibérément : la
+télémétrie ne doit rien contraindre dans le produit.
+
+**La frontière est une requête, pas une consigne.** Le rôle `regie` n'a aucun
+droit sur `eleve`, `note`, `facture_eleve`, `paiement`, `inscription`,
+`document`, `responsable`, `utilisateur`, `etablissement` ni `support_demande`.
+Ce qu'il peut toucher est déclaré **en donnée** dans
+`controle.frontiere_autorisee`, et `public.regie_frontiere_debordements()` doit
+rendre zéro ligne en permanence — `scripts/verifier-frontiere-regie.ts` le
+rejoue. Le contrôle porte **dans les deux sens** : il échoue aussi si la Régie
+ne peut pas lire ce qu'on lui déclare, sans quoi un rôle inerte passerait tous
+les tests de non-accès.
+
+Trois modes, et le second est le plus important : `LECTURE`, `ECRITURE`
+(SELECT/INSERT/UPDATE — **jamais DELETE**, parce qu'une valeur nationale
+erronée se ferme par `valableJusqua` au lieu de s'effacer), et
+`ECRITURE_SUPPRESSION`, réservé aux tables de réglage courant.
+
+**`PUBLIC` n'a plus `EXECUTE` sur les fonctions de `public`**, ni sur les
+existantes ni par défaut. C'est le point qui rendait tout le reste décoratif :
+tout rôle est membre de `PUBLIC`, donc `regie` pouvait appeler les neuf
+fonctions `SECURITY DEFINER` du produit, qui s'exécutent avec les droits de
+leur propriétaire. Conséquence pour toute migration future : les
+`default privileges` de Supabase continuent d'accorder `anon`,
+`authenticated` et `service_role` nominativement — rien à faire de plus — mais
+ne jamais compter sur `PUBLIC`.
+
+**La RLS s'applique aussi à `regie`.** Un `grant insert, update` sur une table
+dont la seule policy est une lecture ne produit rien, **et le refus est
+silencieux** : l'écran aurait affiché « enregistré » sur un référentiel
+inchangé. D'où les policies `*_regie` et le contrôle (g), qui échoue si une
+table en écriture n'en a pas.
+
+**Trois fonctions nouvelles dans `public`**, toutes `SECURITY DEFINER` et
+toutes lisant l'établissement du JWT plutôt que de le recevoir :
+
+- `emettre_evenement(type, meta)` — `meta` ne transporte **jamais** de contenu.
+  Vocabulaire fermé, valeurs scalaires, chaînes bornées à 64 caractères, tenu
+  par `controle.meta_sans_contenu` en contrainte `CHECK`. Le miroir TypeScript
+  est `src/lib/telemetrie.ts`, et un test lit la migration réelle pour que les
+  deux ne divergent pas.
+- `signaler_erreur(empreinte, nom, route, code)` — **ni message ni trace** :
+  un message d'erreur cite volontiers la valeur fautive, et les erreurs
+  Supabase le font systématiquement dans `details` et `hint`. Sentry a le
+  détail, la Régie a le dénombrement. Débit borné en base, pas côté client —
+  c'est le client qui déraille quand une page boucle.
+- `drapeau_actif(code)` — ordre : arrêt, puis décision par école, puis
+  pourcentage déterministe sur `(code, école)`, puis défaut. Un drapeau inconnu
+  rend `false` sans lever, ce qui est l'état entre le déploiement du code et la
+  création du drapeau.
+
+**`src/services/telemetrie.ts` ne lève jamais**, par conception et non par
+tolérance : perdre un événement ne coûte rien, perdre un encaissement coûte une
+journée de caisse. C'est la seule fonction du dépôt dans ce cas avec
+`journaliserConnexion`.
+
+**Les agrégats sortent par des vues matérialisées**, pas par un droit de
+lecture. `controle.mv_sante_ecole` et `mv_revenu` sont possédées par
+`postgres`, donc calculées hors RLS — vérifié que `relforcerowsecurity` vaut
+`false` sur les quatorze tables lues, sans quoi elles auraient été
+**silencieusement vides**. Rafraîchies par `controle.rafraichir_agregats()`,
+déclenchée par l'affichage faute de `pg_cron` sur ce projet. **Pas de
+`concurrently`** : la forme concurrente ne s'exécute pas dans un bloc
+transactionnel, donc pas depuis une fonction.
+
+### Un contrôle de vraisemblance porte sur le contenu, pas sur le cardinal
+
+`mv_sante_ecole` retenait l'année scolaire de `dateDebut` la plus récente. Une
+école prépare l'année suivante avant de clore la courante : la plus récente est
+donc régulièrement une année **à venir**, vide par nature. « Les Victorieux »
+s'affichait à 0 classe et 0 élève avec 286 inscrits en base.
+
+Le contrôle posé dans la migration vérifiait que la vue comptait autant de
+lignes que `etablissement`. Il a passé : il y avait bien cinq lignes, toutes
+fausses. Le défaut ne produit ni erreur ni ligne manquante — il produit des
+**zéros crédibles**, et un zéro crédible se croit.
+
+Deux règles :
+
+- **« La plus récente » n'est pas « la courante ».** Tout agrégat se cale sur
+  `statut = 'ACTIVE'`, avec un départage total (`id` en dernier critère) sans
+  quoi `distinct on` change de réponse d'un rafraîchissement à l'autre.
+- **Un contrôle de vraisemblance compare des valeurs**, jamais des cardinaux.
+  Le bon est ici « existe-t-il une école annoncée à zéro inscription qui en a
+  dans son année ACTIVE », formulé sans nommer personne.
+
+### Le journal des migrations est partagé, donc une branche les porte toutes
+
+`npx supabase db push` a refusé de partir sur `SOKO` : la base portait
+`20260912165732_support_reponse_piece_jointe`, appliquée par une autre session,
+dont le fichier vivait sur `feat/soko-piece-jointe-reponse`. La base étant
+partagée, **toute branche qui veut pousser doit porter tous les fichiers déjà
+appliqués**, y compris ceux d'une fonctionnalité qui n'est pas la sienne. La
+parade est de reprendre le fichier seul (`git checkout <branche> -- <chemin>`),
+sans le code qui l'accompagne.
+
+**Ne pas suivre la suggestion du CLI**, qui propose
+`supabase migration repair --status reverted <version>`. Les colonnes existent
+réellement : les marquer « revertées » ferait mentir le journal sur l'état du
+schéma, et le prochain `db push` tenterait de les recréer. Le CLI ne peut pas
+distinguer « fichier absent » de « migration à annuler », et il suggère par
+défaut la plus destructrice des deux.
+
 ## Organisation : deux agents nommés
 
 Le travail se répartit entre **deux sessions parallèles**, chacune avec un nom

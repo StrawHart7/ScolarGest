@@ -3274,3 +3274,77 @@ défaut.
 À lui attribuer, ou à coordonner.
 
 ---
+
+### Fonctionnalité — Régie : le plan de contrôle, côté produit
+
+**Statut** : ✅ livrée le 2026-09-13, branche `SOKO`. Migrations
+`20260913011738_socle_regie`, `20260913013344_commande_regie`,
+`20260913013349_erreurs_regie`, `20260913013355_agregats_regie`,
+`20260913033026_frontiere_suppression`, `20260913033201_agregats_annee_active`
+— **toutes appliquées**. La console elle-même vit dans un dépôt séparé,
+`D:\StrawHart\Business\ScolarGest-Regie`.
+
+**Objectif** : donner à la console fondateur de quoi voir la plateforme et lui
+parler, sans jamais lui donner accès au contenu des écoles.
+
+**Ce qui a été fait, côté produit** :
+
+- **Schéma `controle`**, invisible de PostgREST, sans aucune clé étrangère vers
+  `public` : le produit doit pouvoir vivre sans lui, et une trace doit survivre
+  à son sujet.
+- **Rôle Postgres `regie`**, créé sans mot de passe donc inerte jusqu'à ce que
+  quelqu'un lui en pose un hors migration. Ses droits sur `public` tiennent en
+  neuf lignes, déclarées en **donnée** dans `controle.frontiere_autorisee` et
+  non en commentaire.
+- **`public.regie_frontiere_debordements()`** : sept contrôles, doit rendre
+  zéro ligne en permanence. Rejoué par `scripts/verifier-frontiere-regie.ts`
+  ici et par `npm run frontiere` côté Régie.
+- **`public.emettre_evenement(type, meta)`** et **`public.signaler_erreur(...)`**,
+  `SECURITY DEFINER`, qui lisent l'établissement et le rôle du JWT et ne les
+  reçoivent jamais. `src/services/telemetrie.ts` ne lève jamais.
+- **`public.drapeau` / `drapeau_etablissement` / `drapeau_actif(code)`** : arrêt,
+  ciblage, pourcentage déterministe. Premier consommateur réel :
+  `projeterReferentielNational`.
+- **`public.evenement_global_publie`** : annonces aux écoles, lisibles seulement
+  une fois publiées. **Le produit ne les affiche pas encore** — la table est
+  écrite et lue par la Régie, le bandeau côté école reste à faire.
+- **`controle.mv_sante_ecole` / `mv_revenu`** : agrégats calculés par une
+  fonction `SECURITY DEFINER`, dont la Régie ne fait qu'un `SELECT`.
+
+**Ce qui reste** :
+
+- [ ] Le bandeau d'annonce côté école, qui consomme `evenement_global_publie`.
+- [ ] `signaler_erreur` n'est appelé par personne : `src/app/error.tsx` doit
+      l'appeler, en plus de Sentry.
+- [ ] Le rôle `regie` n'a pas de mot de passe : la Régie ne peut pas encore se
+      connecter.
+
+**DoD** — `verifier-frontiere-regie.ts` muet, 444 tests verts, typecheck et
+lint verts, aucun comportement du produit modifié.
+
+---
+
+### Constat — compter les lignes ne dit rien de ce qu'elles contiennent
+
+`agregats_regie` portait un contrôle de vraisemblance : refuser de s'appliquer
+si `mv_sante_ecole` ne comptait pas autant de lignes que `etablissement`. Il a
+passé. Les cinq lignes étaient pourtant **toutes fausses** — la vue retenait
+l'année scolaire de `dateDebut` la plus récente, qui est régulièrement une
+année à venir, vide par nature. « Les Victorieux » s'affichait à 0 classe et
+0 élève avec 286 inscrits en base, et le total plateforme tombait à zéro.
+
+Le défaut ne produit ni erreur, ni page blanche, ni ligne manquante : il
+produit des **zéros crédibles**, et un zéro crédible se croit.
+
+Deux règles en sortent :
+
+- Un contrôle de vraisemblance porte sur le **contenu**, jamais sur le cardinal.
+  Le nouveau cherche une école que la vue annonce à zéro inscription alors
+  qu'elle en a dans son année ACTIVE — formulé sans nommer personne, donc
+  toujours vrai.
+- « La plus récente » n'est pas « la courante ». Le produit raisonne sur
+  `statut = 'ACTIVE'` depuis toujours ; tout agrégat doit s'y aligner, avec un
+  départage **total** (`id` en dernier critère) sans quoi `distinct on` change
+  de réponse d'un rafraîchissement à l'autre.
+
+---
