@@ -312,6 +312,21 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
+**Active branches** (2026-09-14) :
+- `feat/soko-directeur-complet` + `feat/soko-prise-en-main` +
+  `feat/soko-import-lisible` — ✅ terminées et mergées sur `main` (2026-09-14),
+  agent SOKO : le Directeur peut tout faire dans son établissement, le verrou de
+  domaine remplace les écrans vides, la checklist de configuration, le parcours
+  de prise en main réparé sur sept points relevés par un testeur, et l'import
+  donne son modèle au lieu de décrire son gabarit. Migration `20260914122558`,
+  **appliquée**. Voir `PLAN.md` § 8 et les sections « Le Directeur peut tout
+  faire », « Le verrou de domaine » et « L'import » de ce fichier.
+- `SOKO` (2026-09-13) — **poussée, non fusionnée** : le drapeau
+  `referentiel_national` est enfin lu par le produit. L'interrupteur existait
+  des deux côtés de la base et ne commandait rien — couper depuis la Régie
+  écrivait au journal et ne changeait rien chez les écoles. Aucune migration.
+  **En attente de l'aval de l'utilisateur.**
+
 **Active branches** (2026-09-13) :
 - `SOKO` — ✅ fusionnée sur `main` tout au long du 2026-09-13, agent SOKO. La
   Régie est complète et en ligne ; côté produit : télémétrie branchée, bandeau
@@ -2184,6 +2199,145 @@ réellement : les marquer « revertées » ferait mentir le journal sur l'état 
 schéma, et le prochain `db push` tenterait de les recréer. Le CLI ne peut pas
 distinguer « fichier absent » de « migration à annuler », et il suggère par
 défaut la plus destructrice des deux.
+
+### Le Directeur peut tout faire dans son établissement
+
+Migration `20260914122558`. Constat de terrain : un Directeur ouvrait « Tarifs »,
+voyait la page, voyait la liste vide, et **il n'y avait aucun bouton**. Rien ne
+lui disait pourquoi. Il ne pouvait conclure qu'une chose — que le produit est
+cassé.
+
+**Trois couches le refusaient à la fois** : l'écran masquait l'action, le
+service gardait `COMPTABLE, SECRETAIRE`, et la policy RLS nommait les deux mêmes
+rôles. En ouvrir deux aurait seulement déplacé le mur.
+
+C'était incohérent et pas seulement restrictif : `facture_eleve_ecriture`
+autorise le DIRECTEUR depuis `0001`. Il pouvait **émettre une facture**, mais ni
+créer le tarif sur lequel elle s'appuie, ni enregistrer le versement qui la
+solde. Une porte à moitié ouverte laisse commencer un geste qu'elle empêche de
+finir.
+
+La séparation Directeur / Comptable supposait une école dotée d'un personnel
+administratif. Beaucoup d'écoles togolaises n'ont qu'un directeur et des
+enseignants : exiger un Comptable pour saisir un tarif, c'est exiger une
+personne qui n'existe pas.
+
+**Deux droits qu'il avait déjà, sans pouvoir s'en servir.** Il approuve les
+notes depuis toujours — `exigerPin` accepte DIRECTEUR et SECRETAIRE — mais
+`listEvaluationsSoumises` et `listNotesEnAttente` étaient réservées à la
+Secrétaire : son écran d'approbation ne pouvait rien lui montrer, et la page de
+notifications ne l'alertait jamais. Une école sans secrétaire ne recevait aucun
+signal que des notes attendaient.
+
+**Ce qui reste fermé, délibérément** : `saisirNote` garde `ENSEIGNANT`. Un
+Directeur qui enseigne reçoit un compte enseignant — c'est ce qui garde deux
+paires d'yeux sur la note d'un élève, puisque c'est lui qui approuve. La policy
+`note_ecriture` nomme bien le DIRECTEUR, elle doit le faire pour que
+l'approbation écrive le statut ; la garde applicative, elle, reste fermée.
+
+**Un oubli attrapé par un test**, pas par une relecture : l'import financier
+avait été ouvert au Directeur dans le service et sur l'écran, mais pas dans la
+navigation. Il pouvait importer sans pouvoir atteindre la page.
+
+### Le verrou de domaine, et la checklist de configuration
+
+Trois surfaces répondent à trois questions différentes, et les confondre est ce
+qui manquait à la prise en main :
+
+- **`/demarrage`** — « par où je commence ? ». Linéaire, unique, sans retour.
+- **Le verrou de section** — « pourquoi ça ne marche pas ? ». Posé à l'endroit
+  exact où l'utilisateur se cogne.
+- **`/etablissement/configuration`** — « qu'est-ce qu'il me reste ? ». Permanent,
+  non linéaire, exhaustif.
+- **Les conseils** — « qu'est-ce que je ne sais pas encore que je peux faire ? »
+
+**Le verrou est par domaine, jamais global.** L'option d'enfermer le Directeur
+dans la configuration jusqu'à ce que tout soit fait a été pesée et écartée :
+trois des étapes ne dépendent pas de lui. Inviter les enseignants exige leurs
+adresses — et Supabase refuse les adresses non délivrables, le SMTP par défaut
+est limité en débit. Inscrire trois cents élèves exige un fichier resté à
+l'école. Fixer les tarifs est parfois une décision du conseil. Un verrou global
+se refermerait sur des gens et des documents qu'il n'a pas sous la main,
+pendant que son essai de trente jours brûle.
+
+**Le verrou remplace l'écran vide, il ne s'y ajoute pas** — c'est moins de
+produit à l'écran, pas plus. Et son bouton ne s'affiche qu'à qui peut s'en
+servir : `cheminAutorise` sait déjà quels rôles ouvrent quel écran, et proposer
+« affecter mes enseignants » à un Enseignant l'enverrait sur la page qui le
+refuse, soit exactement le mur qu'on retire.
+
+**Le socle est un axe du catalogue des conseils, pas une seconde liste.**
+`famille` répond à « dans quel ordre on parle » ; elle ne répond pas à
+« l'établissement est-il prêt ». C'est pour ça que le filigrane vivait en
+CONFORT — juste pour le rythme, faux pour la nécessité, et personne ne devine
+qu'un filigrane existe. Le champ `socle` porte `REQUIS` (compté) ou
+`RECOMMANDE` (listé, pas compté).
+
+**Le REQUIS sort de la rotation des conseils, le RECOMMANDE y reste.** Le
+premier a déjà deux voix — la checklist et le verrou ; une troisième un jour sur
+deux dirait la même chose une fois de trop. Le second n'en a aucune autre.
+Conséquence assumée et correcte : **sur une école neuve, le panneau de conseil
+se tait complètement**.
+
+**Une entrée du socle doit avoir une sonde et une action.** Le socle décide
+d'une redirection : une entrée qu'on ne peut pas cocher y enfermerait le
+Directeur pour toujours. Un test l'interdit.
+
+**L'ordre des trois redirections est imposé** : démarrage, puis configuration,
+puis tableau de bord. La redirection du questionnaire ne tire qu'une seule fois
+par conception ; sans garde, celle de la configuration passait devant, et une
+école au milieu de son démarrage atterrissait sur la checklist. `?tableau=1`
+lève la seconde — sans cette sortie, un Directeur qui attend les adresses de ses
+enseignants serait renvoyé à la même liste à chaque clic.
+
+### Un écran qui attend une écriture doit le montrer jusqu'au bout
+
+`router.refresh()` **rend la main tout de suite** : il déclenche un aller-retour
+serveur qu'il n'attend pas. Le démarrage éteignait donc l'animation de son
+bouton, puis restait une à deux secondes sur l'étape précédente, muet. Le
+réflexe de l'utilisateur est de recliquer.
+
+C'est la même famille que le versement encaissé deux fois : quand rien ne dit
+qu'une écriture est en cours, on la relance. Ici le geste est idempotent et ne
+coûte pas d'argent, mais l'impression de produit cassé est identique.
+
+`useTransition` couvre toute la durée, **y compris le rendu du nouveau Server
+Component**. On ne change pas de page pour autant : l'étape reste affichée,
+atténuée et inerte, et se remplace quand la suivante est prête.
+
+### L'import : donner le modèle plutôt que décrire le gabarit
+
+Les trois écrans d'import affichaient leurs en-têtes en une ligne de code
+monospace, à recopier à la main. C'est la source du seul échec qui arrête tout —
+une colonne mal orthographiée rend le fichier entier illisible.
+
+**Le modèle téléchargeable supprime la classe d'erreur** au lieu de mieux la
+signaler. `/api/modele-import/[domaine]` fabrique le classeur **depuis les
+schémas Zod** qui valident l'import. Un `.xlsx` déposé dans `public/` serait une
+seconde vérité : le jour où une colonne change, il distribuerait l'ancienne, et
+l'école recevrait de nos mains un fichier que le produit refuse. Des tests
+verrouillent l'accord — même ordre, exemple aligné, obligatoires remplis.
+
+**Le champ de fichier natif a disparu.** C'était le seul champ non stylable du
+produit, et sa largeur minimale intrinsèque causait les cinq pixels de
+débordement des trois écrans d'import. `ZoneDepot` le remplace : l'`input`
+existe toujours et reste dans le parcours clavier (`sr-only`, **jamais**
+`display:none`), le `label` enveloppant devient la cible, le glisser-déposer
+s'ajoute au clic sans le remplacer — il n'existe pas sur téléphone.
+
+**Le recours au support ne vaut pas que pour un type d'échec.** Il vivait
+enfermé dans le bloc des en-têtes, donc disponible pour le seul échec que
+l'utilisateur peut corriger seul. Un fichier aux colonnes parfaites dont 266
+lignes sur 284 sont refusées n'offrait aucune issue. Il est proposé dès que les
+refus l'emportent sur les lignes prêtes, et le résumé **regroupe par motif** —
+quatre motifs se diagnostiquent, deux cent soixante-six lignes ne se lisent pas.
+Il ne recopie jamais le nom d'un élève : le fichier entier est déjà en pièce
+jointe, le corps du message n'a pas à l'être à l'insu de l'école.
+
+**Une classe hors périmètre ne dit pas son nom.** Le primaire et la maternelle
+sont retirés du catalogue depuis `0014` : une ligne en CP1 est refusée pour
+« classe introuvable », un motif exact qui cache la vraie raison. Le skill
+`scolargest-inputs` le détecte désormais et l'écrit en tête de sa fiche.
 
 ## Organisation : deux agents nommés
 

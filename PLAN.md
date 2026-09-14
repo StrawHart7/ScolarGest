@@ -3485,6 +3485,152 @@ sortants.
 
 ---
 
+### Fonctionnalité — Le Directeur peut tout faire dans son établissement
+
+**Statut** : ✅ livrée le 2026-09-14, migration `20260914122558`, appliquée.
+
+Constat de terrain sur une école réelle en test. Le Directeur ouvre « Tarifs »,
+voit la page, voit la liste vide, et **il n'y a aucun bouton**. Aucun message.
+Il conclut que le produit est cassé.
+
+Ce n'était pas un défaut de guidage : c'était une interdiction, posée sur trois
+couches à la fois — l'écran masquait l'action, le service gardait
+`COMPTABLE, SECRETAIRE`, la policy RLS nommait les deux mêmes rôles.
+
+**Et c'était incohérent** : le Directeur pouvait émettre une facture depuis
+`0001`, mais ni créer le tarif sur lequel elle s'appuie, ni enregistrer le
+versement qui la solde.
+
+La séparation supposait une école dotée d'un personnel administratif. Beaucoup
+d'écoles togolaises n'ont qu'un directeur et des enseignants : exiger un
+Comptable pour saisir un tarif, c'est exiger une personne qui n'existe pas.
+
+**Onze gardes élargies, trois policies, quatre écrans, deux entrées de
+navigation.** Le Directeur crée ses types de frais et ses tarifs, encaisse,
+annule, importe, modifie une facture — et voit enfin son écran d'approbation
+des notes, qu'il avait le droit d'utiliser depuis toujours sans jamais pouvoir
+savoir ce qui l'attendait.
+
+**Reste fermé** : `saisirNote`. Un Directeur qui enseigne reçoit un compte
+enseignant, ce qui garde deux paires d'yeux sur la note d'un élève.
+
+**Deux tests sont tombés, et c'étaient les bons** — ils portaient l'ancienne
+décision. Inversés en gardant leur histoire, et doublés d'un refus de
+l'Enseignant pour que l'ouverture s'arrête où on l'a voulue.
+
+---
+
+### Fonctionnalité — Le verrou de domaine et la checklist de configuration
+
+**Statut** : ✅ livrée le 2026-09-14. Aucune migration.
+
+L'onboarding est excellent et s'arrête où il doit. Les conseils sont réglés pour
+ne pas harceler. Entre les deux manquait l'objet qui dit « sans ça, votre
+établissement n'est pas configuré » — et personne ne découvre seul qu'un
+filigrane existe.
+
+**Ni une extension de `/demarrage`**, linéaire et sans retour, **ni un conseil
+de plus**, dont tout le réglage consiste à se taire. Un troisième objet :
+non linéaire, permanent, exhaustif, et qui ne bloque rien.
+
+**Le blocage global a été pesé et écarté.** Trois étapes ne dépendent pas du
+Directeur : les adresses de ses enseignants, un fichier resté à l'école, une
+décision du conseil. Un verrou global se refermerait sur des gens et des
+documents qu'il n'a pas, pendant que son essai brûle. Le verrou par domaine dit
+l'inverse : voilà ce qui manque pour faire **ça**, à l'instant où il essaie.
+
+**Rien n'a été reconstruit.** Les vingt-cinq entrées du catalogue des conseils
+portaient déjà leur texte, leur sonde, leur lien et leurs prérequis. Il leur
+manquait un axe — `socle`, `REQUIS` ou `RECOMMANDE` — et une surface.
+
+**Conséquence assumée** : sur une école neuve, le panneau de conseil se tait
+complètement. `/demarrage` impose, la checklist affiche, le verrou réclame.
+Douze tests portaient l'ancienne composition ; reportés sur des sujets restés en
+rotation, chacun gardant sa doctrine.
+
+---
+
+### Constat — sept défauts de prise en main, tous du même genre
+
+2026-09-14, relevés par le testeur d'une école réelle. Le produit savait faire,
+et ne le disait pas.
+
+**La checklist passait devant l'onboarding** : ma redirection ne vérifiait pas
+que `/demarrage` était fini, et celle du questionnaire ne tire qu'une fois par
+conception. Il fallait deviner qu'un bouton du bandeau ramenait au parcours.
+
+**Le démarrage figeait entre deux étapes.** `router.refresh()` rend la main tout
+de suite ; l'étape avait déjà éteint son bouton et l'écran restait une à deux
+secondes, muet. Le réflexe est de recliquer — même famille que le versement
+encaissé deux fois, à ceci près que le geste est idempotent.
+
+**Les deux cycles ne se lisaient pas comme un choix** : deux pastilles de la
+taille d'une étiquette, sur l'étape la plus irréversible du parcours.
+
+**Le lycée imposait onze compteurs à zéro par niveau**, soit trente-trois lignes
+pour un lycée qui enseigne trois séries. On choisit les séries, puis on compte.
+
+**L'état vide des affectations ne proposait rien** — un lien noyé dans une
+phrase, que le testeur n'a pas vu, et il avait raison : rien n'y ressemblait à
+une action.
+
+**La checklist envoyait vers une liste de noms** sans dire quoi en faire.
+
+**L'import des élèves sortait du socle** : son incitation a déjà un dispositif.
+
+---
+
+### Constat — un recours qui n'existe que pour un seul échec n'est pas un recours
+
+Le bouton « envoyer le fichier au support » vivait **dans le bloc des
+en-têtes** : il n'était donc proposé que pour le seul échec que l'utilisateur
+peut corriger seul, une ligne d'en-tête à renommer.
+
+Un fichier aux colonnes parfaites dont **266 lignes sur 284** sont refusées
+n'offrait aucune issue. Constaté le 2026-09-14.
+
+Deux causes distinctes dans ce fichier, et aucune n'était le fichier :
+
+- des classes en **CP1** — du primaire, retiré du catalogue le 2026-08-31. Ces
+  classes ne *peuvent pas* exister dans un établissement ScolarGest, et le motif
+  « classe introuvable » est exact tout en cachant la vraie raison ;
+- des classes en **Tle D** — dans le périmètre, mais pas encore créées.
+
+Le bouton est extrait et proposé dès que les refus l'emportent sur les lignes
+prêtes. Le résumé regroupe par motif et ne recopie jamais le nom d'un élève.
+
+Le skill `scolargest-inputs` connaît désormais le périmètre : il avertit en
+console, met un « À LIRE » en tête de fiche, et liste **toutes** les classes
+citées pour que l'école les compare à son écran — il n'a aucun accès aux données
+de l'établissement, c'est le plus utile qu'il puisse faire.
+
+---
+
+### Fonctionnalité — L'import donne son modèle au lieu de décrire son gabarit
+
+**Statut** : ✅ livrée le 2026-09-14. Aucune migration.
+
+Les trois écrans affichaient leurs en-têtes en une ligne de code monospace, à
+recopier à la main, au-dessus d'un champ de fichier natif. C'est la source du
+seul échec qui arrête tout.
+
+**Le modèle téléchargeable supprime la classe d'erreur** au lieu de mieux la
+signaler. `/api/modele-import/[domaine]` fabrique le classeur depuis les schémas
+Zod qui valident l'import — un `.xlsx` statique serait une seconde vérité, et le
+jour où une colonne change il distribuerait l'ancienne. Six tests verrouillent
+l'accord.
+
+**Trois étapes numérotées**, parce que c'est une vraie séquence. La liste des
+colonnes passe derrière un dépliant : disponible pour qui vérifie, invisible
+pour qui suit les étapes.
+
+**Le champ de fichier natif disparaît** — le seul champ non stylable du produit,
+et la cause des cinq pixels de débordement des trois écrans d'import. L'`input`
+reste dans le parcours clavier, le `label` devient la cible, le glisser-déposer
+s'ajoute au clic sans le remplacer.
+
+---
+
 ### Constat — un versement encaissé deux fois, et la cause n'était pas l'idempotence
 
 2026-09-13, en production. **57 000 F comptés deux fois** chez un élève de
