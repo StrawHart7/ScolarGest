@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { appelerAction } from '../appel-action';
-import { ErreurEtape } from '../Bulles';
+import { ErreurEtape, PuceChoix } from '../Bulles';
 import { LETTRES_DIVISION } from '@/lib/onboarding/suggestions';
 import { creerClassesAction } from '../actions';
 
@@ -195,6 +195,27 @@ export function EtapeClasses({
     setDivisions((prec) => ({ ...prec, [cle]: Math.max(0, Math.min(8, valeur)) }));
   }
 
+  /**
+   * Choisir une série la fait apparaître ; la déchoisir la retire.
+   *
+   * **La présence de la clé porte le choix**, pas une seconde liste d'état.
+   * `undefined` veut dire « série non retenue », un nombre veut dire « retenue,
+   * avec ce nombre de divisions ». Deux états parallèles auraient divergé au
+   * premier oubli, et c'est `divisions` qui construit déjà les classes.
+   *
+   * Une série retenue démarre à 1 : on ne clique pas sur « D » pour créer zéro
+   * Terminale D.
+   */
+  function basculerSerie(niveauId: string, serieId: string) {
+    const cle = cleDivision(niveauId, serieId);
+    setDivisions((prec) => {
+      if (prec[cle] === undefined) return { ...prec, [cle]: 1 };
+      const suivant = { ...prec };
+      delete suivant[cle];
+      return suivant;
+    });
+  }
+
   /** Noms produits par une combinaison, dans l'ordre de création. */
   const nomsDe = React.useCallback(
     (niveauNom: string, serieNom: string | null, total: number) =>
@@ -254,8 +275,9 @@ export function EtapeClasses({
   return (
     <div className="mt-4 flex flex-col gap-5">
       <p className="text-body-sm text-text-secondary">
-        Laissez à zéro ce que vous n&apos;enseignez pas. Les noms se composent tout seuls, et
-        s&apos;affichent sous chaque ligne.
+        Indiquez combien de classes vous ouvrez par niveau, et laissez à zéro ce que vous
+        n&apos;enseignez pas. Au lycée, choisissez d&apos;abord vos séries. Les noms se composent
+        tout seuls et s&apos;affichent sous chaque ligne.
       </p>
 
       {niveauxParCycle.map(([cycleNom, niveauxDuCycle]) => (
@@ -280,27 +302,57 @@ export function EtapeClasses({
               );
             }
 
-            // Lycée : le niveau devient un intertitre, et chaque série prend la
-            // même forme de ligne qu'un niveau de collège. C'est ce qui rend la
-            // liste homogène de bout en bout.
+            // Lycée : on choisit d'abord les séries, **puis** on compte.
+            //
+            // Une ligne réglable par série du cycle, c'est onze compteurs à zéro
+            // par niveau — A4, C, D, E, F1 à F4, G1 à G3 — soit trente-trois
+            // lignes pour un lycée qui en enseigne trois. Le testeur du
+            // 2026-09-14 faisait défiler des séries techniques qu'il n'a
+            // jamais ouvertes pour atteindre la sienne.
+            //
+            // Le geste redevient celui de l'école : « je fais A4, C et D ». La
+            // rangée de puces dit ce qui existe, et seules les séries retenues
+            // prennent un compteur.
+            const retenues = seriesDuCycle.filter(
+              (s) => divisions[cleDivision(niveau.id, s.id)] !== undefined,
+            );
             return (
-              <div key={niveau.id} className="flex flex-col gap-1.5 pt-1">
+              <div key={niveau.id} className="flex flex-col gap-2 pt-1">
                 <p className="text-body-sm font-medium text-text-primary">{niveau.nom}</p>
-                <div className="flex flex-col gap-1.5 border-l-2 border-surface-border pl-3">
-                  {seriesDuCycle.map((serie) => {
-                    const valeur = divisions[cleDivision(niveau.id, serie.id)] ?? 0;
-                    return (
-                      <LigneDivision
-                        key={serie.id}
-                        id={`divisions-${niveau.id}-${serie.id}`}
-                        intitule={serie.nom}
-                        valeur={valeur}
-                        noms={nomsDe(niveau.nom, serie.nom, valeur)}
-                        onChange={(v) => reglerDivisions(niveau.id, serie.id, v)}
-                      />
-                    );
-                  })}
+
+                <div className="flex flex-wrap gap-1.5">
+                  {seriesDuCycle.map((serie) => (
+                    <PuceChoix
+                      key={serie.id}
+                      selectionne={divisions[cleDivision(niveau.id, serie.id)] !== undefined}
+                      onClick={() => basculerSerie(niveau.id, serie.id)}
+                    >
+                      {serie.nom}
+                    </PuceChoix>
+                  ))}
                 </div>
+
+                {retenues.length === 0 ? (
+                  <p className="text-body-sm text-text-secondary">
+                    Choisissez les séries enseignées en {niveau.nom}.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-1.5 border-l-2 border-surface-border pl-3">
+                    {retenues.map((serie) => {
+                      const valeur = divisions[cleDivision(niveau.id, serie.id)] ?? 0;
+                      return (
+                        <LigneDivision
+                          key={serie.id}
+                          id={`divisions-${niveau.id}-${serie.id}`}
+                          intitule={serie.nom}
+                          valeur={valeur}
+                          noms={nomsDe(niveau.nom, serie.nom, valeur)}
+                          onChange={(v) => reglerDivisions(niveau.id, serie.id, v)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

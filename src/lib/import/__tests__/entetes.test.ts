@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { analyserEntetes, normaliserEntete, resumeEntetesPourSupport } from '../entetes';
+import {
+  analyserEntetes,
+  normaliserEntete,
+  resumeEntetesPourSupport,
+  resumeRefusPourSupport,
+} from '../entetes';
 import { cleIdentiteEleve, compter, aQuelqueChoseAEcrire, type LigneAnalysee } from '../analyse';
 
 const ATTENDUES = ['nom', 'prenoms', 'date_naissance', 'classe'] as const;
@@ -111,5 +116,45 @@ describe('compter', () => {
 
   it('autorise la confirmation des lors qu_une seule ligne est prete', () => {
     expect(aQuelqueChoseAEcrire(lignes)).toBe(true);
+  });
+});
+
+describe('resumeRefusPourSupport', () => {
+  it('regroupe par motif au lieu d’énumérer les lignes', () => {
+    // Le cas réel du 2026-09-14 : 266 lignes refusées, quatre motifs. Recopier
+    // les 266 produirait une demande que personne ne lit, alors que la pièce
+    // jointe porte déjà le fichier entier.
+    const refusees = [
+      ...Array.from({ length: 200 }, () => ({ motif: 'Classe « CP1 A » introuvable' })),
+      ...Array.from({ length: 66 }, () => ({ motif: 'Classe « Tle D » introuvable' })),
+    ];
+    const resume = resumeRefusPourSupport(refusees, 266, 284);
+    expect(resume).toContain('266 ligne(s) refusée(s) sur 284');
+    expect(resume).toContain('200 × Classe « CP1 A » introuvable');
+    expect(resume).toContain('66 × Classe « Tle D » introuvable');
+    // Le plus fréquent d'abord : c'est par lui qu'on diagnostique.
+    expect(resume.indexOf('CP1 A')).toBeLessThan(resume.indexOf('Tle D'));
+  });
+
+  it('ne recopie jamais le nom d’un élève', () => {
+    // Le résumé part dans le corps d'une demande de support. Le libellé d'une
+    // ligne porte une identité ; la pièce jointe est un choix délibéré, le
+    // corps du message ne doit pas l'être à l'insu de l'utilisateur.
+    const resume = resumeRefusPourSupport(
+      [{ motif: 'Classe « 6e A » introuvable' }],
+      1,
+      1,
+    );
+    expect(resume).not.toMatch(/Ligne \d/);
+    expect(resume).toContain('1 × Classe « 6e A » introuvable');
+  });
+
+  it('borne le nombre de motifs détaillés', () => {
+    // Un fichier saboté pourrait porter un motif distinct par ligne : le résumé
+    // deviendrait le fichier lui-même.
+    const refusees = Array.from({ length: 40 }, (_, i) => ({ motif: `motif ${i}` }));
+    const resume = resumeRefusPourSupport(refusees, 40, 40);
+    expect(resume.split('\n').length).toBeLessThanOrEqual(7);
+    expect(resume).toContain('autre(s) motif(s)');
   });
 });

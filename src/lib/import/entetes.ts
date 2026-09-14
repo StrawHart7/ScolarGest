@@ -79,3 +79,38 @@ export function resumeEntetesPourSupport(analyse: AnalyseEntetes): string {
   }
   return lignes.join('\n');
 }
+
+/** Nombre de motifs distincts détaillés dans le résumé envoyé au support. */
+const MOTIFS_DETAILLES = 5;
+
+/**
+ * Phrase prête à envoyer au support quand ce sont les **lignes** qui sont
+ * refusées, en-têtes conformes.
+ *
+ * Elle regroupe par motif au lieu d'énumérer les lignes. Un fichier dont deux
+ * cent soixante-six lignes portent quatre motifs distincts se diagnostique en
+ * lisant les quatre ; recopier les deux cent soixante-six produirait une
+ * demande que personne ne lit, et une pièce jointe qui dit déjà tout.
+ *
+ * Le libellé d'une ligne est écarté : il porte le nom d'un élève, et le résumé
+ * part dans le corps d'une demande de support. La pièce jointe, elle, est
+ * délibérée et le fichier entier y est déjà.
+ */
+export function resumeRefusPourSupport(
+  refusees: { motif: string }[],
+  nombreRefusees: number,
+  nombreTotal: number,
+): string {
+  const parMotif = new Map<string, number>();
+  for (const l of refusees) parMotif.set(l.motif, (parMotif.get(l.motif) ?? 0) + 1);
+
+  const classes = [...parMotif.entries()].sort((a, b) => b[1] - a[1]);
+  const lignes = [`${nombreRefusees} ligne(s) refusée(s) sur ${nombreTotal}. Motifs :`];
+  for (const [motif, nombre] of classes.slice(0, MOTIFS_DETAILLES)) {
+    lignes.push(`- ${nombre} × ${motif}`);
+  }
+  if (classes.length > MOTIFS_DETAILLES) {
+    lignes.push(`- et ${classes.length - MOTIFS_DETAILLES} autre(s) motif(s)`);
+  }
+  return lignes.join('\n');
+}

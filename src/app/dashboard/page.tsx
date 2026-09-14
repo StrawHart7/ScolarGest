@@ -83,9 +83,11 @@ export default async function DashboardPage({
   // `true` qu'à la toute première fois — c'est ce qui rend le parcours
   // interruptible : quitter `/demarrage` ne peut pas ramener en boucle ici.
   let rappelDemarrage: { nombreFaites: number; nombreTotal: number } | null = null;
+  let demarrageEnCours = false;
   if (etapesPourRole(ctx.role).length > 0) {
     const progression = await getProgressionOnboarding();
     if (!progression.complete) {
+      demarrageEnCours = true;
       if (await marquerRedirectionOnboarding()) {
         redirect('/demarrage');
       }
@@ -98,10 +100,18 @@ export default async function DashboardPage({
     }
   }
 
-  // Le démarrage fini, la configuration prend le relais : tant qu'il manque un
-  // réglage indispensable, le tableau de bord n'est pas encore la bonne page
-  // d'accueil. C'est l'obligation voulue — elle s'impose par le chemin, pas par
-  // des barreaux.
+  // Le démarrage fini, **et seulement alors**, la configuration prend le
+  // relais : tant qu'il manque un réglage indispensable, le tableau de bord
+  // n'est pas encore la bonne page d'accueil. C'est l'obligation voulue — elle
+  // s'impose par le chemin, pas par des barreaux.
+  //
+  // `demarrageEnCours` n'est pas une précaution : sans lui, cette redirection
+  // passait **devant** le questionnaire. Celle du démarrage ne tire qu'une
+  // seule fois, par conception ; à la visite suivante, une école qui n'avait
+  // pas fini son démarrage atterrissait sur la checklist, et il fallait
+  // qu'elle devine qu'un bouton du bandeau la ramenait au questionnaire.
+  // Constaté par le testeur le 2026-09-14. L'ordre est : démarrage, puis
+  // configuration, puis tableau de bord.
   //
   // **`?tableau=1` la lève**, et l'écran de configuration porte ce lien. Sans
   // cette sortie, un Directeur qui attend les adresses de ses enseignants
@@ -112,7 +122,7 @@ export default async function DashboardPage({
   // La garde ne vaut que pour le DIRECTEUR : lui seul peut réparer toutes les
   // lignes, et détourner une Secrétaire vers une liste qu'elle ne peut pas
   // épuiser en ferait un reproche.
-  if (ctx.role === 'DIRECTEUR' && searchParams?.tableau !== '1') {
+  if (ctx.role === 'DIRECTEUR' && !demarrageEnCours && searchParams?.tableau !== '1') {
     const socle = await etatSocle();
     if (!socle.complet) redirect('/etablissement/configuration');
   }

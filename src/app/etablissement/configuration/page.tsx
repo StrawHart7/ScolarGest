@@ -63,8 +63,17 @@ export default async function ConfigurationPage() {
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
               <PartyPopper className="h-10 w-10 text-primary" aria-hidden />
               <h2 className="text-display-sm text-text-primary">Votre établissement est configuré</h2>
+              {/*
+                La question a été posée telle quelle : « une fois les
+                indispensables faits, les autres passent où ? ». Ils restent ici
+                — cet écran ne disparaît pas, il change de rôle. Le dire
+                explicitement coûte une phrase et évite de croire qu'on a tout
+                vu.
+              */}
               <p className="max-w-prose text-body-sm text-text-secondary">
-                Tout l’indispensable est en place. Les réglages ci-dessous restent facultatifs.
+                Tout l’indispensable est en place. Les réglages « pour aller au bout » restent
+                listés ci-dessous, et cette page reste accessible depuis Établissement ›
+                Configuration.
               </p>
               <Button asChild variant="primary">
                 <Link href="/dashboard">Aller au tableau de bord</Link>

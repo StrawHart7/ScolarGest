@@ -130,35 +130,49 @@ export default async function FicheEnseignantPage({ params }: { params: { id: st
             {!anneeActive ? (
               <p className="text-body-sm text-text-secondary">Aucune année scolaire active.</p>
             ) : affectations.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-6 text-center">
+              // L'état vide n'annonçait que « Aucune affectation », et le seul
+              // chemin pour en créer une était un lien noyé dans la phrase du
+              // dessous. Un testeur ne l'a pas vu — et il avait raison : rien
+              // n'y ressemblait à une action. Le geste est ici, il dit ce qu'il
+              // débloque, parce que c'est ça qu'on ne devine pas : sans
+              // affectation, l'enseignant ne peut saisir aucune note.
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
                 <BookOpen className="h-8 w-8 text-text-secondary/50" aria-hidden />
-                <p className="text-body-sm text-text-secondary">
-                  Aucune affectation pour l&apos;année en cours.
+                <p className="text-body-md text-text-primary">Aucune matière affectée</p>
+                <p className="max-w-sm text-body-sm text-text-secondary">
+                  Tant qu’aucune classe ni matière ne lui est affectée, cet enseignant ne voit
+                  rien et ne peut saisir aucune note.
                 </p>
+                {canWrite ? (
+                  <Button asChild variant="primary">
+                    <Link href={`/etablissement/enseignants/${enseignant.id}/affectations`}>
+                      Affecter une classe et une matière
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
             ) : (
-              affectations.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between rounded-lg border border-surface-border p-3"
-                >
-                  <div>
-                    <p className="text-body-md text-text-primary">{a.classe.nom}</p>
-                    <p className="text-body-sm text-text-secondary">{a.matiere.nom}</p>
+              <>
+                {affectations.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-lg border border-surface-border p-3"
+                  >
+                    <div>
+                      <p className="text-body-md text-text-primary">{a.classe.nom}</p>
+                      <p className="text-body-sm text-text-secondary">{a.matiere.nom}</p>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+                {canWrite ? (
+                  <Button asChild variant="secondary" className="w-full sm:w-auto">
+                    <Link href={`/etablissement/enseignants/${enseignant.id}/affectations`}>
+                      Gérer les affectations et la titularité
+                    </Link>
+                  </Button>
+                ) : null}
+              </>
             )}
-            <p className="text-body-sm text-text-secondary">
-              La titularité de classe est gérée depuis{' '}
-              <Link
-                href={`/etablissement/enseignants/${enseignant.id}/affectations`}
-                className="text-primary-container hover:underline"
-              >
-                l&apos;écran des affectations
-              </Link>
-              .
-            </p>
           </CardContent>
         </Card>
       </div>

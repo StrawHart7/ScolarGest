@@ -266,7 +266,12 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'eleves',
-    socle: 'REQUIS',
+    // **Retiré du socle le 2026-09-14.** Son action est l'import, et
+    // l'incitation à importer a déjà son dispositif : la liste des élèves met
+    // l'import en avant quand l'école n'en a aucun. Le porter en plus dans la
+    // checklist ferait une troisième voix pour le même geste — exactement ce
+    // qu'on a retiré au reste du socle. Il reste un conseil ordinaire, servi
+    // par la rotation.
     titre: 'Inscrivez vos élèves',
     // L'action menait au formulaire unitaire. Une école arrive avec deux à
     // quatre cents élèves déjà dans un tableur : lui proposer « Ajouter un
@@ -317,9 +322,15 @@ export const CATALOGUE: Conseil[] = [
     id: 'affectations',
     socle: 'REQUIS',
     titre: 'Affectez vos enseignants aux matières',
+    // Le texte dit le **chemin**, pas seulement le but. L'affectation se fait
+    // enseignant par enseignant : il n'existe pas d'écran global vers lequel
+    // pointer, et le lien atterrit donc sur la liste. Un testeur s'y est arrêté
+    // le 2026-09-14 sans savoir quoi faire — « gérer les affectations » l'avait
+    // laissé devant une liste de noms. Deux phrases coûtent moins qu'un écran
+    // de plus, et se vérifient.
     texte:
-      "Un enseignant ne voit que les classes et les matières qui lui sont affectées : c'est ce qui ouvre sa saisie de notes.",
-    action: { label: 'Gérer les affectations', href: '/etablissement/enseignants' },
+      "Un enseignant ne voit que les classes et les matières qui lui sont affectées : c'est ce qui ouvre sa saisie de notes. Ouvrez la fiche d'un enseignant, puis « Affecter une classe et une matière ».",
+    action: { label: 'Choisir un enseignant', href: '/etablissement/enseignants' },
     roles: ADMIN,
     famille: 'EXPLOITATION',
     prerequis: ['enseignants'],

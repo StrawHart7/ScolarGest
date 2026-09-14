@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, CopyMinus, LifeBuoy, XCircle } from 'lucid
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { compter, aQuelqueChoseAEcrire, type AnalyseImport } from '@/lib/import/analyse';
-import { resumeEntetesPourSupport } from '@/lib/import/entetes';
+import { resumeEntetesPourSupport, resumeRefusPourSupport } from '@/lib/import/entetes';
 import { signalerEntetesAuSupport } from '@/app/etablissement/import-support-actions';
 
 /**
@@ -81,18 +81,29 @@ function Compteur({
   );
 }
 
-function BlocEntetes({
-  analyse,
+/**
+ * Le recours : envoyer le fichier au support.
+ *
+ * **Il vivait enfermé dans le bloc des en-têtes**, donc il n'existait que pour
+ * le seul échec que l'utilisateur peut corriger seul — une ligne d'en-tête à
+ * renommer. Constaté le 2026-09-14 : un fichier aux colonnes parfaites, 266
+ * lignes sur 284 refusées, et aucune issue à l'écran. C'est exactement
+ * l'inverse qu'il fallait : plus l'échec est incompréhensible, plus le recours
+ * doit être à portée.
+ *
+ * Il est donc extrait ici, et les deux blocs s'en servent.
+ */
+function BoutonEnvoyerAuSupport({
+  resume,
   domaine,
   fichier,
 }: {
-  analyse: AnalyseImport;
+  resume: string;
   domaine: DomaineImport;
   fichier: File | null;
 }) {
   const [envoi, setEnvoi] = React.useState<{ ok: boolean; message: string } | null>(null);
   const [enCours, setEnCours] = React.useState(false);
-  const resume = resumeEntetesPourSupport(analyse.entetes);
 
   async function envoyer() {
     if (!fichier) return;
@@ -118,6 +129,31 @@ function BlocEntetes({
       },
     );
   }
+
+  if (envoi) {
+    return (
+      <p className={`text-body-sm ${envoi.ok ? 'text-tertiary' : 'text-error'}`}>{envoi.message}</p>
+    );
+  }
+
+  return (
+    <Button variant="secondary" onClick={envoyer} disabled={enCours || !fichier}>
+      <LifeBuoy className="h-4 w-4" aria-hidden />
+      {enCours ? 'Envoi en cours…' : 'Envoyer le fichier au support'}
+    </Button>
+  );
+}
+
+function BlocEntetes({
+  analyse,
+  domaine,
+  fichier,
+}: {
+  analyse: AnalyseImport;
+  domaine: DomaineImport;
+  fichier: File | null;
+}) {
+  const resume = resumeEntetesPourSupport(analyse.entetes);
 
   return (
     <div className="space-y-4 rounded-lg border border-warning/30 bg-warning/10 p-5">
@@ -149,14 +185,7 @@ function BlocEntetes({
         </div>
       </div>
 
-      {envoi ? (
-        <p className={`text-body-sm ${envoi.ok ? 'text-tertiary' : 'text-error'}`}>{envoi.message}</p>
-      ) : (
-        <Button variant="secondary" onClick={envoyer} disabled={enCours || !fichier}>
-          <LifeBuoy className="h-4 w-4" aria-hidden />
-          {enCours ? 'Envoi en cours…' : 'Envoyer le fichier au support'}
-        </Button>
-      )}
+      <BoutonEnvoyerAuSupport resume={resume} domaine={domaine} fichier={fichier} />
     </div>
   );
 }
@@ -229,6 +258,41 @@ export function ApercuImport({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {!rapport && decompte.refusees > 0 && decompte.refusees > decompte.pretes && (
+        // Le recours n'a de sens que quand le fichier, dans son ensemble, n'est
+        // pas passé. Deux lignes fautives sur trois cents sont une donnée que
+        // l'école corrige elle-même ; les deux tiers refusés sont un problème
+        // de fichier, et l'utilisateur n'a aucun moyen de savoir lequel.
+        //
+        // Le seuil est « plus de refus que de lignes prêtes » plutôt qu'un
+        // pourcentage arbitraire : il se lit, et il dit exactement la chose
+        // qu'on veut dire.
+        <div className="space-y-3 rounded-lg border border-warning/30 bg-warning/10 p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle
+              className="mt-0.5 h-5 w-5 shrink-0 text-warning-on-container"
+              aria-hidden
+            />
+            <div>
+              <p className="text-body-md font-semibold text-text-primary">
+                La plupart des lignes ont été refusées
+              </p>
+              <p className="text-body-sm text-text-secondary">
+                Rien n&apos;a encore été écrit. Le plus souvent, la classe indiquée dans le fichier
+                n&apos;existe pas encore dans l&apos;établissement, ou son nom diffère. Créez les
+                classes manquantes puis redéposez le fichier — ou envoyez-le au support, qui le
+                remettra en forme et vous le rendra.
+              </p>
+            </div>
+          </div>
+          <BoutonEnvoyerAuSupport
+            resume={resumeRefusPourSupport(aSignaler, decompte.refusees, analyse.lignes.length)}
+            domaine={domaine}
+            fichier={fichier}
+          />
         </div>
       )}
 

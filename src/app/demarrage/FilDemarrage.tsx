@@ -77,6 +77,25 @@ export function FilDemarrage({
   const router = useRouter();
   const [enCours, setEnCours] = React.useState(false);
   const [erreurPilotage, setErreurPilotage] = React.useState<string | null>(null);
+  /**
+   * `router.refresh()` **rend la main tout de suite** : il déclenche un
+   * aller-retour serveur qu'il n'attend pas. L'étape avait donc déjà éteint
+   * l'animation de son bouton, et l'écran restait figé une à deux secondes sur
+   * l'étape précédente, sans rien dire. Le testeur du 2026-09-14 l'a décrit
+   * exactement ainsi — et son réflexe était de recliquer.
+   *
+   * C'est la même famille que le versement encaissé deux fois : quand rien ne
+   * dit qu'une écriture est en cours, l'utilisateur la relance. Ici le geste
+   * est idempotent et ne coûte pas d'argent, mais l'impression de produit cassé
+   * est la même.
+   *
+   * `useTransition` couvre toute la durée du rafraîchissement, y compris le
+   * rendu du nouveau Server Component. On ne change pas de page pour autant :
+   * l'étape courante reste à l'écran, inerte, et se remplace quand la suivante
+   * est prête.
+   */
+  const [enTransition, demarrerTransition] = React.useTransition();
+  const occupe = enCours || enTransition;
 
   const etatParEtape = React.useMemo(
     () => new Map(progression.etapes.map((e) => [e.id, e])),
@@ -84,7 +103,7 @@ export function FilDemarrage({
   );
 
   function avancer() {
-    router.refresh();
+    demarrerTransition(() => router.refresh());
   }
 
   async function sauter(etape: IdEtape) {
@@ -95,7 +114,7 @@ export function FilDemarrage({
       setErreurPilotage(resultat.message);
       return;
     }
-    router.refresh();
+    demarrerTransition(() => router.refresh());
   }
 
   async function terminer() {
@@ -194,12 +213,25 @@ export function FilDemarrage({
             <EcranFinal
               bilan={bilan}
               onTerminer={terminer}
-              enCours={enCours}
+              enCours={occupe}
               essaiFinLe={essaiFinLe}
               formules={formules}
             />
           ) : (
-            <div key={definitionCourante.id} className="animate-slide-up">
+            <div
+              key={definitionCourante.id}
+              className="animate-slide-up"
+              // L'étape reste lisible pendant l'aller-retour — on ne la
+              // remplace pas par un écran de chargement, c'est la même page
+              // dont le contenu évolue. Mais elle n'accepte plus de clic :
+              // c'est ce qui empêche de relancer l'écriture qu'on croit
+              // perdue. L'opacité dit qu'il se passe quelque chose sans
+              // annoncer une erreur.
+              aria-busy={occupe}
+              style={
+                occupe ? { pointerEvents: 'none', opacity: 0.55, transition: 'opacity 150ms' } : undefined
+              }
+            >
               <p className="text-label-md uppercase tracking-wide text-primary-container">
                 Étape {definitions.indexOf(definitionCourante) + 1} sur {definitions.length}
               </p>
@@ -223,7 +255,7 @@ export function FilDemarrage({
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={enCours}
+                    disabled={occupe}
                     onClick={() => sauter(definitionCourante.id)}
                     className="gap-2"
                   >
