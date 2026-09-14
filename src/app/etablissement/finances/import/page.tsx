@@ -6,9 +6,26 @@ import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { ImportPaiementsForm } from './ImportForm';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 export default async function ImportPaiementsPage() {
   const ctx = await getTenantContext();
+
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('FINANCES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="FINANCES"
+        titre="Import de versements"
+        retour={{ href: '/etablissement/finances', libelle: 'Retour aux finances' }}
+        manques={verrou.manques}
+      />
+    );
+  }
   const canWrite =
     (ctx.role === 'DIRECTEUR' ||
       ctx.role === 'SECRETAIRE' ||

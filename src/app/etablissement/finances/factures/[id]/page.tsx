@@ -23,6 +23,8 @@ import { getSidebarItems } from '@/lib/navigation';
 import { LignesFactureEditor } from './LignesFactureEditor';
 import { NouveauVersementForm } from './NouveauVersementForm';
 import { PaiementActions } from './PaiementActions';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} FCFA`;
 
@@ -49,6 +51,21 @@ const MODE_LABEL: Record<string, string> = {
 };
 
 export default async function FactureDetailPage({ params }: { params: { id: string } }) {
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('FINANCES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="FINANCES"
+        titre="Facture"
+        retour={{ href: '/etablissement/finances/factures', libelle: 'Retour au suivi des paiements' }}
+        manques={verrou.manques}
+      />
+    );
+  }
+
   // Les cinq lectures sont indépendantes : en file indienne elles coûtaient
   // cinq allers-retours pour une page qui n'en demande qu'un.
   const [ctx, ecritureOuverte, factureOuNull, typesFrais, recus] = await Promise.all([

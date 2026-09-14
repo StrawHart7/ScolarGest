@@ -16,6 +16,8 @@ import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { ResultatsFiltres } from './ResultatsFiltres';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 const APPRECIATION_BADGE: Record<string, { variant: 'success' | 'primary' | 'warning' | 'error' }> = {
   Excellent: { variant: 'success' },
@@ -39,6 +41,21 @@ export default async function ResultatsPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const [ctx, annees] = await Promise.all([getTenantContext(), listAnneesScolaires()]);
+
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('NOTES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="NOTES"
+        titre="Moyennes & classement"
+        retour={{ href: '/etablissement/notes', libelle: 'Retour aux notes' }}
+        manques={verrou.manques}
+      />
+    );
+  }
 
   const lireUnique = (cle: string): string | undefined => {
     const brut = searchParams[cle];

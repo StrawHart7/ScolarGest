@@ -15,6 +15,8 @@ import { getParametresDocument } from '@/services/parametres-document';
 import { InviteIdentiteDocuments } from '@/components/documents/InviteIdentiteDocuments';
 import { BulletinsFiltres } from './BulletinsFiltres';
 import { BulletinsListe } from './BulletinsListe';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 // La génération d'une classe entière enchaîne un rendu Chromium par élève :
 // la fenêtre serverless par défaut (10s) est largement dépassée. On demande le
@@ -27,6 +29,21 @@ export default async function BulletinsPage({
   searchParams: { classeId?: string; periode?: Periode; anneeScolaireId?: string };
 }) {
   const ctx = await getTenantContext();
+
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('NOTES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="NOTES"
+        titre="Bulletins"
+        retour={{ href: '/etablissement/notes', libelle: 'Retour aux notes' }}
+        manques={verrou.manques}
+      />
+    );
+  }
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');

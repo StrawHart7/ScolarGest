@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
 import { ApprobationQueue } from './ApprobationQueue';
 import { SoumissionsQueue } from './SoumissionsQueue';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 export default async function ApprobationNotesPage() {
   // Garde explicite au niveau page, en plus de la garde déjà appliquée dans
@@ -16,6 +18,21 @@ export default async function ApprobationNotesPage() {
   await requireRole('DIRECTEUR', 'SECRETAIRE');
 
   const ctx = await getTenantContext();
+
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('NOTES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="NOTES"
+        titre="Approbation des notes"
+        retour={{ href: '/etablissement/notes', libelle: 'Retour aux notes' }}
+        manques={verrou.manques}
+      />
+    );
+  }
   const [soumissions, corrections] = await Promise.all([
     listEvaluationsSoumises(),
     listNotesEnAttente(),

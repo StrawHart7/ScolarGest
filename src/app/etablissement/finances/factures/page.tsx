@@ -21,6 +21,8 @@ import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe, rechercher } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { SuiviFiltres } from './SuiviFiltres';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 const fcfa = (montant: number) => Number(montant).toLocaleString('fr-FR');
 
@@ -92,6 +94,21 @@ export default async function SuiviPaiementsPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const ctx = await getTenantContext();
+
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('FINANCES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="FINANCES"
+        titre="Suivi des paiements"
+        retour={{ href: '/etablissement/finances', libelle: 'Retour aux finances' }}
+        manques={verrou.manques}
+      />
+    );
+  }
   const lireUnique = (cle: string): string | undefined => {
     const brut = searchParams[cle];
     const valeur = Array.isArray(brut) ? brut[0] : brut;

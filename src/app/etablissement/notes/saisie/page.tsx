@@ -11,6 +11,8 @@ import { getSidebarItems } from '@/lib/navigation';
 import { SaisieFiltres } from './SaisieFiltres';
 import { EvaluationsList } from './EvaluationsList';
 import { NouvelleEvaluationForm } from './NouvelleEvaluationForm';
+import { etatDomaine } from '@/services/configuration';
+import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
 const PERIODES: Periode[] = ['TRIMESTRE_1', 'TRIMESTRE_2', 'TRIMESTRE_3'];
 
@@ -20,6 +22,21 @@ export default async function SaisieNotesPage({
   searchParams: { classeId?: string; matiereId?: string; periode?: Periode };
 }) {
   const ctx = await getTenantContext();
+
+  // Le verrou avant les lectures : afficher une liste vide sans dire
+  // pourquoi est le defaut qu'on repare, et les requetes qui la
+  // remplissent n'ont rien a ramener tant que la section n'est pas prete.
+  const verrou = await etatDomaine('NOTES');
+  if (!verrou.ouvert) {
+    return (
+      <PageVerrouillee
+        domaine="NOTES"
+        titre="Saisie des notes"
+        retour={{ href: '/etablissement/notes', libelle: 'Retour aux notes' }}
+        manques={verrou.manques}
+      />
+    );
+  }
 
   return (
     <AppLayout
