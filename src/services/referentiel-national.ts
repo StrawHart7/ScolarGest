@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { emettreEvenement } from './telemetrie';
+import { drapeauActif } from './drapeau';
+import { DRAPEAUX } from '@/lib/drapeaux';
 
 export interface ResultatProjection {
   /** Lignes de programme dotées du barème national. */
@@ -11,6 +13,15 @@ export interface ResultatProjection {
   laissesLocaux: number;
   /** Ce que la projection du programme a produit en amont. */
   programme: ResultatProgramme;
+  /**
+   * Faux quand le drapeau `referentiel_national` est fermé pour cette école.
+   *
+   * Sans ce champ, un refus et une école n'ayant rien à projeter rendraient le
+   * même objet — trois zéros — et l'appelant annoncerait « barème appliqué :
+   * 0 coefficient » dans les deux cas. Le dépôt a déjà payé ce genre de zéro
+   * crédible sur `bilanCloture`.
+   */
+  applique: boolean;
 }
 
 interface LigneProjetee {
@@ -78,6 +89,22 @@ export async function projeterReferentielNational(
   anneeScolaireId: string,
 ): Promise<ResultatProjection> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+
+  // Le drapeau se lit **avant la moindre écriture**, et avant même de vérifier
+  // l'année. `projeterProgrammeNational` crée des matières et des lignes de
+  // programme ; le couper à mi-chemin laisserait l'école avec des matières sans
+  // coefficient, donc écartées du calcul et pourtant imprimées sur le bulletin.
+  // Un interrupteur qui s'arrête au milieu du geste est pire que pas
+  // d'interrupteur.
+  if (!(await drapeauActif(DRAPEAUX.REFERENTIEL_NATIONAL))) {
+    return {
+      projetes: 0,
+      laissesLocaux: 0,
+      applique: false,
+      programme: { matieresCreees: 0, matieresRattachees: 0, lignesCreees: 0 },
+    };
+  }
+
   const supabase = createClient();
 
   const { data: annee, error: erreurAnnee } = await supabase
@@ -116,7 +143,7 @@ export async function projeterReferentielNational(
   }[];
   if (lignes.length === 0) {
     await rattacherAuReferentiel(anneeScolaireId, ctx.etablissementId);
-    return { projetes: 0, laissesLocaux: 0, programme: resultatProgramme };
+    return { projetes: 0, laissesLocaux: 0, applique: true, programme: resultatProgramme };
   }
 
   // `codeEcole` et non `code` : le ministère renomme la même discipline d'un
@@ -201,6 +228,7 @@ export async function projeterReferentielNational(
   return {
     projetes: voulues.length,
     laissesLocaux: lignes.length - couvertes.size,
+    applique: true,
     programme: resultatProgramme,
   };
 }
