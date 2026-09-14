@@ -22,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CarteAction } from '@/components/tactile/carte-action';
 import { GrilleCompteurs } from '@/components/tactile/grille-compteurs';
 import { cheminAutorise, getSidebarItems } from '@/lib/navigation';
+import { etatSocle } from '@/services/configuration';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
 import { encaissementsAnnee, effectifsParClasse } from '@/services/series-ecole';
@@ -56,7 +57,11 @@ function salutation(): string {
   return 'Bonsoir';
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { tableau?: string };
+}) {
   let ctx;
   try {
     ctx = await getTenantContext();
@@ -91,6 +96,25 @@ export default async function DashboardPage() {
         };
       }
     }
+  }
+
+  // Le démarrage fini, la configuration prend le relais : tant qu'il manque un
+  // réglage indispensable, le tableau de bord n'est pas encore la bonne page
+  // d'accueil. C'est l'obligation voulue — elle s'impose par le chemin, pas par
+  // des barreaux.
+  //
+  // **`?tableau=1` la lève**, et l'écran de configuration porte ce lien. Sans
+  // cette sortie, un Directeur qui attend les adresses de ses enseignants
+  // serait renvoyé à la même liste à chaque clic, pendant que son essai de
+  // trente jours brûle : c'est la recette de l'abandon, pas de la prise en
+  // main.
+  //
+  // La garde ne vaut que pour le DIRECTEUR : lui seul peut réparer toutes les
+  // lignes, et détourner une Secrétaire vers une liste qu'elle ne peut pas
+  // épuiser en ferait un reproche.
+  if (ctx.role === 'DIRECTEUR' && searchParams?.tableau !== '1') {
+    const socle = await etatSocle();
+    if (!socle.complet) redirect('/etablissement/configuration');
   }
 
   const layout = (contenu: React.ReactNode, sousTitre: string) => (

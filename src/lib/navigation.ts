@@ -65,6 +65,17 @@ export const SECTIONS: Record<string, Section> = {
       "Structure scolaire, personnel enseignant, comptes utilisateurs et abonnement de l'établissement.",
     blocs: [
       {
+        titre: 'Configuration',
+        description:
+          "Ce qui reste à régler pour que l'établissement fonctionne entièrement.",
+        href: '/etablissement/configuration',
+        icone: 'etablissement',
+        // Le Directeur seul. C'est lui qui peut tout faire dans son
+        // établissement depuis le 2026-09-14 ; montrer la liste à quelqu'un qui
+        // ne pourrait réparer qu'un tiers des lignes en ferait un reproche.
+        roles: ['DIRECTEUR'],
+      },
+      {
         titre: 'Années scolaires',
         description: "Ouvrir, activer et clôturer les années scolaires de l'établissement.",
         href: '/etablissement/annees-scolaires',
@@ -212,7 +223,10 @@ export const SECTIONS: Record<string, Section> = {
         description: 'Importer un lot de versements depuis un fichier.',
         href: '/etablissement/finances/import',
         icone: 'finances',
-        roles: ['SECRETAIRE', 'COMPTABLE'],
+        // Oubli de l'élargissement du 2026-09-14, attrapé par le test de
+        // cohérence du catalogue : le service et le bouton de la page avaient
+        // été ouverts au Directeur, pas le chemin pour y arriver.
+        roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
       },
     ],
   },

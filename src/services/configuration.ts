@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { PREREQUIS, type Domaine, type Prerequis } from '@/lib/configuration-domaines';
+import { CATALOGUE, type Conseil, type IdConseil } from '@/lib/conseils/catalogue';
+import { formaterTexte, sondeSatisfaite } from '@/lib/conseils/choix';
+import { cheminAutorise } from '@/lib/navigation';
+import { diagnostiquer } from './conseils';
 
 export interface EtatDomaine {
   /** Vrai quand tous les prérequis sont réunis : la section fonctionne. */
@@ -92,4 +96,75 @@ export async function etatDomaine(domaine: Domaine): Promise<EtatDomaine> {
 
   const manques = prerequis.filter((_, i) => (comptes[i] ?? 0) === 0);
   return { ouvert: manques.length === 0, manques };
+}
+
+// ---------------------------------------------------------------------------
+// Le socle : la checklist permanente de configuration
+// ---------------------------------------------------------------------------
+
+export interface ElementSocle {
+  id: IdConseil;
+  titre: string;
+  /** Le texte du catalogue, ses jetons `{fait}` / `{total}` déjà substitués. */
+  texte: string;
+  action: { label: string; href: string } | null;
+  fait: boolean;
+  /** Vrai quand l'écran visé est ouvert au rôle qui regarde. */
+  actionnable: boolean;
+}
+
+export interface EtatSocle {
+  requis: ElementSocle[];
+  recommandes: ElementSocle[];
+  /** Combien de `requis` sont faits, et combien il y en a. Les recommandés ne comptent pas. */
+  faits: number;
+  total: number;
+  /** Vrai quand tous les requis sont faits : l'établissement est configuré. */
+  complet: boolean;
+}
+
+/**
+ * L'état de la configuration, déduit des données — jamais stocké.
+ *
+ * Même doctrine que `src/services/onboarding.ts`, et pour la même raison : un
+ * avancement stocké diverge dès qu'un réglage est fait par le chemin ordinaire
+ * plutôt que par la checklist. Ici il n'y a rien à faire diverger, la question
+ * « y a-t-il au moins un tarif ? » n'a qu'une réponse.
+ *
+ * Le contenu vient du **catalogue des conseils**, pas d'une seconde liste. Les
+ * vingt-deux entrées portaient déjà leur texte, leur sonde et leur lien ; il
+ * leur manquait un axe — `socle` — et une surface. Recopier les libellés ici
+ * aurait produit deux vérités, et c'est toujours celle qu'on ne relit pas qui
+ * se trompe.
+ *
+ * `total === 0` sur une sonde veut dire **non applicable**, pas « rien de
+ * fait » : une école sans classe ne doit pas lire « 0 emploi du temps sur 0 ».
+ * Un élément non applicable est compté comme fait — sinon il figerait
+ * définitivement le ratio d'une école à qui il ne s'adresse pas.
+ */
+export async function etatSocle(): Promise<EtatSocle> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
+  const diagnostic = await diagnostiquer();
+
+  const construire = (conseil: Conseil): ElementSocle => {
+    const valeur = conseil.sonde ? diagnostic[conseil.sonde] : undefined;
+    const nonApplicable = Boolean(valeur && valeur.total === 0);
+    return {
+      id: conseil.id,
+      titre: conseil.titre,
+      texte: formaterTexte(conseil.texte, valeur),
+      action: conseil.action,
+      fait: nonApplicable || sondeSatisfaite(valeur),
+      actionnable: conseil.action ? cheminAutorise(conseil.action.href, ctx.role) : false,
+    };
+  };
+
+  const duSocle = (niveau: 'REQUIS' | 'RECOMMANDE') =>
+    CATALOGUE.filter((c) => c.socle === niveau).map(construire);
+
+  const requis = duSocle('REQUIS');
+  const recommandes = duSocle('RECOMMANDE');
+  const faits = requis.filter((e) => e.fait).length;
+
+  return { requis, recommandes, faits, total: requis.length, complet: faits === requis.length };
 }

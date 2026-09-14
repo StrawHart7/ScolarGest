@@ -99,20 +99,30 @@ function etat(partiel: Partial<EtatConseil> & Pick<EtatConseil, 'conseilId'>): E
 // ------------------------------------------------------------ chronologie --
 
 describe('chronologie', () => {
-  it('commence par l’année scolaire sur une école vide', () => {
-    // Oracle : sur une école où rien n'existe, le seul conseil de FONDATION
-    // sans prérequis et destiné au Directeur est `annee-scolaire` — tous les
-    // autres en dépendent, directement ou par transitivité.
-    expect(choisirConseil(contexte())?.conseil.id).toBe('annee-scolaire');
+  it('se tait sur une école vide : la configuration a la parole', () => {
+    // Renversé le 2026-09-14. Le conseil sortait `annee-scolaire`, et c'était
+    // la troisième voix à le dire : `/demarrage` l'impose, la checklist de
+    // configuration l'affiche en permanence, le verrou de section le réclame à
+    // l'entrée. L'indispensable est donc sorti de la rotation, et sur une école
+    // neuve tout ce qui y reste attend un prérequis que le socle n'a pas encore
+    // posé. Le panneau se tait — c'est le résultat voulu, pas un trou.
+    expect(choisirConseil(contexte())).toBeNull();
   });
 
   it('ne parle pas de filigrane avant qu’il y ait des bulletins', () => {
     // C'est le cas que la fonctionnalité doit éviter : proposer un réglage de
     // confort à quelqu'un qui n'a pas encore fait tourner son école. Le
     // filigrane a `logo-documents` en prérequis, lui-même `bulletins`.
-    const choix = choisirConseil(contexte());
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      bulletins: { fait: 0, total: 1 },
+      logoDefini: { fait: 0, total: 1 },
+      filigraneDefini: { fait: 0, total: 1 },
+    };
+    const choix = choisirConseil(contexte({ diagnostic }));
     expect(choix?.conseil.id).not.toBe('filigrane');
-    expect(choix?.conseil.famille).toBe('FONDATION');
+    expect(choix?.conseil.id).not.toBe('logo-documents');
+    expect(choix?.conseil.id).toBe('bulletins');
   });
 
   it('ne descend dans une famille que si la précédente est vide', () => {
@@ -128,9 +138,13 @@ describe('chronologie', () => {
   });
 
   it('remonte au confort une fois tout le reste satisfait', () => {
-    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, pinDefini: { fait: 0, total: 1 } };
+    // `pin` tenait ce rôle avant de rejoindre le socle : sans code de
+    // confirmation, aucune note ne peut être approuvée, ce n'est pas un
+    // confort. `logo-documents` le remplace ici, et reste un vrai conseil —
+    // personne ne devine qu'on peut poser son logo sur ses bulletins.
+    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, logoDefini: { fait: 0, total: 1 } };
     const choix = choisirConseil(contexte({ diagnostic }));
-    expect(choix?.conseil.id).toBe('pin');
+    expect(choix?.conseil.id).toBe('logo-documents');
     expect(choix?.conseil.famille).toBe('CONFORT');
   });
 
@@ -218,23 +232,33 @@ describe('rythme', () => {
   });
 
   it('reprend la parole passé le délai', () => {
-    expect(choisirConseil(contexte({ dernierAffichageLe: ilYA(1.1) }))?.conseil.id).toBe(
-      'annee-scolaire',
-    );
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      classesAvecEmploiDuTemps: { fait: 4, total: 6 },
+    };
+    expect(
+      choisirConseil(contexte({ diagnostic, dernierAffichageLe: ilYA(1.1) }))?.conseil.id,
+    ).toBe('emploi-du-temps-partiel');
   });
 
   it('écarte un conseil reporté, puis le rend à l’échéance', () => {
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      classesAvecEmploiDuTemps: { fait: 4, total: 6 },
+    };
     const reporte = [
-      etat({ conseilId: 'annee-scolaire', statut: 'REPORTE', reporteJusquA: ilYA(-3) }),
+      etat({ conseilId: 'emploi-du-temps-partiel', statut: 'REPORTE', reporteJusquA: ilYA(-3) }),
     ];
-    expect(choisirConseil(contexte({ historique: reporte }))?.conseil.id).not.toBe(
-      'annee-scolaire',
+    expect(choisirConseil(contexte({ diagnostic, historique: reporte }))?.conseil.id).not.toBe(
+      'emploi-du-temps-partiel',
     );
 
     const echu = [
-      etat({ conseilId: 'annee-scolaire', statut: 'REPORTE', reporteJusquA: ilYA(1) }),
+      etat({ conseilId: 'emploi-du-temps-partiel', statut: 'REPORTE', reporteJusquA: ilYA(1) }),
     ];
-    expect(choisirConseil(contexte({ historique: echu }))?.conseil.id).toBe('annee-scolaire');
+    expect(choisirConseil(contexte({ diagnostic, historique: echu }))?.conseil.id).toBe(
+      'emploi-du-temps-partiel',
+    );
   });
 
   it('reportJusquA ajoute bien sept jours', () => {
@@ -246,25 +270,43 @@ describe('rythme', () => {
 
 describe('relégation', () => {
   it('range en fin de file au lieu de supprimer', () => {
-    // « Pas pour moi » sur l'année scolaire : le conseil suivant sort, mais
-    // le premier n'est pas perdu.
+    // « Pas pour moi » sur les emplois du temps manquants : le conseil suivant
+    // sort — ici le confort, la complétion étant épuisée — mais le premier
+    // n'est pas perdu.
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      classesAvecEmploiDuTemps: { fait: 4, total: 6 },
+      logoDefini: { fait: 0, total: 1 },
+    };
     const historique = [
-      etat({ conseilId: 'annee-scolaire', statut: 'RELEGUE', relegueLe: ilYA(1), nombreRelegations: 1 }),
+      etat({
+        conseilId: 'emploi-du-temps-partiel',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(1),
+        nombreRelegations: 1,
+      }),
     ];
-    expect(choisirConseil(contexte({ historique }))?.conseil.id).toBe('pin');
+    expect(choisirConseil(contexte({ diagnostic, historique }))?.conseil.id).toBe(
+      'logo-documents',
+    );
   });
 
   it('revient quand la file principale est vide', () => {
     // Oracle : école installée, seul le PIN manque, et il a été relégué il y
     // a 40 jours — au-delà du plancher de 30. Rien d'autre n'est éligible,
     // donc il revient, marqué comme une reprise.
-    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, pinDefini: { fait: 0, total: 1 } };
+    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, logoDefini: { fait: 0, total: 1 } };
     const historique = [
       ...DECOUVERTES_VUES,
-      etat({ conseilId: 'pin', statut: 'RELEGUE', relegueLe: ilYA(40), nombreRelegations: 1 }),
+      etat({
+        conseilId: 'logo-documents',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(40),
+        nombreRelegations: 1,
+      }),
     ];
     const choix = choisirConseil(contexte({ diagnostic, historique }));
-    expect(choix?.conseil.id).toBe('pin');
+    expect(choix?.conseil.id).toBe('logo-documents');
     expect(choix?.reprise).toBe(true);
   });
 
@@ -272,39 +314,63 @@ describe('relégation', () => {
     // Sans plancher, une école bien configurée qui relègue son dernier
     // conseil le reverrait le lendemain — la file principale étant vide, la
     // file de relégation serait servie aussitôt.
-    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, pinDefini: { fait: 0, total: 1 } };
+    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, logoDefini: { fait: 0, total: 1 } };
     const historique = [
       ...DECOUVERTES_VUES,
-      etat({ conseilId: 'pin', statut: 'RELEGUE', relegueLe: ilYA(1), nombreRelegations: 1 }),
+      etat({
+        conseilId: 'logo-documents',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(1),
+        nombreRelegations: 1,
+      }),
     ];
     expect(choisirConseil(contexte({ diagnostic, historique }))).toBeNull();
   });
 
   it('allonge le plancher à chaque relégation', () => {
-    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, pinDefini: { fait: 0, total: 1 } };
+    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, logoDefini: { fait: 0, total: 1 } };
     // Deuxième relégation : 90 jours. 40 ne suffisent plus.
     const deux = [
       ...DECOUVERTES_VUES,
-      etat({ conseilId: 'pin', statut: 'RELEGUE', relegueLe: ilYA(40), nombreRelegations: 2 }),
+      etat({
+        conseilId: 'logo-documents',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(40),
+        nombreRelegations: 2,
+      }),
     ];
     expect(choisirConseil(contexte({ diagnostic, historique: deux }))).toBeNull();
 
     const centJours = [
       ...DECOUVERTES_VUES,
-      etat({ conseilId: 'pin', statut: 'RELEGUE', relegueLe: ilYA(100), nombreRelegations: 2 }),
+      etat({
+        conseilId: 'logo-documents',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(100),
+        nombreRelegations: 2,
+      }),
     ];
-    expect(choisirConseil(contexte({ diagnostic, historique: centJours }))?.conseil.id).toBe('pin');
+    expect(choisirConseil(contexte({ diagnostic, historique: centJours }))?.conseil.id).toBe(
+      'logo-documents',
+    );
   });
 
   it('plafonne le plancher au dernier palier', () => {
     // Une dixième relégation ne doit pas produire un délai absurde : il n'y a
     // pas d'état terminal, seulement un palier maximal.
-    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, pinDefini: { fait: 0, total: 1 } };
+    const diagnostic: Diagnostic = { ...ECOLE_INSTALLEE, logoDefini: { fait: 0, total: 1 } };
     const historique = [
       ...DECOUVERTES_VUES,
-      etat({ conseilId: 'pin', statut: 'RELEGUE', relegueLe: ilYA(200), nombreRelegations: 10 }),
+      etat({
+        conseilId: 'logo-documents',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(200),
+        nombreRelegations: 10,
+      }),
     ];
-    expect(choisirConseil(contexte({ diagnostic, historique }))?.conseil.id).toBe('pin');
+    expect(choisirConseil(contexte({ diagnostic, historique }))?.conseil.id).toBe(
+      'logo-documents',
+    );
     expect(Math.max(...PALIERS_RELEGATION_JOURS)).toBeLessThan(200);
   });
 
@@ -313,12 +379,17 @@ describe('relégation', () => {
     // que soient sa famille et son poids.
     const diagnostic: Diagnostic = {
       ...ECOLE_INSTALLEE,
-      pinDefini: { fait: 0, total: 1 },
+      equipeAdministrative: { fait: 0, total: 1 },
       logoDefini: { fait: 0, total: 1 },
     };
     const historique = [
       ...DECOUVERTES_VUES,
-      etat({ conseilId: 'pin', statut: 'RELEGUE', relegueLe: ilYA(40), nombreRelegations: 1 }),
+      etat({
+        conseilId: 'equipe-administrative',
+        statut: 'RELEGUE',
+        relegueLe: ilYA(40),
+        nombreRelegations: 1,
+      }),
       etat({
         conseilId: 'logo-documents',
         statut: 'RELEGUE',
@@ -326,7 +397,8 @@ describe('relégation', () => {
         nombreRelegations: 1,
       }),
     ];
-    // `pin` pèse 60 contre 40, mais `logo-documents` a été relégué avant lui.
+    // `equipe-administrative` pèse 50 contre 40, mais `logo-documents` a été
+    // relégué avant elle.
     expect(choisirConseil(contexte({ diagnostic, historique }))?.conseil.id).toBe(
       'logo-documents',
     );
@@ -356,8 +428,16 @@ describe('rôles et accès', () => {
   });
 
   it('donne au comptable un conseil de finance, pas de structure', () => {
-    const choix = choisirConseil(contexte({ role: 'COMPTABLE', diagnostic: ECOLE_VIDE }));
-    expect(choix?.conseil.id).toBe('types-frais');
+    // `types-frais` tenait ce rôle et a rejoint le socle : sans type de frais
+    // ni tarif, aucune facture n'existe, ce n'est pas un conseil mais un
+    // prérequis — et le verrou des finances le réclame désormais à l'entrée.
+    // Le recouvrement, lui, reste bien un conseil de complétion.
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      facturesSoldees: { fait: 3, total: 10 },
+    };
+    const choix = choisirConseil(contexte({ role: 'COMPTABLE', diagnostic }));
+    expect(choix?.conseil.id).toBe('factures-impayees');
   });
 
   it('ne propose aucune écriture à une école en lecture seule', () => {
@@ -392,12 +472,12 @@ describe('contexte de page', () => {
     // ne doit pas passer devant une fondation manquante.
     const diagnostic: Diagnostic = {
       ...ECOLE_INSTALLEE,
-      coefficients: { fait: 0, total: 1 },
+      bulletins: { fait: 0, total: 1 },
       classesAvecEmploiDuTemps: { fait: 4, total: 6 },
     };
     expect(
       choisirConseil(contexte({ diagnostic, urlCourante: '/etablissement/classes' }))?.conseil.id,
-    ).toBe('coefficients');
+    ).toBe('bulletins');
   });
 });
 

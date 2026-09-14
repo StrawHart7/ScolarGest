@@ -171,6 +171,27 @@ export interface Conseil {
    */
   exigeEcriture?: boolean;
   /**
+   * L'entrée fait partie du **socle de configuration** : la liste permanente
+   * que le Directeur doit épuiser pour que son établissement soit prêt.
+   *
+   * `famille` répond à « dans quel ordre on parle ? ». Elle ne répond pas à
+   * « l'établissement est-il configuré ? ». Confondre les deux est la raison
+   * pour laquelle le filigrane vivait en CONFORT — juste pour le rythme, faux
+   * pour la nécessité : personne ne devine qu'un filigrane existe, et rien
+   * n'amenait jamais à le découvrir.
+   *
+   * - `REQUIS` compte dans le ratio d'avancement. Sans lui, une école ne peut
+   *   ni facturer ni éditer un bulletin.
+   * - `RECOMMANDE` est listé mais **pas compté** : ne pas l'avoir fait n'est
+   *   pas un manque, c'est un choix qu'on veut seulement rendre visible.
+   *
+   * Une entrée du socle **sort de la rotation des conseils** tant qu'elle est
+   * ouverte : la checklist la montre déjà en permanence, la répéter un jour sur
+   * deux serait du harcèlement. Les conseils gardent ce qui n'a pas sa place
+   * dans une checklist — les raccourcis, l'import, le hors-ligne.
+   */
+  socle?: 'REQUIS' | 'RECOMMANDE';
+  /**
    * Date d'apparition de la fonctionnalité, en ISO. Un compte créé **avant**
    * cette date la découvre, et le conseil est annoncé comme une nouveauté ;
    * un compte créé après le reçoit dans le flux ordinaire — pour lui, la
@@ -180,12 +201,16 @@ export interface Conseil {
 }
 
 const ADMIN: Role[] = ['DIRECTEUR', 'SECRETAIRE'];
-const FINANCE: Role[] = ['SECRETAIRE', 'COMPTABLE'];
+// Le DIRECTEUR y est entre le 2026-09-14. Il en etait absent, si bien qu'il
+// ne recevait meme pas l'invitation a fixer ses tarifs — alors que c'est
+// souvent le seul a pouvoir le faire dans une ecole sans secretariat.
+const FINANCE: Role[] = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'];
 
 export const CATALOGUE: Conseil[] = [
   // ------------------------------------------------------------ FONDATION --
   {
     id: 'annee-scolaire',
+    socle: 'REQUIS',
     titre: 'Ouvrez votre année scolaire',
     texte:
       "Classes, notes et factures s'y rattachent. Tant qu'aucune année n'est active, la plateforme ne peut rien enregistrer.",
@@ -199,6 +224,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'classes',
+    socle: 'REQUIS',
     titre: 'Créez vos classes',
     texte:
       "Les classes portent les élèves, les notes et les emplois du temps. C'est la première chose à poser après l'année.",
@@ -212,6 +238,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'programme',
+    socle: 'REQUIS',
     titre: 'Indiquez les matières de chaque niveau',
     texte:
       "Le programme dit ce qui est enseigné à chaque niveau. Sans lui, aucun bulletin ne peut être composé.",
@@ -225,6 +252,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'coefficients',
+    socle: 'REQUIS',
     titre: 'Fixez vos coefficients',
     texte:
       "Ils pondèrent le calcul des moyennes. Au lycée, chaque série a sa propre colonne : une matière à 0 sort de la moyenne de cette série.",
@@ -238,6 +266,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'eleves',
+    socle: 'REQUIS',
     titre: 'Inscrivez vos élèves',
     // L'action menait au formulaire unitaire. Une école arrive avec deux à
     // quatre cents élèves déjà dans un tableur : lui proposer « Ajouter un
@@ -272,6 +301,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'enseignants',
+    socle: 'REQUIS',
     titre: 'Ajoutez vos enseignants',
     texte:
       'Chaque enseignant reçoit une invitation par email et saisit ensuite ses notes lui-même.',
@@ -285,6 +315,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'affectations',
+    socle: 'REQUIS',
     titre: 'Affectez vos enseignants aux matières',
     texte:
       "Un enseignant ne voit que les classes et les matières qui lui sont affectées : c'est ce qui ouvre sa saisie de notes.",
@@ -315,6 +346,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'emploi-du-temps',
+    socle: 'RECOMMANDE',
     titre: 'Composez vos emplois du temps',
     texte:
       "Chaque classe a sa grille hebdomadaire, exportable en PDF. La plateforme refuse de placer un enseignant à deux endroits à la fois.",
@@ -329,6 +361,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'types-frais',
+    socle: 'REQUIS',
     titre: 'Déclarez vos frais de scolarité',
     texte:
       'Inscription, scolarité, cantine, transport : chaque type de frais devient une ligne sur les factures.',
@@ -342,6 +375,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'tarifs',
+    socle: 'REQUIS',
     titre: 'Fixez vos tarifs',
     texte:
       "Le montant se définit par niveau et s'applique à ses classes. Il est figé sur l'année : le changer plus tard ne réécrira pas les factures déjà émises.",
@@ -441,6 +475,7 @@ export const CATALOGUE: Conseil[] = [
   // -------------------------------------------------------------- CONFORT --
   {
     id: 'pin',
+    socle: 'REQUIS',
     titre: 'Choisissez votre code de confirmation',
     texte:
       'Un code à six chiffres, distinct de votre mot de passe, demandé avant les décisions définitives.',
@@ -454,6 +489,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'equipe-administrative',
+    socle: 'RECOMMANDE',
     titre: 'Invitez votre équipe',
     texte:
       "Secrétaire, comptable : chacun n'accède qu'à ce que son rôle autorise. Vous n'avez pas à tout faire vous-même.",
@@ -467,6 +503,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'logo-documents',
+    socle: 'RECOMMANDE',
     titre: 'Posez votre logo sur vos documents',
     texte: 'Il apparaîtra en tête de vos bulletins et de vos reçus.',
     action: { label: 'Déposer le logo', href: '/etablissement/documents' },
@@ -479,6 +516,7 @@ export const CATALOGUE: Conseil[] = [
   },
   {
     id: 'filigrane',
+    socle: 'RECOMMANDE',
     titre: 'Ajoutez un filigrane',
     texte:
       "Un texte répété en fond de chaque page de vos documents. C'est un élément d'identité, pas une protection.",

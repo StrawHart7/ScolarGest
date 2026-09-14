@@ -182,6 +182,19 @@ export function choisirConseil(contexte: ContexteChoix): ConseilAProposer | null
     if (!conseil.roles.includes(role)) return false;
     if (conseil.exigeEcriture && !ecritureAutorisee) return false;
 
+    // L'indispensable ne passe pas par la rotation : la checklist le montre en
+    // permanence **et** le verrou de domaine le réclame à l'entrée de la
+    // section. Une troisième voix un jour sur deux dirait la même chose une
+    // fois de trop, et le rythme des conseils a justement été calibré pour ne
+    // pas harceler.
+    //
+    // Le recommandé, lui, **reste** dans la rotation. C'est la catégorie qu'on
+    // ne découvre jamais seul — personne ne devine qu'un filigrane existe — et
+    // rien ne la réclame ailleurs : la checklist la liste sans la compter, le
+    // verrou l'ignore. Deux voix valent mieux qu'une pour ce qui, sinon, ne
+    // serait jamais vu.
+    if (conseil.socle === 'REQUIS') return false;
+
     const etat = parId.get(conseil.id);
     if (etat?.statut === 'SUIVI') return false;
     if (etat?.reporteJusquA && new Date(etat.reporteJusquA) > maintenant) return false;

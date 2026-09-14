@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { PREREQUIS, TITRES_DOMAINE, type Domaine } from '../configuration-domaines';
 import { cheminAutorise } from '../navigation';
+import { CATALOGUE } from '../conseils/catalogue';
+import { choisirConseil, type Diagnostic } from '../conseils/choix';
 
 const DOMAINES = Object.keys(PREREQUIS) as Domaine[];
 
@@ -53,5 +55,88 @@ describe('les prérequis de domaine', () => {
         expect(p.href.startsWith('/'), `${p.sonde} : href relatif`).toBe(true);
       }
     }
+  });
+});
+
+/**
+ * Le socle décide d'une redirection. Une entrée qui ne peut jamais être
+ * satisfaite y enferme le Directeur.
+ *
+ * Tant qu'un élément `REQUIS` n'est pas fait, `/dashboard` renvoie vers la
+ * configuration. Un élément sans sonde n'est jamais « fait » : le ratio
+ * resterait bloqué et la redirection ne se lèverait plus. C'est le genre de
+ * défaut qu'on n'ajoute pas exprès — on l'ajoute en marquant `socle` sur un
+ * conseil de découverte, qui n'a pas de sonde par construction.
+ */
+describe('le socle de configuration', () => {
+  const socle = CATALOGUE.filter((c) => c.socle);
+
+  it('existe, et distingue l’indispensable du recommandé', () => {
+    expect(socle.length).toBeGreaterThan(0);
+    expect(socle.some((c) => c.socle === 'REQUIS')).toBe(true);
+    expect(socle.some((c) => c.socle === 'RECOMMANDE')).toBe(true);
+  });
+
+  it('n’y met que des entrées mesurables', () => {
+    for (const conseil of socle) {
+      expect(conseil.sonde, `« ${conseil.id} » est dans le socle sans sonde : il ne pourra jamais être coché`).not.toBeNull();
+    }
+  });
+
+  it('donne à chaque entrée un écran où la régler', () => {
+    // Une ligne de checklist sans action est un reproche sans issue.
+    for (const conseil of socle) {
+      expect(conseil.action, `« ${conseil.id} » n'a aucune action`).not.toBeNull();
+    }
+  });
+
+  it('laisse le Directeur régler tout l’indispensable lui-même', () => {
+    // C'est la promesse du 2026-09-14 : il n'a besoin de personne pour finir
+    // de configurer son établissement. Une ligne requise qu'il ne peut pas
+    // atteindre ferait mentir la checklist et le bloquerait sur la redirection.
+    for (const conseil of socle.filter((c) => c.socle === 'REQUIS')) {
+      expect(conseil.roles, `« ${conseil.id} » est requis mais fermé au Directeur`).toContain(
+        'DIRECTEUR',
+      );
+      if (conseil.action) {
+        expect(
+          cheminAutorise(conseil.action.href, 'DIRECTEUR'),
+          `« ${conseil.id} » renvoie le Directeur vers ${conseil.action.href}, qui lui est refusé`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('sort l’indispensable de la rotation des conseils, et y laisse le recommandé', () => {
+    // Trois voix pour la même chose seraient du harcèlement ; zéro voix pour un
+    // filigrane que personne ne devine serait un oubli.
+    //
+    // Le diagnostic est tout à zéro : rien n'est fait, donc **tout** est
+    // candidat. Ce que la rotation rend alors ne peut être qu'une entrée hors
+    // socle requis — sinon l'exclusion de `choisirConseil` ne tient pas.
+    const requis = CATALOGUE.filter((c) => c.socle === 'REQUIS').map((c) => c.id);
+    const diagnostic: Diagnostic = Object.fromEntries(
+      CATALOGUE.filter((c) => c.sonde).map((c) => [c.sonde as string, { fait: 0, total: 1 }]),
+    );
+    const choix = choisirConseil({
+      role: 'DIRECTEUR',
+      diagnostic,
+      historique: [],
+      dernierAffichageLe: null,
+      urlCourante: '/dashboard',
+      ecritureAutorisee: true,
+      maintenant: new Date('2026-09-14T10:00:00.000Z'),
+      compteCreeLe: '2026-01-01T00:00:00.000Z',
+    });
+
+    if (choix) {
+      expect(
+        requis,
+        `« ${choix.conseil.id} » est requis : il ne doit pas passer par la rotation`,
+      ).not.toContain(choix.conseil.id);
+    }
+    // Et le recommandé reste bien servi par la rotation : il n'a aucune autre
+    // voix, ni verrou ni comptage, pour se faire connaître.
+    expect(CATALOGUE.filter((c) => c.socle === 'RECOMMANDE').length).toBeGreaterThan(0);
   });
 });
