@@ -25,7 +25,10 @@ export default async function NotificationsPage() {
   const ctx = await getTenantContext();
   const notifications: Notification[] = [];
 
-  if (ctx.role === 'SECRETAIRE') {
+  // Le Directeur voit les mêmes alertes que la Secrétaire : il approuve les
+  // notes depuis toujours, mais rien ne lui disait qu'il y en avait en attente.
+  // Une école sans secrétaire ne recevait donc aucun signal.
+  if (ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE') {
     const [soumissions, corrections] = await Promise.all([
       listEvaluationsSoumises(),
       listNotesEnAttente(),

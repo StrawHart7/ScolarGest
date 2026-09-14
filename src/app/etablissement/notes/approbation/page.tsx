@@ -13,7 +13,7 @@ import { SoumissionsQueue } from './SoumissionsQueue';
 export default async function ApprobationNotesPage() {
   // Garde explicite au niveau page, en plus de la garde déjà appliquée dans
   // les services listNotesEnAttente/listEvaluationsSoumises (défense en profondeur).
-  await requireRole('SECRETAIRE');
+  await requireRole('DIRECTEUR', 'SECRETAIRE');
 
   const ctx = await getTenantContext();
   const [soumissions, corrections] = await Promise.all([

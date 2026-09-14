@@ -237,7 +237,7 @@ export interface ResultatPaiement {
 export async function enregistrerPaiement(
   input: EnregistrerPaiementInput,
 ): Promise<ResultatPaiement> {
-  await requireRole('COMPTABLE', 'SECRETAIRE');
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
 
   if (!Number.isFinite(input.montant) || input.montant <= 0) {
     throw new Error('Le montant du versement doit être strictement positif.');
@@ -292,7 +292,7 @@ export async function enregistrerPaiement(
  * l'historique et dans l'audit.
  */
 export async function annulerPaiement(paiementId: string, motif?: string): Promise<void> {
-  await requireRole('COMPTABLE', 'SECRETAIRE');
+  await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
 
   const { data: avant } = await supabase

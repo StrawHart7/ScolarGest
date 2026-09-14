@@ -40,7 +40,10 @@ export default async function TarifsPage({
     listTypesFrais(),
   ]);
   const canWrite =
-    (ctx.role === 'COMPTABLE' || ctx.role === 'SECRETAIRE' || ctx.role === 'SUPER_ADMIN') &&
+    (ctx.role === 'DIRECTEUR' ||
+      ctx.role === 'SECRETAIRE' ||
+      ctx.role === 'COMPTABLE' ||
+      ctx.role === 'SUPER_ADMIN') &&
     ecritureOuverte;
 
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');

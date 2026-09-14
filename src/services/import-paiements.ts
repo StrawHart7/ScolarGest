@@ -72,7 +72,7 @@ export async function importerLignesValides(
   lignesValides: { ligne: number; data: PaiementImportLigne }[],
   anneeScolaireId: string,
 ): Promise<ImportRapport> {
-  const ctx = await requireRole('COMPTABLE', 'SECRETAIRE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
 
   const matricules = [...new Set(lignesValides.map((l) => l.data.matricule.trim()))];
@@ -180,7 +180,7 @@ export async function preparerImportPaiements(
   analyse: AnalyseImport;
   aEcrire: { ligne: number; data: PaiementImportLigne }[];
 }> {
-  const ctx = await requireRole('COMPTABLE', 'SECRETAIRE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
 
   const { entetes, lignes: lignesBrutes } = lireClasseur(buffer);

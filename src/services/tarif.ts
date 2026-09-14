@@ -60,7 +60,7 @@ export async function listTarifs(
  * contournable par un doublon.
  */
 export async function createTarif(input: CreateTarifInput): Promise<TarifScolaire> {
-  const ctx = await requireRole('COMPTABLE', 'SECRETAIRE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
 
   if (!Number.isFinite(input.montant) || input.montant < 0) {
     throw new Error('Le montant doit être un nombre positif.');

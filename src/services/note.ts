@@ -247,7 +247,7 @@ interface NoteSoumiseRow {
  * `listNotesEnAttente`.
  */
 export async function listEvaluationsSoumises(): Promise<EvaluationSoumise[]> {
-  const ctx = await requireRole('SECRETAIRE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -522,7 +522,7 @@ interface NoteEnAttenteRow {
  * que personne ne traite la file.
  */
 export async function listNotesEnAttente(): Promise<NoteEnAttente[]> {
-  const ctx = await requireRole('SECRETAIRE');
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   const supabase = createClient();
 
   const { data, error } = await supabase

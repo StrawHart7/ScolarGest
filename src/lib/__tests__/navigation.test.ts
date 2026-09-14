@@ -10,13 +10,16 @@ import type { Role } from '@/services/tenant';
 const ROLES_ECOLE: Role[] = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'];
 
 describe('cheminAutorise', () => {
-  it("refuse au Directeur l'approbation des notes, réservée à la Secrétaire", () => {
-    // Régression du 2026-09-05 : la tuile « Notes à approuver » du tableau de
-    // bord Directeur pointait vers cette page, dont la garde est
-    // `requireRole('SECRETAIRE')`. Le Directeur recevait un écran d'erreur
-    // depuis sa propre page d'accueil.
-    expect(cheminAutorise('/etablissement/notes/approbation', 'DIRECTEUR')).toBe(false);
+  it("ouvre au Directeur l'approbation des notes, et la ferme au Comptable", () => {
+    // Le 2026-09-05, la tuile « Notes à approuver » du tableau de bord Directeur
+    // pointait vers cette page, gardée par `requireRole('SECRETAIRE')` : il
+    // recevait un écran d'erreur depuis sa propre page d'accueil. On avait
+    // fermé le chemin. Le 2026-09-14 on a corrigé l'autre bout — le Directeur
+    // approuvait déjà les notes par `exigerPin`, il lui manquait seulement
+    // l'écran pour voir ce qui attendait. La tuile redevient donc légitime.
+    expect(cheminAutorise('/etablissement/notes/approbation', 'DIRECTEUR')).toBe(true);
     expect(cheminAutorise('/etablissement/notes/approbation', 'SECRETAIRE')).toBe(true);
+    expect(cheminAutorise('/etablissement/notes/approbation', 'COMPTABLE')).toBe(false);
   });
 
   it('autorise un chemin inconnu du catalogue', () => {

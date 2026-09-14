@@ -103,8 +103,25 @@ describe('enregistrerPaiement', () => {
     expect(mockAuditLog).not.toHaveBeenCalled();
   });
 
-  it('refuse un rôle non autorisé (Directeur = lecture seule sur la finance)', async () => {
+  it('autorise le Directeur (il peut tout faire dans son établissement)', async () => {
+    // Décision inversée le 2026-09-14. Ce test affirmait « Directeur = lecture
+    // seule sur la finance ». C'était vrai, et c'était le défaut : une école
+    // togolaise n'a souvent qu'un directeur et des enseignants, et il ne
+    // pouvait alors ni fixer un tarif, ni encaisser — alors qu'il pouvait
+    // émettre la facture. Une porte à moitié ouverte n'est pas une sécurité.
     mockGetTenantContext.mockResolvedValue({ ...CTX_COMPTABLE, role: 'DIRECTEUR' });
+    mockRpc.mockResolvedValue({
+      data: { paiementId: 'p1', montantTotal: 100000, totalPaye: 50000, solde: 50000, statut: 'PARTIEL' },
+      error: null,
+    });
+    await enregistrerPaiement({ factureId: 'f1', montant: 50000, modePaiement: 'ESPECES' });
+    expect(mockRpc).toHaveBeenCalled();
+  });
+
+  it("refuse l'Enseignant, qui n'a rien à faire dans la caisse", async () => {
+    // L'élargissement s'arrête au Directeur. C'est la garde qui compte ici :
+    // l'Enseignant reste hors de la finance, applicativement comme en RLS.
+    mockGetTenantContext.mockResolvedValue({ ...CTX_COMPTABLE, role: 'ENSEIGNANT' });
     await expect(
       enregistrerPaiement({ factureId: 'f1', montant: 50000, modePaiement: 'ESPECES' }),
     ).rejects.toThrow(/Accès refusé/);

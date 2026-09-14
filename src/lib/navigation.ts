@@ -149,7 +149,7 @@ export const SECTIONS: Record<string, Section> = {
         description: 'Traiter les demandes de correction soumises par les enseignants.',
         href: '/etablissement/notes/approbation',
         icone: 'notes',
-        roles: ['SECRETAIRE'],
+        roles: ['DIRECTEUR', 'SECRETAIRE'],
       },
       {
         titre: 'Moyennes et classement',

@@ -60,7 +60,10 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
   ]);
 
   const canWrite =
-    (ctx.role === 'COMPTABLE' || ctx.role === 'SECRETAIRE' || ctx.role === 'SUPER_ADMIN') &&
+    (ctx.role === 'DIRECTEUR' ||
+      ctx.role === 'SECRETAIRE' ||
+      ctx.role === 'COMPTABLE' ||
+      ctx.role === 'SUPER_ADMIN') &&
     ecritureOuverte;
   if (!factureOuNull) notFound();
   const facture = factureOuNull;
