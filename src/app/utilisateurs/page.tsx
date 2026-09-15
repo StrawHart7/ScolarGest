@@ -3,7 +3,7 @@ import { UserPlus, Users2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listUtilisateurs } from '@/services/utilisateur';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreEtablissement } from '@/components/layout/BarreEtablissement';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +80,7 @@ export default async function UtilisateursPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
+        <BarreEtablissement role={ctx.role} actif="/utilisateurs" />
 
         <div className="hidden md:block">
           <PageHeader

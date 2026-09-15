@@ -4,6 +4,7 @@ import { PREREQUIS, type Domaine, type Prerequis } from '@/lib/configuration-dom
 import { CATALOGUE, type Conseil, type IdConseil } from '@/lib/conseils/catalogue';
 import { formaterTexte, sondeSatisfaite } from '@/lib/conseils/choix';
 import { cheminAutorise } from '@/lib/navigation';
+import { memoiserParRequete } from '@/lib/memo';
 import { diagnostiquer } from './conseils';
 
 export interface EtatDomaine {
@@ -142,7 +143,7 @@ export interface EtatSocle {
  * Un élément non applicable est compté comme fait — sinon il figerait
  * définitivement le ratio d'une école à qui il ne s'adresse pas.
  */
-export async function etatSocle(): Promise<EtatSocle> {
+export const etatSocle = memoiserParRequete(async function etatSocle(): Promise<EtatSocle> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
   const diagnostic = await diagnostiquer();
 
@@ -167,4 +168,37 @@ export async function etatSocle(): Promise<EtatSocle> {
   const faits = requis.filter((e) => e.fait).length;
 
   return { requis, recommandes, faits, total: requis.length, complet: faits === requis.length };
+});
+
+/**
+ * Les neuf réglages indispensables sont-ils faits ?
+ *
+ * ## Pourquoi déléguer plutôt que recompter
+ *
+ * La tentation était de ne sonder que ce dont les entrées `REQUIS` ont besoin,
+ * pour une page plus légère. Ce serait une **seconde vérité** : le jour où une
+ * entrée du catalogue change de sonde, l'écran de configuration et la barre de
+ * la section ne diraient plus la même chose, et c'est toujours celle qu'on ne
+ * relit pas qui se trompe. Même raisonnement que pour `etatSocle`, qui puise
+ * déjà dans le catalogue des conseils au lieu de tenir sa propre liste.
+ *
+ * La mémoïsation par requête est ce qui rend le partage gratuit : l'écran de
+ * configuration appelle `etatSocle` pour son contenu, la barre appelle
+ * `socleComplet` pour sa composition, et le diagnostic ne tourne qu'une fois.
+ *
+ * ## Elle ne lève jamais
+ *
+ * Une lecture qui échoue ne doit pas emporter la page : la barre de navigation
+ * n'est pas le sujet de l'écran qu'on est venu voir. Le repli est **`false`**,
+ * c'est-à-dire « on garde Configuration visible ». Se tromper dans ce sens
+ * affiche une entrée de trop ; se tromper dans l'autre ferait disparaître le
+ * seul chemin vers ce qui reste à régler, précisément à une école qui n'a pas
+ * fini de se configurer.
+ */
+export async function socleComplet(): Promise<boolean> {
+  try {
+    return (await etatSocle()).complet;
+  } catch {
+    return false;
+  }
 }

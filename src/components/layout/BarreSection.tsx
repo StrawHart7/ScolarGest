@@ -40,14 +40,34 @@ export function BarreSection({
   chemin,
   role,
   actif,
+  exclure,
 }: {
   /** La section, telle qu'elle est déclarée dans `SECTIONS`. */
   chemin: string;
   role: Role;
   /** L'écran affiché, pour le marquer dans la rangée. */
   actif: string;
+  /**
+   * Entrées à retirer de la rangée pour cette école-ci.
+   *
+   * Le rôle ne suffit pas à décider de tout : « Configuration » s'adresse au
+   * Directeur, mais **plus une fois que les neuf réglages indispensables sont
+   * faits** — elle n'a alors plus rien à lui apprendre et occupe la première
+   * case de sa section. C'est un état de l'établissement, pas une permission,
+   * donc `blocsSection` ne peut pas le savoir : il lui est passé.
+   *
+   * L'entrée retirée reste **atteignable par son adresse** : on la range, on ne
+   * la ferme pas.
+   */
+  exclure?: string[];
 }) {
-  const blocs = blocsSection(chemin, role);
+  const retires = new Set(exclure ?? []);
+  // L'écran courant ne se retire jamais de sa propre rangée : il y est le
+  // repère, et disparaître de sa propre barre ferait croire qu'on a quitté la
+  // section.
+  const blocs = blocsSection(chemin, role).filter(
+    (bloc) => bloc.href === actif || !retires.has(bloc.href),
+  );
   if (blocs.length <= 1) return null;
 
   return (

@@ -2,7 +2,7 @@ import { BookOpen } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listMatieres } from '@/services/matiere';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreEtablissement } from '@/components/layout/BarreEtablissement';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,7 +49,7 @@ export default async function MatieresPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
+        <BarreEtablissement role={ctx.role} actif="/etablissement/matieres" />
 
         {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
             doublon avec la ligne de densité. */}
