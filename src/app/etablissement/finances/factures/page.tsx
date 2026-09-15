@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
+import { VuesPaiements } from '../VuesPaiements';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -194,6 +195,8 @@ export default async function SuiviPaiementsPage({
         </div>
 
         <SousTitreMobile>Qui a payé, qui doit encore. Une ligne par élève : total dû, déjà encaissé, reste à recouvrer.</SousTitreMobile>
+
+        <VuesPaiements actif="/etablissement/finances/factures" />
 
         <BarreListe
           placeholderRecherche="Élève, matricule ou classe…"

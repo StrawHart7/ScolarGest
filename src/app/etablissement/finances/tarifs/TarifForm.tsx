@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { NOUVEAU_TYPE_FRAIS } from '@/lib/frais';
 import { creerTarifAction } from './actions';
 
 /**
@@ -38,6 +39,10 @@ export function TarifForm({
 }) {
   const [resultat, formAction] = useFormState(creerTarifAction, null);
   const [ouvert, setOuvert] = React.useState(false);
+  // Une école qui n'a encore aucun frais ouvre directement sur la saisie du
+  // nom : lui présenter un menu vide puis lui demander de choisir « un autre
+  // frais » serait un détour de plus dans l'écran qu'on vient de simplifier.
+  const [typeChoisi, setTypeChoisi] = React.useState(typesFrais[0]?.id ?? NOUVEAU_TYPE_FRAIS);
   const { succes, erreur } = useToast();
   const dernier = React.useRef<string | null>(null);
 
@@ -69,11 +74,21 @@ export function TarifForm({
           </DialogHeader>
 
           <DialogBody>
+            {/*
+              Le frais se crée d'ici. Avant, il fallait aller le déclarer sur un
+              autre écran, revenir, puis fixer son montant : deux tables, deux
+              pages, pour une phrase que le directeur dit d'un trait —
+              « la scolarité coûte 150 000 en 6ème ».
+            */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="typeFraisId">Type de frais</Label>
-              <Select name="typeFraisId" defaultValue={typesFrais[0]?.id ?? ''}>
+              <Label htmlFor="typeFraisId">Frais</Label>
+              <Select
+                name="typeFraisId"
+                value={typeChoisi}
+                onValueChange={setTypeChoisi}
+              >
                 <SelectTrigger id="typeFraisId">
-                  <SelectValue placeholder="Sélectionnez un type de frais" />
+                  <SelectValue placeholder="Sélectionnez un frais" />
                 </SelectTrigger>
                 <SelectContent>
                   {typesFrais.map((t) => (
@@ -81,9 +96,26 @@ export function TarifForm({
                       {t.nom}
                     </SelectItem>
                   ))}
+                  <SelectItem value={NOUVEAU_TYPE_FRAIS}>Un autre frais…</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {typeChoisi === NOUVEAU_TYPE_FRAIS && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="nouveauTypeFrais">Nom du frais</Label>
+                <Input
+                  id="nouveauTypeFrais"
+                  name="nouveauTypeFrais"
+                  placeholder="Scolarité, Inscription, Cantine…"
+                  required
+                  autoFocus
+                />
+                <p className="text-body-sm text-text-secondary">
+                  Il sera créé et réutilisable pour les autres classes.
+                </p>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="classeId">Classe concernée</Label>

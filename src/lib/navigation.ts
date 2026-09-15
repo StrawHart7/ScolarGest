@@ -202,13 +202,15 @@ export const SECTIONS: Record<string, Section> = {
         icone: 'finances',
         roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
       },
-      {
-        titre: 'Versements',
-        description: 'Encaisser un versement et éditer le reçu correspondant.',
-        href: '/etablissement/finances/paiements',
-        icone: 'finances',
-        roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
-      },
+      // « Versements » a quitte ce niveau le 2026-09-15. Ce n'etait pas une
+      // destination : la page est en lecture seule, et son intitule annoncait
+      // pourtant « encaisser un versement et editer le recu » — on encaisse
+      // depuis la facture d'un eleve, et son propre etat vide le disait.
+      //
+      // C'est le **journal de caisse** : la recette du jour, la recherche par
+      // numero de recu, les versements annules. Il devient la seconde vue du
+      // suivi des paiements (`VuesPaiements`), atteignable d'un basculement au
+      // lieu d'une navigation. La route reste, l'entree de menu part.
       {
         titre: 'Tarifs',
         description: 'Montants par type de frais, par niveau et par année scolaire.',

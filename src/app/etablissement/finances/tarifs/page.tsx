@@ -1,16 +1,14 @@
 import { Coins } from 'lucide-react';
-import Link from 'next/link';
 import { getTenantContext } from '@/services/tenant';
 import { peutEcrire } from '@/services/abonnement';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listTypesFrais } from '@/services/type-frais';
-import { listTarifs, totalTarifs } from '@/services/tarif';
+import { listTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
@@ -109,18 +107,18 @@ export default async function TarifsPage({
           ]}
           actions={
             <>
-              {/* « Types de frais » n'est plus une entrée de menu : un tarif,
-                  c'est « ce frais coûte X en 6ème », et le type de frais est un
-                  attribut de cette phrase, pas une entité de la vie du
-                  Directeur. L'écran existe toujours — il a simplement cessé
-                  d'occuper le même niveau visuel que le tarif, et il se règle
-                  depuis l'écran qui l'emploie. */}
-              {canWrite && (
-                <Button asChild variant="secondary" size="sm">
-                  <Link href="/etablissement/finances/types-frais">Types de frais</Link>
-                </Button>
-              )}
-              {canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 ? (
+              {/*
+                Le bouton « Types de frais » est parti le 2026-09-15, et avec
+                lui le détour. Un tarif, c'est « ce frais coûte X en 6ème » : le
+                frais se nomme **dans** le formulaire du tarif, et l'écran
+                séparé n'a plus de raison d'être sur ce chemin. Il survit à son
+                URL pour renommer ou retirer un frais existant, ce qui est rare.
+
+                Conséquence : plus besoin d'un type de frais préexistant pour
+                voir le bouton. C'était exactement le mur du testeur d'EPL — un
+                écran de tarifs sans aucun moyen d'en créer un.
+              */}
+              {canWrite && anneeScolaireId && classes.length > 0 ? (
                 <TarifForm
                   anneeScolaireId={anneeScolaireId}
                   classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
@@ -143,18 +141,10 @@ export default async function TarifsPage({
               <p className="text-body-sm text-text-secondary">
                 Sans tarif, la facture d&apos;un élève est créée à 0 franc quand vous l&apos;inscrivez.
               </p>
-              {typesFrais.length === 0 && (
-                <p className="text-body-sm text-text-secondary">
-                  Créez d&apos;abord au moins un{' '}
-                  <Link
-                    href="/etablissement/finances/types-frais"
-                    className="text-primary-container hover:underline"
-                  >
-                    type de frais
-                  </Link>
-                  .
-                </p>
-              )}
+              {/*
+                Plus de « créez d'abord un type de frais » : il n'y a plus de
+                préalable. Le premier tarif nomme son frais au passage.
+              */}
               {classes.length === 0 && (
                 <p className="text-body-sm text-text-secondary">
                   Aucune classe n&apos;existe sur cette année scolaire.
@@ -188,15 +178,15 @@ export default async function TarifsPage({
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow>
-                      <TableCell className="font-semibold" colSpan={2}>
-                        {classeId ? 'Total de la classe' : 'Total affiché'}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold" data-mono>
-                        {fcfa(totalTarifs(tarifs))}
-                      </TableCell>
-                      <TableCell />
-                    </TableRow>
+                    {/*
+                      La ligne « Total » est partie le 2026-09-15, et c'était un
+                      chiffre faux. Elle additionnait des montants qui ne
+                      s'additionnent pas : des tarifs de classes différentes, ou
+                      des frais qui ne s'appliquent pas au même élève. Personne
+                      ne doit jamais ce total-là. Ce qu'un directeur veut
+                      vraiment savoir — ce qu'un élève de 6ème A doit sur
+                      l'année — se lit sur sa facture, où le calcul est réel.
+                    */}
                   </TableBody>
                 </Table>
               </div>
@@ -212,10 +202,6 @@ export default async function TarifsPage({
                 ))}
               </CarteListeMobile>
 
-              <div className="border-t border-surface-border p-4 text-body-sm text-text-secondary md:hidden">
-                {classeId ? 'Total de la classe' : 'Total affiché'} —{' '}
-                <span className="font-semibold text-text-primary">{fcfa(totalTarifs(tarifs))}</span>
-              </div>
             </>
           )}
 

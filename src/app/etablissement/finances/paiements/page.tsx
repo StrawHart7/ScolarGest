@@ -7,6 +7,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
+import { VuesPaiements } from '../VuesPaiements';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -94,16 +95,19 @@ export default async function HistoriqueVersementsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <BarreSection chemin="/etablissement/finances" role={ctx.role} actif="/etablissement/finances/paiements" />
+        <BarreSection chemin="/etablissement/finances" role={ctx.role} actif="/etablissement/finances/factures" />
 
         <div className="hidden md:block">
           <PageHeader
-            title="Historique des versements"
+            title="Suivi des paiements"
             description="Tous les encaissements de l'année scolaire, du plus récent au plus ancien. Un versement annulé reste visible : il n'est jamais supprimé."
           />
         </div>
 
         <SousTitreMobile>Tous les encaissements de l’année, du plus récent au plus ancien. Un versement annulé reste visible.</SousTitreMobile>
+
+        {/* Même écran que « Par élève », autre lecture. Voir `VuesPaiements`. */}
+        <VuesPaiements actif="/etablissement/finances/paiements" />
 
         <BarreListe
           placeholderRecherche="Élève, matricule ou référence…"
