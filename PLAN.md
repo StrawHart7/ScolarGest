@@ -3786,3 +3786,126 @@ Deux règles en sortent :
   de réponse d'un rafraîchissement à l'autre.
 
 ---
+
+### Fonctionnalité — La rangée de section, et les dix entrées d'Établissement
+
+**Statut** : ✅ livrée le 2026-09-15, branche `design/verni-section-etablissement`
+(partie de `feat/soko-parler-au-directeur`, dont elle dépend), **poussée et non
+fusionnée** — en attente du verdict de preview de l'utilisateur. Agent VERNI.
+Aucune migration, aucun service, aucune garde `requireRole`.
+
+**Objectif** — SOKO venait de remplacer les pages d'aiguillage d'Établissement,
+de Finances et de Notes par `BarreSection`, une rangée d'écrans posée en tête de
+chaque destination. La forme avait été dessinée pour Finances et Notes, qui ont
+cinq entrées. Établissement en a **dix**, et six points de finition sont
+remontés dans la boîte de VERNI le même jour.
+
+#### La rangée, mesurée avant d'être redessinée
+
+Les dix entrées cumulent **1 273px** de puces et de gouttières pour les 972px de
+contenu d'un écran de 1 280px CSS — le cadre de référence. Elles passent donc à
+la ligne, et c'est très bien : tout est visible d'un coup d'œil, sans défilement
+ni repli.
+
+Ce qui coûtait cher était la hauteur de la puce. `row-standard` (44px) est le
+**plancher tactile** ; il n'a pas de raison d'être au doigt ce qu'il est à la
+souris.
+
+| viewport | contenu | rangs | hauteur |
+|---|---|---|---|
+| 1920 | 1612px | 1 | 32px |
+| 1440 | 1132px | 2 | 72px (était 96) |
+| 1280 |  972px | 2 (7 + 3) | 72px (était 96) |
+| 1024 |  716px | 2 (5 + 5) | 72px |
+|  900 |  592px | 3 | 112px (était 148) |
+
+Le repli à 1 280 tombe exactement sur la frontière des deux familles — les sept
+écrans de l'école, puis Utilisateurs, Abonnement et Rapports. **Constaté, pas
+forcé** : poser un séparateur aurait demandé une donnée de groupe dans
+`navigation.ts`, et n'aurait rien arrangé sous 1 024 où la rangée se scinde
+ailleurs de toute façon.
+
+#### Le vrai défaut était sur téléphone, et il n'était pas dans le signalement
+
+La rangée y mesure **1 345px** pour un écran de 390. Trois entrées sur dix sont
+visibles, et l'écran courant — Utilisateurs, le huitième — se trouve **586px
+au-delà du bord droit**. Rien ne signalait non plus qu'il y avait quelque chose
+à droite : le défilement était muet.
+
+Une barre de section qui ne montre pas où l'on est ne coûte pas un clic de moins
+qu'un menu, elle ne rend pas son service. Sous `md`, la rangée devient donc un
+repli. Fermé, il mesure **46px** contre 44 pour la rangée — à hauteur égale, il
+nomme la section *et* l'écran courant, et une tape ouvre les dix (487px, qu'on
+referme).
+
+**Il vaut pour les trois sections.** Notes et Finances n'ont que cinq entrées,
+mais leurs intitulés sont longs — « Approbation des notes », « Moyennes et
+classement » — et leur cinquième sort de l'écran exactement pareil. L'argument
+de SOKO contre le menu tenait pour cinq entrées courtes ; il ne tient plus dès
+que l'écran courant peut être hors champ, et deux comportements pour une même
+barre selon la section en feraient apprendre deux.
+
+`<details>` et non un état client : la barre est rendue au serveur, et le
+navigateur sait replier seul, au clavier compris.
+
+#### La barre ne s'affiche que si elle peut dire où l'on est
+
+Deux gardes, qui répondent au point resté ouvert sur le Comptable.
+
+`/abonnement` et `/rapports` reçoivent la rangée : ils appartiennent à la
+section, et arriver depuis l'école ne doit pas faire perdre son repère parce que
+l'adresse vit à la racine. Mais le Comptable les a au **premier niveau** de sa
+barre latérale et n'a pas de section Établissement — lui poser cette rangée lui
+inventerait une section qu'il n'a pas, avec deux entrées dont celle qu'il
+regarde. Le test porte sur **sa barre latérale** plutôt que sur une liste de
+rôles écrite en dur : le jour où un rôle gagne ou perd la section, la rangée
+suit. Il est posé **avant** l'appel à `socleComplet()`, un diagnostic d'une
+quinzaine de comptages que le Comptable n'a aucune raison de payer pour un
+composant qui ne rendra rien.
+
+Seconde garde : si l'écran courant ne figure pas dans la liste du rôle, la barre
+ne s'affiche pas. `/abonnement` est ouverte à tous les rôles par conception mais
+son bloc n'est déclaré que pour le Directeur et le Comptable — une Secrétaire y
+recevait une rangée où rien n'était marqué.
+
+#### La configuration finie
+
+Les neuf lignes cochées de « Indispensable » mesurent près de 600px et
+repoussaient sous la ligne de flottaison « Pour aller au bout », seule section
+encore actionnable. Une section dont tout est fait se replie.
+
+Elle **garde sa place et son titre** plutôt que de descendre sous l'autre : une
+section qui change d'ordre selon son état se cherche à chaque visite. Ce qui
+change est sa hauteur, pas son rang. Le résumé annonce ce qu'il y a derrière —
+« 9 réglages » — et non l'avancement, déjà sur la carte en gros chiffres et en
+barre pleine deux centimètres plus haut.
+
+#### Les trois points légers
+
+**La rangée se pose pareil sur les dix écrans.** `annees-scolaires` était en
+`space-y-6` là où six autres sont en `space-y-4 md:space-y-6` ; et sur les deux
+écrans qui se lisent en colonne centrée — `documents` et `abonnement` — la
+rangée vivait **dans** le `max-w-3xl`, donc plus courte et décalée du bord. Elle
+en sort, par `mb-4 md:mb-6` plutôt qu'un conteneur en `space-y-*` : même écart,
+sans réindenter deux cents lignes pour les y faire entrer.
+
+**L'avertissement de `EtapeCycles`** — « Vos classes de collège resteront en
+trimestres » — reprend le cadre que `FilDemarrage` donne déjà aux mentions
+irréversibles du même parcours. Le token de couleur seul ne suffisait pas :
+posée sur le fond de la carte, juste sous deux boutons qui viennent de changer
+d'état, la phrase se lisait comme la légende de l'option choisie. Deux façons
+d'avertir dans une même carte en vaudraient zéro.
+
+**Trimestre et semestre côte à côte** dans les files d'approbation : rien de
+changé sur le tableau, où la classe est la première colonne en gras, une colonne
+à gauche de la période — le rapprochement suffit à expliquer l'écart. En
+revanche la carte du téléphone ne portait **pas du tout** la période, alors que
+le tableau la porte : on validait des notes sans savoir de quel trimestre elles
+venaient. Elle y entre, juste après la classe.
+
+**Fichiers** : `BarreSection.tsx` (les deux présentations), `BarreEtablissement.tsx`
+(la garde de rôle), `configuration/page.tsx`, `documents/page.tsx`,
+`annees-scolaires/page.tsx`, `abonnement/page.tsx`, `rapports/page.tsx`,
+`EtapeCycles.tsx`, `SoumissionsQueue.tsx`, `ApprobationQueue.tsx`.
+
+---

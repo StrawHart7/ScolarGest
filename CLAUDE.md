@@ -312,6 +312,21 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
+**Active branches** (2026-09-15) :
+- `design/verni-section-etablissement` — **poussée, non fusionnée**
+  (2026-09-15), agent VERNI : la rangée de section, reprise pour les dix
+  entrées d'Établissement. Puces à 32px sur bureau, repli nommé sous `md` où
+  l'écran courant se trouvait 586px hors champ, rangée posée sur `/abonnement`
+  et `/rapports` mais **seulement pour les rôles qui ont la section**, section
+  « Indispensable » repliée une fois les neuf réglages faits. Aucune migration,
+  aucun service. **Partie de `feat/soko-parler-au-directeur`, dont elle
+  dépend** : une preview issue de `main` ne montre aucun de ces écrans. En
+  attente du verdict de preview de l'utilisateur. Voir `PLAN.md` § 8 et la
+  section « La rangée de section » de ce fichier.
+- `feat/soko-parler-au-directeur` — **poussée, non fusionnée** (2026-09-15),
+  agent SOKO : Établissement bâti sur le modèle de Finances, découpage de
+  l'année rendu au lycée, le collège au trimestre.
+
 **Active branches** (2026-09-14) :
 - `feat/soko-directeur-complet` + `feat/soko-prise-en-main` +
   `feat/soko-import-lisible` — ✅ terminées et mergées sur `main` (2026-09-14),
@@ -496,6 +511,60 @@ aurait rien de plus à filtrer.
 `FiltresMobile` et `BarreOutilsListe` ne sont plus importés nulle part mais
 restent en place — d'autres branches les utilisent encore, les supprimer ferait
 échouer leur merge.
+
+### La rangée de section : une barre qui ne dit pas où l'on est ne sert à rien
+
+`BarreSection` porte les autres écrans d'un domaine en tête de la destination —
+c'est ce qui a remplacé les pages d'aiguillage d'Établissement, de Finances et
+de Notes. Elle a **deux présentations**, et la frontière est `md`.
+
+**Sous `md`, c'est un repli, pas un défilement.** Le premier jet faisait défiler
+la rangée horizontalement, en assumant qu'un menu coûterait un clic de plus pour
+voir ce qui existe. Mesuré le 2026-09-15 sur 390px : la rangée d'Établissement
+fait **1 345px**, trois entrées sur dix sont visibles, et l'écran courant — le
+huitième — se trouve **586px au-delà du bord droit**. Rien ne signalait qu'il y
+avait quelque chose à droite. Le repli fermé fait 46px contre 44 pour la
+rangée : à hauteur égale, il nomme la section *et* l'écran courant.
+
+La leçon dépasse ce composant : **une barre de navigation qui peut cacher
+l'élément courant ne remplit pas son rôle**, et le clic qu'elle économise ne
+compense pas ce qu'elle ne montre pas. L'argument « cinq entrées courtes tiennent
+en deux coups de pouce » ne tient que si l'entrée courante est l'une des
+premières — ce que rien ne garantit.
+
+**Au-dessus de `md`, la rangée passe à la ligne, et ses puces font 32px.**
+`row-standard` (44px) est le **plancher tactile** ; il n'a aucune raison de
+valoir à la souris. Deux rangs passent de 96 à 72px.
+
+**La barre ne s'affiche que si elle peut marquer l'écran courant.**
+`/abonnement` est ouverte à tous les rôles par conception, mais son bloc n'est
+déclaré que pour le Directeur et le Comptable : une Secrétaire y recevait une
+rangée où rien n'était marqué.
+
+**Et seulement pour les rôles qui ont la section.** `/abonnement` et `/rapports`
+appartiennent à Établissement mais vivent à la racine ; la rangée les suit,
+pour ne pas perdre le repère en y arrivant depuis l'école. Le Comptable, lui,
+les a au **premier niveau** de sa barre latérale et n'a pas de section
+Établissement — `BarreEtablissement` teste donc `getSidebarItems(role)` plutôt
+qu'une liste de rôles écrite en dur, et le fait **avant** d'appeler
+`socleComplet()`, qui est une quinzaine de comptages.
+
+### Une section terminée se replie, elle ne change pas de rang
+
+Les neuf lignes cochées de « Indispensable », sur `/etablissement/configuration`,
+mesurent près de 600px et repoussaient sous la ligne de flottaison « Pour aller
+au bout » — seule section encore actionnable une fois le socle fait.
+
+Le réflexe est de la **descendre** sous l'autre. C'est un mauvais réflexe : une
+section qui change d'ordre selon son état se cherche à chaque visite. Ce qui
+change est sa **hauteur**, pas son rang.
+
+`<details>` / `<summary>`, jamais un état client : ces pages sont rendues au
+serveur, et le navigateur sait replier seul, au clavier compris. Deux détails
+qui vont avec — `overflow-hidden` sur le `<details>` dès qu'une ligne interne
+porte un aplat pleine largeur (sinon elle carre les coins bas), et un résumé qui
+annonce **ce qu'il y a derrière** plutôt que de répéter un avancement déjà
+affiché juste au-dessus.
 
 ### Le hero tient dans un écran, à tout niveau de zoom
 
