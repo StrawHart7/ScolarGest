@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatVide } from '@/components/ui/etat-vide';
 import { cn } from '@/lib/utils';
-import { PERIODES_ORDONNEES, phrasePeriode } from '@/lib/periodes';
+import { periodesDuRegime, phrasePeriode, type RegimePeriodes } from '@/lib/periodes';
 import type { CollecteNotes, EtatRemise } from '@/services/collecte-notes';
 
 /**
@@ -43,10 +43,13 @@ function accord(nombre: number, singulier: string, pluriel: string) {
 export function SuiviRemiseNotes({
   collecte,
   base,
+  regime,
 }: {
   collecte: CollecteNotes;
   /** Chemin de la page, pour les liens de période. */
   base: string;
+  /** Deux onglets pour un lycée au semestre, trois sinon. */
+  regime: RegimePeriodes;
 }) {
   const { periode, enAttente, enseignantsTotal, coursTotal, coursRendus } = collecte;
   const manquants = coursTotal - coursRendus;
@@ -56,8 +59,8 @@ export function SuiviRemiseNotes({
     <Card>
       <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle>Notes pas encore rendues</CardTitle>
-        <nav className="-mx-1 flex gap-1 overflow-x-auto" aria-label="Trimestre">
-          {PERIODES_ORDONNEES.map((p) => (
+        <nav className="-mx-1 flex gap-1 overflow-x-auto" aria-label="Période">
+          {periodesDuRegime(regime).map((p) => (
             <Link
               key={p}
               href={`${base}?periode=${p}`}
@@ -69,7 +72,7 @@ export function SuiviRemiseNotes({
                   : 'text-text-secondary hover:bg-surface-container',
               )}
             >
-              {phrasePeriode(p)}
+              {phrasePeriode(p, regime)}
             </Link>
           ))}
         </nav>
@@ -80,13 +83,13 @@ export function SuiviRemiseNotes({
           <EtatVide
             icone={ClipboardList}
             titre="Aucun enseignant n'a encore de matière attribuée."
-            explication="Attribuez leurs matières à vos enseignants : cette liste vous dira ensuite, trimestre par trimestre, qui vous a rendu ses notes et qui ne les a pas encore rendues."
+            explication="Attribuez leurs matières à vos enseignants : cette liste vous dira ensuite, période par période, qui vous a rendu ses notes et qui ne les a pas encore rendues."
           />
         ) : enseignantsEnAttente === 0 ? (
           <EtatVide
             icone={ClipboardList}
-            titre={`Tous vos enseignants ont rendu leurs notes pour le ${phrasePeriode(periode)}.`}
-            explication="Une matière sort de cette liste dès qu'une note y est rendue. Changez de trimestre ci-dessus pour vérifier les autres."
+            titre={`Tous vos enseignants ont rendu leurs notes pour le ${phrasePeriode(periode, regime)}.`}
+            explication="Une matière sort de cette liste dès qu'une note y est rendue. Changez de période ci-dessus pour vérifier les autres."
           />
         ) : (
           <div className="space-y-4">
@@ -96,7 +99,7 @@ export function SuiviRemiseNotes({
                 sur {enseignantsTotal}
               </strong>{' '}
               {accord(enseignantsEnAttente, "n'a", "n'ont")} pas encore rendu toutes leurs notes
-              pour le {phrasePeriode(periode)}. Il manque les notes de {manquants}{' '}
+              pour le {phrasePeriode(periode, regime)}. Il manque les notes de {manquants}{' '}
               {accord(manquants, 'matière', 'matières')}.
             </p>
 

@@ -4,12 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import type { Periode } from '@/services/evaluation';
-
-const PERIODES: { value: Periode; label: string }[] = [
-  { value: 'TRIMESTRE_1', label: '1er trimestre' },
-  { value: 'TRIMESTRE_2', label: '2e trimestre' },
-  { value: 'TRIMESTRE_3', label: '3e trimestre' },
-];
+import { usePeriodes } from '@/components/layout/RegimeProvider';
 
 export function SaisieFiltres({
   classes,
@@ -24,6 +19,7 @@ export function SaisieFiltres({
   defaultMatiereId: string;
   defaultPeriode: Periode;
 }) {
+  const { periodes, nommer } = usePeriodes();
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -91,9 +87,9 @@ export function SaisieFiltres({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PERIODES.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
+            {periodes.map((p) => (
+              <SelectItem key={p} value={p}>
+                {nommer(p)}
               </SelectItem>
             ))}
           </SelectContent>

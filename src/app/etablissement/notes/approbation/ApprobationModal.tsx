@@ -9,12 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import type { NoteEnAttente } from '@/services/note';
 import { approuverModificationAction, rejeterModificationAction } from './actions';
 
-const PERIODE_LABEL: Record<string, string> = {
-  TRIMESTRE_1: 'Trimestre 1',
-  TRIMESTRE_2: 'Trimestre 2',
-  TRIMESTRE_3: 'Trimestre 3',
-};
-
 const TYPE_LABEL: Record<string, string> = {
   INTERROGATION: 'Interrogation',
   DEVOIR: 'Devoir',
@@ -23,6 +17,8 @@ const TYPE_LABEL: Record<string, string> = {
 
 type Mode = 'APPROUVER' | 'REJETER';
 
+import { usePeriodes } from '@/components/layout/RegimeProvider';
+
 export function ApprobationModal({
   note,
   onClose,
@@ -30,6 +26,8 @@ export function ApprobationModal({
   note: NoteEnAttente;
   onClose: () => void;
 }) {
+  // « 1er trimestre » ou « 1er semestre », selon le régime de l'école.
+  const { nommer } = usePeriodes();
   const [mode, setMode] = useState<Mode>('APPROUVER');
   const [pin, setPin] = useState('');
   const [motif, setMotif] = useState('');
@@ -96,7 +94,7 @@ export function ApprobationModal({
                   {note.elevePrenoms} {note.eleveNom} — {note.classeNom}
                 </p>
                 <p className="text-body-sm text-text-secondary">
-                  {note.matiereNom} · {TYPE_LABEL[note.evaluationType]} · {PERIODE_LABEL[note.periode]} n°
+                  {note.matiereNom} · {TYPE_LABEL[note.evaluationType]} · {nommer(note.periode)} n°
                   {note.numero}
                 </p>
                 <div className="mt-3 flex items-center gap-3 text-body-sm">

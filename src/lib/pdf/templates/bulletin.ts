@@ -48,8 +48,28 @@ const PERIODE_LABELS: Record<string, string> = {
   TRIMESTRE_3: '3e Trimestre',
 };
 
-export function periodeLabel(periode: string): string {
-  return PERIODE_LABELS[periode] ?? periode;
+const PERIODE_LABELS_SEMESTRE: Record<string, string> = {
+  TRIMESTRE_1: '1er Semestre',
+  TRIMESTRE_2: '2e Semestre',
+  // Jamais employée en régime semestriel, mais nommée : une donnée héritée
+  // doit rester lisible plutôt que s'imprimer en clé brute sur un bulletin
+  // remis à une famille.
+  TRIMESTRE_3: '3e Période',
+};
+
+/**
+ * Le nom de la période tel qu'il s'imprime sur le bulletin.
+ *
+ * Le régime est celui de l'école : certains lycées togolais découpent leur
+ * année en **semestres**. La clé en base ne change pas — `TRIMESTRE_1` sert
+ * aux deux — seul ce libellé diffère. Voir `src/lib/periodes.ts`.
+ *
+ * Majuscule au nom, contrairement à `phrasePeriode` : c'est un titre de
+ * document officiel, et il apparaît aussi en capitales dans l'en-tête.
+ */
+export function periodeLabel(periode: string, regime: 'TRIMESTRE' | 'SEMESTRE' = 'TRIMESTRE'): string {
+  const table = regime === 'SEMESTRE' ? PERIODE_LABELS_SEMESTRE : PERIODE_LABELS;
+  return table[periode] ?? periode;
 }
 
 function esc(v: string | null | undefined): string {

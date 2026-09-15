@@ -6,12 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { regenererBulletinAction } from '@/app/etablissement/notes/bulletins/actions';
 
-const PERIODES = [
-  { value: 'TRIMESTRE_1', label: '1er trimestre' },
-  { value: 'TRIMESTRE_2', label: '2e trimestre' },
-  { value: 'TRIMESTRE_3', label: '3e trimestre' },
-];
-
 /**
  * L'entité Document ne conserve pas la période d'origine (schéma Phase 5
  * figé sur la table `document` telle que définie en Phase 0 — voir
@@ -20,6 +14,8 @@ const PERIODES = [
  * l'utilisateur, cohérent avec la consigne du plan ("reconstruits depuis
  * objetId + contexte").
  */
+import { usePeriodes } from '@/components/layout/RegimeProvider';
+
 export function RegenererBulletinButton({
   documentId,
   classeId,
@@ -31,6 +27,8 @@ export function RegenererBulletinButton({
   anneeScolaireId: string;
   eleveId: string;
 }) {
+  // Deux périodes pour un lycée au semestre, trois sinon. Voir `RegimeProvider`.
+  const { periodes, nommer } = usePeriodes();
   const [periode, setPeriode] = useState('TRIMESTRE_1');
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +41,9 @@ export function RegenererBulletinButton({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PERIODES.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
+            {periodes.map((p) => (
+              <SelectItem key={p} value={p}>
+                {nommer(p)}
               </SelectItem>
             ))}
           </SelectContent>

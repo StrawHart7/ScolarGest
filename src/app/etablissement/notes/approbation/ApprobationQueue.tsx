@@ -9,13 +9,11 @@ import { nommerEvaluation } from '@/lib/evaluations';
 import type { NoteEnAttente } from '@/services/note';
 import { ApprobationModal } from './ApprobationModal';
 
-const PERIODE_LABEL: Record<string, string> = {
-  TRIMESTRE_1: 'Trimestre 1',
-  TRIMESTRE_2: 'Trimestre 2',
-  TRIMESTRE_3: 'Trimestre 3',
-};
+import { usePeriodes } from '@/components/layout/RegimeProvider';
 
 export function ApprobationQueue({ notes }: { notes: NoteEnAttente[] }) {
+  // « 1er trimestre » ou « 1er semestre », selon le regime de l'ecole.
+  const { nommer } = usePeriodes();
   const [selected, setSelected] = useState<NoteEnAttente | null>(null);
 
   return (
@@ -42,7 +40,7 @@ export function ApprobationQueue({ notes }: { notes: NoteEnAttente[] }) {
                 <TableCell>
                   <div>{note.matiereNom}</div>
                   <div className="text-body-sm text-text-secondary">
-                    {nommerEvaluation(note.evaluationType, note.numero)} · {PERIODE_LABEL[note.periode]}
+                    {nommerEvaluation(note.evaluationType, note.numero)} · {nommer(note.periode)}
                   </div>
                 </TableCell>
                 <TableCell>

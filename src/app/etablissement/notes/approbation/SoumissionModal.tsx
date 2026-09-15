@@ -13,12 +13,6 @@ import {
   chargerDetailSoumission,
 } from './actions';
 
-const PERIODE_LABEL: Record<string, string> = {
-  TRIMESTRE_1: 'Trimestre 1',
-  TRIMESTRE_2: 'Trimestre 2',
-  TRIMESTRE_3: 'Trimestre 3',
-};
-
 const TYPE_LABEL: Record<string, string> = {
   INTERROGATION: 'Interrogation',
   DEVOIR: 'Devoir',
@@ -30,6 +24,8 @@ type Mode = 'VALIDER' | 'REJETER';
 /** Validation/rejet en bloc d'une évaluation soumise — même geste PIN que
  * l'approbation d'une demande de correction, mais sur toutes les notes de
  * l'évaluation à la fois (la soumission elle-même est déjà groupée). */
+import { usePeriodes } from '@/components/layout/RegimeProvider';
+
 export function SoumissionModal({
   soumission,
   onClose,
@@ -37,6 +33,8 @@ export function SoumissionModal({
   soumission: EvaluationSoumise;
   onClose: () => void;
 }) {
+  // « 1er trimestre » ou « 1er semestre », selon le regime de l'ecole.
+  const { nommer } = usePeriodes();
   const [mode, setMode] = useState<Mode>('VALIDER');
   const [pin, setPin] = useState('');
   const [motif, setMotif] = useState('');
@@ -127,7 +125,7 @@ export function SoumissionModal({
                   {soumission.classeNom} — {soumission.matiereNom}
                 </p>
                 <p className="text-body-sm text-text-secondary">
-                  {TYPE_LABEL[soumission.evaluationType]} · {PERIODE_LABEL[soumission.periode]}
+                  {TYPE_LABEL[soumission.evaluationType]} · {nommer(soumission.periode)}
                 </p>
               </div>
 

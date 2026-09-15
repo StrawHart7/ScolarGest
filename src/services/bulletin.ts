@@ -19,6 +19,7 @@ import {
 } from './document';
 import { renderHtmlToPdf } from '@/lib/pdf/render';
 import { renderBulletinHtml, periodeLabel } from '@/lib/pdf/templates/bulletin';
+import { getRegimePeriodes } from './regime-periodes';
 import { renderBulletinSecondaireHtml } from '@/lib/pdf/templates/bulletin-secondaire';
 import type { Periode } from './evaluation';
 
@@ -70,6 +71,11 @@ async function buildPdf(
     filigraneTexte: parametres.filigraneActif ? parametres.filigraneTexte : null,
   };
 
+  // Le régime décide du mot imprimé sur le bulletin : « 1er Trimestre » ou
+  // « 1er Semestre ». La clé en base est la même pour les deux — voir
+  // `src/lib/periodes.ts` et la migration `20260915160508`.
+  const regime = await getRegimePeriodes();
+
   const entree = {
     etablissement: {
       nom: etablissement.nom,
@@ -79,7 +85,7 @@ async function buildPdf(
       email: etablissement.email,
     },
     anneeScolaireLibelle: annee.libelle,
-    periodeLabel: periodeLabel(periode),
+    periodeLabel: periodeLabel(periode, regime),
     eleve: {
       nom: eleve.nom,
       prenoms: eleve.prenoms,

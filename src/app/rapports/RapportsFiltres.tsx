@@ -5,13 +5,9 @@ import { useTransition } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import type { DefinitionRapport, TypeRapport } from '@/services/rapport';
 
-const PERIODES = [
-  { value: 'TRIMESTRE_1', label: '1er trimestre' },
-  { value: 'TRIMESTRE_2', label: '2e trimestre' },
-  { value: 'TRIMESTRE_3', label: '3e trimestre' },
-];
-
 const TOUTES = 'TOUTES';
+
+import { usePeriodes } from '@/components/layout/RegimeProvider';
 
 export function RapportsFiltres({
   rapports,
@@ -34,6 +30,8 @@ export function RapportsFiltres({
   exigeClasse: boolean;
   exigePeriode: boolean;
 }) {
+  // Deux périodes pour un lycée au semestre, trois sinon. Voir `RegimeProvider`.
+  const { periodes, nommer } = usePeriodes();
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -118,9 +116,9 @@ export function RapportsFiltres({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PERIODES.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
+              {periodes.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {nommer(p)}
                 </SelectItem>
               ))}
             </SelectContent>

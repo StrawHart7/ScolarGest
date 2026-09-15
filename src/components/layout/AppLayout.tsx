@@ -14,6 +14,8 @@ import type { Role } from '@/services/tenant';
 import { Synchronisation } from '@/components/offline/Synchronisation';
 import { IndicateurFile } from '@/components/offline/IndicateurFile';
 import { RejeuSignalements } from '@/components/erreur/RejeuSignalements';
+import { RegimeProvider } from './RegimeProvider';
+import { getRegimePeriodes } from '@/services/regime-periodes';
 
 export interface AppLayoutProps {
   items: SidebarItem[];
@@ -23,9 +25,19 @@ export interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-export function AppLayout({ items, schoolName, role, userName, children }: AppLayoutProps) {
+export async function AppLayout({ items, schoolName, role, userName, children }: AppLayoutProps) {
+  // Lu une seule fois, ici, et diffusé par contexte.
+  //
+  // Une douzaine d'écrans proposent de choisir une période. Les faire toutes
+  // recevoir le régime en props demanderait de toucher autant de pages **et**
+  // leurs composants clients, et la première oubliée proposerait un troisième
+  // trimestre à un lycée qui n'en a que deux, sans que rien ne le signale.
+  // Même raisonnement — et même endroit — que le moteur hors ligne.
+  const regime = await getRegimePeriodes();
+
   return (
     <ToastProvider>
+      <RegimeProvider regime={regime}>
       {/*
         Le moteur de synchronisation enveloppe toute l'application
         authentifiee : une ecriture mise en file depuis un ecran doit partir
@@ -92,6 +104,7 @@ export function AppLayout({ items, schoolName, role, userName, children }: AppLa
         </div>
       </SidebarCollapseProvider>
       </Synchronisation>
+      </RegimeProvider>
     </ToastProvider>
   );
 }

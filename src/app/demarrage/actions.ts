@@ -15,6 +15,7 @@ import { projeterReferentielNational } from '@/services/referentiel-national';
 import { definirCoefficients } from '@/services/coefficient';
 import { appliquerCoefficientsOfficiels } from '@/services/matiere-officielle';
 import { createEnseignant } from '@/services/enseignant';
+import { definirRegimePeriodes } from '@/services/regime-periodes';
 import { inviteUtilisateur } from '@/services/utilisateur';
 import { createTypeFrais } from '@/services/type-frais';
 import { createTarif } from '@/services/tarif';
@@ -157,12 +158,26 @@ export async function creerEtActiverAnneeAction(
 const cyclesSchema = z.object({
   cycleIds: z.array(z.string().uuid()).min(1, 'Sélectionnez au moins un cycle.'),
   pin: pinSchema,
+  /** Trimestre ou semestre. Voir plus bas pourquoi c'est le même appel. */
+  regime: z.enum(['TRIMESTRE', 'SEMESTRE']).optional(),
 });
 
 /**
  * Le PIN est saisi une fois pour le lot : `activerCycle` le revérifie à chaque
  * appel côté serveur (c'est le même secret), mais le demander une fois par
  * cycle rendrait l'étape pénible sans rien apporter en sécurité.
+ *
+ * ## Le découpage de l'année part avec
+ *
+ * Certains lycées togolais fonctionnent au semestre. La question est posée
+ * dans cette étape-ci, et enregistrée dans **le même appel** : en faire un
+ * second laisserait une école avec ses cycles activés et son découpage perdu
+ * si celui-ci échouait — et l'activation d'un cycle étant définitive, on ne
+ * repasserait jamais par cette étape pour rattraper.
+ *
+ * Il est posé **après** les cycles et non avant : c'est le réglage le moins
+ * conséquent des deux, et un échec ici laisse une école parfaitement
+ * utilisable au trimestre, qu'elle peut corriger tant qu'aucune note n'existe.
  */
 export async function activerCyclesAction(
   entree: z.input<typeof cyclesSchema>,
@@ -171,11 +186,12 @@ export async function activerCyclesAction(
   if (!valide.success) {
     return { ok: false, message: messageZod(valide.error) };
   }
-  const { cycleIds, pin } = valide.data;
+  const { cycleIds, pin, regime } = valide.data;
   try {
     for (const cycleId of cycleIds) {
       await activerCycle(cycleId, pin);
     }
+    if (regime) await definirRegimePeriodes(regime);
     const pluriel = cycleIds.length > 1 ? 's' : '';
     return { ok: true, message: `${cycleIds.length} cycle${pluriel} activé${pluriel}.` };
   } catch (e) {

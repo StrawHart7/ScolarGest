@@ -9,13 +9,11 @@ import { nommerEvaluation } from '@/lib/evaluations';
 import type { EvaluationSoumise } from '@/services/note';
 import { SoumissionModal } from './SoumissionModal';
 
-const PERIODE_LABEL: Record<string, string> = {
-  TRIMESTRE_1: 'Trimestre 1',
-  TRIMESTRE_2: 'Trimestre 2',
-  TRIMESTRE_3: 'Trimestre 3',
-};
+import { usePeriodes } from '@/components/layout/RegimeProvider';
 
 export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumise[] }) {
+  // « 1er trimestre » ou « 1er semestre », selon le regime de l'ecole.
+  const { nommer } = usePeriodes();
   const [selected, setSelected] = useState<EvaluationSoumise | null>(null);
 
   return (
@@ -37,7 +35,7 @@ export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumi
                 <TableCell>
                   <div>{s.matiereNom}</div>
                   <div className="text-body-sm text-text-secondary">
-                    {nommerEvaluation(s.evaluationType, s.numero)} · {PERIODE_LABEL[s.periode]}
+                    {nommerEvaluation(s.evaluationType, s.numero)} · {nommer(s.periode)}
                   </div>
                 </TableCell>
                 <TableCell>{s.nombreNotes}</TableCell>

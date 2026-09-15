@@ -8,6 +8,8 @@ import {
   SEUIL_REUSSITE,
 } from '@/services/statistiques-academiques';
 import type { Periode } from '@/services/evaluation';
+import { getRegimePeriodes } from '@/services/regime-periodes';
+import { periodesDuRegime, phrasePeriode } from '@/lib/periodes';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CarteMetrique } from '@/components/ui/carte-metrique';
@@ -38,12 +40,6 @@ export const metadata = { title: 'Statistiques' };
  * tout n'aide personne à décider.
  */
 
-const PERIODES: { valeur: Periode; libelle: string }[] = [
-  { valeur: 'TRIMESTRE_1', libelle: '1er trimestre' },
-  { valeur: 'TRIMESTRE_2', libelle: '2e trimestre' },
-  { valeur: 'TRIMESTRE_3', libelle: '3e trimestre' },
-];
-
 function surVingt(v: number | null): string {
   return v === null ? '—' : `${v.toFixed(2).replace('.', ',')}/20`;
 }
@@ -59,6 +55,13 @@ export default async function StatistiquesPage({
 }) {
   const ctx = await getTenantContext();
   if (ctx.role !== 'DIRECTEUR' && ctx.role !== 'SECRETAIRE') redirect('/dashboard');
+
+  // Deux periodes pour un lycee au semestre, trois sinon.
+  const regime = await getRegimePeriodes();
+  const PERIODES = periodesDuRegime(regime).map((valeur) => ({
+    valeur,
+    libelle: phrasePeriode(valeur, regime),
+  }));
 
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');

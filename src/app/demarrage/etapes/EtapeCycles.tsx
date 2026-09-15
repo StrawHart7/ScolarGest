@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { appelerAction } from '../appel-action';
 import { ErreurEtape } from '../Bulles';
 import type { Cycle } from '@/services/structure';
+import type { RegimePeriodes } from '@/lib/periodes';
 import { activerCyclesAction } from '../actions';
 import { ChampPin } from './ChampPin';
 
@@ -42,9 +43,18 @@ export function EtapeCycles({
   onTermine: () => void;
 }) {
   const [selection, setSelection] = React.useState<string[]>([]);
+  const [regime, setRegime] = React.useState<RegimePeriodes>('TRIMESTRE');
   const [pin, setPin] = React.useState('');
   const [erreur, setErreur] = React.useState<string | null>(null);
   const [enCours, setEnCours] = React.useState(false);
+
+  // La question du découpage ne se pose qu'au lycée : au collège, le trimestre
+  // est unanime au Togo, et poser une question à laquelle il n'y a qu'une
+  // réponse allonge l'étape sans rien décider.
+  const lyceeChoisi = cycles.some(
+    (c) =>
+      c.nom === 'LYCEE' && (selection.includes(c.id) || cyclesDejaActifs.includes(c.id)),
+  );
 
   function basculer(cycleId: string) {
     setSelection((prec) =>
@@ -55,7 +65,13 @@ export function EtapeCycles({
   async function valider() {
     setErreur(null);
     setEnCours(true);
-    const resultat = await appelerAction(() => activerCyclesAction({ cycleIds: selection, pin }));
+    // Le régime part avec l'activation : deux appels laisseraient une école
+    // avec ses cycles activés et son découpage perdu si le second échouait,
+    // et l'activation d'un cycle est **définitive** — on ne repasserait jamais
+    // par cette étape pour rattraper.
+    const resultat = await appelerAction(() =>
+      activerCyclesAction({ cycleIds: selection, pin, regime: lyceeChoisi ? regime : 'TRIMESTRE' }),
+    );
     setEnCours(false);
     if (!resultat.ok) {
       setErreur(resultat.message);
@@ -120,6 +136,60 @@ export function EtapeCycles({
       <p className="text-body-sm text-text-secondary">
         Cochez ce que votre établissement enseigne. Vous pouvez en choisir un ou les deux.
       </p>
+
+      {/*
+        Le découpage de l'année, demandé dès que le lycée est coché.
+        Certains lycées togolais fonctionnent au **semestre** — deux périodes —
+        et non au trimestre.
+
+        La question n'apparaît qu'ici parce que c'est le seul moment où on peut
+        encore répondre : une fois des notes saisies, basculer renommerait des
+        périodes déjà imprimées sur des bulletins remis aux familles, et la
+        troisième deviendrait inatteignable. Le service le refuse alors.
+
+        Le choix vaut pour **tout** l'établissement, collège compris : un
+        complexe est entièrement à l'un ou à l'autre. C'est une décision
+        produit, pas une limite technique.
+      */}
+      {lyceeChoisi && (
+        <div className="flex flex-col gap-3 rounded-xl border border-surface-border p-4">
+          <div>
+            <p className="text-body-md font-medium text-text-primary">
+              Comment découpez-vous votre année ?
+            </p>
+            <p className="text-body-sm text-text-secondary">
+              Cela décide du nombre de bulletins et du mot employé partout dans l&apos;application.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(
+              [
+                { valeur: 'TRIMESTRE', titre: 'Trimestres', detail: 'Trois périodes dans l’année' },
+                { valeur: 'SEMESTRE', titre: 'Semestres', detail: 'Deux périodes dans l’année' },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.valeur}
+                type="button"
+                aria-pressed={regime === option.valeur}
+                onClick={() => setRegime(option.valeur)}
+                className={`flex w-full flex-col gap-1 rounded-lg border p-3 text-left transition ${
+                  regime === option.valeur
+                    ? 'border-primary bg-primary/5'
+                    : 'border-surface-border hover:border-primary/50 hover:bg-primary/5'
+                }`}
+              >
+                <span className="text-body-md font-medium text-text-primary">{option.titre}</span>
+                <span className="text-body-sm text-text-secondary">{option.detail}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-body-sm text-text-secondary">
+            Ce choix se modifie tant qu&apos;aucune note n&apos;a été saisie.
+          </p>
+        </div>
+      )}
+
       <ChampPin
         valeur={pin}
         onChange={setPin}
