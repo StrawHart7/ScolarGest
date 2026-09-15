@@ -45,7 +45,7 @@ export async function soumettreNotesAction(
   cleOperation?: string,
 ): Promise<string | null> {
   const parsed = evaluationIdSchema.safeParse(evaluationId);
-  if (!parsed.success) return 'Identifiant invalide';
+  if (!parsed.success) return 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
 
   try {
     // La soumission n'est pas un upsert : elle bascule les notes en SOUMISE et

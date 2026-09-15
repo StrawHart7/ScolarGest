@@ -10,7 +10,7 @@ const idSchema = z.string().uuid();
 
 export async function archiverEleveAction(eleveId: string): Promise<string | null> {
   const parsed = idSchema.safeParse(eleveId);
-  if (!parsed.success) return 'Identifiant invalide';
+  if (!parsed.success) return 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
   try {
     await archiverEleve(parsed.data);
   } catch (e) {
@@ -25,7 +25,7 @@ export async function annulerInscriptionAction(
   inscriptionId: string,
 ): Promise<string | null> {
   const parsed = idSchema.safeParse(inscriptionId);
-  if (!parsed.success) return 'Identifiant invalide';
+  if (!parsed.success) return 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
   try {
     await annulerInscription(parsed.data);
   } catch (e) {
@@ -67,7 +67,7 @@ export async function modifierResponsableAction(
     type: donnees.get('type'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   try {
@@ -107,7 +107,7 @@ export async function ajouterResponsableAction(
     type: donnees.get('type'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   try {

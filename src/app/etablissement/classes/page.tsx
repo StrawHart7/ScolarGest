@@ -138,7 +138,10 @@ export default async function ClassesPage({
                     explication="Créez vos classes : c’est ce qui vous permet d’inscrire des élèves, et le programme national arrive tout seul avec elles."
                     action={
                       peutCreer && cycles.length > 0 ? (
-                        <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} />
+                        // `dansLeFlux` : sans lui, le declencheur se rend en bouton
+                        // flottant sous `md` et l'etat vide parait sans action, alors
+                        // que c'est precisement ce qu'il doit porter.
+                        <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} dansLeFlux />
                       ) : null
                     }
                   />

@@ -22,13 +22,13 @@ export async function creerEnseignant(_prevState: string | null, formData: FormD
   const raw = formData.get('payload');
   const dateNaissance = formData.get('dateNaissance');
   const dateEmbauche = formData.get('dateEmbauche');
-  if (typeof raw !== 'string') return 'Formulaire invalide';
+  if (typeof raw !== 'string') return 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
 
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(raw);
   } catch {
-    return 'Formulaire invalide';
+    return 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const merged =
@@ -42,7 +42,7 @@ export async function creerEnseignant(_prevState: string | null, formData: FormD
 
   const parsed = schema.safeParse(merged);
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const data = parsed.data;

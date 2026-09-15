@@ -40,9 +40,12 @@ const INDICES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 export function ClasseForm({
   anneeScolaireId,
   cycles,
+  dansLeFlux,
 }: {
   anneeScolaireId: string;
   cycles: CycleOption[];
+  /** Vrai quand le formulaire est ouvert depuis un etat vide : pas de bouton flottant. */
+  dansLeFlux?: boolean;
 }) {
   const [resultat, formAction] = useFormState(creerClasse, null);
   const [ouvert, setOuvert] = React.useState(false);
@@ -84,7 +87,7 @@ export function ClasseForm({
 
   return (
     <Dialog open={ouvert} onOpenChange={setOuvert}>
-      <DeclencheurCreation libelle="Nouvelle classe" onClick={() => setOuvert(true)} />
+      <DeclencheurCreation libelle="Nouvelle classe" onClick={() => setOuvert(true)} dansLeFlux={dansLeFlux} />
 
       <DialogContent>
         <form action={formAction}>

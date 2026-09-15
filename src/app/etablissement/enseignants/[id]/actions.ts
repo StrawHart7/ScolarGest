@@ -8,7 +8,7 @@ const idSchema = z.string().uuid();
 
 export async function desactiverEnseignantAction(enseignantId: string): Promise<string | null> {
   const parsed = idSchema.safeParse(enseignantId);
-  if (!parsed.success) return 'Identifiant invalide';
+  if (!parsed.success) return 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
   try {
     await desactiverEnseignant(parsed.data);
   } catch (e) {

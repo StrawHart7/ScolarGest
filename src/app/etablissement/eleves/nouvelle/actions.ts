@@ -35,13 +35,13 @@ const schema = z.object({
 export async function creerEleve(_prevState: string | null, formData: FormData): Promise<string> {
   const raw = formData.get('payload');
   const dateNaissance = formData.get('dateNaissance');
-  if (typeof raw !== 'string') return 'Formulaire invalide';
+  if (typeof raw !== 'string') return 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
 
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(raw);
   } catch {
-    return 'Formulaire invalide';
+    return 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const merged =
@@ -51,7 +51,7 @@ export async function creerEleve(_prevState: string | null, formData: FormData):
 
   const parsed = schema.safeParse(merged);
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const data = parsed.data;

@@ -25,7 +25,7 @@ export async function creerAnneeScolaire(
   });
 
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
   if (parsed.data.dateFin <= parsed.data.dateDebut) {
     return 'La date de fin doit être postérieure à la date de début.';

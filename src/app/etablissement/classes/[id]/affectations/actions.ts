@@ -20,7 +20,7 @@ export async function definirTitulaireAction(
     enseignantId: formData.get('enseignantId'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   try {
@@ -37,7 +37,7 @@ const idSchema = z.string().uuid();
 
 export async function retirerTitulaireAction(classeId: string): Promise<string | null> {
   const parsed = idSchema.safeParse(classeId);
-  if (!parsed.success) return 'Identifiant invalide';
+  if (!parsed.success) return 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
   try {
     await retirerTitulaire(parsed.data);
   } catch (e) {

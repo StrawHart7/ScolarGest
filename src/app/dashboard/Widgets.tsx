@@ -18,6 +18,27 @@ import type { StatsFinance } from '@/services/dashboard';
 const nombre = (valeur: number) => valeur.toLocaleString('fr-FR');
 
 /**
+ * Le domaine d'un évènement, dit comme une école le dit.
+ *
+ * Le flux d'activité affichait la valeur brute de `audit_log.module` :
+ * « academique », « structure », « finance ». Ce sont les regroupements du
+ * code, pas le vocabulaire d'un directeur — « structure » ne veut rien dire
+ * pour quelqu'un qui pense « mes classes ».
+ *
+ * Le repli renvoie la valeur telle quelle plutôt qu'un tiret : un module
+ * nouveau doit rester lisible, même mal nommé, plutôt que de disparaître.
+ */
+const LIBELLE_MODULE: Record<string, string> = {
+  eleves: 'Élèves',
+  academique: 'Notes et bulletins',
+  finance: 'Finances',
+  finances: 'Finances',
+  structure: 'Classes et années',
+  documents: 'Documents',
+  utilisateurs: 'Comptes',
+};
+
+/**
  * Recouvrement en anneau plutot qu'en barre de progression : la carte occupait
  * une demi-largeur d'ecran pour une seule valeur. L'anneau porte le taux, et
  * l'espace libere affiche la decomposition encaisse / restant, qui est
@@ -73,25 +94,25 @@ export interface Raccourci {
 export const RACCOURCIS: Record<string, Raccourci> = {
   inscrireEleve: {
     libelle: 'Inscrire un élève',
-    description: 'Créer une fiche élève et ses responsables légaux.',
+    description: 'Sa classe, son identité, ses responsables — et sa facture.',
     href: '/etablissement/eleves/nouvelle',
     icone: UserPlus,
   },
   approbation: {
-    libelle: 'Approbation des notes',
-    description: 'Traiter les demandes de correction en attente.',
+    libelle: 'Valider les notes',
+    description: 'Ce que vos enseignants ont rendu et qui attend votre accord.',
     href: '/etablissement/notes/approbation',
     icone: ClipboardCheck,
   },
   bulletins: {
-    libelle: 'Génération de bulletins',
-    description: 'Éditer les bulletins de la période en cours.',
+    libelle: 'Éditer les bulletins',
+    description: 'Les bulletins du trimestre, classe par classe.',
     href: '/etablissement/notes/bulletins',
     icone: FileText,
   },
   suiviPaiements: {
     libelle: 'Suivi des paiements',
-    description: 'Soldes par élève et relances à faire.',
+    description: 'Qui a payé, qui doit encore.',
     href: '/etablissement/finances/factures',
     icone: Receipt,
   },
@@ -103,7 +124,7 @@ export const RACCOURCIS: Record<string, Raccourci> = {
   },
   rapports: {
     libelle: 'Rapports et exports',
-    description: 'Excel, CSV ou PDF pour tout tableau affiché.',
+    description: 'Tout tableau de la plateforme, en Excel, CSV ou PDF.',
     href: '/rapports',
     icone: FileText,
   },
@@ -120,7 +141,7 @@ export const RACCOURCIS: Record<string, Raccourci> = {
     icone: BookOpen,
   },
   eleves: {
-    libelle: 'Liste des élèves',
+    libelle: 'Trouver un élève',
     description: 'Rechercher un élève et ouvrir sa fiche.',
     href: '/etablissement/eleves',
     icone: GraduationCap,
@@ -236,7 +257,7 @@ export function FluxActivite({ evenements }: { evenements: EvenementAffiche[] })
                   <div className="min-w-0 flex-1">
                     <p className="text-body-sm text-text-primary">{evenement.libelle}</p>
                     <p className="text-label-md text-text-secondary">
-                      {tempsRelatif(evenement.date)} · {evenement.module}
+                      {tempsRelatif(evenement.date)} · {LIBELLE_MODULE[evenement.module] ?? evenement.module}
                     </p>
                   </div>
                 </li>

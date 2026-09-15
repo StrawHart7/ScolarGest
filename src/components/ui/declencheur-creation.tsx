@@ -20,13 +20,36 @@ export function DeclencheurCreation({
   variant = 'primary',
   size = 'sm',
   icone,
+  dansLeFlux = false,
 }: {
   libelle: string;
   onClick: () => void;
   variant?: ButtonProps['variant'];
   size?: ButtonProps['size'];
   icone?: React.ReactNode;
+  /**
+   * Rend un bouton libellé ordinaire à toutes les largeurs, sans FAB.
+   *
+   * Nécessaire depuis que `EtatVide` reçoit le déclencheur réel de la page :
+   * sur téléphone, le bouton de bureau est masqué et le FAB part se poser en
+   * `fixed` au coin de l'écran. L'état vide paraissait donc **sans action**
+   * là où il devait justement en porter une, et le FAB flottait à côté, sans
+   * rapport visible avec la phrase qui l'appelait.
+   *
+   * Le FAB garde tout son sens sur une liste pleine, où il suit le
+   * défilement. Il n'en a aucun sur un écran qui ne défile pas.
+   */
+  dansLeFlux?: boolean;
 }) {
+  if (dansLeFlux) {
+    return (
+      <Button variant={variant} size={size} onClick={onClick}>
+        {icone ?? <Plus className="h-4 w-4" aria-hidden />}
+        {libelle}
+      </Button>
+    );
+  }
+
   return (
     <>
       <Button variant={variant} size={size} onClick={onClick} className="max-md:hidden">

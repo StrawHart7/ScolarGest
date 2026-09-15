@@ -22,7 +22,7 @@ export async function creerClasse(_prevState: string | null, formData: FormData)
   });
 
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const data = parsed.data;

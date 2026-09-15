@@ -22,7 +22,7 @@ export async function ajouterAuProgrammeAction(
     ordreAffichage: formData.get('ordreAffichage'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const ordreAffichage = parsed.data.ordreAffichage ? Number(parsed.data.ordreAffichage) : 0;
@@ -45,11 +45,11 @@ export async function ajouterAuProgrammeAction(
   return 'OK';
 }
 
-const idSchema = z.string().uuid('Identifiant invalide');
+const idSchema = z.string().uuid('Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.');
 
 export async function retirerDuProgrammeAction(id: string): Promise<string | null> {
   const parsed = idSchema.safeParse(id);
-  if (!parsed.success) return parsed.error.issues[0]?.message ?? 'Identifiant invalide';
+  if (!parsed.success) return parsed.error.issues[0]?.message ?? 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
 
   try {
     await retirerDuProgramme(parsed.data);

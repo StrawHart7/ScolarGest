@@ -24,7 +24,7 @@ export interface ValiderPassageResult {
 export async function validerPassageCohorteAction(input: unknown): Promise<ValiderPassageResult> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? 'Formulaire invalide' };
+    return { ok: false, message: parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.' };
   }
 
   for (const d of parsed.data.decisions) {

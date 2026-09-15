@@ -20,7 +20,7 @@ export async function creerMatiereAction(
     description: formData.get('description'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   try {
@@ -57,7 +57,7 @@ export async function modifierMatiereAction(
     statut: formData.get('statut') || undefined,
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   const { id, ...data } = parsed.data;

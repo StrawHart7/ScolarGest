@@ -23,7 +23,7 @@ export async function creerAffectationAction(
     matiereId: formData.get('matiereId'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   try {
@@ -43,7 +43,7 @@ export async function supprimerAffectationAction(
   affectationId: string,
 ): Promise<string | null> {
   const parsed = idSchema.safeParse(affectationId);
-  if (!parsed.success) return 'Identifiant invalide';
+  if (!parsed.success) return 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.';
   try {
     await supprimerAffectation(parsed.data);
   } catch (e) {
@@ -67,7 +67,7 @@ export async function creerMatiereAction(
     nom: formData.get('nom'),
   });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Formulaire invalide';
+    return parsed.error.issues[0]?.message ?? 'Il manque une information : vérifiez les champs signalés, puis réessayez.';
   }
 
   try {

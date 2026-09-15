@@ -23,7 +23,7 @@ export async function approuverModificationAction(
   pin: string,
 ): Promise<ApprobationResult> {
   const parsedId = idSchema.safeParse(noteId);
-  if (!parsedId.success) return { success: false, message: 'Identifiant invalide' };
+  if (!parsedId.success) return { success: false, message: 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.' };
   const parsedPin = pinSchema.safeParse(pin);
   if (!parsedPin.success) {
     return { success: false, message: parsedPin.error.issues[0]?.message ?? 'PIN invalide' };
@@ -45,7 +45,7 @@ export async function rejeterModificationAction(
   motif: string,
 ): Promise<ApprobationResult> {
   const parsedId = idSchema.safeParse(noteId);
-  if (!parsedId.success) return { success: false, message: 'Identifiant invalide' };
+  if (!parsedId.success) return { success: false, message: 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.' };
   const parsedPin = pinSchema.safeParse(pin);
   if (!parsedPin.success) {
     return { success: false, message: parsedPin.error.issues[0]?.message ?? 'PIN invalide' };
@@ -70,7 +70,7 @@ export async function validerSoumissionAction(
   pin: string,
 ): Promise<ApprobationResult> {
   const parsedId = idSchema.safeParse(evaluationId);
-  if (!parsedId.success) return { success: false, message: 'Identifiant invalide' };
+  if (!parsedId.success) return { success: false, message: 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.' };
   const parsedPin = pinSchema.safeParse(pin);
   if (!parsedPin.success) {
     return { success: false, message: parsedPin.error.issues[0]?.message ?? 'PIN invalide' };
@@ -91,7 +91,7 @@ export async function rejeterSoumissionAction(
   motif: string,
 ): Promise<ApprobationResult> {
   const parsedId = idSchema.safeParse(evaluationId);
-  if (!parsedId.success) return { success: false, message: 'Identifiant invalide' };
+  if (!parsedId.success) return { success: false, message: 'Cette ligne n’a pas pu être identifiée. Rechargez la page et réessayez.' };
   const parsedPin = pinSchema.safeParse(pin);
   if (!parsedPin.success) {
     return { success: false, message: parsedPin.error.issues[0]?.message ?? 'PIN invalide' };

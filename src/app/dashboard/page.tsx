@@ -257,10 +257,17 @@ export default async function DashboardPage({
               valeur: nombre(stats.academique.notesEnAttente),
               icone: BookOpen,
               ton: stats.academique.notesEnAttente > 0 ? 'alerte' : 'neutre',
+              // Quand rien n'attend, l'ancienne version affichait « X bulletins
+              // générés » — un chiffre sans rapport avec le compteur qu'il
+              // commente. Le nombre d'évaluations répond, lui, à la vraie
+              // question derrière ce zéro : « est-ce que mes enseignants
+              // travaillent, ou est-ce que personne n'a encore rien rendu ? »
               comparaison:
                 stats.academique.notesEnAttente > 0
                   ? 'Elles n’entrent dans aucun bulletin tant qu’elles ne sont pas validées'
-                  : `${nombre(stats.academique.bulletinsGeneres)} bulletins générés`,
+                  : stats.academique.evaluations > 0
+                    ? `Rien n’attend votre accord — ${nombre(stats.academique.evaluations)} évaluation${stats.academique.evaluations > 1 ? 's' : ''} cette année`
+                    : 'Aucune évaluation créée cette année pour l’instant',
               href: lien('/etablissement/notes/approbation'),
             },
           ]}

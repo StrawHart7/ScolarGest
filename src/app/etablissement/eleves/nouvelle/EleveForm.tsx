@@ -138,7 +138,10 @@ export function EleveForm({
         La classe est donc le **premier** champ, avant l'identité : c'est la
         décision, le reste est de la saisie.
       */}
-      <section className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
+      {/* Pas de carte bordée sous `md` : le formulaire compte quatre sections,
+          et une bordure pleine pour un seul champ coûte une hauteur que la page
+          n'a pas sur un écran de 390px. Le titre suffit à séparer. */}
+      <section className="flex flex-col gap-4 md:rounded-lg md:border md:border-surface-border md:p-4">
         <h3 className="text-headline-sm text-text-primary">Classe</h3>
         <div className="flex flex-col gap-1.5 md:max-w-sm">
           <Label htmlFor="classeId">Inscrire en</Label>

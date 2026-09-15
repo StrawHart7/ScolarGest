@@ -57,7 +57,7 @@ export function EtatVide({
   filtre?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 py-14 text-center">
+    <div className="flex flex-col items-center gap-3 py-10 text-center md:py-14">
       <Icone className="h-10 w-10 text-text-secondary/50" aria-hidden />
       <p className="text-body-md text-text-primary">{titre}</p>
       {explication ? (
