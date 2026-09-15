@@ -171,7 +171,18 @@ export function NouveauVersementForm({
       )}
 
       {misEnFile === 'envoye' && (
-        <p className="rounded-xl bg-success-container px-4 py-3 text-body-sm text-text-primary">
+        // `bg-success-container` n'existait nulle part : `success` n'est pas
+        // declare dans `tailwind.config.ts`, la classe n'etait donc generee par
+        // personne et ce message s'affichait **sans fond**, texte noir sur
+        // blanc, a l'endroit exact ou il devait se distinguer de la page.
+        // Jumeau du `bg-warning-container` deja corrige, dont le commentaire
+        // est reste dans la config.
+        //
+        // La couleur de succes de ce systeme est `tertiary` — c'est ce
+        // qu'emploie `Badge variant="success"`. On applique la convention
+        // existante plutot que d'ajouter une famille de tokens pour un seul
+        // usage.
+        <p className="rounded-xl border border-tertiary/25 bg-tertiary/10 px-4 py-3 text-body-sm text-text-primary">
           Encaissement enregistre. Le solde ci-contre est a jour.
         </p>
       )}
