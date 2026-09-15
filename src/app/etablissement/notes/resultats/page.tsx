@@ -95,7 +95,7 @@ export default async function ResultatsPage({
         <div className="hidden md:block">
           <PageHeader
             title="Moyennes & classement"
-            description="Consultation des moyennes par matière, moyennes trimestrielles, appréciations et rangs calculés par le moteur académique."
+            description="Comment s'en sort une classe : moyennes par matière, moyenne du trimestre, appréciation et rang de chaque élève."
           />
         </div>
         <h1 className="text-display-sm text-text-primary md:hidden">Moyennes &amp; classement</h1>
@@ -170,7 +170,7 @@ async function ResultatsTable({
       <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
         <ClipboardList className="h-10 w-10 text-text-secondary/50" aria-hidden />
         <p className="text-body-sm text-text-secondary">
-          Aucun élève inscrit (statut ACTIF) dans cette classe pour cette année scolaire.
+          Aucun élève inscrit dans cette classe pour cette année.
         </p>
       </CardContent>
     );

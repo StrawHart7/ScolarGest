@@ -1,10 +1,14 @@
+import Link from 'next/link';
+import { CalendarRange, School } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EtatVide } from '@/components/ui/etat-vide';
 import { getSidebarItems } from '@/lib/navigation';
 import { InscriptionForm } from './InscriptionForm';
 
@@ -36,19 +40,38 @@ export default async function InscriptionPage({ params }: { params: { id: string
           </p>
         </div>
 
+        {/* Ni l'un ni l'autre n'est une erreur : le Directeur n'a rien cassé,
+            il n'a pas encore configuré. Le rouge inquiète sans rien proposer —
+            même raison que pour la bannière hors-ligne. Et les deux écrans
+            portent désormais le geste au lieu de le nommer. */}
         {!anneeActive ? (
           <Card>
-            <CardContent className="p-6">
-              <p className="text-body-sm text-error">Aucune année scolaire active.</p>
+            <CardContent>
+              <EtatVide
+                icone={CalendarRange}
+                titre="Aucune année scolaire n’est ouverte"
+                explication="Une inscription se rattache à une année : il en faut une active avant de continuer."
+                action={
+                  <Button asChild variant="primary">
+                    <Link href="/etablissement/annees-scolaires">Ouvrir une année scolaire</Link>
+                  </Button>
+                }
+              />
             </CardContent>
           </Card>
         ) : classes.length === 0 ? (
           <Card>
-            <CardContent className="p-6">
-              <p className="text-body-sm text-error">
-                Aucune classe n&apos;existe pour l&apos;année active. Créez une classe avant d&apos;inscrire un
-                élève.
-              </p>
+            <CardContent>
+              <EtatVide
+                icone={School}
+                titre="Aucune classe sur cette année"
+                explication="Créez la classe dans laquelle vous voulez inscrire cet élève, puis revenez ici."
+                action={
+                  <Button asChild variant="primary">
+                    <Link href="/etablissement/classes">Créer une classe</Link>
+                  </Button>
+                }
+              />
             </CardContent>
           </Card>
         ) : (

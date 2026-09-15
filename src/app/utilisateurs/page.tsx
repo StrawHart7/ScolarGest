@@ -16,6 +16,7 @@ import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { DesactiverButton, ReactiverButton } from './DesactiverButton';
+import { EtatVide } from '@/components/ui/etat-vide';
 
 const STATUT_BADGE = {
   ACTIF: 'success',
@@ -120,9 +121,17 @@ export default async function UtilisateursPage({
           />
 
           {page.total === 0 ? (
-            <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-              <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucun utilisateur trouvé.</p>
+            <CardContent>
+              <EtatVide
+                icone={Users2}
+                titre="Vous êtes seul sur la plateforme"
+                explication="Invitez votre secrétaire ou votre comptable : ils reçoivent un lien par email et choisissent leur mot de passe eux-mêmes."
+                action={
+                  <Button asChild>
+                    <Link href="/utilisateurs/inviter">Inviter quelqu’un</Link>
+                  </Button>
+                }
+              />
             </CardContent>
           ) : (
             <>

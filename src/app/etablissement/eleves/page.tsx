@@ -97,7 +97,7 @@ export default async function ElevesPage({
             la liste, et les actions deviennent bouton flottant + icône. */}
         <div className="hidden md:block">
           <PageHeader
-            title="Liste des élèves"
+            title="Élèves"
             actions={
               canWrite && (
                 <>
@@ -146,7 +146,7 @@ export default async function ElevesPage({
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <EnteteListe
-            titre="Liste des élèves"
+            titre="Élèves"
             compte={`${page.total} élève${page.total > 1 ? 's' : ''}`}
           />
 

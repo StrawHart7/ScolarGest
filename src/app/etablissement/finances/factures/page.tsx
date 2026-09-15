@@ -175,7 +175,7 @@ export default async function SuiviPaiementsPage({
         <div className="hidden md:block">
           <PageHeader
             title="Suivi des paiements"
-            description="Une ligne par facture élève : total dû, total encaissé et reste à recouvrer. Les statuts sont informatifs et ne bloquent rien dans le système."
+            description="Qui a payé, qui doit encore. Une ligne par élève : total dû, déjà encaissé, reste à recouvrer."
           />
         </div>
 

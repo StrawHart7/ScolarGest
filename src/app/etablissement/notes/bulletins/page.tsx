@@ -155,7 +155,7 @@ async function ElevesListe({
       <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
         <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
         <p className="text-body-sm text-text-secondary">
-          Aucun élève inscrit (statut ACTIF) dans cette classe pour cette année scolaire.
+          Aucun élève inscrit dans cette classe pour cette année.
         </p>
       </CardContent>
     );

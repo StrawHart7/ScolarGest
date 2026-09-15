@@ -74,7 +74,7 @@ export default async function EnseignantsPage({
 
         <div className="hidden md:block">
           <PageHeader
-            title="Liste des enseignants"
+            title="Enseignants"
             actions={
               canWrite && (
                 <>
@@ -123,7 +123,7 @@ export default async function EnseignantsPage({
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           <EnteteListe
-            titre="Liste des enseignants"
+            titre="Enseignants"
             compte={`${page.total} enseignant${page.total > 1 ? 's' : ''}`}
           />
 

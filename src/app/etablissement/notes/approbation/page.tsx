@@ -50,7 +50,7 @@ export default async function ApprobationNotesPage() {
 
         <PageHeader
           title="Approbation des notes"
-          description="Soumissions d'évaluations et demandes de correction en attente d'une décision."
+          description="Les notes que vos enseignants ont rendues et qui attendent votre validation, et les corrections qu'ils demandent."
         />
 
         <Card>

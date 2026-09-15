@@ -81,8 +81,8 @@ export default async function TarifsPage({
             doublon avec la ligne de densité. */}
         <div className="hidden md:block">
           <PageHeader
-            title="Configuration des tarifs"
-            description="Montant de chaque type de frais, classe par classe et année par année. Ce sont ces tarifs qui alimentent automatiquement la facture d'un élève à son inscription."
+            title="Tarifs"
+            description="Combien coûte chaque frais, classe par classe. C'est d'ici que la facture d'un élève est calculée quand vous l'inscrivez."
           />
         </div>
 

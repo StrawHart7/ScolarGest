@@ -17,6 +17,8 @@ import { getSidebarItems } from '@/lib/navigation';
 import { PaiementsFiltres } from './PaiementsFiltres';
 import { etatDomaine } from '@/services/configuration';
 import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
+import { EtatVide } from '@/components/ui/etat-vide';
+import { Button } from '@/components/ui/button';
 
 const fcfa = (montant: number) => Number(montant).toLocaleString('fr-FR');
 
@@ -126,9 +128,17 @@ export default async function HistoriqueVersementsPage({
           />
 
           {page.total === 0 ? (
-            <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-              <Wallet className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucun versement enregistré.</p>
+            <CardContent>
+              <EtatVide
+                icone={Wallet}
+                titre="Aucun versement pour le moment"
+                explication="Les encaissements se saisissent depuis la facture d’un élève : ils apparaîtront ici au fur et à mesure."
+                action={
+                  <Button asChild variant="secondary">
+                    <Link href="/etablissement/finances/factures">Ouvrir le suivi des paiements</Link>
+                  </Button>
+                }
+              />
             </CardContent>
           ) : (
             <>

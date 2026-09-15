@@ -50,9 +50,26 @@ function SubmitButton({ pleineLargeur }: { pleineLargeur?: boolean }) {
   );
 }
 
-export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
+/**
+ * Valeur du choix « pas encore de classe ».
+ *
+ * Un `Select` ne peut pas porter la valeur vide, et le champ doit rester
+ * obligatoire : c'est ce qui empêche de créer un élève invisible sans l'avoir
+ * décidé. Le cas existe pourtant — un dossier ouvert avant la rentrée — et il
+ * garde donc une option explicite qui dit sa conséquence.
+ */
+const SANS_CLASSE = 'SANS_CLASSE';
+
+export function EleveForm({
+  anneeScolaireId,
+  classes,
+}: {
+  anneeScolaireId: string;
+  classes: { id: string; nom: string; niveau: { nom: string } }[];
+}) {
   const [error, formAction] = useFormState(creerEleve, null);
 
+  const [classeId, setClasseId] = useState('');
   const [nom, setNom] = useState('');
   const [prenoms, setPrenoms] = useState('');
   const [sexe, setSexe] = useState<'M' | 'F' | ''>('');
@@ -94,6 +111,7 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
     // dateNaissance is submitted separately via the DatePicker's own hidden
     // input (name="dateNaissance") and merged server-side — see actions.ts.
     anneeScolaireIdPourMatricule: anneeScolaireId,
+    classeId: classeId && classeId !== SANS_CLASSE ? classeId : undefined,
     responsables: responsables.map((r) => ({
       ...r,
       email: r.email || undefined,
@@ -105,6 +123,45 @@ export function EleveForm({ anneeScolaireId }: { anneeScolaireId: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-6 pb-zone-action md:pb-0">
       <input type="hidden" name="payload" value={payload} />
+
+      {/*
+        L'inscription en classe se faisait sur un **second écran**, qu'il
+        fallait trouver depuis la fiche de l'élève une fois celui-ci créé.
+        Deux tables — `eleve` et `inscription` — donc deux écrans, alors que le
+        directeur fait un seul geste : il inscrit un enfant en 6ème A.
+
+        La conséquence n'était pas seulement un clic de plus. C'est
+        l'inscription qui génère la facture : tant que le second écran n'était
+        pas trouvé, l'enfant n'avait ni classe, ni facture, ni place dans les
+        effectifs — et le directeur croyait avoir fini.
+
+        La classe est donc le **premier** champ, avant l'identité : c'est la
+        décision, le reste est de la saisie.
+      */}
+      <section className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
+        <h3 className="text-headline-sm text-text-primary">Classe</h3>
+        <div className="flex flex-col gap-1.5 md:max-w-sm">
+          <Label htmlFor="classeId">Inscrire en</Label>
+          <Select value={classeId} onValueChange={setClasseId} required>
+            <SelectTrigger id="classeId">
+              <SelectValue placeholder="Choisir une classe" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nom} — {c.niveau.nom}
+                </SelectItem>
+              ))}
+              <SelectItem value={SANS_CLASSE}>Pas encore — je l&apos;inscrirai plus tard</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-body-sm text-text-secondary">
+            {classeId && classeId !== SANS_CLASSE
+              ? 'Sa facture sera créée automatiquement à partir des tarifs de cette classe.'
+              : 'Sans classe, l’élève n’apparaît ni dans les effectifs, ni dans les factures.'}
+          </p>
+        </div>
+      </section>
 
       <section className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
         <h3 className="text-headline-sm text-text-primary">Identité de l&apos;élève</h3>

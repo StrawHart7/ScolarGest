@@ -14,6 +14,7 @@ import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { MatiereForm } from './MatiereForm';
 import { MatiereRowActions } from './MatiereRowActions';
+import { EtatVide } from '@/components/ui/etat-vide';
 
 export default async function MatieresPage({
   searchParams,
@@ -54,7 +55,7 @@ export default async function MatieresPage({
         <div className="hidden md:block">
           <PageHeader
             title="Matières"
-            description="Catalogue des matières de l'établissement, utilisé par le programme et les affectations."
+            description="Ce que votre école enseigne. Le programme national les apporte à la création de vos classes ; ajoutez ici celles qui vous sont propres."
           />
         </div>
 
@@ -86,9 +87,13 @@ export default async function MatieresPage({
           />
 
           {page.total === 0 ? (
-            <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-              <BookOpen className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucune matière créée.</p>
+            <CardContent>
+              <EtatVide
+                icone={BookOpen}
+                titre="Aucune matière"
+                explication="Les matières du programme national arrivent toutes seules à la création de vos classes. Ajoutez-en une ici si votre école en enseigne une qui n’y figure pas."
+                action={canWrite && <MatiereForm />}
+              />
             </CardContent>
           ) : (
             <>

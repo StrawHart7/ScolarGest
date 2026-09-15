@@ -12,6 +12,7 @@ import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui
 import { getSidebarItems } from '@/lib/navigation';
 import { AnneeScolaireForm } from './AnneeScolaireForm';
 import { ActiverAnneeButton, CloturerAnneeButton } from './ActiverAnneeButton';
+import { EtatVide } from '@/components/ui/etat-vide';
 
 const STATUT_BADGE = {
   PREPARATION: 'neutral',
@@ -72,9 +73,13 @@ export default async function AnneesScolairesPage() {
 
         <Card className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
           {annees.length === 0 ? (
-            <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-              <CalendarRange className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucune année scolaire créée.</p>
+            <CardContent>
+              <EtatVide
+                icone={CalendarRange}
+                titre="Aucune année scolaire ouverte"
+                explication="Tout part de là : les classes, les tarifs et les matricules de vos élèves sont rattachés à une année."
+                action={estDirecteur && <AnneeScolaireForm />}
+              />
             </CardContent>
           ) : (
             <>

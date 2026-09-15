@@ -56,7 +56,7 @@ export default async function TypesFraisPage({
         <div className="hidden md:block">
           <PageHeader
             title="Types de frais"
-            description="Catégories de frais de l'établissement (scolarité, inscription, cantine…). Elles servent de base aux tarifs par classe et aux lignes de facture."
+            description="Ce que votre école facture : scolarité, inscription, cantine… Vous fixerez ensuite leur montant classe par classe."
           />
         </div>
 
@@ -89,7 +89,7 @@ export default async function TypesFraisPage({
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Wallet className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucun type de frais créé.</p>
+              <p className="text-body-md text-text-primary">Aucun type de frais</p>
               <p className="text-body-sm text-text-secondary">
                 Commencez par créer les catégories facturées par l&apos;école, puis définissez leur
                 tarif classe par classe.
