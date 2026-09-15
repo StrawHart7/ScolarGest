@@ -10,8 +10,8 @@ import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
-import { periodesDuRegime } from '@/lib/periodes';
-import { getRegimePeriodes } from '@/services/regime-periodes';
+import { periodesDuRegime, regimeDominant } from '@/lib/periodes';
+import { getContexteRegime } from '@/services/regime-periodes';
 import { ApprobationQueue } from './ApprobationQueue';
 import { SoumissionsQueue } from './SoumissionsQueue';
 import { SuiviRemiseNotes } from './SuiviRemiseNotes';
@@ -52,8 +52,12 @@ export default async function ApprobationNotesPage({
     ? (searchParams.periode as Periode)
     : undefined;
 
-  // Deux periodes pour un lycee au semestre, trois sinon.
-  const [annee, regime] = await Promise.all([getAnneeCourante(), getRegimePeriodes()]);
+  // Le suivi de remise balaie **toutes** les classes a la fois : il n'a aucun
+  // cycle a interroger, d'ou `regimeDominant` plutot que le regime du lycee.
+  // Les files de soumissions et de corrections, elles, nomment leur periode
+  // classe par classe — chaque ligne porte son cycle.
+  const [annee, contexte] = await Promise.all([getAnneeCourante(), getContexteRegime()]);
+  const regime = regimeDominant(contexte.cyclesActifs, contexte.regimeLycee);
 
   const [soumissions, corrections, collecte] = await Promise.all([
     listEvaluationsSoumises(),

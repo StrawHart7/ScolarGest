@@ -8,8 +8,8 @@ import {
   SEUIL_REUSSITE,
 } from '@/services/statistiques-academiques';
 import type { Periode } from '@/services/evaluation';
-import { getRegimePeriodes } from '@/services/regime-periodes';
-import { periodesDuRegime, phrasePeriode } from '@/lib/periodes';
+import { getContexteRegime } from '@/services/regime-periodes';
+import { periodesDuRegime, phrasePeriode, regimeDominant } from '@/lib/periodes';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CarteMetrique } from '@/components/ui/carte-metrique';
@@ -56,8 +56,14 @@ export default async function StatistiquesPage({
   const ctx = await getTenantContext();
   if (ctx.role !== 'DIRECTEUR' && ctx.role !== 'SECRETAIRE') redirect('/dashboard');
 
-  // Deux periodes pour un lycee au semestre, trois sinon.
-  const regime = await getRegimePeriodes();
+  // Cet ecran embrasse toutes les classes a la fois : il n'a aucun cycle a
+  // interroger, et c'est l'un des deux seuls cas ou `regimeDominant` s'emploie.
+  // Sa regle : on ne dit « semestre » que si toute l'ecole y est, c'est-a-dire
+  // un lycee seul. Des qu'un college est la, le trimestre l'emporte — ses trois
+  // periodes couvrent les deux du lycee, donc aucune donnee n'est hors
+  // d'atteinte depuis cet ecran.
+  const contexte = await getContexteRegime();
+  const regime = regimeDominant(contexte.cyclesActifs, contexte.regimeLycee);
   const PERIODES = periodesDuRegime(regime).map((valeur) => ({
     valeur,
     libelle: phrasePeriode(valeur, regime),

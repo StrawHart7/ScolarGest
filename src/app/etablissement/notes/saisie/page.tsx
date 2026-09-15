@@ -15,8 +15,8 @@ import { EvaluationsList } from './EvaluationsList';
 import { NouvelleEvaluationForm } from './NouvelleEvaluationForm';
 import { etatDomaine } from '@/services/configuration';
 import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
-
-const PERIODES: Periode[] = ['TRIMESTRE_1', 'TRIMESTRE_2', 'TRIMESTRE_3'];
+import { periodesDuRegime, regimeDuCycle } from '@/lib/periodes';
+import { getContexteRegime } from '@/services/regime-periodes';
 
 export default async function SaisieNotesPage({
   searchParams,
@@ -132,8 +132,10 @@ async function SaisieContent({
     );
   }
 
-  const classes = Array.from(new Map(affectations.map((a) => [a.classeId, a.classe.nom])).entries()).map(
-    ([id, nom]) => ({ id, nom }),
+  // Le cycle voyage avec le nom : c'est lui qui décide si la classe se découpe
+  // en trimestres ou en semestres, et il arrive déjà dans la même requête.
+  const classes = Array.from(new Map(affectations.map((a) => [a.classeId, a.classe])).entries()).map(
+    ([id, classe]) => ({ id, nom: classe.nom, cycle: classe.niveau?.cycle?.nom ?? null }),
   );
 
   const classeId = searchParams.classeId && classes.some((c) => c.id === searchParams.classeId)
@@ -151,8 +153,16 @@ async function SaisieContent({
       ? searchParams.matiereId
       : matieresPourClasse[0]?.id;
 
+  // Les périodes réellement offertes à **cette** classe. Une adresse portant
+  // `periode=TRIMESTRE_3` sur une classe de lycée au semestre est ramenée à la
+  // première période plutôt que d'ouvrir une saisie que l'écran ne propose pas
+  // et dont les notes n'entreraient dans aucun bulletin.
+  const cycleClasse = classes.find((c) => c.id === classeId)?.cycle ?? null;
+  const periodesOffertes = periodesDuRegime(regimeDuCycle(cycleClasse, (await getContexteRegime()).regimeLycee));
   const periode: Periode =
-    searchParams.periode && PERIODES.includes(searchParams.periode) ? searchParams.periode : 'TRIMESTRE_1';
+    searchParams.periode && periodesOffertes.includes(searchParams.periode)
+      ? searchParams.periode
+      : 'TRIMESTRE_1';
 
   // Vérification de périmètre côté page, en plus de la garde déjà présente
   // dans evaluation.ts/note.ts : la combinaison classe/matière demandée doit

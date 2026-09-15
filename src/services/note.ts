@@ -367,6 +367,8 @@ async function verifierSecondRegard(
 export interface EvaluationSoumise {
   evaluationId: string;
   classeNom: string;
+  /** Le cycle de la classe : c'est lui qui dit « trimestre » ou « semestre ». */
+  classeCycle: string | null;
   matiereNom: string;
   evaluationType: 'INTERROGATION' | 'DEVOIR' | 'COMPOSITION';
   periode: Periode;
@@ -380,7 +382,7 @@ interface NoteSoumiseRow {
     type: 'INTERROGATION' | 'DEVOIR' | 'COMPOSITION';
     periode: Periode;
     numero: number;
-    classe: { nom: string; etablissementId: string } | null;
+    classe: { nom: string; etablissementId: string; niveau?: { cycle?: { nom: string } | null } | null } | null;
     matiere: { nom: string } | null;
   } | null;
 }
@@ -399,7 +401,7 @@ export async function listEvaluationsSoumises(): Promise<EvaluationSoumise[]> {
     .select(
       `"evaluationId",
        evaluation:evaluation!inner(type, periode, numero,
-         classe:classe!inner(nom, "etablissementId"),
+         classe:classe!inner(nom, "etablissementId", niveau:niveau(cycle:cycle(nom))),
          matiere:matiere!inner(nom))`,
     )
     .eq('statut', 'SOUMISE')
@@ -417,6 +419,7 @@ export async function listEvaluationsSoumises(): Promise<EvaluationSoumise[]> {
     parEvaluation.set(r.evaluationId, {
       evaluationId: r.evaluationId,
       classeNom: r.evaluation?.classe?.nom ?? '',
+        classeCycle: r.evaluation?.classe?.niveau?.cycle?.nom ?? null,
       matiereNom: r.evaluation?.matiere?.nom ?? '',
       evaluationType: r.evaluation?.type ?? 'DEVOIR',
       periode: r.evaluation?.periode ?? 'TRIMESTRE_1',
@@ -713,6 +716,8 @@ export interface NoteEnAttente {
   eleveNom: string;
   elevePrenoms: string;
   classeNom: string;
+  /** Le cycle de la classe : c'est lui qui dit « trimestre » ou « semestre ». */
+  classeCycle: string | null;
   matiereNom: string;
   evaluationType: 'INTERROGATION' | 'DEVOIR' | 'COMPOSITION';
   periode: Periode;
@@ -736,7 +741,7 @@ interface NoteEnAttenteRow {
     type: 'INTERROGATION' | 'DEVOIR' | 'COMPOSITION';
     periode: Periode;
     numero: number;
-    classe: { nom: string; etablissementId: string } | null;
+    classe: { nom: string; etablissementId: string; niveau?: { cycle?: { nom: string } | null } | null } | null;
     matiere: { nom: string } | null;
   } | null;
 }
@@ -760,7 +765,7 @@ export async function listNotesEnAttente(): Promise<NoteEnAttente[]> {
       `id, "eleveId", valeur, "valeurProposee", observation, "demandePar",
        eleve:eleve!inner(nom, prenoms),
        evaluation:evaluation!inner(type, periode, numero,
-         classe:classe!inner(nom, "etablissementId"),
+         classe:classe!inner(nom, "etablissementId", niveau:niveau(cycle:cycle(nom))),
          matiere:matiere!inner(nom))`,
     )
     .eq('statut', 'EN_ATTENTE')
@@ -790,6 +795,7 @@ export async function listNotesEnAttente(): Promise<NoteEnAttente[]> {
     eleveNom: r.eleve?.nom ?? '',
     elevePrenoms: r.eleve?.prenoms ?? '',
     classeNom: r.evaluation?.classe?.nom ?? '',
+        classeCycle: r.evaluation?.classe?.niveau?.cycle?.nom ?? null,
     matiereNom: r.evaluation?.matiere?.nom ?? '',
     evaluationType: r.evaluation?.type ?? 'DEVOIR',
     periode: r.evaluation?.periode ?? 'TRIMESTRE_1',

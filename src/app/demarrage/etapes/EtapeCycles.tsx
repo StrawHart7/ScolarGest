@@ -51,10 +51,12 @@ export function EtapeCycles({
   // La question du découpage ne se pose qu'au lycée : au collège, le trimestre
   // est unanime au Togo, et poser une question à laquelle il n'y a qu'une
   // réponse allonge l'étape sans rien décider.
-  const lyceeChoisi = cycles.some(
-    (c) =>
-      c.nom === 'LYCEE' && (selection.includes(c.id) || cyclesDejaActifs.includes(c.id)),
-  );
+  const estChoisi = (nom: string) =>
+    cycles.some(
+      (c) => c.nom === nom && (selection.includes(c.id) || cyclesDejaActifs.includes(c.id)),
+    );
+  const lyceeChoisi = estChoisi('LYCEE');
+  const collegeChoisi = estChoisi('COLLEGE');
 
   function basculer(cycleId: string) {
     setSelection((prec) =>
@@ -147,18 +149,21 @@ export function EtapeCycles({
         périodes déjà imprimées sur des bulletins remis aux familles, et la
         troisième deviendrait inatteignable. Le service le refuse alors.
 
-        Le choix vaut pour **tout** l'établissement, collège compris : un
-        complexe est entièrement à l'un ou à l'autre. C'est une décision
-        produit, pas une limite technique.
+        **Le choix ne vaut que pour le lycée.** Corrigé le 2026-09-15 : le
+        collège est au trimestre partout au Togo, sans exception. Un complexe
+        qui répond « semestres » porte donc les deux découpages — et on le lui
+        dit ici, en toutes lettres, plutôt que de le lui laisser découvrir sur
+        le premier bulletin de 6e.
       */}
       {lyceeChoisi && (
         <div className="flex flex-col gap-3 rounded-xl border border-surface-border p-4">
           <div>
             <p className="text-body-md font-medium text-text-primary">
-              Comment découpez-vous votre année ?
+              Comment découpez-vous l&apos;année au lycée ?
             </p>
             <p className="text-body-sm text-text-secondary">
-              Cela décide du nombre de bulletins et du mot employé partout dans l&apos;application.
+              Cela décide du nombre de bulletins et du mot employé pour vos classes de 2nde,
+              1re et Terminale.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -184,6 +189,18 @@ export function EtapeCycles({
               </button>
             ))}
           </div>
+          {/*
+            Dit seulement quand c'est vrai, et seulement quand ça change quelque
+            chose : un complexe qui choisit les semestres doit savoir tout de
+            suite que sa 6e gardera trois trimestres. Le découvrir au premier
+            bulletin serait pris pour une erreur du produit.
+          */}
+          {collegeChoisi && regime === 'SEMESTRE' && (
+            <p className="text-body-sm text-warning-on-container">
+              Vos classes de collège resteront en trimestres : c&apos;est la règle pour la 6e, la
+              5e, la 4e et la 3e.
+            </p>
+          )}
           <p className="text-body-sm text-text-secondary">
             Ce choix se modifie tant qu&apos;aucune note n&apos;a été saisie.
           </p>

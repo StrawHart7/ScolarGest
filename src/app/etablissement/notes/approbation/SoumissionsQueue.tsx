@@ -9,11 +9,11 @@ import { nommerEvaluation } from '@/lib/evaluations';
 import type { EvaluationSoumise } from '@/services/note';
 import { SoumissionModal } from './SoumissionModal';
 
-import { usePeriodes } from '@/components/layout/RegimeProvider';
+import { useNommerPeriode } from '@/components/layout/RegimeProvider';
 
 export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumise[] }) {
   // « 1er trimestre » ou « 1er semestre », selon le regime de l'ecole.
-  const { nommer } = usePeriodes();
+  const nommer = useNommerPeriode();
   const [selected, setSelected] = useState<EvaluationSoumise | null>(null);
 
   return (
@@ -35,7 +35,7 @@ export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumi
                 <TableCell>
                   <div>{s.matiereNom}</div>
                   <div className="text-body-sm text-text-secondary">
-                    {nommerEvaluation(s.evaluationType, s.numero)} · {nommer(s.periode)}
+                    {nommerEvaluation(s.evaluationType, s.numero)} · {nommer(s.periode, s.classeCycle)}
                   </div>
                 </TableCell>
                 <TableCell>{s.nombreNotes}</TableCell>

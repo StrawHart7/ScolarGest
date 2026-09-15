@@ -19,7 +19,8 @@ import {
 } from './document';
 import { renderHtmlToPdf } from '@/lib/pdf/render';
 import { renderBulletinHtml, periodeLabel } from '@/lib/pdf/templates/bulletin';
-import { getRegimePeriodes } from './regime-periodes';
+import { getContexteRegime } from './regime-periodes';
+import { regimeDuCycle } from '@/lib/periodes';
 import { renderBulletinSecondaireHtml } from '@/lib/pdf/templates/bulletin-secondaire';
 import type { Periode } from './evaluation';
 
@@ -74,7 +75,13 @@ async function buildPdf(
   // Le régime décide du mot imprimé sur le bulletin : « 1er Trimestre » ou
   // « 1er Semestre ». La clé en base est la même pour les deux — voir
   // `src/lib/periodes.ts` et la migration `20260915160508`.
-  const regime = await getRegimePeriodes();
+  //
+  // Il se lit sur le **cycle de la classe**, jamais sur l'école : dans un
+  // complexe dont le lycée est au semestre, un bulletin de 6e porte « 1er
+  // Trimestre » et un bulletin de 2nde « 1er Semestre » — le même jour, sortis
+  // du même écran, et c'est juste dans les deux cas. Le cycle arrive déjà avec
+  // `getClasse`, sans requête supplémentaire.
+  const regime = regimeDuCycle(classe.niveau?.cycle?.nom, (await getContexteRegime()).regimeLycee);
 
   const entree = {
     etablissement: {

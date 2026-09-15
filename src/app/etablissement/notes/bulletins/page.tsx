@@ -105,7 +105,7 @@ export default async function BulletinsPage({
           <div className="border-b border-surface-border px-1 py-3 md:p-4">
             <BulletinsFiltres
               annees={annees.map((a) => ({ id: a.id, libelle: a.libelle }))}
-              classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+              classes={classes.map((c) => ({ id: c.id, nom: c.nom, cycle: c.niveau?.cycle?.nom ?? null }))}
               defaultAnneeScolaireId={anneeScolaireId ?? ''}
               defaultClasseId={classeId ?? ''}
               defaultPeriode={periode}

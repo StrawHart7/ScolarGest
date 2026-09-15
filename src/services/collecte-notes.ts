@@ -1,6 +1,6 @@
-﻿import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
-import { PERIODES_ORDONNEES } from '@/lib/periodes';
+import { TOUTES_PERIODES } from '@/lib/periodes';
 import type { Periode } from './evaluation';
 
 /**
@@ -138,7 +138,7 @@ async function periodeALaUne(classeIds: string[], anneeScolaireId: string): Prom
   const supabase = createClient();
 
   const comptes = await Promise.all(
-    PERIODES_ORDONNEES.map(async (periode) => {
+    TOUTES_PERIODES.map(async (periode) => {
       const { count, error } = await supabase
         .from('evaluation')
         .select('id', { count: 'exact', head: true })

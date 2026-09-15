@@ -15,7 +15,8 @@ export function BulletinsFiltres({
   basePath = '/etablissement/notes/bulletins',
 }: {
   annees: { id: string; libelle: string }[];
-  classes: { id: string; nom: string }[];
+  /** `cycle` nomme le cycle de la classe : c'est lui qui dit trimestre ou semestre. */
+  classes: { id: string; nom: string; cycle?: string | null }[];
   defaultAnneeScolaireId: string;
   defaultClasseId: string;
   defaultPeriode: Periode;
@@ -26,7 +27,9 @@ export function BulletinsFiltres({
    */
   basePath?: string;
 }) {
-  const { periodes, nommer } = usePeriodes();
+  const { periodes, nommer } = usePeriodes(
+    classes.find((c) => c.id === defaultClasseId)?.cycle ?? null,
+  );
   const router = useRouter();
   const [, startTransition] = useTransition();
 

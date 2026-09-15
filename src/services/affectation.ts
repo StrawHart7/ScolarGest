@@ -11,7 +11,15 @@ export interface AffectationEnseignant {
   classeId: string;
   matiereId: string;
   createdAt: string;
-  classe: { nom: string };
+  /**
+   * Le cycle vient avec le nom depuis le 2026-09-15.
+   *
+   * L'écran de saisie propose une période, et le mot à employer — trimestre ou
+   * semestre — dépend du cycle de la classe, pas de l'école. Il est embarqué
+   * dans la même requête : le lire à part coûterait un aller-retour par écran
+   * pour deux niveaux de jointure déjà à portée.
+   */
+  classe: { nom: string; niveau?: { cycle?: { nom: string } | null } | null };
   matiere: { nom: string };
   enseignant?: { nom: string; prenoms: string };
 }
@@ -27,7 +35,7 @@ const AFFECTATION_FIELDS_CLASSE =
   'id, "etablissementId", "anneeScolaireId", "enseignantId", "classeId", "matiereId", "createdAt", matiere:matiere(nom), enseignant:enseignant(nom, prenoms)';
 
 const AFFECTATION_FIELDS_ENSEIGNANT =
-  'id, "etablissementId", "anneeScolaireId", "enseignantId", "classeId", "matiereId", "createdAt", classe:classe(nom), matiere:matiere(nom)';
+  'id, "etablissementId", "anneeScolaireId", "enseignantId", "classeId", "matiereId", "createdAt", classe:classe(nom, niveau:niveau(cycle:cycle(nom))), matiere:matiere(nom)';
 
 /** Vue "qui enseigne quoi dans cette classe" (utilisée aussi par l'écran de titularité). */
 export async function listAffectationsClasse(

@@ -27,7 +27,7 @@ export function ApprobationModal({
   onClose: () => void;
 }) {
   // « 1er trimestre » ou « 1er semestre », selon le régime de l'école.
-  const { nommer } = usePeriodes();
+  const { nommer } = usePeriodes(note.classeCycle);
   const [mode, setMode] = useState<Mode>('APPROUVER');
   const [pin, setPin] = useState('');
   const [motif, setMotif] = useState('');

@@ -15,7 +15,7 @@ import { Synchronisation } from '@/components/offline/Synchronisation';
 import { IndicateurFile } from '@/components/offline/IndicateurFile';
 import { RejeuSignalements } from '@/components/erreur/RejeuSignalements';
 import { RegimeProvider } from './RegimeProvider';
-import { getRegimePeriodes } from '@/services/regime-periodes';
+import { getContexteRegime } from '@/services/regime-periodes';
 
 export interface AppLayoutProps {
   items: SidebarItem[];
@@ -33,11 +33,16 @@ export async function AppLayout({ items, schoolName, role, userName, children }:
   // leurs composants clients, et la première oubliée proposerait un troisième
   // trimestre à un lycée qui n'en a que deux, sans que rien ne le signale.
   // Même raisonnement — et même endroit — que le moteur hors ligne.
-  const regime = await getRegimePeriodes();
+  //
+  // Le contexte porte deux choses et non une : le régime du **lycée**, et les
+  // cycles ouverts par l'école. Le collège est au trimestre quoi qu'il arrive
+  // — c'est le cycle de la classe affichée qui tranche, pas l'école. Les deux
+  // valeurs viennent d'un seul aller-retour, voir `getContexteRegime`.
+  const { regimeLycee, cyclesActifs } = await getContexteRegime();
 
   return (
     <ToastProvider>
-      <RegimeProvider regime={regime}>
+      <RegimeProvider regimeLycee={regimeLycee} cyclesActifs={cyclesActifs}>
       {/*
         Le moteur de synchronisation enveloppe toute l'application
         authentifiee : une ecriture mise en file depuis un ecran doit partir

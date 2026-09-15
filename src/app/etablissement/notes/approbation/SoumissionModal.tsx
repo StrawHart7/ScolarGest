@@ -34,7 +34,7 @@ export function SoumissionModal({
   onClose: () => void;
 }) {
   // « 1er trimestre » ou « 1er semestre », selon le regime de l'ecole.
-  const { nommer } = usePeriodes();
+  const { nommer } = usePeriodes(soumission.classeCycle);
   const [mode, setMode] = useState<Mode>('VALIDER');
   const [pin, setPin] = useState('');
   const [motif, setMotif] = useState('');

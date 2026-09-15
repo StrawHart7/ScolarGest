@@ -13,13 +13,22 @@ export function SaisieFiltres({
   defaultMatiereId,
   defaultPeriode,
 }: {
-  classes: { id: string; nom: string }[];
+  /**
+   * `cycle` porte le nom du cycle de la classe — « COLLEGE », « LYCEE ».
+   *
+   * C'est lui qui décide du mot : au lycée d'une école au semestre, la liste
+   * offre deux « semestres » ; dans le collège de la **même** école, sur le
+   * même écran, trois « trimestres ». Sans lui, un professeur de seconde se
+   * verrait proposer un troisième trimestre qui n'existe pas chez lui.
+   */
+  classes: { id: string; nom: string; cycle?: string | null }[];
   matieres: { id: string; nom: string }[];
   defaultClasseId: string;
   defaultMatiereId: string;
   defaultPeriode: Periode;
 }) {
-  const { periodes, nommer } = usePeriodes();
+  const cycle = classes.find((c) => c.id === defaultClasseId)?.cycle ?? null;
+  const { periodes, nommer } = usePeriodes(cycle);
   const router = useRouter();
   const [, startTransition] = useTransition();
 

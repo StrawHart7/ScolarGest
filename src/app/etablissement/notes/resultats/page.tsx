@@ -78,7 +78,7 @@ export default async function ResultatsPage({
           ).entries(),
         ).map(([id, nom]) => ({ id, nom }))
       : anneeScolaireId
-        ? (await listClasses(anneeScolaireId)).map((c) => ({ id: c.id, nom: c.nom }))
+        ? (await listClasses(anneeScolaireId)).map((c) => ({ id: c.id, nom: c.nom, cycle: c.niveau?.cycle?.nom ?? null }))
         : [];
 
   const classeId = lireUnique('classeId') || classeOptions[0]?.id;
