@@ -28,6 +28,45 @@ function estToujoursAccessible(pathname: string): boolean {
   );
 }
 
+const CHEMIN_MOT_DE_PASSE = '/profil/mot-de-passe';
+
+/**
+ * Nom du marqueur posé dans `app_metadata` à la création d'un compte par
+ * identifiant, et à chaque réinitialisation par le directeur.
+ *
+ * Répété ici plutôt qu'importé de `services/utilisateur` : ce module tourne
+ * dans le middleware, sur **chaque** requête. Y faire entrer le graphe des
+ * services tirerait `next/headers` et la moitié du domaine dans le runtime
+ * edge. Un test garde les deux constantes d'accord.
+ */
+export const CLAIM_MOT_DE_PASSE_PROVISOIRE = 'mot_de_passe_provisoire';
+
+/**
+ * Un mot de passe tiré par la plateforme a circulé sur un bout de papier :
+ * tant qu'il n'est pas remplacé, l'application reste fermée.
+ *
+ * Ce n'est pas une barrière de sécurité — c'en serait une mauvaise, un
+ * middleware n'étant pas le dernier mot. C'est ce qui garantit qu'un
+ * enseignant finit par avoir un mot de passe **qu'il a choisi**, donc qu'il
+ * retient, au lieu de garder à vie celui du papier.
+ *
+ * Trois chemins restent ouverts, et chacun pour une raison :
+ * l'écran de changement lui-même, tout ce qui touche à l'authentification, et
+ * les chemins publics — sans quoi la déconnexion elle-même serait prise au
+ * piège, et on enfermerait quelqu'un dans un écran qu'il refuse de remplir.
+ */
+function doitChangerMotDePasse(
+  user: { app_metadata?: Record<string, unknown> },
+  pathname: string,
+): boolean {
+  if (!user.app_metadata?.[CLAIM_MOT_DE_PASSE_PROVISOIRE]) return false;
+  if (pathname === CHEMIN_MOT_DE_PASSE || pathname.startsWith(`${CHEMIN_MOT_DE_PASSE}/`)) {
+    return false;
+  }
+  if (isPublicPath(pathname)) return false;
+  return true;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
@@ -64,6 +103,10 @@ export async function updateSession(request: NextRequest) {
 
   if (user && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  if (user && doitChangerMotDePasse(user, pathname)) {
+    return NextResponse.redirect(new URL(CHEMIN_MOT_DE_PASSE, request.url));
   }
 
   if (user && !isPublicPath(pathname)) {

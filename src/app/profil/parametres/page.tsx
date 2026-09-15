@@ -5,6 +5,7 @@ import { getMonProfil } from '@/services/utilisateur';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
+import { estCompteSansEmail, identifiantAffiche } from '@/lib/identifiants';
 import { PinForm } from '../PinForm';
 import { DeconnexionButton } from './DeconnexionButton';
 
@@ -40,7 +41,11 @@ export default async function ParametresPage() {
               <p className="text-body-md text-text-primary">
                 {profil.prenom} {profil.nom}
               </p>
-              <p className="text-body-sm text-text-secondary">{profil.email}</p>
+              <p className="text-body-sm text-text-secondary">
+                {estCompteSansEmail(profil.email)
+                  ? `Identifiant : ${identifiantAffiche(profil.email)}`
+                  : profil.email}
+              </p>
             </div>
             <Button asChild variant="secondary" size="sm">
               <Link href="/profil">Voir mon profil</Link>
@@ -54,11 +59,11 @@ export default async function ParametresPage() {
             <div className="min-w-0 flex-1">
               <p className="text-body-md text-text-primary">Mot de passe</p>
               <p className="text-body-sm text-text-secondary">
-                La modification passe par un lien envoyé à votre adresse e-mail.
+                Modifiable ici même, sans passer par votre boîte mail.
               </p>
             </div>
             <Button asChild variant="secondary" size="sm">
-              <Link href="/forgot-password">Modifier</Link>
+              <Link href="/profil/mot-de-passe">Modifier</Link>
             </Button>
           </div>
 

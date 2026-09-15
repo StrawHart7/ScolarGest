@@ -171,6 +171,11 @@ export async function creerCompteSansEmail(
     app_metadata: {
       etablissement_id: input.etablissementId,
       role: input.role,
+      // Le mot de passe a été tiré par la plateforme et a circulé sur un bout
+      // de papier : il sera exigé d'en choisir un autre à la première
+      // connexion. Le marqueur vit dans le jeton, le middleware le lit sans
+      // requête.
+      [CLAIM_MOT_DE_PASSE_PROVISOIRE]: true,
     },
   });
   if (erreurAuth || !cree.user) {
@@ -253,6 +258,9 @@ export async function reinitialiserMotDePasse(
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(utilisateurId, {
     password: motDePasse,
+    // Remis, comme à la création : ce mot de passe-ci a aussi transité par un
+    // papier, il ne doit pas rester en place.
+    app_metadata: { [CLAIM_MOT_DE_PASSE_PROVISOIRE]: true },
   });
   if (error) throw error;
 
@@ -265,6 +273,87 @@ export async function reinitialiserMotDePasse(
   });
 
   return motDePasse;
+}
+
+/**
+ * Marqueur « ce mot de passe a été tiré par la plateforme, il doit être
+ * changé ». Vit dans `app_metadata`, donc dans le JWT : le middleware le lit
+ * sans requête, et **l'utilisateur ne peut pas l'effacer lui-même** —
+ * `app_metadata` n'est écrivable que par la clé de service, contrairement à
+ * `user_metadata`.
+ */
+export const CLAIM_MOT_DE_PASSE_PROVISOIRE = 'mot_de_passe_provisoire';
+
+/**
+ * Change son propre mot de passe.
+ *
+ * **Ça n'existait pas.** Le bouton « Modifier » de `/profil` renvoyait vers
+ * `/forgot-password`, qui envoie un lien par courrier électronique. Pour un
+ * compte sans adresse — ceux qu'on vient d'ouvrir pour les enseignants — ce
+ * courrier part vers un domaine qui n'en reçoit aucun : la personne gardait à
+ * vie le mot de passe tiré par la plateforme, celui qui a circulé sur un bout
+ * de papier.
+ *
+ * L'ancien mot de passe est exigé et **vérifié par une vraie connexion**.
+ * `auth.updateUser` ne le demande pas : une session laissée ouverte sur un
+ * poste partagé — l'ordinaire d'une salle des professeurs — suffirait sinon à
+ * prendre le compte.
+ */
+export async function changerMotDePasse(
+  ancienMotDePasse: string,
+  nouveauMotDePasse: string,
+): Promise<void> {
+  const ctx = await getTenantContext();
+  if (nouveauMotDePasse.length < 8) {
+    throw new Error('Le nouveau mot de passe doit faire au moins 8 caractères.');
+  }
+  if (nouveauMotDePasse === ancienMotDePasse) {
+    throw new Error('Le nouveau mot de passe doit être différent de l’ancien.');
+  }
+
+  const supabase = createClient();
+  const { data: profil, error: erreurProfil } = await supabase
+    .from('utilisateur')
+    .select('email')
+    .eq('id', ctx.userId)
+    .single();
+  if (erreurProfil) throw erreurProfil;
+
+  const { error: erreurVerif } = await supabase.auth.signInWithPassword({
+    email: (profil as { email: string }).email,
+    password: ancienMotDePasse,
+  });
+  if (erreurVerif) {
+    throw new Error('Mot de passe actuel incorrect.');
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: nouveauMotDePasse });
+  if (error) throw new Error(error.message);
+
+  // Le marqueur est retiré **en écrasant l'objet entier**, role et
+  // établissement relus puis réécrits : `updateUserById` fusionne, mais s'en
+  // remettre à la fusion pour un objet qui porte le rôle et le tenant, c'est
+  // jouer l'isolation de l'école sur une subtilité d'API.
+  const admin = createAdminClient();
+  const { data: compte } = await admin.auth.admin.getUserById(ctx.userId);
+  const metadonnees = { ...(compte?.user?.app_metadata ?? {}) } as Record<string, unknown>;
+  if (metadonnees[CLAIM_MOT_DE_PASSE_PROVISOIRE]) {
+    delete metadonnees[CLAIM_MOT_DE_PASSE_PROVISOIRE];
+    await admin.auth.admin.updateUserById(ctx.userId, {
+      app_metadata: { ...metadonnees, [CLAIM_MOT_DE_PASSE_PROVISOIRE]: null },
+    });
+    // Sans ce rafraîchissement, le jeton en cours porte encore le marqueur : le
+    // middleware renverrait l'utilisateur sur l'écran qu'il vient de quitter,
+    // en boucle, jusqu'à expiration — une heure.
+    await supabase.auth.refreshSession();
+  }
+
+  await auditLog({
+    action: 'CHANGER_MOT_DE_PASSE',
+    module: 'identity',
+    objetType: 'Utilisateur',
+    objetId: ctx.userId,
+  });
 }
 
 export async function listUtilisateurs(): Promise<Utilisateur[]> {

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
+import { estCompteSansEmail, identifiantAffiche } from '@/lib/identifiants';
 import { PinForm } from './PinForm';
 import { DeconnexionButton } from './parametres/DeconnexionButton';
 
@@ -40,7 +41,16 @@ export default async function ProfilPage() {
               <p className="truncate text-headline-sm text-text-primary">
                 {profil.prenom} {profil.nom}
               </p>
-              <p className="truncate text-body-sm text-text-secondary">{profil.email}</p>
+              {/*
+                Un compte sans adresse porte une adresse interne en
+                `@comptes.scolargest.com`, qui ne reçoit aucun courrier :
+                l'afficher telle quelle laisserait croire à une boîte mail.
+              */}
+              <p className="truncate text-body-sm text-text-secondary">
+                {estCompteSansEmail(profil.email)
+                  ? `Identifiant : ${identifiantAffiche(profil.email)}`
+                  : profil.email}
+              </p>
             </div>
             <Badge variant="primary" className="ml-auto">
               {profil.role}
@@ -57,12 +67,18 @@ export default async function ProfilPage() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-body-md text-text-primary">Mot de passe</p>
+              {/*
+                Renvoyait vers `/forgot-password`, qui envoie un lien par
+                courrier. Pour un compte sans adresse, ce courrier ne part
+                nulle part : la personne ne pouvait **jamais** changer son mot
+                de passe. Le changement se fait désormais dans l'application.
+              */}
               <p className="text-body-sm text-text-secondary">
-                La modification passe par un lien envoyé à votre adresse e-mail.
+                Modifiable ici même, sans passer par votre boîte mail.
               </p>
             </div>
             <Button asChild variant="secondary" size="sm">
-              <Link href="/forgot-password">Modifier</Link>
+              <Link href="/profil/mot-de-passe">Modifier</Link>
             </Button>
           </div>
 
