@@ -2,6 +2,10 @@
 
 import * as React from 'react';
 import { X } from 'lucide-react';
+// Dans `lib/` et non ici : `AbonnementBanner` est un composant **serveur** et
+// les importe. Un module `'use client'` n'expose au serveur que des références
+// client — appeler `jourCourant()` y levait, et toutes les pages tombaient.
+import { COOKIE_BANDEAU_ABONNEMENT, jourCourant } from '@/lib/bandeau-abonnement';
 
 /**
  * Enveloppe qui permet de fermer un bandeau pour la journée.
@@ -25,13 +29,6 @@ import { X } from 'lucide-react';
  * correspond plus et le bandeau revient de lui-même. Aucune expiration à
  * calculer, aucun nettoyage.
  */
-export const COOKIE_BANDEAU_ABONNEMENT = 'sg_bandeau_abonnement';
-
-/** Le jour courant, au format `AAAA-MM-JJ`. */
-export function jourCourant(maintenant = new Date()): string {
-  return maintenant.toISOString().slice(0, 10);
-}
-
 export function BandeauMasquable({
   children,
   masquable,

@@ -3,11 +3,11 @@ import { cookies } from 'next/headers';
 import { AlertTriangle, Lock, Sparkles } from 'lucide-react';
 import { getAccesAbonnementCourant } from '@/services/abonnement';
 import { getTenantContext } from '@/services/tenant';
-import {
-  BandeauMasquable,
-  COOKIE_BANDEAU_ABONNEMENT,
-  jourCourant,
-} from './BandeauMasquable';
+import { BandeauMasquable } from './BandeauMasquable';
+// Le cookie et la date viennent de `lib/` : ce composant s'exécute sur le
+// **serveur**, et un module `'use client'` ne lui rendrait que des références
+// client — `jourCourant()` y levait, faisant tomber toutes les pages.
+import { COOKIE_BANDEAU_ABONNEMENT, jourCourant } from '@/lib/bandeau-abonnement';
 
 /**
  * Bandeau d'état de l'abonnement, affiché sur toutes les pages de l'espace
