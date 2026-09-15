@@ -181,13 +181,22 @@ export default function LoginPage() {
 
             <form action={formAction} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email">Adresse e-mail</Label>
+                <Label htmlFor="email">Adresse e-mail ou identifiant</Label>
                 <Input
                   id="email"
                   name="email"
-                  type="email"
-                  placeholder="nom@institution.edu"
-                  autoComplete="email"
+                  // `type="text"` et non `type="email"` : le navigateur refuse
+                  // une saisie sans `@` avant même d'envoyer le formulaire. Les
+                  // comptes sans adresse — la majorité des enseignants — n'y
+                  // seraient jamais arrivés, et le champ serait resté rouge
+                  // sans expliquer pourquoi. La validation réelle est celle de
+                  // Supabase, de toute façon.
+                  type="text"
+                  placeholder="nom@ecole.tg ou votre identifiant"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required
                   className="h-11 rounded-lg"
                 />

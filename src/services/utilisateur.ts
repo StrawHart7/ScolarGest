@@ -6,6 +6,12 @@ import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { hashPin, exigerPin } from './pin';
 import { urlApplication } from '@/lib/url-app';
+import {
+  emailDepuisIdentifiant,
+  identifiantValide,
+  motDePasseProvisoire,
+  normaliserIdentifiant,
+} from '@/lib/identifiants';
 
 export interface Utilisateur {
   id: string;
@@ -94,6 +100,171 @@ export async function inviteUtilisateur(input: InviteUtilisateurInput): Promise<
   });
 
   return data;
+}
+
+export interface CreerCompteSansEmailInput {
+  identifiant: string;
+  nom: string;
+  prenom: string;
+  role: Role;
+  etablissementId: string | null;
+}
+
+export interface CompteSansEmailCree {
+  utilisateur: Utilisateur;
+  identifiant: string;
+  /** Montré **une seule fois**, jamais relu, jamais journalisé. */
+  motDePasseProvisoire: string;
+}
+
+/**
+ * Crée un compte qui se connecte par identifiant et mot de passe, sans adresse
+ * email.
+ *
+ * C'est la seule façon d'ouvrir la plateforme à la majorité des enseignants
+ * togolais : l'invitation par courrier électronique suppose une boîte mail que
+ * beaucoup n'ont pas, ou ne savent pas ouvrir. Le directeur crée le compte, lit
+ * le mot de passe provisoire à l'écran, le recopie sur un papier et le remet de
+ * la main à la main. Aucune attente, aucun lien, aucun message perdu.
+ *
+ * Voir `src/lib/identifiants.ts` pour le mécanisme — il n'y a **ni colonne ni
+ * migration** : l'identifiant est l'adresse interne privée de son domaine, et
+ * l'unicité est déjà tenue par `auth.users.email`.
+ *
+ * ## Le compte Auth est défait si l'insertion échoue
+ *
+ * `inviteUtilisateur` ne le fait pas, et laisse un compte Auth orphelin quand
+ * l'insertion dans `utilisateur` tombe. Ici c'est pire qu'une ligne perdue :
+ * l'identifiant resterait **pris** par un compte que plus rien ne référence, et
+ * le directeur qui recommence recevrait « cet identifiant est déjà utilisé »
+ * sans jamais pouvoir le libérer.
+ */
+export async function creerCompteSansEmail(
+  input: CreerCompteSansEmailInput,
+): Promise<CompteSansEmailCree> {
+  if (input.role === 'DIRECTEUR' || input.role === 'SUPER_ADMIN') {
+    await requireRole();
+  } else {
+    const ctx = await requireRole('DIRECTEUR');
+    if (input.etablissementId !== ctx.etablissementId) {
+      throw new Error('Accès refusé: établissement différent');
+    }
+  }
+
+  if (!identifiantValide(input.identifiant)) {
+    throw new Error(
+      "L'identifiant doit faire au moins trois caractères et contenir une lettre ou un chiffre.",
+    );
+  }
+
+  const identifiant = normaliserIdentifiant(input.identifiant);
+  const email = emailDepuisIdentifiant(identifiant);
+  const motDePasse = motDePasseProvisoire();
+
+  const admin = createAdminClient();
+  const { data: cree, error: erreurAuth } = await admin.auth.admin.createUser({
+    email,
+    password: motDePasse,
+    // Aucun courrier n'est envoyé : le domaine n'en reçoit pas, et le compte
+    // doit être utilisable dans la minute.
+    email_confirm: true,
+    app_metadata: {
+      etablissement_id: input.etablissementId,
+      role: input.role,
+    },
+  });
+  if (erreurAuth || !cree.user) {
+    // Supabase répond « already been registered » sur l'adresse interne. Dit
+    // tel quel, ce message parlerait d'une adresse que le directeur n'a jamais
+    // saisie et ne connaît pas.
+    const message = erreurAuth?.message ?? '';
+    if (/already|registered|exists/i.test(message)) {
+      throw new Error(`L'identifiant « ${identifiant} » est déjà utilisé. Choisissez-en un autre.`);
+    }
+    throw new Error(message || 'Échec de la création du compte');
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('utilisateur')
+    .insert({
+      id: cree.user.id,
+      etablissementId: input.etablissementId,
+      nom: input.nom,
+      prenom: input.prenom,
+      email,
+      role: input.role,
+    })
+    .select(
+      'id, "etablissementId", nom, prenom, email, telephone, role, statut, "dernierAcces", "createdAt"',
+    )
+    .single();
+  if (error) {
+    await admin.auth.admin.deleteUser(cree.user.id);
+    throw error;
+  }
+
+  await auditLog({
+    action: 'CREER_COMPTE_IDENTIFIANT',
+    module: 'identity',
+    objetType: 'Utilisateur',
+    objetId: data.id,
+    // Le mot de passe n'entre pas dans le journal : il est distribué sur
+    // papier, et un journal d'audit se relit.
+    nouvelleValeur: { identifiant, role: input.role, etablissementId: input.etablissementId },
+  });
+
+  return { utilisateur: data, identifiant, motDePasseProvisoire: motDePasse };
+}
+
+/**
+ * Redonne un mot de passe provisoire à un compte de l'établissement.
+ *
+ * **C'est la contrepartie du compte sans adresse**, et il faut la voir en face :
+ * sans email, il n'y a pas de « mot de passe oublié » en libre-service. Le
+ * directeur devient le mécanisme de réinitialisation de son école.
+ *
+ * D'où le PIN : redonner un mot de passe, c'est ouvrir un compte qui touche aux
+ * notes et à l'argent. Le step-up est la même barrière que pour l'approbation
+ * des notes ou la clôture d'une année.
+ */
+export async function reinitialiserMotDePasse(
+  utilisateurId: string,
+  pin: string,
+): Promise<string> {
+  const ctx = await requireRole('DIRECTEUR');
+  await exigerPin(pin, 'DIRECTEUR');
+
+  // La cible doit appartenir à l'établissement de l'appelant, et ne peut pas
+  // être un SUPER_ADMIN : `listUtilisateurs` les exclut déjà de l'écran, mais
+  // l'identifiant arrive de l'appelant et un écran ne décide de rien.
+  const supabase = createClient();
+  const { data: cible, error: erreurCible } = await supabase
+    .from('utilisateur')
+    .select('id, email, role')
+    .eq('id', utilisateurId)
+    .eq('etablissementId', ctx.etablissementId)
+    .neq('role', 'SUPER_ADMIN')
+    .maybeSingle();
+  if (erreurCible) throw erreurCible;
+  if (!cible) throw new Error('Utilisateur introuvable dans votre établissement.');
+
+  const motDePasse = motDePasseProvisoire();
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(utilisateurId, {
+    password: motDePasse,
+  });
+  if (error) throw error;
+
+  await auditLog({
+    action: 'REINITIALISER_MOT_DE_PASSE',
+    module: 'identity',
+    objetType: 'Utilisateur',
+    objetId: utilisateurId,
+    nouvelleValeur: { role: (cible as { role: string }).role },
+  });
+
+  return motDePasse;
 }
 
 export async function listUtilisateurs(): Promise<Utilisateur[]> {

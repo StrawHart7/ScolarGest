@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
+import Link from 'next/link';
 import { Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { normaliserIdentifiant, proposerIdentifiant } from '@/lib/identifiants';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -26,22 +29,30 @@ function SubmitButton({ pleineLargeur }: { pleineLargeur?: boolean }) {
 }
 
 export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string }) {
-  const [error, formAction] = useFormState(creerEnseignant, null);
+  const [resultat, formAction] = useFormState(creerEnseignant, null);
 
   const [nom, setNom] = useState('');
   const [prenoms, setPrenoms] = useState('');
   const [sexe, setSexe] = useState<'M' | 'F' | ''>('');
   const [email, setEmail] = useState('');
+  const [modeAcces, setModeAcces] = useState<'EMAIL' | 'IDENTIFIANT'>('EMAIL');
+  const [identifiant, setIdentifiant] = useState('');
+  const [identifiantTouche, setIdentifiantTouche] = useState(false);
   const [telephone, setTelephone] = useState('');
   const [adresse, setAdresse] = useState('');
   const [ancienMatricule, setAncienMatricule] = useState('');
   const [statut, setStatut] = useState<'ACTIF' | 'INACTIF' | 'CONGE' | 'DEPART'>('ACTIF');
 
+  const valeurIdentifiant = identifiantTouche
+    ? identifiant
+    : proposerIdentifiant(nom, prenoms);
+
   const payload = JSON.stringify({
     nom,
     prenoms,
     sexe: sexe || undefined,
-    email,
+    email: modeAcces === 'EMAIL' ? email : undefined,
+    identifiant: modeAcces === 'IDENTIFIANT' ? valeurIdentifiant : undefined,
     telephone: telephone || undefined,
     adresse: adresse || undefined,
     ancienMatricule: ancienMatricule || undefined,
@@ -51,6 +62,59 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
     // fusionnés côté serveur — voir actions.ts.
     anneeScolaireIdPourMatricule: anneeScolaireId,
   });
+
+  // Compte ouvert sans adresse : le mot de passe ne s'affichera qu'ici, et une
+  // seule fois. Tout le formulaire cède la place — il n'y a rien de plus
+  // urgent à faire que de le noter.
+  if (resultat?.etat === 'CREE') {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <h3 className="text-headline-sm text-text-primary">
+            {resultat.nomComplet} peut se connecter
+          </h3>
+          <p className="text-body-sm text-text-secondary">
+            Notez ces deux lignes et remettez-les-lui. Le mot de passe ne s&apos;affichera plus
+            après cette page.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-label-md uppercase tracking-wide text-text-secondary">
+              Identifiant
+            </span>
+            <span className="select-all font-mono text-headline-sm text-text-primary">
+              {resultat.identifiant}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-label-md uppercase tracking-wide text-text-secondary">
+              Mot de passe provisoire
+            </span>
+            <span className="select-all font-mono text-headline-sm text-text-primary">
+              {resultat.motDePasse}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-body-sm text-text-secondary">
+          S&apos;il le perd, vous pourrez lui en redonner un depuis la liste des utilisateurs.
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href={`/etablissement/enseignants/${resultat.enseignantId}`}>
+              Voir sa fiche et lui attribuer ses matières
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/etablissement/enseignants/nouveau">Ajouter un autre enseignant</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-6 pb-zone-action md:pb-0">
@@ -92,19 +156,95 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
               placeholder="+228 90 00 00 00"
             />
           </div>
-          <div className="flex flex-col gap-1.5 md:col-span-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <div className="flex items-start gap-2 rounded-md bg-primary-container/10 p-3 text-body-sm text-text-secondary">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-container" aria-hidden />
-              <p>Une invitation par email sera envoyée à l&apos;enseignant pour créer son compte.</p>
+          {/*
+            Exiger une adresse email était le point de blocage : une grande
+            partie des enseignants togolais n'en a pas, ou n'ouvre jamais la
+            sienne. Leur compte n'était donc jamais activé, et le directeur
+            restait seul à saisir les notes de toute l'école.
+          */}
+          <div className="flex flex-col gap-3 md:col-span-2">
+            <Label>Comment il se connectera</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setModeAcces('EMAIL')}
+                aria-pressed={modeAcces === 'EMAIL'}
+                className={cn(
+                  'flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors',
+                  modeAcces === 'EMAIL'
+                    ? 'border-primary-container bg-primary-container/10'
+                    : 'border-surface-border hover:bg-surface-container',
+                )}
+              >
+                <span className="text-body-md font-semibold text-text-primary">
+                  Il a une adresse email
+                </span>
+                <span className="text-body-sm text-text-secondary">
+                  Il reçoit une invitation et choisit son mot de passe.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeAcces('IDENTIFIANT')}
+                aria-pressed={modeAcces === 'IDENTIFIANT'}
+                className={cn(
+                  'flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors',
+                  modeAcces === 'IDENTIFIANT'
+                    ? 'border-primary-container bg-primary-container/10'
+                    : 'border-surface-border hover:bg-surface-container',
+                )}
+              >
+                <span className="text-body-md font-semibold text-text-primary">
+                  Il n&apos;a pas d&apos;adresse email
+                </span>
+                <span className="text-body-sm text-text-secondary">
+                  Vous lui remettez un identifiant et un mot de passe.
+                </span>
+              </button>
             </div>
+
+            {modeAcces === 'EMAIL' ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <div className="flex items-start gap-2 rounded-md bg-primary-container/10 p-3 text-body-sm text-text-secondary">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-container" aria-hidden />
+                  <p>
+                    Une invitation par email lui sera envoyée pour créer son compte. Il devra
+                    l&apos;ouvrir pour se connecter.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="identifiant">Identifiant</Label>
+                <Input
+                  id="identifiant"
+                  value={valeurIdentifiant}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onChange={(e) => {
+                    setIdentifiantTouche(true);
+                    setIdentifiant(normaliserIdentifiant(e.target.value));
+                  }}
+                  required
+                />
+                <div className="flex items-start gap-2 rounded-md bg-primary-container/10 p-3 text-body-sm text-text-secondary">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-container" aria-hidden />
+                  <p>
+                    Le compte est prêt tout de suite. Un mot de passe s&apos;affichera après
+                    l&apos;enregistrement : notez-le, il ne sera plus visible ensuite.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-1.5 md:col-span-2">
             <Label htmlFor="adresse">Adresse</Label>
@@ -139,7 +279,9 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
         </div>
       </section>
 
-      {error && <p className="text-body-sm text-error">{error}</p>}
+      {resultat?.etat === 'ERREUR' && (
+        <p className="text-body-sm text-error">{resultat.message}</p>
+      )}
       {/* Masqué sous `md`, où la barre collée prend le relais. Voir
           `BarreAction` : on double la soumission, on ne la déplace pas. */}
       <div className="hidden justify-end gap-3 border-t border-surface-border pt-6 md:flex">

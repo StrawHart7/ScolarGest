@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { generateMatriculeEnseignant } from './matricule';
-import { inviteUtilisateur } from './utilisateur';
+import { inviteUtilisateur, creerCompteSansEmail } from './utilisateur';
 
 export type StatutEnseignant = 'ACTIF' | 'INACTIF' | 'CONGE' | 'DEPART';
 export type Sexe = 'M' | 'F';
@@ -34,7 +34,13 @@ export interface CreateEnseignantInput {
   nom: string;
   prenoms: string;
   sexe: Sexe;
-  email: string;
+  /** L'adresse de l'enseignant. Absente quand `identifiant` est fourni. */
+  email?: string;
+  /**
+   * Identifiant de connexion, pour un enseignant sans adresse email — le cas
+   * de la majorité d'entre eux au Togo. Exclusif avec `email`.
+   */
+  identifiant?: string;
   dateNaissance?: string;
   telephone?: string;
   adresse?: string;
@@ -109,30 +115,80 @@ export async function getEnseignantParUtilisateur(utilisateurId: string): Promis
   return (data as unknown as Enseignant) ?? null;
 }
 
+export interface EnseignantCree {
+  id: string;
+  /**
+   * Présent uniquement quand le compte a été ouvert par identifiant. Montré
+   * une seule fois : le directeur le recopie et le remet en main propre.
+   */
+  motDePasseProvisoire?: string;
+  identifiant?: string;
+}
+
 /**
- * Creates a teacher. Email + Supabase Auth invitation is required regardless
- * of the initial statut (décision produit, voir plan Phase 3) so a teacher
- * that later returns to ACTIF always has an account already provisioned.
+ * Crée un enseignant **et son compte**, quel que soit son statut initial
+ * (décision produit, plan Phase 3) : un enseignant qui revient en ACTIF a
+ * toujours un accès déjà provisionné.
+ *
+ * Deux façons d'ouvrir ce compte depuis le 2026-09-15. Par adresse email, avec
+ * une invitation — le chemin autonome. Par **identifiant**, sans adresse : au
+ * Togo, une bonne partie des enseignants n'a pas de boîte mail, ou en a une
+ * qu'elle ne consulte jamais, et son compte n'était donc jamais activé. Le
+ * directeur restait seul à saisir les notes de toute l'école, ce qui est
+ * exactement ce que la plateforme devait lui éviter.
+ *
+ * `enseignant.email` reçoit l'adresse interne dans ce cas : c'est bien
+ * l'adresse du compte, et les écrans l'affichent via `identifiantAffiche`.
+ * Y mettre `null` priverait la liste des enseignants de tout identifiant
+ * lisible.
  */
-export async function createEnseignant(input: CreateEnseignantInput): Promise<string> {
+export async function createEnseignant(input: CreateEnseignantInput): Promise<EnseignantCree> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+
+  if (!input.email && !input.identifiant) {
+    throw new Error('Indiquez une adresse email ou un identifiant de connexion.');
+  }
 
   const matricule = await generateMatriculeEnseignant(input.anneeScolaireIdPourMatricule);
 
-  const utilisateur = await inviteUtilisateur({
-    email: input.email,
-    nom: input.nom,
-    prenom: input.prenoms,
-    role: 'ENSEIGNANT',
-    etablissementId: ctx.etablissementId,
-  });
+  // Le compte d'abord : s'il échoue — identifiant déjà pris, adresse refusée —
+  // rien n'a été écrit. L'ordre inverse laisserait une fiche enseignant sans
+  // accès, que personne ne saurait rattraper depuis l'écran.
+  let utilisateurId: string;
+  let emailCompte: string;
+  let motDePasse: string | undefined;
+  let identifiant: string | undefined;
+
+  if (input.identifiant) {
+    const cree = await creerCompteSansEmail({
+      identifiant: input.identifiant,
+      nom: input.nom,
+      prenom: input.prenoms,
+      role: 'ENSEIGNANT',
+      etablissementId: ctx.etablissementId,
+    });
+    utilisateurId = cree.utilisateur.id;
+    emailCompte = cree.utilisateur.email;
+    motDePasse = cree.motDePasseProvisoire;
+    identifiant = cree.identifiant;
+  } else {
+    const utilisateur = await inviteUtilisateur({
+      email: input.email as string,
+      nom: input.nom,
+      prenom: input.prenoms,
+      role: 'ENSEIGNANT',
+      etablissementId: ctx.etablissementId,
+    });
+    utilisateurId = utilisateur.id;
+    emailCompte = utilisateur.email;
+  }
 
   const supabase = createClient();
   const { data, error } = await supabase
     .from('enseignant')
     .insert({
       etablissementId: ctx.etablissementId,
-      utilisateurId: utilisateur.id,
+      utilisateurId,
       matricule,
       ancienMatricule: input.ancienMatricule ?? null,
       nom: input.nom,
@@ -140,7 +196,7 @@ export async function createEnseignant(input: CreateEnseignantInput): Promise<st
       sexe: input.sexe,
       dateNaissance: input.dateNaissance ?? null,
       telephone: input.telephone ?? null,
-      email: input.email,
+      email: emailCompte,
       adresse: input.adresse ?? null,
       dateEmbauche: input.dateEmbauche ?? null,
       statut: input.statut ?? 'ACTIF',
@@ -154,10 +210,10 @@ export async function createEnseignant(input: CreateEnseignantInput): Promise<st
     module: 'enseignants',
     objetType: 'Enseignant',
     objetId: data.id,
-    nouvelleValeur: { matricule, nom: input.nom, prenoms: input.prenoms, email: input.email },
+    nouvelleValeur: { matricule, nom: input.nom, prenoms: input.prenoms, email: emailCompte },
   });
 
-  return data.id as string;
+  return { id: data.id as string, motDePasseProvisoire: motDePasse, identifiant };
 }
 
 export async function updateEnseignant(id: string, input: UpdateEnseignantInput): Promise<void> {

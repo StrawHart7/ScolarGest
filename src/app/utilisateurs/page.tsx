@@ -16,7 +16,9 @@ import { PaginationListe, TriColonne } from '@/components/ui/liste-toolbar';
 import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { DesactiverButton, ReactiverButton } from './DesactiverButton';
+import { ReinitialiserMotDePasse } from './ReinitialiserMotDePasse';
 import { EtatVide } from '@/components/ui/etat-vide';
+import { estCompteSansEmail, identifiantAffiche } from '@/lib/identifiants';
 
 const STATUT_BADGE = {
   ACTIF: 'success',
@@ -57,10 +59,14 @@ export default async function UtilisateursPage({
 
   const parametres = lireParametresListe(searchParams, { tri: 'nom' });
   const page = preparerListe(filtres, parametres, {
-    champsRecherche: (u) => [u.nom, u.prenom, u.email, u.role],
+    // On cherche sur ce qui est **affiché** : un compte sans adresse montre
+    // « kossi.adjovi » et non « kossi.adjovi@comptes.scolargest.com ». Chercher
+    // sur l'adresse interne ferait échouer la recherche sur ce qu'on lit à
+    // l'écran, ce qui est la seule chose que l'utilisateur puisse taper.
+    champsRecherche: (u) => [u.nom, u.prenom, identifiantAffiche(u.email), u.role],
     valeursTri: {
       nom: (u) => `${u.nom} ${u.prenom}`,
-      email: (u) => u.email,
+      email: (u) => identifiantAffiche(u.email),
       role: (u) => u.role,
       statut: (u) => u.statut,
     },
@@ -125,10 +131,10 @@ export default async function UtilisateursPage({
               <EtatVide
                 icone={Users2}
                 titre="Vous êtes seul sur la plateforme"
-                explication="Invitez votre secrétaire ou votre comptable : ils reçoivent un lien par email et choisissent leur mot de passe eux-mêmes."
+                explication="Ajoutez votre secrétaire ou votre comptable. Avec une adresse email, la personne reçoit un lien et choisit son mot de passe ; sans adresse, vous lui remettez un identifiant et un mot de passe de la main à la main."
                 action={
                   <Button asChild>
-                    <Link href="/utilisateurs/inviter">Inviter quelqu’un</Link>
+                    <Link href="/utilisateurs/inviter">Ajouter quelqu’un</Link>
                   </Button>
                 }
               />
@@ -140,7 +146,7 @@ export default async function UtilisateursPage({
                   <TableHeader>
                     <TableRow>
                       <TriColonne cle="nom">Nom</TriColonne>
-                      <TriColonne cle="email">E-mail</TriColonne>
+                      <TriColonne cle="email">E-mail ou identifiant</TriColonne>
                       <TriColonne cle="role">Rôle</TriColonne>
                       <TriColonne cle="statut">Statut</TriColonne>
                       <TableHead>Actions</TableHead>
@@ -157,14 +163,37 @@ export default async function UtilisateursPage({
                             {u.prenom} {u.nom}
                           </Link>
                         </TableCell>
-                        <TableCell className="text-text-secondary">{u.email}</TableCell>
+                        <TableCell className="text-text-secondary">
+                          {identifiantAffiche(u.email)}
+                          {estCompteSansEmail(u.email) ? (
+                            // Sans cette mention, « kossi.adjovi » se lit comme
+                            // une adresse tronquée et quelqu'un finira par
+                            // essayer d'y écrire.
+                            <span className="block text-label-md text-text-secondary/70">
+                              Identifiant, sans adresse email
+                            </span>
+                          ) : null}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="primary">{u.role}</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant={STATUT_BADGE[u.statut]}>{u.statut}</Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="flex flex-wrap items-center gap-1">
+                          {/*
+                            La réinitialisation n'est offerte que sur les comptes
+                            sans adresse : eux seuls n'ont pas de « mot de passe
+                            oublié » en libre-service. La proposer partout
+                            inviterait à prendre la main sur un compte qui sait
+                            se débrouiller seul.
+                          */}
+                          {u.statut === 'ACTIF' && estCompteSansEmail(u.email) ? (
+                            <ReinitialiserMotDePasse
+                              utilisateurId={u.id}
+                              nomComplet={`${u.prenom} ${u.nom}`}
+                            />
+                          ) : null}
                           {u.statut === 'ACTIF' ? (
                             <DesactiverButton
                               utilisateurId={u.id}
@@ -191,7 +220,7 @@ export default async function UtilisateursPage({
                     href={`/utilisateurs/${u.id}`}
                     titre={`${u.prenom} ${u.nom}`}
                     reference={u.role}
-                    sousTitre={u.email}
+                    sousTitre={identifiantAffiche(u.email)}
                     statut={{ libelle: u.statut, ton: STATUT_TON[u.statut] }}
                   />
                 ))}

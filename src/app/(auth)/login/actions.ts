@@ -4,9 +4,16 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { journaliserConnexion } from '@/services/audit';
 import { urlApplication } from '@/lib/url-app';
+import { identifiantOuEmail } from '@/lib/identifiants';
 
 export async function login(_prevState: string | null, formData: FormData): Promise<string> {
-  const email = String(formData.get('email') ?? '');
+  // Le champ accepte une adresse **ou** un identifiant. Beaucoup d'enseignants
+  // togolais n'ont pas d'adresse email ; leur compte porte une adresse interne
+  // en `@comptes.scolargest.com` qu'ils n'ont jamais à connaître, et qui se
+  // reconstitue ici. Un seul champ, parce que personne ne devrait avoir à
+  // savoir de quel type de compte il dispose.
+  const saisie = String(formData.get('email') ?? '');
+  const email = identifiantOuEmail(saisie);
   const password = String(formData.get('password') ?? '');
 
   const supabase = createClient();

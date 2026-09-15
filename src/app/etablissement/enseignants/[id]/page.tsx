@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSidebarItems } from '@/lib/navigation';
+import { estCompteSansEmail, identifiantAffiche } from '@/lib/identifiants';
 import { DesactiverEnseignantButton } from './EnseignantActions';
 
 const STATUT_BADGE: Record<string, { label: string; variant: 'success' | 'neutral' | 'warning' }> = {
@@ -97,8 +98,19 @@ export default async function FicheEnseignantPage({ params }: { params: { id: st
                 <dd className="text-text-primary">{enseignant.telephone ?? '—'}</dd>
               </div>
               <div>
-                <dt className="text-text-secondary">Email</dt>
-                <dd className="text-text-primary">{enseignant.email ?? '—'}</dd>
+                {/*
+                  Un enseignant sans adresse porte une adresse interne en
+                  `@comptes.scolargest.com`, qui ne reçoit aucun courrier.
+                  L'afficher telle quelle inviterait quelqu'un à y écrire.
+                */}
+                <dt className="text-text-secondary">
+                  {enseignant.email && estCompteSansEmail(enseignant.email)
+                    ? 'Identifiant de connexion'
+                    : 'Email'}
+                </dt>
+                <dd className="text-text-primary">
+                  {enseignant.email ? identifiantAffiche(enseignant.email) : '—'}
+                </dd>
               </div>
               <div className="col-span-2">
                 <dt className="text-text-secondary">Adresse</dt>
