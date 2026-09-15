@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { getAccesAbonnementCourant } from './abonnement';
+import { etatCollecteNotes } from './collecte-notes';
 import type { TenantContext } from './tenant';
 import { CATALOGUE, PAR_ID, type IdConseil } from '@/lib/conseils/catalogue';
 import {
@@ -266,6 +267,25 @@ export async function diagnostiquer(): Promise<Diagnostic> {
       (liens ?? []).map((l) => (l as { eleveId: string }).eleveId),
     ).size;
     diagnostic.elevesAvecResponsable = { fait: Math.min(avecResponsable, eleves), total: eleves };
+  }
+
+  // Remise des notes. Le calcul vit dans `collecte-notes` : le refaire ici,
+  // même à l'identique, ferait un jour dire au conseil « il manque 3 matières »
+  // quand l'écran en montre deux — et c'est l'écran qu'on croirait faux.
+  //
+  // **La sonde n'est posée que si la collecte a commencé.** À `fait: 0`, le
+  // conseil dirait « 0 matières sur 113 ont leurs notes » le lendemain de la
+  // rentrée du trimestre, là où il n'y a rien à reprocher. Une collecte
+  // entamée et inachevée, en revanche, est le moment exact où la question
+  // devient utile. Même distinction que `total: 0` = non applicable.
+  if (anneeId && (ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE')) {
+    const collecte = await etatCollecteNotes(anneeId);
+    if (collecte.coursRendus > 0) {
+      diagnostic.matieresAvecNotesRendues = {
+        fait: collecte.coursRendus,
+        total: collecte.coursTotal,
+      };
+    }
   }
 
   if (anneeId) {

@@ -47,6 +47,7 @@ export type IdConseil =
   | 'bulletins'
   // Complétion — les trous partiels
   | 'emploi-du-temps-partiel'
+  | 'notes-non-rendues'
   | 'professeur-principal'
   | 'eleves-sans-responsable'
   | 'factures-impayees'
@@ -108,6 +109,7 @@ export type NomSonde =
   | 'bulletins'
   | 'classesAvecEmploiDuTemps'
   | 'classesAvecProfesseurPrincipal'
+  | 'matieresAvecNotesRendues'
   | 'elevesAvecResponsable'
   | 'facturesSoldees'
   | 'pinDefini'
@@ -440,6 +442,22 @@ export const CATALOGUE: Conseil[] = [
     poids: 40,
     contexte: ['/etablissement/classes'],
     exigeEcriture: true,
+  },
+  {
+    id: 'notes-non-rendues',
+    titre: 'Des notes ne vous sont pas encore rendues',
+    texte:
+      '{fait} matières sur {total} ont leurs notes pour ce trimestre. Il en manque {restant}, et la plateforme vous dit lesquelles et de qui.',
+    action: { label: 'Voir qui', href: '/etablissement/notes/approbation' },
+    roles: ADMIN,
+    famille: 'COMPLETION',
+    prerequis: ['evaluations'],
+    sonde: 'matieresAvecNotesRendues',
+    poids: 45,
+    contexte: ['/etablissement/notes'],
+    // Le conseil ne mène pas à une écriture : il mène à un coup de téléphone.
+    // Une école en lecture seule a le droit de savoir où en sont ses notes.
+    nouveaute: '2026-09-15',
   },
   {
     id: 'professeur-principal',

@@ -2,17 +2,28 @@ import { ClipboardCheck } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { requireRole } from '@/services/authorization';
 import { listNotesEnAttente, listEvaluationsSoumises } from '@/services/note';
+import { getAnneeCourante } from '@/services/dashboard';
+import { etatCollecteNotes } from '@/services/collecte-notes';
+import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSidebarItems } from '@/lib/navigation';
+import { PERIODES_ORDONNEES } from '@/lib/periodes';
 import { ApprobationQueue } from './ApprobationQueue';
 import { SoumissionsQueue } from './SoumissionsQueue';
+import { SuiviRemiseNotes } from './SuiviRemiseNotes';
 import { etatDomaine } from '@/services/configuration';
 import { PageVerrouillee } from '@/components/configuration/PageVerrouillee';
 
-export default async function ApprobationNotesPage() {
+const CHEMIN = '/etablissement/notes/approbation';
+
+export default async function ApprobationNotesPage({
+  searchParams,
+}: {
+  searchParams: { periode?: string };
+}) {
   // Garde explicite au niveau page, en plus de la garde déjà appliquée dans
   // les services listNotesEnAttente/listEvaluationsSoumises (défense en profondeur).
   await requireRole('DIRECTEUR', 'SECRETAIRE');
@@ -33,9 +44,19 @@ export default async function ApprobationNotesPage() {
       />
     );
   }
-  const [soumissions, corrections] = await Promise.all([
+  // Une période absente de l'URL n'est pas une erreur : le service choisit
+  // alors celle sur laquelle l'école travaille. Une période inventée est
+  // ignorée de la même façon plutôt que de faire tomber la page.
+  const periodeDemandee = PERIODES_ORDONNEES.includes(searchParams.periode as Periode)
+    ? (searchParams.periode as Periode)
+    : undefined;
+
+  const annee = await getAnneeCourante();
+
+  const [soumissions, corrections, collecte] = await Promise.all([
     listEvaluationsSoumises(),
     listNotesEnAttente(),
+    annee ? etatCollecteNotes(annee.id, periodeDemandee) : Promise.resolve(null),
   ]);
 
   return (
@@ -88,6 +109,14 @@ export default async function ApprobationNotesPage() {
             <ApprobationQueue notes={corrections} />
           )}
         </Card>
+
+        {/*
+          En troisième : ce qui n'est pas encore arrivé. Les deux files
+          au-dessus ne montrent que ce que les enseignants ont rendu — une
+          école dont personne n'a rien saisi voyait donc deux écrans vides et
+          en concluait que tout allait bien.
+        */}
+        {collecte ? <SuiviRemiseNotes collecte={collecte} base={CHEMIN} /> : null}
       </div>
     </AppLayout>
   );
