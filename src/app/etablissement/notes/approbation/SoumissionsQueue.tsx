@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { nommerEvaluation } from '@/lib/evaluations';
 import type { EvaluationSoumise } from '@/services/note';
 import { SoumissionModal } from './SoumissionModal';
 
@@ -12,12 +13,6 @@ const PERIODE_LABEL: Record<string, string> = {
   TRIMESTRE_1: 'Trimestre 1',
   TRIMESTRE_2: 'Trimestre 2',
   TRIMESTRE_3: 'Trimestre 3',
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  INTERROGATION: 'Interrogation',
-  DEVOIR: 'Devoir',
-  COMPOSITION: 'Composition',
 };
 
 export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumise[] }) {
@@ -42,7 +37,7 @@ export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumi
                 <TableCell>
                   <div>{s.matiereNom}</div>
                   <div className="text-body-sm text-text-secondary">
-                    {TYPE_LABEL[s.evaluationType]} · {PERIODE_LABEL[s.periode]} n°{s.numero}
+                    {nommerEvaluation(s.evaluationType, s.numero)} · {PERIODE_LABEL[s.periode]}
                   </div>
                 </TableCell>
                 <TableCell>{s.nombreNotes}</TableCell>
@@ -63,7 +58,7 @@ export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumi
           <LigneCarteMobile
             key={s.evaluationId}
             titre={s.classeNom}
-            sousTitre={`${s.matiereNom} · ${TYPE_LABEL[s.evaluationType]} n°${s.numero} · ${s.nombreNotes} note(s)`}
+            sousTitre={`${s.matiereNom} · ${nommerEvaluation(s.evaluationType, s.numero)} · ${s.nombreNotes} note(s)`}
             actions={
               <Button size="sm" onClick={() => setSelected(s)}>
                 Examiner

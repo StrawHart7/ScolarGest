@@ -7,6 +7,8 @@ import {
   rejeterModification,
   validerSoumissionEvaluation,
   rejeterSoumissionEvaluation,
+  detailSoumission,
+  type DetailSoumission,
 } from '@/services/note';
 
 const idSchema = z.string().uuid();
@@ -63,6 +65,23 @@ export async function rejeterModificationAction(
 
   revalidatePath('/etablissement/notes/approbation');
   return { success: true, message: 'Demande rejetée.' };
+}
+
+/**
+ * Les notes réellement soumises, pour que le directeur les lise avant de
+ * décider. Chargées à l'ouverture de la fenêtre plutôt qu'avec la liste : la
+ * file peut compter vingt évaluations, et personne ne les ouvre toutes.
+ */
+export async function chargerDetailSoumission(
+  evaluationId: string,
+): Promise<{ detail: DetailSoumission } | { erreur: string }> {
+  const parsedId = idSchema.safeParse(evaluationId);
+  if (!parsedId.success) return { erreur: 'Évaluation introuvable.' };
+  try {
+    return { detail: await detailSoumission(parsedId.data) };
+  } catch (e) {
+    return { erreur: e instanceof Error ? e.message : 'Lecture impossible' };
+  }
 }
 
 export async function validerSoumissionAction(

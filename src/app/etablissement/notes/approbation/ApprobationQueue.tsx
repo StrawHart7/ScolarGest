@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { nommerEvaluation } from '@/lib/evaluations';
 import type { NoteEnAttente } from '@/services/note';
 import { ApprobationModal } from './ApprobationModal';
 
@@ -12,12 +13,6 @@ const PERIODE_LABEL: Record<string, string> = {
   TRIMESTRE_1: 'Trimestre 1',
   TRIMESTRE_2: 'Trimestre 2',
   TRIMESTRE_3: 'Trimestre 3',
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  INTERROGATION: 'Interrogation',
-  DEVOIR: 'Devoir',
-  COMPOSITION: 'Composition',
 };
 
 export function ApprobationQueue({ notes }: { notes: NoteEnAttente[] }) {
@@ -47,7 +42,7 @@ export function ApprobationQueue({ notes }: { notes: NoteEnAttente[] }) {
                 <TableCell>
                   <div>{note.matiereNom}</div>
                   <div className="text-body-sm text-text-secondary">
-                    {TYPE_LABEL[note.evaluationType]} · {PERIODE_LABEL[note.periode]} n°{note.numero}
+                    {nommerEvaluation(note.evaluationType, note.numero)} · {PERIODE_LABEL[note.periode]}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -75,7 +70,7 @@ export function ApprobationQueue({ notes }: { notes: NoteEnAttente[] }) {
           <LigneCarteMobile
             key={note.id}
             titre={`${note.elevePrenoms} ${note.eleveNom}`}
-            sousTitre={`${note.classeNom} · ${note.matiereNom} · ${TYPE_LABEL[note.evaluationType]} n°${note.numero}`}
+            sousTitre={`${note.classeNom} · ${note.matiereNom} · ${nommerEvaluation(note.evaluationType, note.numero)}`}
             valeurSecondaire={
               <span>
                 <span className="text-text-secondary">{note.valeur ?? '—'}</span>

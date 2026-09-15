@@ -143,6 +143,7 @@ matricule.generateMatriculeEleve = AUTHENTIFIE
 matricule.generateMatriculeEnseignant = AUTHENTIFIE
 note.approuverModification = DELEGUEE:verifierPin
 note.demanderModification = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
+note.detailSoumission = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 note.getClassementClasse = DELEGUEE:getResultatsClasse
 note.getMoyennesEleve = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 note.listEvaluationsSoumises = SUPER_ADMIN+DIRECTEUR+SECRETAIRE

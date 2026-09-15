@@ -428,6 +428,82 @@ export async function listEvaluationsSoumises(): Promise<EvaluationSoumise[]> {
   return [...parEvaluation.values()];
 }
 
+export interface NoteSoumiseDetail {
+  eleveId: string;
+  nom: string;
+  prenoms: string;
+  matricule: string;
+  valeur: number | null;
+  observation: string | null;
+}
+
+export interface DetailSoumission {
+  notes: NoteSoumiseDetail[];
+  /** Moyenne des notes soumises, `null` si aucune n'est chiffrée. */
+  moyenne: number | null;
+  /** Combien sont sous 10 — la question qu'on se pose en relisant une classe. */
+  sousLaMoyenne: number;
+  /** Notes hors de 0–20, qui ne devraient pas exister mais qu'il faut voir. */
+  aberrantes: number;
+}
+
+/**
+ * Ce qu'un directeur doit voir **avant** de valider.
+ *
+ * L'écran d'approbation ne montrait qu'un intitulé et un nombre : « 6ème A —
+ * Anglais, devoir, 27 notes ». On lui demandait d'approuver sans rien lui
+ * montrer, et une validation est définitive — les notes entrent dans les
+ * moyennes et le bulletin. Un juge à qui on ne montre pas le dossier ne juge
+ * pas, il tamponne.
+ *
+ * Trois chiffres accompagnent la liste, parce que ce sont les trois choses
+ * qu'on regarde en relisant une classe : la moyenne, combien sont sous dix, et
+ * **combien sont hors de 0–20**. Ce dernier ne devrait jamais arriver — la
+ * saisie borne — mais c'est précisément le genre d'anomalie qu'une validation
+ * en aveugle laisse passer jusqu'au bulletin.
+ */
+export async function detailSoumission(evaluationId: string): Promise<DetailSoumission> {
+  await requireRole('DIRECTEUR', 'SECRETAIRE');
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('note')
+    .select('"eleveId", valeur, observation, statut, eleve:eleve!inner(nom, prenoms, matricule)')
+    .eq('evaluationId', evaluationId)
+    .eq('statut', 'SOUMISE');
+  if (error) throw error;
+
+  const lignes = (data ?? []) as unknown as {
+    eleveId: string;
+    valeur: number | null;
+    observation: string | null;
+    eleve: { nom: string; prenoms: string; matricule: string } | null;
+  }[];
+
+  const notes: NoteSoumiseDetail[] = lignes
+    .map((l) => ({
+      eleveId: l.eleveId,
+      nom: l.eleve?.nom ?? '',
+      prenoms: l.eleve?.prenoms ?? '',
+      matricule: l.eleve?.matricule ?? '',
+      valeur: l.valeur,
+      observation: l.observation,
+    }))
+    .sort((a, b) => `${a.nom} ${a.prenoms}`.localeCompare(`${b.nom} ${b.prenoms}`));
+
+  const chiffrees = notes.map((n) => n.valeur).filter((v): v is number => v !== null);
+
+  return {
+    notes,
+    moyenne:
+      chiffrees.length > 0
+        ? Math.round((chiffrees.reduce((s, v) => s + v, 0) / chiffrees.length) * 100) / 100
+        : null,
+    sousLaMoyenne: chiffrees.filter((v) => v < 10).length,
+    aberrantes: chiffrees.filter((v) => v < 0 || v > 20).length,
+  };
+}
+
 /**
  * Valide en bloc toutes les notes SOUMISE d'une évaluation : elles
  * deviennent VALIDE et comptent désormais dans les moyennes.

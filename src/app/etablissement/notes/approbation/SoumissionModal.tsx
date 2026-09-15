@@ -1,13 +1,17 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { ShieldCheck, X, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import { ShieldCheck, X, CheckCircle2, XCircle, Lock, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { EvaluationSoumise } from '@/services/note';
-import { validerSoumissionAction, rejeterSoumissionAction } from './actions';
+import type { DetailSoumission, EvaluationSoumise } from '@/services/note';
+import {
+  validerSoumissionAction,
+  rejeterSoumissionAction,
+  chargerDetailSoumission,
+} from './actions';
 
 const PERIODE_LABEL: Record<string, string> = {
   TRIMESTRE_1: 'Trimestre 1',
@@ -39,6 +43,31 @@ export function SoumissionModal({
   const [pinError, setPinError] = useState<string | null>(null);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [detail, setDetail] = useState<DetailSoumission | null>(null);
+  const [erreurDetail, setErreurDetail] = useState<string | null>(null);
+  const [chargement, setChargement] = useState(true);
+
+  // Chargé à l'ouverture, pas avec la liste : une file peut compter vingt
+  // évaluations, et personne ne les ouvre toutes.
+  useEffect(() => {
+    let annule = false;
+    setChargement(true);
+    chargerDetailSoumission(soumission.evaluationId)
+      .then((reponse) => {
+        if (annule) return;
+        if ('detail' in reponse) setDetail(reponse.detail);
+        else setErreurDetail(reponse.erreur);
+      })
+      .catch(() => {
+        if (!annule) setErreurDetail('Lecture impossible.');
+      })
+      .finally(() => {
+        if (!annule) setChargement(false);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [soumission.evaluationId]);
 
   const pinValid = /^\d{6}$/.test(pin);
 
@@ -98,13 +127,18 @@ export function SoumissionModal({
                   {soumission.classeNom} — {soumission.matiereNom}
                 </p>
                 <p className="text-body-sm text-text-secondary">
-                  {TYPE_LABEL[soumission.evaluationType]} · {PERIODE_LABEL[soumission.periode]} n°
-                  {soumission.numero}
-                </p>
-                <p className="mt-2 text-body-sm text-text-secondary">
-                  {soumission.nombreNotes} note(s) soumise(s)
+                  {TYPE_LABEL[soumission.evaluationType]} · {PERIODE_LABEL[soumission.periode]}
                 </p>
               </div>
+
+              {/*
+                Les notes elles-mêmes. Avant, cette fenêtre n'affichait qu'un
+                intitulé et un compteur : on demandait d'approuver sans rien
+                montrer, alors que la validation est définitive — les notes
+                entrent dans les moyennes et sur le bulletin. Un juge à qui on
+                ne montre pas le dossier ne juge pas, il tamponne.
+              */}
+              <DetailNotes detail={detail} chargement={chargement} erreur={erreurDetail} />
 
               <div className="flex gap-2">
                 <Button
@@ -193,6 +227,90 @@ export function SoumissionModal({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * La liste des notes soumises, plus les trois chiffres qu'on regarde en
+ * relisant une classe : la moyenne, combien sont sous dix, et combien sont
+ * hors de 0–20.
+ *
+ * Ce dernier ne devrait jamais arriver — la saisie borne — mais c'est
+ * exactement le genre d'anomalie qu'une validation en aveugle laissait passer
+ * jusqu'au bulletin.
+ */
+function DetailNotes({
+  detail,
+  chargement,
+  erreur,
+}: {
+  detail: DetailSoumission | null;
+  chargement: boolean;
+  erreur: string | null;
+}) {
+  if (chargement) {
+    return (
+      <p className="rounded-lg border border-surface-border bg-surface p-4 text-body-sm text-text-secondary">
+        Lecture des notes…
+      </p>
+    );
+  }
+
+  if (erreur || !detail) {
+    return (
+      <p className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-body-sm text-warning-on-container">
+        {erreur ?? 'Notes illisibles.'} Vous pouvez tout de même décider, mais sans les avoir vues.
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-surface-border bg-surface">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-surface-border px-4 py-3">
+        <span className="text-body-sm text-text-secondary">
+          <strong className="text-text-primary">{detail.notes.length}</strong> note
+          {detail.notes.length > 1 ? 's' : ''}
+        </span>
+        {detail.moyenne !== null && (
+          <span className="text-body-sm text-text-secondary">
+            Moyenne <strong className="text-text-primary">{detail.moyenne.toFixed(2)}</strong> / 20
+          </span>
+        )}
+        <span className="text-body-sm text-text-secondary">
+          {detail.sousLaMoyenne} sous 10
+        </span>
+      </div>
+
+      {detail.aberrantes > 0 && (
+        <p className="flex items-start gap-2 border-b border-surface-border bg-warning/10 px-4 py-3 text-body-sm text-warning-on-container">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            {detail.aberrantes} note{detail.aberrantes > 1 ? 's sont' : ' est'} hors de 0 à 20.
+            Renvoyez l&apos;évaluation plutôt que de la valider.
+          </span>
+        </p>
+      )}
+
+      <ul className="max-h-56 divide-y divide-surface-border overflow-y-auto">
+        {detail.notes.map((n) => (
+          <li key={n.eleveId} className="flex items-center justify-between gap-3 px-4 py-2">
+            <span className="min-w-0 truncate text-body-sm text-text-primary">
+              {n.nom} {n.prenoms}
+            </span>
+            <span
+              className={
+                n.valeur !== null && n.valeur < 10
+                  ? 'shrink-0 text-body-sm font-semibold text-warning-on-container'
+                  : 'shrink-0 text-body-sm font-semibold text-text-primary'
+              }
+              data-mono
+            >
+              {n.valeur !== null ? `${n.valeur} / 20` : '—'}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

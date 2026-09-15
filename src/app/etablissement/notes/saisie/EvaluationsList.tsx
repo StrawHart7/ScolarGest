@@ -4,6 +4,7 @@ import { CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
+import { nommerEvaluation } from '@/lib/evaluations';
 import type { Evaluation } from '@/services/evaluation';
 
 const TYPE_LABEL: Record<Evaluation['type'], string> = {
@@ -83,7 +84,7 @@ export function EvaluationsList({
           <LigneCarteMobile
             key={ev.id}
             href={`/etablissement/notes/saisie/${ev.id}`}
-            titre={`${TYPE_LABEL[ev.type]} n°${ev.numero}`}
+            titre={nommerEvaluation(ev.type, ev.numero)}
             sousTitre={formatDate(ev.date)}
           />
         ))}
