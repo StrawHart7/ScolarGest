@@ -138,6 +138,28 @@ export async function placerCreneau(input: PlacerCreneauInput, pin: string): Pro
   validerCase(input.jour, input.rang);
   const supabase = createClient();
 
+  // L'enseignant se déduit de l'affectation depuis le 2026-09-15.
+  //
+  // Le formulaire ne le demande plus : on sait déjà qui enseigne les
+  // mathématiques en 1ère C, c'est écrit dans `affectation_enseignant`, et le
+  // redemander à chaque case d'une grille de quarante-huit était une saisie
+  // pour rien — au collège et au lycée, un cours n'a qu'un professeur.
+  //
+  // **Mais la colonne reste remplie**, et c'est le point à ne pas rater : c'est
+  // elle qui porte l'index unique partiel de la migration `0018`, le seul
+  // garde-fou qui empêche de placer le même professeur dans deux classes au
+  // même moment. La cesser de remplir aurait supprimé la détection de conflit
+  // **sans le moindre message** — et ça ne se découvre qu'un matin, devant une
+  // classe sans professeur.
+  const enseignantId =
+    input.enseignantId ??
+    (await enseignantDeLAffectation(
+      ctx.etablissementId,
+      input.classeId,
+      input.matiereId,
+      input.anneeScolaireId,
+    ));
+
   const { data, error } = await supabase
     .from('emploi_du_temps_creneau')
     .upsert(
@@ -148,7 +170,7 @@ export async function placerCreneau(input: PlacerCreneauInput, pin: string): Pro
         jour: input.jour,
         rang: input.rang,
         matiereId: input.matiereId,
-        enseignantId: input.enseignantId ?? null,
+        enseignantId,
         salle: input.salle ?? null,
       },
       { onConflict: 'classeId,anneeScolaireId,jour,rang' },
@@ -167,12 +189,100 @@ export async function placerCreneau(input: PlacerCreneauInput, pin: string): Pro
       jour: input.jour,
       rang: input.rang,
       matiereId: input.matiereId,
-      enseignantId: input.enseignantId ?? null,
+      enseignantId,
       salle: input.salle ?? null,
     },
   });
 
   return (data as { id: string }).id;
+}
+
+/**
+ * « Le professeur de cette matière est-il déjà pris sur cette case ? »
+ *
+ * Remplace l'interrogation par enseignant depuis le 2026-09-15 : le formulaire
+ * ne le demande plus, donc l'écran ne le connaît pas. La résolution se fait
+ * ici, où les affectations sont lisibles.
+ *
+ * **Le nom du professeur entre dans la réponse**, et c'est nouveau. Avant,
+ * c'est l'utilisateur qui l'avait choisi, il savait de qui on parlait.
+ * Maintenant qu'il est déduit, « un enseignant est déjà pris » ne lui dirait
+ * rien — il faut nommer qui.
+ */
+export async function detecterConflitPourMatiere(
+  classeId: string,
+  matiereId: string,
+  anneeScolaireId: string,
+  jour: number,
+  rang: number,
+  creneauIgnoreId?: string,
+): Promise<{ classeNom: string; matiereNom: string; enseignantNom: string } | null> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
+
+  const enseignantId = await enseignantDeLAffectation(
+    ctx.etablissementId,
+    classeId,
+    matiereId,
+    anneeScolaireId,
+  );
+  // Personne d'affecté : aucun conflit possible, l'index est partiel.
+  if (!enseignantId) return null;
+
+  const conflit = await detecterConflitEnseignant(
+    enseignantId,
+    anneeScolaireId,
+    jour,
+    rang,
+    creneauIgnoreId,
+  );
+  if (!conflit) return null;
+
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('enseignant')
+    .select('nom, prenoms')
+    .eq('id', enseignantId)
+    .maybeSingle();
+  const ens = data as { nom: string; prenoms: string } | null;
+
+  return {
+    ...conflit,
+    enseignantNom: ens ? `${ens.nom} ${ens.prenoms}` : 'Le professeur de cette matière',
+  };
+}
+
+/**
+ * Qui enseigne cette matière dans cette classe, d'après les affectations.
+ *
+ * `null` quand personne n'est affecté : la colonne est nullable et son index
+ * unique est **partiel**, donc plusieurs créneaux sans enseignant coexistent
+ * sans se déclarer en conflit. C'est voulu — une école peut composer sa grille
+ * avant d'avoir réparti ses professeurs.
+ *
+ * Plusieurs affectations pour le même couple ne devraient pas exister
+ * (contrainte d'unicité sur `affectation_enseignant`), mais on prend la
+ * première sans se plaindre : refuser de placer un cours parce que la table
+ * des affectations est douteuse serait punir l'utilisateur d'un défaut qui
+ * n'est pas le sien.
+ */
+async function enseignantDeLAffectation(
+  etablissementId: string,
+  classeId: string,
+  matiereId: string,
+  anneeScolaireId: string,
+): Promise<string | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('affectation_enseignant')
+    .select('"enseignantId"')
+    .eq('etablissementId', etablissementId)
+    .eq('classeId', classeId)
+    .eq('matiereId', matiereId)
+    .eq('anneeScolaireId', anneeScolaireId)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { enseignantId: string } | null)?.enseignantId ?? null;
 }
 
 /**

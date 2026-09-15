@@ -4,7 +4,6 @@ import { getTenantContext } from '@/services/tenant';
 import { getClasse } from '@/services/classe';
 import { listElevesInscritsClasse } from '@/services/eleve';
 import { listProgramme } from '@/services/programme';
-import { listEnseignants } from '@/services/enseignant';
 import { listCreneauxClasse } from '@/services/emploi-du-temps';
 import { getResultatsClasse } from '@/services/resultats-classe';
 import { listSuiviPaiements, totauxSuivi } from '@/services/facture';
@@ -48,16 +47,16 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
   // ignorerait.
   let creneaux: Creneau[] = [];
   let matieres: { id: string; nom: string }[] = [];
-  let enseignants: { id: string; nom: string; prenoms: string }[] = [];
   if (peutVoirEleves) {
-    const [c, programme, ens] = await Promise.all([
+    // La liste des enseignants n'est plus chargée : la grille ne demande plus
+    // de choisir qui assure le cours, il se déduit de l'affectation côté
+    // serveur. Une requête de moins sur chaque ouverture d'une fiche de classe.
+    const [c, programme] = await Promise.all([
       listCreneauxClasse(classe.id, classe.anneeScolaireId),
       listProgramme(classe.niveauId),
-      listEnseignants({ statut: 'ACTIF' }),
     ]);
     creneaux = c;
     matieres = programme.map((p) => ({ id: p.matiereId, nom: p.matiere.nom }));
-    enseignants = ens.map((e) => ({ id: e.id, nom: e.nom, prenoms: e.prenoms }));
   }
   const peutModifierEmploiDuTemps = ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE';
 
@@ -274,7 +273,6 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
                 anneeScolaireId={classe.anneeScolaireId}
                 creneaux={creneaux}
                 matieres={matieres}
-                enseignants={enseignants}
                 jours={JOURS}
                 rangs={RANGS}
                 modifiable={peutModifierEmploiDuTemps}

@@ -45,13 +45,22 @@ function indexer(creneaux: Creneau[]): Map<string, Creneau> {
   return index;
 }
 
+/**
+ * Le nom de l'enseignant ne figure plus sur la grille imprimée — décision du
+ * 2026-09-15.
+ *
+ * C'est un usage universitaire. Au collège et au lycée, l'élève regarde sa
+ * grille pour savoir **quelle matière** il a, pas qui la fait : il le sait. Le
+ * nom volait la place de la matière dans une case de quelques millimètres.
+ *
+ * Il reste **en base**, et c'est ce qui compte : c'est lui qui porte l'index
+ * unique partiel de `0018`, le garde-fou qui empêche de placer un professeur
+ * dans deux classes au même moment. On retire l'affichage, pas la donnée.
+ */
 function cellule(creneau: Creneau | undefined): string {
   if (!creneau) return '<td class="vide"></td>';
-  const enseignant = creneau.enseignant
-    ? `<div class="ens">${esc(creneau.enseignant.nom)} ${esc(creneau.enseignant.prenoms)}</div>`
-    : '';
   const salle = creneau.salle ? `<div class="salle">${esc(creneau.salle)}</div>` : '';
-  return `<td class="occupee"><div class="mat">${esc(creneau.matiere.nom)}</div>${enseignant}${salle}</td>`;
+  return `<td class="occupee"><div class="mat">${esc(creneau.matiere.nom)}</div>${salle}</td>`;
 }
 
 export function emploiDuTempsHtml(donnees: DonneesEmploiDuTemps): string {

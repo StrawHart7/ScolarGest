@@ -87,6 +87,7 @@ eleve.listElevesInscritsClasse = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 eleve.listElevesPage = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 eleve.updateEleve = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 emploi-du-temps.detecterConflitEnseignant = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
+emploi-du-temps.detecterConflitPourMatiere = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 emploi-du-temps.listCreneauxClasse = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 emploi-du-temps.placerCreneau = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 emploi-du-temps.retirerCreneau = SUPER_ADMIN+DIRECTEUR+SECRETAIRE

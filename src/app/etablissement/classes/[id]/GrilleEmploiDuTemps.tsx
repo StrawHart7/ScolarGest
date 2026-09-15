@@ -46,14 +46,17 @@ import {
  * vérification applicative sans jamais franchir la contrainte.
  */
 
-/** Sentinelle : Radix refuse une valeur vide sur un `SelectItem`. */
-const AUCUN = 'AUCUN';
-
 export interface OptionMatiere {
   id: string;
   nom: string;
 }
 
+/**
+ * Conservé bien que la grille ne propose plus de choisir un enseignant :
+ * `/etablissement/classes/[id]/page.tsx` construit encore cette liste pour
+ * d'autres blocs de la fiche. Le retirer d'ici l'obligerait à la redéclarer
+ * ailleurs pour rien.
+ */
 export interface OptionEnseignant {
   id: string;
   nom: string;
@@ -65,7 +68,6 @@ interface Props {
   anneeScolaireId: string;
   creneaux: Creneau[];
   matieres: OptionMatiere[];
-  enseignants: OptionEnseignant[];
   jours: readonly string[];
   rangs: readonly string[];
   /** Directeur et Secrétaire modifient ; les autres consultent. */
@@ -83,7 +85,6 @@ export function GrilleEmploiDuTemps({
   anneeScolaireId,
   creneaux,
   matieres,
-  enseignants,
   jours,
   rangs,
   modifiable,
@@ -99,7 +100,6 @@ export function GrilleEmploiDuTemps({
 
   const [ouverte, setOuverte] = React.useState<CaseOuverte | null>(null);
   const [matiereId, setMatiereId] = React.useState<string>('');
-  const [enseignantId, setEnseignantId] = React.useState<string>(AUCUN);
   const [salle, setSalle] = React.useState('');
   const [pin, setPin] = React.useState('');
   const [conflit, setConflit] = React.useState<string | null>(null);
@@ -110,7 +110,6 @@ export function GrilleEmploiDuTemps({
     const existant = index.get(`${jour}:${rang}`);
     setOuverte({ jour, rang, existant });
     setMatiereId(existant?.matiereId ?? '');
-    setEnseignantId(existant?.enseignantId ?? AUCUN);
     setSalle(existant?.salle ?? '');
     setPin('');
     setConflit(null);
@@ -119,7 +118,7 @@ export function GrilleEmploiDuTemps({
   // L'avertissement se recalcule dès que l'enseignant change, avant tout
   // enregistrement : découvrir le conflit au moment de valider serait tard.
   React.useEffect(() => {
-    if (!ouverte || enseignantId === AUCUN) {
+    if (!ouverte || !matiereId) {
       setConflit(null);
       return;
     }
@@ -128,7 +127,8 @@ export function GrilleEmploiDuTemps({
       let resultat: Awaited<ReturnType<typeof verifierConflitAction>> | undefined;
       try {
         resultat = await verifierConflitAction({
-          enseignantId,
+          classeId,
+          matiereId,
           anneeScolaireId,
           jour: ouverte.jour,
           rang: ouverte.rang,
@@ -139,14 +139,17 @@ export function GrilleEmploiDuTemps({
       }
       if (annule) return;
       const c = resultat?.ok ? resultat.conflit : null;
+      // Le nom du professeur est **dans** la phrase depuis que l'enseignant
+      // n'est plus choisi : « cet enseignant » ne désignerait plus rien pour
+      // quelqu'un qui vient seulement de choisir une matière.
       setConflit(
-        c ? `Cet enseignant assure déjà ${c.matiereNom} en ${c.classeNom} sur ce créneau.` : null,
+        c ? `${c.enseignantNom} assure déjà ${c.matiereNom} en ${c.classeNom} sur ce créneau.` : null,
       );
     })();
     return () => {
       annule = true;
     };
-  }, [ouverte, enseignantId, anneeScolaireId]);
+  }, [ouverte, classeId, matiereId, anneeScolaireId]);
 
   async function enregistrer() {
     if (!ouverte || !matiereId) return;
@@ -159,7 +162,9 @@ export function GrilleEmploiDuTemps({
         jour: ouverte.jour,
         rang: ouverte.rang,
         matiereId,
-        enseignantId: enseignantId === AUCUN ? null : enseignantId,
+        // `enseignantId` n'est plus envoyé : le service le déduit de
+        // l'affectation. L'envoyer à `null` depuis l'écran le forcerait à vide
+        // et supprimerait la détection de conflit.
         salle: salle.trim() || null,
         pin,
       });
@@ -259,14 +264,16 @@ export function GrilleEmploiDuTemps({
                         >
                           {creneau ? (
                             <>
+                              {/*
+                                La matière seule. Au collège et au lycée,
+                                l'élève sait qui fait son cours : il regarde sa
+                                grille pour savoir **quelle matière** il a. Le
+                                nom volait la place de la matière dans une case
+                                de 80 pixels de haut.
+                              */}
                               <span className="text-body-sm font-medium text-text-primary">
                                 {creneau.matiere.nom}
                               </span>
-                              {creneau.enseignant && (
-                                <span className="text-body-sm text-text-secondary">
-                                  {creneau.enseignant.nom} {creneau.enseignant.prenoms}
-                                </span>
-                              )}
                               {creneau.salle && (
                                 <span className="text-label-md text-text-secondary">
                                   {creneau.salle}
@@ -325,22 +332,16 @@ export function GrilleEmploiDuTemps({
                   </Select>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="edt-enseignant">Enseignant</Label>
-                  <Select value={enseignantId} onValueChange={setEnseignantId}>
-                    <SelectTrigger id="edt-enseignant">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={AUCUN}>À définir</SelectItem>
-                      {enseignants.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>
-                          {e.nom} {e.prenoms}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/*
+                  Le menu « Enseignant » est parti le 2026-09-15. On sait déjà
+                  qui enseigne cette matière dans cette classe — c'est écrit
+                  dans les affectations — et le redemander à chaque case d'une
+                  grille de quarante-huit était une saisie pour rien.
+
+                  Il continue d'être **enregistré**, déduit côté serveur : c'est
+                  lui qui porte l'index unique partiel de `0018`, seul garde-fou
+                  contre un professeur placé dans deux classes au même moment.
+                */}
 
                 {conflit && (
                   <p className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-body-sm text-text-primary">
