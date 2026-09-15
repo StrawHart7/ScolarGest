@@ -3,6 +3,23 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { creerEvaluation } from '@/services/evaluation';
+import { mInscrireCommeEnseignant } from '@/services/enseignant';
+
+/**
+ * Le directeur se déclare enseignant depuis l'écran de saisie.
+ *
+ * Aucun nouveau compte : la fiche est rattachée au sien. Voir
+ * `mInscrireCommeEnseignant` — c'était l'impasse signalée en preview.
+ */
+export async function mInscrireCommeEnseignantAction(): Promise<
+  { enseignantId: string } | { erreur: string }
+> {
+  try {
+    return { enseignantId: await mInscrireCommeEnseignant() };
+  } catch (e) {
+    return { erreur: e instanceof Error ? e.message : "Erreur lors de l'inscription" };
+  }
+}
 
 const creerEvaluationSchema = z.object({
   anneeScolaireId: z.string().uuid('Année scolaire requise'),

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ClipboardList, GraduationCap } from 'lucide-react';
 import { getTenantContext, type Role } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
@@ -8,9 +7,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { EtatVide } from '@/components/ui/etat-vide';
 import { getSidebarItems } from '@/lib/navigation';
+import { DeclarationEnseignant } from './DeclarationEnseignant';
 import { SaisieFiltres } from './SaisieFiltres';
 import { EvaluationsList } from './EvaluationsList';
 import { NouvelleEvaluationForm } from './NouvelleEvaluationForm';
@@ -118,12 +117,8 @@ async function SaisieContent({
             <EtatVide
               icone={GraduationCap}
               titre="Vous n’enseignez aucune matière cette année."
-              explication="Si vous êtes aussi professeur d’une matière, inscrivez-vous dans la liste des enseignants avec votre adresse habituelle, puis attribuez-vous la classe et la matière : la saisie s’ouvrira ici, pour celles-là uniquement."
-              action={
-                <Button asChild size="sm">
-                  <Link href="/etablissement/enseignants">Ouvrir la liste des enseignants</Link>
-                </Button>
-              }
+              explication="Si vous êtes aussi professeur, déclarez-le : votre fiche enseignant sera rattachée à ce compte, et vous pourrez saisir les notes des matières que vous vous attribuerez — celles-là uniquement."
+              action={<DeclarationEnseignant />}
             />
           ) : (
             <EtatVide

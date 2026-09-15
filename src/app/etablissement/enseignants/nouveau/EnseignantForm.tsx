@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IdentifiantsRemis } from '@/components/ui/identifiants-remis';
 import { normaliserIdentifiant, proposerIdentifiant } from '@/lib/identifiants';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +30,7 @@ function SubmitButton({ pleineLargeur }: { pleineLargeur?: boolean }) {
 
 export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string }) {
   const [resultat, formAction] = useFormState(creerEnseignant, null);
+  const router = useRouter();
 
   const [nom, setNom] = useState('');
   const [prenoms, setPrenoms] = useState('');
@@ -39,6 +41,7 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
   const [identifiantTouche, setIdentifiantTouche] = useState(false);
   const [telephone, setTelephone] = useState('');
   const [adresse, setAdresse] = useState('');
+  const [ecranResultatMasque, setEcranResultatMasque] = useState(false);
 
   const valeurIdentifiant = identifiantTouche
     ? identifiant
@@ -65,58 +68,65 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
   // Compte ouvert sans adresse : le mot de passe ne s'affichera qu'ici, et une
   // seule fois. Tout le formulaire cède la place — il n'y a rien de plus
   // urgent à faire que de le noter.
-  if (resultat?.etat === 'CREE') {
+  /**
+   * Même précaution que sur `/utilisateurs/inviter` : l'état d'un
+   * `useFormState` est client et survit à `router.refresh()`. Sans ce drapeau
+   * et ce nettoyage, « Ajouter un autre enseignant » laisserait l'écran de
+   * succès en place avec les identifiants du précédent.
+   */
+  const recommencer = () => {
+    setEcranResultatMasque(true);
+    setNom('');
+    setPrenoms('');
+    setSexe('');
+    setEmail('');
+    setIdentifiant('');
+    setIdentifiantTouche(false);
+    setTelephone('');
+    setAdresse('');
+  };
+
+  if (resultat?.etat === 'CREE' && !ecranResultatMasque) {
     return (
       <div className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-headline-sm text-text-primary">
-            {resultat.nomComplet} peut se connecter
-          </h3>
-          <p className="text-body-sm text-text-secondary">
-            Notez ces deux lignes et remettez-les-lui. Le mot de passe ne s&apos;affichera plus
-            après cette page.
-          </p>
-        </div>
+        <h3 className="text-headline-sm text-text-primary">
+          {resultat.nomComplet} peut se connecter
+        </h3>
 
-        <div className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-label-md uppercase tracking-wide text-text-secondary">
-              Identifiant
-            </span>
-            <span className="select-all font-mono text-headline-sm text-text-primary">
-              {resultat.identifiant}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-label-md uppercase tracking-wide text-text-secondary">
-              Mot de passe provisoire
-            </span>
-            <span className="select-all font-mono text-headline-sm text-text-primary">
-              {resultat.motDePasse}
-            </span>
-          </div>
-        </div>
-
-        <p className="text-body-sm text-text-secondary">
-          S&apos;il le perd, vous pourrez lui en redonner un depuis la liste des utilisateurs.
-        </p>
-
-        <div className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link href={`/etablissement/enseignants/${resultat.enseignantId}`}>
-              Voir sa fiche et lui attribuer ses matières
-            </Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/etablissement/enseignants/nouveau">Ajouter un autre enseignant</Link>
-          </Button>
-        </div>
+        <IdentifiantsRemis
+          identifiant={resultat.identifiant}
+          motDePasse={resultat.motDePasse}
+          destinataire={resultat.nomComplet}
+          actions={({ confirmer }) => (
+            <>
+              <Button
+                type="button"
+                onClick={() =>
+                  confirmer(() => router.push(`/etablissement/enseignants/${resultat.enseignantId}`))
+                }
+              >
+                Voir sa fiche et lui attribuer ses matières
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => confirmer(recommencer)}>
+                Ajouter un autre enseignant
+              </Button>
+            </>
+          )}
+        />
       </div>
     );
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6 pb-zone-action md:pb-0">
+    // Le drapeau est relevé à chaque soumission : sans cela, le second
+    // enseignant créé n'afficherait jamais son mot de passe.
+    <form
+      action={(donnees) => {
+        setEcranResultatMasque(false);
+        formAction(donnees);
+      }}
+      className="flex flex-col gap-6 pb-zone-action md:pb-0"
+    >
       <input type="hidden" name="payload" value={payload} />
 
       <section className="flex flex-col gap-4 rounded-lg border border-surface-border p-4">

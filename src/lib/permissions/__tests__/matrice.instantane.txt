@@ -95,6 +95,7 @@ enseignant.desactiverEnseignant = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 enseignant.getEnseignant = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 enseignant.getEnseignantParUtilisateur = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 enseignant.listEnseignants = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
+enseignant.mInscrireCommeEnseignant = SUPER_ADMIN+DIRECTEUR
 enseignant.updateEnseignant = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 etablissement.createEtablissement = SUPER_ADMIN
 etablissement.definirRegimeTarifaire = SUPER_ADMIN

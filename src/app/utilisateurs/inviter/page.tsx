@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+import { IdentifiantsRemis } from '@/components/ui/identifiants-remis';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -42,58 +43,57 @@ type Mode = 'EMAIL' | 'IDENTIFIANT';
 
 export default function InviterUtilisateurPage() {
   const [resultat, formAction] = useFormState(inviterUtilisateur, null);
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>('EMAIL');
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [identifiant, setIdentifiant] = useState('');
   const [identifiantTouche, setIdentifiantTouche] = useState(false);
+  const [ecranResultatMasque, setEcranResultatMasque] = useState(false);
 
   const suggestion = proposerIdentifiant(nom, prenom);
   const valeurIdentifiant = identifiantTouche ? identifiant : suggestion;
 
-  if (resultat?.etat === 'CREE') {
+  /**
+   * Remet l'écran en état de saisie après une création.
+   *
+   * `router.refresh()` ne suffirait pas : il refait le rendu serveur, mais
+   * l'état d'un `useFormState` est **client** et survit — la page serait restée
+   * sur l'écran de succès, avec les mêmes identifiants affichés. D'où ce
+   * drapeau, et le nettoyage explicite des champs contrôlés.
+   */
+  const recommencer = () => {
+    setEcranResultatMasque(true);
+    setNom('');
+    setPrenom('');
+    setIdentifiant('');
+    setIdentifiantTouche(false);
+  };
+
+  if (resultat?.etat === 'CREE' && !ecranResultatMasque) {
     return (
       <main className="mx-auto max-w-xl px-gutter py-gutter sm:p-container-pad">
-        <h1 className="mb-2 text-display-sm text-text-primary">Le compte est prêt</h1>
-        <p className="mb-6 text-body-md text-text-secondary">
-          Notez ces deux lignes et remettez-les à {resultat.nomComplet}. Le mot de passe ne
-          s&apos;affichera plus après cette page.
-        </p>
+        <h1 className="mb-6 text-display-sm text-text-primary">Le compte est prêt</h1>
 
-        <Card>
-          <CardContent className="flex flex-col gap-4 py-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-label-md uppercase tracking-wide text-text-secondary">
-                Identifiant
-              </span>
-              <span className="select-all font-mono text-headline-sm text-text-primary">
-                {resultat.identifiant}
-              </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-label-md uppercase tracking-wide text-text-secondary">
-                Mot de passe provisoire
-              </span>
-              <span className="select-all font-mono text-headline-sm text-text-primary">
-                {resultat.motDePasse}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <IdentifiantsRemis
+          identifiant={resultat.identifiant}
+          motDePasse={resultat.motDePasse}
+          destinataire={resultat.nomComplet}
+          actions={({ confirmer }) => (
+            <>
+              <Button type="button" onClick={() => confirmer(() => router.push('/utilisateurs'))}>
+                Retour aux utilisateurs
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => confirmer(recommencer)}>
+                Créer un autre compte
+              </Button>
+            </>
+          )}
+        />
 
         <p className="mt-4 text-body-sm text-text-secondary">
-          À la première connexion, demandez-lui de changer ce mot de passe depuis son profil. Si
-          elle le perd, vous pourrez lui en redonner un depuis la liste des utilisateurs.
+          Cette personne devra choisir son propre mot de passe à sa première connexion.
         </p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild>
-            <Link href="/utilisateurs">Retour aux utilisateurs</Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/utilisateurs/inviter">Créer un autre compte</Link>
-          </Button>
-        </div>
       </main>
     );
   }
@@ -105,7 +105,18 @@ export default function InviterUtilisateurPage() {
       </LienRetour>
       <h1 className="mb-6 text-display-sm text-text-primary">Ajouter un membre de l&apos;équipe</h1>
 
-      <form action={formAction} className="flex flex-col gap-6">
+      {/*
+        Le drapeau est relevé à chaque soumission : sans cela, le second compte
+        créé n'afficherait **jamais** son mot de passe — l'écran resterait masqué
+        par la remise à zéro du précédent, et personne ne saurait pourquoi.
+      */}
+      <form
+        action={(donnees) => {
+          setEcranResultatMasque(false);
+          formAction(donnees);
+        }}
+        className="flex flex-col gap-6"
+      >
         <input type="hidden" name="mode" value={mode} />
 
         <Card>

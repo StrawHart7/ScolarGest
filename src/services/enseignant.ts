@@ -216,6 +216,93 @@ export async function createEnseignant(input: CreateEnseignantInput): Promise<En
   return { id: data.id as string, motDePasseProvisoire: motDePasse, identifiant };
 }
 
+/**
+ * Le directeur se déclare lui-même enseignant.
+ *
+ * ## Le trou que ça bouche
+ *
+ * Depuis le 2026-09-15, un directeur peut saisir les notes des matières qu'il
+ * enseigne — le droit vient de l'affectation, pas du rôle. L'écran de saisie
+ * lui disait donc « inscrivez-vous dans la liste des enseignants avec votre
+ * adresse habituelle »… et c'était une impasse : `createEnseignant` ouvre
+ * **toujours un nouveau compte**, et Supabase refuse une adresse déjà
+ * enregistrée. Il n'existait aucun chemin pour rattacher une fiche enseignant
+ * à un compte qui existe.
+ *
+ * Ici, aucun compte n'est créé : la fiche pointe sur l'utilisateur connecté.
+ * Son nom et ses prénoms sont **relus en base** plutôt que reçus de
+ * l'appelant — c'est la même personne, et lui laisser saisir un autre nom
+ * ferait apparaître un enseignant fantôme portant son identifiant.
+ *
+ * Idempotent : si la fiche existe déjà, elle est renvoyée telle quelle. Un
+ * double clic ne doit pas créer un second enseignant sur le même compte, ce
+ * que rien en base n'interdit — `enseignant.utilisateurId` n'est pas unique.
+ */
+export async function mInscrireCommeEnseignant(): Promise<string> {
+  const ctx = await requireRole('DIRECTEUR');
+
+  const existante = await getEnseignantParUtilisateur(ctx.userId);
+  if (existante) return existante.id;
+
+  const supabase = createClient();
+  const { data: profil, error: erreurProfil } = await supabase
+    .from('utilisateur')
+    .select('nom, prenom, email, telephone')
+    .eq('id', ctx.userId)
+    .single();
+  if (erreurProfil) throw erreurProfil;
+  const moi = profil as { nom: string; prenom: string; email: string; telephone: string | null };
+
+  const anneeActive = await anneeActivePourMatricule(ctx.etablissementId);
+  if (!anneeActive) {
+    throw new Error("Aucune année scolaire active : ouvrez-en une avant de vous inscrire comme enseignant.");
+  }
+  const matricule = await generateMatriculeEnseignant(anneeActive);
+
+  const { data, error } = await supabase
+    .from('enseignant')
+    .insert({
+      etablissementId: ctx.etablissementId,
+      utilisateurId: ctx.userId,
+      matricule,
+      nom: moi.nom,
+      prenoms: moi.prenom,
+      // Le sexe n'est pas demandé : il ne sert qu'aux documents, se corrige
+      // depuis la fiche, et le réclamer ici ajouterait une question à un geste
+      // qui doit en compter zéro.
+      sexe: 'M',
+      telephone: moi.telephone,
+      email: moi.email,
+      statut: 'ACTIF',
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+
+  await auditLog({
+    action: 'CREATE_ENSEIGNANT',
+    module: 'enseignants',
+    objetType: 'Enseignant',
+    objetId: data.id,
+    nouvelleValeur: { matricule, nom: moi.nom, prenoms: moi.prenom, autoInscription: true },
+  });
+
+  return data.id as string;
+}
+
+/** L'année scolaire active, pour numéroter le matricule. */
+async function anneeActivePourMatricule(etablissementId: string): Promise<string | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('annee_scolaire')
+    .select('id')
+    .eq('etablissementId', etablissementId)
+    .eq('statut', 'ACTIVE')
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { id: string } | null)?.id ?? null;
+}
+
 export async function updateEnseignant(id: string, input: UpdateEnseignantInput): Promise<void> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   const supabase = createClient();
