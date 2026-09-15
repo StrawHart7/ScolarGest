@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Bell } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listNotesEnAttente, listEvaluationsSoumises } from '@/services/note';
+import { notificationsEnseignant } from '@/services/notifications';
 
 /**
  * Cloche de notifications, avec un badge de compte quand quelque chose
@@ -20,12 +21,23 @@ export async function NotificationsBell() {
   let count = 0;
   try {
     const ctx = await getTenantContext();
-    if (ctx.role === 'SECRETAIRE') {
+    // Le DIRECTEUR y est entré le 2026-09-15, et il aurait dû y être depuis le
+    // début : `/profil/notifications` lui montrait bien ses soumissions en
+    // attente, mais la cloche ne comptait que pour la SECRÉTAIRE. Il n'avait
+    // donc **jamais** de pastille, et dans une école sans secrétariat —
+    // le cas courant — personne n'était jamais averti qu'une évaluation
+    // attendait une décision. Le signal manquait, pas la donnée.
+    if (ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE') {
       const [correctionsEnAttente, soumissionsEnAttente] = await Promise.all([
         listNotesEnAttente(),
         listEvaluationsSoumises(),
       ]);
       count = correctionsEnAttente.length + soumissionsEnAttente.length;
+    } else if (ctx.role === 'ENSEIGNANT') {
+      // L'enseignant n'avait aucune notification : il soumettait ses notes et
+      // n'apprenait jamais qu'elles avaient été validées, ni surtout qu'elles
+      // lui avaient été renvoyées.
+      count = (await notificationsEnseignant()).length;
     }
   } catch {
     count = 0;
@@ -40,10 +52,16 @@ export async function NotificationsBell() {
     >
       <Bell className="h-[20px] w-[20px] md:h-[18px] md:w-[18px]" aria-hidden />
       {count > 0 && (
+        // Une pastille de 8px ne se voit pas. Elle porte désormais le nombre,
+        // et un liseré de la couleur de l'en-tête la détache du fond — c'est
+        // le seul endroit de l'application qui dise « quelque chose vous
+        // attend » sans qu'on ait eu l'idée d'aller voir.
         <span
-          className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-error md:right-1.5 md:top-1.5"
+          className="absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-error px-1 text-[11px] font-bold leading-none text-white ring-2 ring-surface-container-lowest md:right-0 md:top-0"
           aria-hidden
-        />
+        >
+          {count > 9 ? '9+' : count}
+        </span>
       )}
     </Link>
   );

@@ -153,6 +153,7 @@ note.rejeterSoumissionEvaluation = DELEGUEE:verifierPin
 note.saisirNote = SUPER_ADMIN+DIRECTEUR+ENSEIGNANT
 note.soumettreNotes = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+ENSEIGNANT
 note.validerSoumissionEvaluation = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
+notifications.notificationsEnseignant = SUPER_ADMIN+DIRECTEUR+ENSEIGNANT
 onboarding.getBilanOnboarding = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 onboarding.getProgressionOnboarding = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 onboarding.ignorerEtape = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE

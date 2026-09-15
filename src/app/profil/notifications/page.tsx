@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { BellOff, ClipboardCheck, CreditCard } from 'lucide-react';
+import { BellOff, ClipboardCheck, CreditCard, Undo2 } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listNotesEnAttente, listEvaluationsSoumises } from '@/services/note';
+import { notificationsEnseignant } from '@/services/notifications';
 import { getAccesAbonnementCourant } from '@/services/abonnement';
 import { JOURS_AVERTISSEMENT } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,7 +13,7 @@ interface Notification {
   titre: string;
   detail: string;
   href: string;
-  icone: 'approbation' | 'abonnement';
+  icone: 'approbation' | 'abonnement' | 'retour';
   urgence: 'info' | 'avertissement';
 }
 
@@ -50,6 +51,23 @@ export default async function NotificationsPage() {
         href: '/etablissement/notes/approbation',
         icone: 'approbation',
         urgence: 'avertissement',
+      });
+    }
+  }
+
+  // L'enseignant n'avait aucune notification : il soumettait ses notes et
+  // n'apprenait jamais qu'elles avaient été validées, ni surtout qu'elles lui
+  // avaient été renvoyées. Le DIRECTEUR passe aussi ici — depuis le
+  // 2026-09-15 il peut enseigner une matière, et il a droit au retour sur ses
+  // propres notes comme n'importe quel professeur.
+  if (ctx.role === 'ENSEIGNANT' || ctx.role === 'DIRECTEUR') {
+    for (const retour of await notificationsEnseignant()) {
+      notifications.push({
+        titre: retour.titre,
+        detail: retour.detail,
+        href: retour.href,
+        icone: retour.icone === 'retour' ? 'retour' : 'approbation',
+        urgence: retour.urgence,
       });
     }
   }
@@ -93,7 +111,10 @@ export default async function NotificationsPage() {
         ) : (
           <ul className="space-y-3">
             {notifications.map((notification) => (
-              <li key={notification.href}>
+              // Le titre et non le lien : les soumissions et les demandes de
+              // correction pointent toutes deux vers l'écran d'approbation, et
+              // React voyait donc deux enfants de même clé.
+              <li key={notification.titre}>
                 <Link
                   href={notification.href}
                   className="flex items-start gap-3 rounded-lg border border-surface-border bg-surface-container-lowest p-4 transition-colors hover:border-primary-container/60 hover:bg-primary-fixed/30"
@@ -107,6 +128,8 @@ export default async function NotificationsPage() {
                   >
                     {notification.icone === 'approbation' ? (
                       <ClipboardCheck className="h-[18px] w-[18px]" aria-hidden />
+                    ) : notification.icone === 'retour' ? (
+                      <Undo2 className="h-[18px] w-[18px]" aria-hidden />
                     ) : (
                       <CreditCard className="h-[18px] w-[18px]" aria-hidden />
                     )}

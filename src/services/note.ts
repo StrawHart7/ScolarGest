@@ -264,6 +264,27 @@ export async function soumettreNotes(evaluationId: string): Promise<number> {
   });
   if (error) throw error;
 
+  // Zéro note basculée n'est pas un succès.
+  //
+  // `fn_soumettre_notes` fait un `update ... where statut = 'BROUILLON'` et
+  // rend le nombre de lignes touchées. Aucune ligne, aucune erreur : la
+  // fonction rendait `0`, l'action rendait « succès », l'écran fermait sa
+  // fenêtre sans un mot, et l'enseignant repartait convaincu d'avoir rendu ses
+  // notes. Rien n'arrivait en approbation, et le directeur ne voyait donc rien
+  // non plus — les deux symptômes constatés le 2026-09-15 n'en faisaient qu'un.
+  //
+  // Le défaut de fond a été corrigé côté écran, qui envoie désormais les
+  // lignes avant de soumettre. Cette garde-ci est la seconde barrière : la
+  // même famille de panne — un `update` qui ne touche rien et qu'on prend pour
+  // un succès — a déjà été payée sur la RLS, et elle ne se voit jamais en
+  // production tant que personne ne regarde le compte.
+  const basculees = (data as number | null) ?? 0;
+  if (basculees === 0) {
+    throw new Error(
+      'Aucune note à soumettre : saisissez au moins une note, ou vérifiez que vos notes ont bien été enregistrées.',
+    );
+  }
+
   await auditLog({
     action: 'SOUMETTRE_NOTES',
     module: 'academique',

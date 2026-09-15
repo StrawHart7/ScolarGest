@@ -192,26 +192,43 @@ export function SaisieNotesForm({
     }));
   }
 
-  function enregistrerBrouillon() {
-    setError(null);
-    setErreurReseau(false);
+  /**
+   * Envoie au serveur les lignes modifiées. Rend `false` si quelque chose est
+   * resté en rade — réseau coupé ou note refusée.
+   *
+   * Extraite de `enregistrerBrouillon` le 2026-09-15 parce que **la soumission
+   * doit pouvoir l'attendre**. Avant, « Soumettre » partait directement : un
+   * enseignant qui saisissait ses notes puis cliquait « Soumettre » sans avoir
+   * cliqué « Enregistrer » soumettait une évaluation vide. La bascule ne
+   * trouvait aucune note en BROUILLON, `fn_soumettre_notes` renvoyait `0` — ce
+   * qui n'est pas une erreur — et l'écran annonçait un succès. Les notes
+   * n'existaient nulle part et rien n'arrivait en approbation.
+   *
+   * Le chemin hors ligne, lui, vidait bien les lignes avant de mettre la
+   * soumission en file, avec un commentaire expliquant pourquoi. C'est le cas
+   * en ligne qui avait été oublié.
+   */
+  async function envoyerLignesModifiees(): Promise<boolean> {
     const aEnvoyer = eleves.filter((e) => rows[e.id]?.dirty && rows[e.id]?.valeur !== '');
-    if (aEnvoyer.length === 0) return;
+    if (aEnvoyer.length === 0) return true;
 
-    startTransition(async () => {
-      const reussies: string[] = [];
+    const reussies: string[] = [];
+    let complet = true;
+    try {
       for (const eleve of aEnvoyer) {
         // Ne tente plus la suite si on sait déjà être hors ligne — inutile
         // d'attendre chaque timeout de fetch un par un, la boucle reprendra
         // ces mêmes lignes (toujours `dirty`) au retour du réseau.
         if (!navigator.onLine) {
           setErreurReseau(true);
+          complet = false;
           break;
         }
         const row = rows[eleve.id] ?? { valeur: '', observation: '', dirty: false };
         const valeurNum = Number(row.valeur.replace(',', '.'));
         if (Number.isNaN(valeurNum)) {
           setError(`Note invalide pour ${eleve.nom} ${eleve.prenoms}`);
+          complet = false;
           continue;
         }
         try {
@@ -225,6 +242,7 @@ export function SaisieNotesForm({
             // Rejet de validation par le serveur (pas un problème réseau) :
             // la ligne reste `dirty`, on avertit et on passe aux suivantes.
             setError(result);
+            complet = false;
             continue;
           }
           reussies.push(eleve.id);
@@ -233,9 +251,11 @@ export function SaisieNotesForm({
           // restent `dirty`, donc toujours dans la file d'attente locale —
           // rien n'est perdu, la boucle s'arrête ici pour cette tentative.
           setErreurReseau(true);
+          complet = false;
           break;
         }
       }
+    } finally {
       if (reussies.length > 0) {
         setRows((prev) => {
           const next = { ...prev };
@@ -246,8 +266,19 @@ export function SaisieNotesForm({
           return next;
         });
         setLastSaved(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+        // Rafraîchi même sur un envoi partiel : les lignes passées sont
+        // écrites en base, l'écran doit les refléter.
         router.refresh();
       }
+    }
+    return complet;
+  }
+
+  function enregistrerBrouillon() {
+    setError(null);
+    setErreurReseau(false);
+    startTransition(async () => {
+      await envoyerLignesModifiees();
     });
   }
 
@@ -304,6 +335,17 @@ export function SaisieNotesForm({
         setConfirmationOuverte(false);
         setError(
           'Hors connexion : la soumission est enregistrée sur cet appareil et partira au retour du réseau.',
+        );
+        return;
+      }
+
+      // Les lignes saisies partent **avant** la bascule. C'est le correctif du
+      // 2026-09-15 : sans lui, soumettre sans avoir enregistré verrouillait une
+      // évaluation vide, en annonçant un succès.
+      const complet = await envoyerLignesModifiees();
+      if (!complet) {
+        setError(
+          'Certaines notes n’ont pas pu être enregistrées : elles ne seraient pas soumises. Corrigez les lignes signalées, puis réessayez.',
         );
         return;
       }
