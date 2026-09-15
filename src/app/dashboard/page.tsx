@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
   BookOpen,
@@ -26,6 +27,7 @@ import { etatSocle } from '@/services/configuration';
 import { getProgressionOnboarding, marquerRedirectionOnboarding } from '@/services/onboarding';
 import { etapesPourRole } from '@/lib/onboarding/etapes';
 import { encaissementsAnnee, effectifsParClasse } from '@/services/series-ecole';
+import { listMesAffectations } from '@/services/affectation';
 import { FluxActivite, Raccourcis, RACCOURCIS, TauxRecouvrement } from './Widgets';
 import { CarteEncaissements, CarteEffectifs } from './CartesGraphes';
 import { BanniereDemarrage } from './BanniereDemarrage';
@@ -546,10 +548,53 @@ export default async function DashboardPage({
         ]}
       />
 
-      <Raccourcis
-        raccourcis={[RACCOURCIS.mesClasses!, RACCOURCIS.saisieNotes!, RACCOURCIS.rapports!]}
-      />
+      {/*
+        Les classes de l'enseignant descendent ici depuis le 2026-09-15.
+        « Mes classes » était une entrée de barre latérale menant à un écran qui
+        ne faisait que les **lister**, sans qu'on puisse rien en faire. Elles
+        sont désormais là où il arrive, et chaque ligne mène à la saisie de sa
+        matière dans cette classe — ce qu'il venait chercher.
+      */}
+      <MesCoursEnseignant anneeScolaireId={annee.id} />
+
+      <Raccourcis raccourcis={[RACCOURCIS.saisieNotes!, RACCOURCIS.rapports!]} />
     </>,
     `${annee.libelle} — mon espace`,
+  );
+}
+
+/** Les couples classe × matière de l'enseignant, chacun menant à sa saisie. */
+async function MesCoursEnseignant({ anneeScolaireId }: { anneeScolaireId: string }) {
+  const affectations = await listMesAffectations(anneeScolaireId);
+  if (affectations.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <h2 className="border-b border-surface-border px-5 py-3 text-headline-sm text-text-primary">
+          Mes cours cette année
+        </h2>
+        <ul className="divide-y divide-surface-border">
+          {affectations.map((a) => (
+            <li key={a.id}>
+              <Link
+                href={`/etablissement/notes/saisie?classeId=${a.classeId}&matiereId=${a.matiereId}`}
+                className="flex h-row-standard items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-surface-container"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-body-md text-text-primary">
+                    {a.matiere.nom}
+                  </span>
+                  <span className="block truncate text-body-sm text-text-secondary">
+                    {a.classe.nom}
+                  </span>
+                </span>
+                <span className="shrink-0 text-body-sm text-primary-container">Saisir</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

@@ -82,13 +82,12 @@ export const SECTIONS: Record<string, Section> = {
         icone: 'etablissement',
         roles: ['DIRECTEUR'],
       },
-      {
-        titre: 'Cycles et niveaux',
-        description: 'Cycles enseignés, niveaux et séries proposés.',
-        href: '/etablissement/cycles',
-        icone: 'etablissement',
-        roles: ['DIRECTEUR'],
-      },
+      // « Cycles et niveaux » a quitté ce niveau le 2026-09-15. L'écran n'est
+      // pas purement informatif — c'est lui qui **active** un cycle, et une
+      // école qui ouvre un lycée après son collège en a besoin — mais c'est un
+      // geste qu'on fait une fois dans la vie de l'établissement, pas un écran
+      // de premier niveau. Il reste listé par la checklist de configuration,
+      // qui est exactement l'endroit où on le cherche.
       {
         titre: 'Classes',
         description: 'Créer les classes de l’année et suivre leurs effectifs.',
@@ -140,6 +139,17 @@ export const SECTIONS: Record<string, Section> = {
         // lui masquer l'entrée le laissait sans aucun chemin vers la page qu'il
         // a pourtant le droit d'utiliser.
         roles: ['DIRECTEUR', 'COMPTABLE'],
+      },
+      {
+        // Descendu de la barre latérale le 2026-09-15 : un écran qu'on ouvre
+        // en fin de trimestre n'a pas sa place au même niveau que les élèves
+        // et les finances. Le Comptable, lui, le garde au premier niveau — il
+        // n'a pas cette section.
+        titre: 'Rapports et exports',
+        description: 'Listes, états financiers et résultats à imprimer ou à exporter.',
+        href: '/rapports',
+        icone: 'rapports',
+        roles: TOUS_ADMIN,
       },
     ],
   },
@@ -268,7 +278,9 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         // Direction et secrétariat seulement : les rôles financiers n'ont
         // rien à faire des moyennes par classe.
         { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'statistiques' },
-        { label: 'Rapports', href: '/rapports', icone: 'rapports' },
+        // « Rapports » a quitté la barre latérale le 2026-09-15 et vit sous
+        // Établissement : six entrées de premier niveau pour un écran qu'on
+        // ouvre en fin de trimestre, c'était payer cher une exportation.
       ];
     case 'SECRETAIRE':
       return [
@@ -281,13 +293,15 @@ export function getSidebarItems(role: Role): SidebarItem[] {
         // lui refuser la lecture d'ensemble de ce qu'elle produit n'aurait pas
         // de sens.
         { label: 'Statistiques', labelCourt: 'Stats', href: '/statistiques', icone: 'statistiques' },
-        { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
     case 'COMPTABLE':
       return [
         { label: 'Tableau de bord', labelCourt: 'Accueil', href: '/dashboard', icone: 'tableau-de-bord' },
         { label: 'Finances', href: '/etablissement/finances', icone: 'finances' },
         { label: 'Élèves', href: '/etablissement/eleves', icone: 'eleves' },
+        // Le Comptable garde « Rapports » au premier niveau : il n'a pas la
+        // section Établissement, donc l'y ranger le lui retirerait purement et
+        // simplement. C'est aussi lui qui exporte le plus souvent.
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
         // Entrée directe, et non via « Établissement » que le Comptable n'a
         // pas : il a le droit de souscrire et de renouveler, il lui faut donc
@@ -297,7 +311,12 @@ export function getSidebarItems(role: Role): SidebarItem[] {
     case 'ENSEIGNANT':
       return [
         { label: 'Tableau de bord', labelCourt: 'Accueil', href: '/dashboard', icone: 'tableau-de-bord' },
-        { label: 'Mes classes', labelCourt: 'Classes', href: '/etablissement/mes-classes', icone: 'mes-classes' },
+        // « Mes classes » a quitté la barre latérale le 2026-09-15 : la page ne
+        // faisait que **lister** les classes de l'enseignant, sans qu'on puisse
+        // rien en faire, et « Notes et résultats » juste en dessous mène déjà
+        // à la saisie. Les classes où il intervient figurent désormais sur son
+        // tableau de bord, avec le lien vers la saisie de chacune — ce qui est
+        // ce qu'il venait chercher. La route reste en place.
         { label: 'Notes et résultats', labelCourt: 'Académique', href: '/etablissement/notes', icone: 'notes' },
         { label: 'Rapports', href: '/rapports', icone: 'rapports' },
       ];
