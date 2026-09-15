@@ -98,6 +98,7 @@ export default async function ElevesPage({
         <div className="hidden md:block">
           <PageHeader
             title="Élèves"
+            description="Tous les élèves de votre école. Ouvrez une fiche pour voir sa classe, ses responsables et sa facture."
             actions={
               canWrite && (
                 <>

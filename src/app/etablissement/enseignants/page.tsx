@@ -75,6 +75,7 @@ export default async function EnseignantsPage({
         <div className="hidden md:block">
           <PageHeader
             title="Enseignants"
+            description="Votre équipe pédagogique. Affectez chacun à ses classes et ses matières : c’est ce qui lui ouvre la saisie des notes."
             actions={
               canWrite && (
                 <>

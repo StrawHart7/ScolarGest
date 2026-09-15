@@ -31,9 +31,9 @@ export default async function NouvelEnseignantPage() {
         {!anneeActive ? (
           <Card>
             <CardContent className="p-6">
-              <p className="text-body-sm text-error">
-                Activez une année scolaire avant de créer un enseignant (le matricule est numéroté
-                par année).
+              <p className="text-body-sm text-text-secondary">
+                Aucune année scolaire n&apos;est ouverte. Le matricule d&apos;un enseignant est
+                numéroté par année : il en faut une avant d&apos;en ajouter un.
               </p>
             </CardContent>
           </Card>

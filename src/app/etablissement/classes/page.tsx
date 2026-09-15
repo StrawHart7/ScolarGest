@@ -81,7 +81,9 @@ export default async function ClassesPage({
           <PageHeader
             title="Classes"
             description={
-              anneeActive ? `Année active : ${anneeActive.libelle}` : 'Aucune année active'
+              anneeActive
+                ? `Vos classes de ${anneeActive.libelle}. Tout s’y rattache : inscriptions, notes et tarifs.`
+                : 'Ouvrez une année scolaire avant de créer vos classes.'
             }
             actions={
               peutCreer && (

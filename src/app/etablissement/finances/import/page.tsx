@@ -65,8 +65,9 @@ export default async function ImportPaiementsPage() {
         ) : !anneeActive ? (
           <Card>
             <CardContent className="p-6">
-              <p className="text-body-sm text-error">
-                Activez une année scolaire avant d&apos;importer.
+              <p className="text-body-sm text-text-secondary">
+                Aucune année scolaire n&apos;est ouverte. Un import se rattache à une année :
+                il en faut une active.
               </p>
             </CardContent>
           </Card>

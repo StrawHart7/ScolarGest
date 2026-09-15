@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
@@ -107,14 +108,27 @@ export default async function TarifsPage({
             { cle: 'date', libelle: 'Date de création' },
           ]}
           actions={
-            canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 ? (
-              <TarifForm
-                anneeScolaireId={anneeScolaireId}
-                classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
-                typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
-                defaultClasseId={classeId ?? ''}
-              />
-            ) : null
+            <>
+              {/* « Types de frais » n'est plus une entrée de menu : un tarif,
+                  c'est « ce frais coûte X en 6ème », et le type de frais est un
+                  attribut de cette phrase, pas une entité de la vie du
+                  Directeur. L'écran existe toujours — il a simplement cessé
+                  d'occuper le même niveau visuel que le tarif, et il se règle
+                  depuis l'écran qui l'emploie. */}
+              {canWrite && (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href="/etablissement/finances/types-frais">Types de frais</Link>
+                </Button>
+              )}
+              {canWrite && anneeScolaireId && typesFrais.length > 0 && classes.length > 0 ? (
+                <TarifForm
+                  anneeScolaireId={anneeScolaireId}
+                  classes={classes.map((c) => ({ id: c.id, nom: c.nom }))}
+                  typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
+                  defaultClasseId={classeId ?? ''}
+                />
+              ) : null}
+            </>
           }
         />
 

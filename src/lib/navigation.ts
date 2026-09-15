@@ -211,13 +211,13 @@ export const SECTIONS: Record<string, Section> = {
         icone: 'finances',
         roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
       },
-      {
-        titre: 'Types de frais',
-        description: 'Nature des frais facturables (scolarité, inscription, cantine…).',
-        href: '/etablissement/finances/types-frais',
-        icone: 'finances',
-        roles: ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE'],
-      },
+      // « Types de frais » a quitte ce premier niveau le 2026-09-15. Un tarif,
+      // c'est « ce frais coute X en 6eme » : le type de frais est un attribut de
+      // cette phrase, pas une entite de la vie du Directeur. Deux entrees de
+      // menu pour une idee.
+      //
+      // L'ecran existe toujours et reste atteignable depuis les tarifs, qui y
+      // renvoient. On hierarchise, on ne retire pas.
       {
         titre: 'Import financier',
         description: 'Importer un lot de versements depuis un fichier.',

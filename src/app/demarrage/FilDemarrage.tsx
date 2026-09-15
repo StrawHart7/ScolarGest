@@ -151,15 +151,17 @@ export function FilDemarrage({
             onTermine={avancer}
           />
         ) : (
-          <p className="mt-3 text-body-sm text-error">
-            Activez d&apos;abord une année scolaire.
+          <p className="mt-3 text-body-sm text-text-secondary">
+            Revenez à l&apos;étape de l&apos;année scolaire : cette étape s&apos;y rattache.
           </p>
         );
       case 'enseignants':
         return donnees.anneeScolaireId ? (
           <EtapeEnseignants anneeScolaireId={donnees.anneeScolaireId} onTermine={avancer} />
         ) : (
-          <p className="mt-3 text-body-sm text-error">Activez d&apos;abord une année scolaire.</p>
+          <p className="mt-3 text-body-sm text-text-secondary">
+            Revenez à l&apos;étape de l&apos;année scolaire : cette étape s&apos;y rattache.
+          </p>
         );
       case 'utilisateurs':
         return donnees.etablissementId ? (
@@ -181,9 +183,9 @@ export function FilDemarrage({
             onTermine={avancer}
           />
         ) : (
-          <p className="mt-3 text-body-sm text-error">
-            Aucune classe n&apos;existe encore : le Directeur doit d&apos;abord terminer la
-            configuration de la structure.
+          <p className="mt-3 text-body-sm text-text-secondary">
+            Les tarifs se fixent classe par classe : revenez à l&apos;étape des classes
+            avant celle-ci.
           </p>
         );
       default:
