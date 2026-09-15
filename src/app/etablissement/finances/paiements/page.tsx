@@ -4,7 +4,7 @@ import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listPaiements, type StatutPaiement } from '@/services/paiement';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +46,7 @@ export default async function HistoriqueVersementsPage({
       <PageVerrouillee
         domaine="FINANCES"
         titre="Historique des versements"
-        retour={{ href: '/etablissement/finances', libelle: 'Retour aux finances' }}
+        retour={{ href: '/dashboard', libelle: 'Retour au tableau de bord' }}
         manques={verrou.manques}
       />
     );
@@ -93,7 +93,7 @@ export default async function HistoriqueVersementsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement/finances">Retour aux finances</LienRetour>
+        <BarreSection chemin="/etablissement/finances" role={ctx.role} actif="/etablissement/finances/paiements" />
 
         <div className="hidden md:block">
           <PageHeader

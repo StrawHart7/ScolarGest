@@ -5,7 +5,7 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listSuiviPaiements, totauxSuivi, type StatutFacture } from '@/services/facture';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +104,7 @@ export default async function SuiviPaiementsPage({
       <PageVerrouillee
         domaine="FINANCES"
         titre="Suivi des paiements"
-        retour={{ href: '/etablissement/finances', libelle: 'Retour aux finances' }}
+        retour={{ href: '/dashboard', libelle: 'Retour au tableau de bord' }}
         manques={verrou.manques}
       />
     );
@@ -170,7 +170,15 @@ export default async function SuiviPaiementsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement/finances">Retour aux finances</LienRetour>
+        {/* Plus de « Retour aux finances » : c'est cet écran-là, désormais. Il
+            porte à la place les autres écrans du domaine, à un niveau visuel
+            inférieur — les tarifs et les types de frais se règlent une fois
+            l'an, le suivi se regarde toutes les semaines. */}
+        <BarreSection
+          chemin="/etablissement/finances"
+          role={ctx.role}
+          actif="/etablissement/finances/factures"
+        />
 
         <div className="hidden md:block">
           <PageHeader

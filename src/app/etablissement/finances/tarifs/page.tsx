@@ -7,7 +7,7 @@ import { listClasses } from '@/services/classe';
 import { listTypesFrais } from '@/services/type-frais';
 import { listTarifs, totalTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -75,7 +75,7 @@ export default async function TarifsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement/finances">Retour aux finances</LienRetour>
+        <BarreSection chemin="/etablissement/finances" role={ctx.role} actif="/etablissement/finances/tarifs" />
 
         {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
             doublon avec la ligne de densité. */}

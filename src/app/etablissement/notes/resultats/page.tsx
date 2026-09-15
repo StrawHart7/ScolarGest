@@ -6,7 +6,7 @@ import { listMesAffectations } from '@/services/affectation';
 import { getResultatsClasse, type ResultatEleve } from '@/services/resultats-classe';
 import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +51,7 @@ export default async function ResultatsPage({
       <PageVerrouillee
         domaine="NOTES"
         titre="Moyennes & classement"
-        retour={{ href: '/etablissement/notes', libelle: 'Retour aux notes' }}
+        retour={{ href: '/dashboard', libelle: 'Retour au tableau de bord' }}
         manques={verrou.manques}
       />
     );
@@ -90,7 +90,7 @@ export default async function ResultatsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement/notes">Retour aux notes et résultats</LienRetour>
+        <BarreSection chemin="/etablissement/notes" role={ctx.role} actif="/etablissement/notes/resultats" />
 
         <div className="hidden md:block">
           <PageHeader

@@ -4,7 +4,7 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listMesAffectations } from '@/services/affectation';
 import { listEvaluations, type Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { LienRetour } from '@/components/layout/LienRetour';
+import { BarreSection } from '@/components/layout/BarreSection';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getSidebarItems } from '@/lib/navigation';
@@ -32,7 +32,7 @@ export default async function SaisieNotesPage({
       <PageVerrouillee
         domaine="NOTES"
         titre="Saisie des notes"
-        retour={{ href: '/etablissement/notes', libelle: 'Retour aux notes' }}
+        retour={{ href: '/dashboard', libelle: 'Retour au tableau de bord' }}
         manques={verrou.manques}
       />
     );
@@ -46,7 +46,7 @@ export default async function SaisieNotesPage({
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <LienRetour href="/etablissement/notes">Retour aux notes et résultats</LienRetour>
+        <BarreSection chemin="/etablissement/notes" role={ctx.role} actif="/etablissement/notes/saisie" />
 
         <div>
           <h1 className="text-display-sm text-text-primary">Saisie des notes</h1>

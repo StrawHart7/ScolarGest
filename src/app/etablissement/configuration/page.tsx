@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, Check, PartyPopper } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { etatSocle, type ElementSocle } from '@/services/configuration';
-import { getSidebarItems } from '@/lib/navigation';
+import { blocsSection, getSidebarItems } from '@/lib/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,6 +42,12 @@ export const metadata = { title: 'Configuration' };
 export default async function ConfigurationPage() {
   const [ctx, socle] = await Promise.all([getTenantContext(), etatSocle()]);
   const pourcentage = socle.total > 0 ? Math.round((socle.faits / socle.total) * 100) : 100;
+  // Les entrées que la page d'aiguillage d'« Établissement » portait avant sa
+  // disparition, moins celle-ci : s'auto-référencer en pied de page n'aide
+  // personne.
+  const reglages = blocsSection('/etablissement', ctx.role).filter(
+    (b) => b.href !== '/etablissement/configuration',
+  );
 
   return (
     <AppLayout
@@ -115,6 +121,45 @@ export default async function ConfigurationPage() {
           description="Facultatif, et souvent ignoré faute de savoir que ça existe."
           elements={socle.recommandes}
         />
+
+        {/*
+          « Établissement » ouvrait une grille de dix blocs — le mur décrit par
+          la note de vision. Il ouvre désormais cette page, qui répond à la
+          vraie question : « qu'est-ce qu'il me reste à régler ».
+
+          Les dix entrées ne disparaissent pas pour autant : elles se rangent
+          ici, en fin de page, sous un intitulé qui dit ce qu'elles sont. C'est
+          la différence entre hiérarchiser et retirer — on descend d'un niveau
+          visuel ce qui se règle une fois, on ne le cache pas.
+        */}
+        <section className="space-y-3 border-t border-surface-border pt-6">
+          <div>
+            <h2 className="text-body-md font-medium text-text-primary">
+              Tous les réglages de l’établissement
+            </h2>
+            <p className="text-body-sm text-text-secondary">
+              Ce que vous réglez une fois, et que vous rouvrez rarement.
+            </p>
+          </div>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {reglages.map((bloc) => (
+              <li key={bloc.href}>
+                <Link
+                  href={bloc.href}
+                  className="flex h-full items-center justify-between gap-3 rounded-lg border border-surface-border bg-surface-container-lowest px-4 py-3 transition-colors hover:border-primary/50"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-body-md text-text-primary">{bloc.titre}</span>
+                    <span className="block text-body-sm text-text-secondary">
+                      {bloc.description}
+                    </span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-text-secondary" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </AppLayout>
   );
