@@ -39,6 +39,9 @@ export default async function ClassesPage({
   const anneeScolaireId = lireUnique('anneeScolaireId') ?? anneeActive?.id;
   const classes = anneeScolaireId ? await listClasses(anneeScolaireId) : [];
   const peutCreer = ctx.role === 'DIRECTEUR' && Boolean(anneeScolaireId);
+  // Les noms déjà pris sur l'année : c'est d'eux que le formulaire déduit
+  // l'indice de la classe suivante, au lieu de le demander.
+  const nomsExistants = classes.map((c) => c.nom);
 
   // Cycles, niveaux et séries ne sont chargés que si le formulaire est
   // affichable : trois requêtes inutiles sinon, sur chaque consultation.
@@ -118,7 +121,7 @@ export default async function ClassesPage({
               ]}
               actions={
                 peutCreer && cycles.length > 0 ? (
-                  <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} />
+                  <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} nomsExistants={nomsExistants} />
                 ) : null
               }
               className="mb-4 md:mb-6"
@@ -141,7 +144,7 @@ export default async function ClassesPage({
                         // `dansLeFlux` : sans lui, le declencheur se rend en bouton
                         // flottant sous `md` et l'etat vide parait sans action, alors
                         // que c'est precisement ce qu'il doit porter.
-                        <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} dansLeFlux />
+                        <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} nomsExistants={nomsExistants} dansLeFlux />
                       ) : null
                     }
                   />

@@ -1,7 +1,13 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { AlertTriangle, Lock, Sparkles } from 'lucide-react';
 import { getAccesAbonnementCourant } from '@/services/abonnement';
 import { getTenantContext } from '@/services/tenant';
+import {
+  BandeauMasquable,
+  COOKIE_BANDEAU_ABONNEMENT,
+  jourCourant,
+} from './BandeauMasquable';
 
 /**
  * Bandeau d'état de l'abonnement, affiché sur toutes les pages de l'espace
@@ -31,6 +37,20 @@ export async function AbonnementBanner() {
   if (acces.niveau === 'OK' || !acces.message) return null;
 
   const bloquant = acces.niveau === 'LECTURE_SEULE' || acces.niveau === 'BLOQUE';
+
+  // Fermé pour aujourd'hui ? On ne le produit même pas.
+  //
+  // Le bandeau d'essai revenait sur **chaque page**, avec son décompte. Vu du
+  // directeur, ce n'est pas une information mais une relance : l'école se sent
+  // poussée à payer pendant qu'elle essaie le produit, ce qui est l'inverse de
+  // ce qu'un essai doit produire.
+  //
+  // Un bandeau **bloquant** ne se ferme jamais, lui : il explique pourquoi les
+  // boutons ne répondent plus, et le masquer laisserait une application inerte
+  // sans le moindre motif.
+  if (!bloquant && cookies().get(COOKIE_BANDEAU_ABONNEMENT)?.value === jourCourant()) {
+    return null;
+  }
   // Un essai qui touche à sa fin n'est plus une information neutre : à une
   // semaine de la lecture seule, le ton passe de l'accueil à l'avertissement.
   // Garder le ton bleu jusqu'au dernier jour laisserait une école découvrir la
@@ -53,14 +73,15 @@ export async function AbonnementBanner() {
   const peutPayer = role === 'DIRECTEUR' || role === 'COMPTABLE';
 
   return (
-    // `data-bandeau` est lu par la banniere de conseil, qui se pose en `fixed`
-    // sous l'en-tete sur telephone et recouvrirait ce bandeau. Un avertissement
-    // d'abonnement prime sur une suggestion : la banniere se tait quand ce
-    // repere est present. Ne pas le retirer sans corriger `PanneauConseil`.
+    <BandeauMasquable masquable={!bloquant}>
+    {/* `data-bandeau` est lu par la banniere de conseil, qui se pose en `fixed`
+        sous l'en-tete sur telephone et recouvrirait ce bandeau. Un avertissement
+        d'abonnement prime sur une suggestion : la banniere se tait quand ce
+        repere est present. Ne pas le retirer sans corriger `PanneauConseil`. */}
     <div
       role="status"
       data-bandeau="abonnement"
-      className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-container-pad py-3 ${ton.cadre}`}
+      className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b py-3 pl-container-pad ${bloquant ? 'pr-container-pad' : 'pr-12'} ${ton.cadre}`}
     >
       {bloquant ? (
         <Lock className="h-5 w-5 shrink-0 text-error" aria-hidden />
@@ -102,5 +123,6 @@ export async function AbonnementBanner() {
         )}
       </div>
     </div>
+    </BandeauMasquable>
   );
 }

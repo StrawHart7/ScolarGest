@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
+import { prochainNomClasse } from '@/lib/noms-classes';
 import { creerClasse } from './actions';
 
 export interface CycleOption {
@@ -28,22 +29,28 @@ export interface CycleOption {
   series: { id: string; nom: string }[];
 }
 
-/** Suffisant pour distinguer les classes parallèles d'un même niveau. */
-const INDICES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-
 /**
- * Le nom de la classe est **composé**, jamais saisi : « Niveau + Série +
- * Indice ». Une saisie libre produisait des noms incohérents d'une classe à
- * l'autre (« 6e A », « 6ème-A », « 6EME A »), que rien ne rattrapait ensuite
- * dans les bulletins ni dans les exports.
+ * Le nom de la classe est **composé**, jamais saisi. Une saisie libre
+ * produisait des noms incohérents d'une classe à l'autre (« 6e A », « 6ème-A »,
+ * « 6EME A »), que rien ne rattrapait ensuite dans les bulletins ni dans les
+ * exports.
+ *
+ * Depuis le 2026-09-15, l'indice n'est plus demandé non plus : il se déduit
+ * des classes déjà créées sur ce niveau et cette série. Le menu « Indice »
+ * proposait A, B, C, D et donnait « Terminale D A », quand l'onboarding
+ * produisait « Terminale D1 » — deux chemins, deux nommages, dans la même
+ * école.
  */
 export function ClasseForm({
   anneeScolaireId,
   cycles,
+  nomsExistants,
   dansLeFlux,
 }: {
   anneeScolaireId: string;
   cycles: CycleOption[];
+  /** Noms des classes déjà créées sur l'année, pour en déduire le suivant. */
+  nomsExistants: readonly string[];
   /** Vrai quand le formulaire est ouvert depuis un etat vide : pas de bouton flottant. */
   dansLeFlux?: boolean;
 }) {
@@ -52,7 +59,6 @@ export function ClasseForm({
   const [cycleId, setCycleId] = React.useState(cycles[0]?.id ?? '');
   const [niveauId, setNiveauId] = React.useState('');
   const [serieId, setSerieId] = React.useState('');
-  const [indice, setIndice] = React.useState(INDICES[0]!);
   const { succes, erreur } = useToast();
   const dernier = React.useRef<string | null>(null);
 
@@ -60,9 +66,12 @@ export function ClasseForm({
   const niveau = cycle?.niveaux.find((n) => n.id === niveauId);
   const serie = cycle?.series.find((s) => s.id === serieId);
 
-  const nomCompose = [niveau?.nom, cycle?.estLycee ? serie?.nom : null, indice]
-    .filter(Boolean)
-    .join(' ');
+  // S'il existe déjà une Terminale D1 et une D2, la suivante est la D3.
+  // Voir `lib/noms-classes.ts` pour la convention et ses cas de bord.
+  const nomCompose =
+    niveau && (!cycle?.estLycee || serie)
+      ? prochainNomClasse(niveau.nom, cycle?.estLycee ? (serie?.nom ?? null) : null, nomsExistants)
+      : '';
 
   React.useEffect(() => {
     if (!resultat || resultat === dernier.current) return;
@@ -99,7 +108,8 @@ export function ClasseForm({
           <DialogHeader>
             <DialogTitle>Nouvelle classe</DialogTitle>
             <DialogDescription>
-              Le nom est composé automatiquement à partir du niveau, de la série et de l’indice.
+              Le nom est composé automatiquement, et continue les classes déjà créées sur ce
+              niveau.
             </DialogDescription>
           </DialogHeader>
 
@@ -155,21 +165,11 @@ export function ClasseForm({
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="indice">Indice</Label>
-                <Select value={indice} onValueChange={setIndice}>
-                  <SelectTrigger id="indice">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDICES.map((valeur) => (
-                      <SelectItem key={valeur} value={valeur}>
-                        {valeur}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/*
+                Le menu « Indice » est parti le 2026-09-15 : il n'y a rien à
+                choisir. La classe suivante continue la série déjà en place,
+                et l'aperçu ci-dessous montre le nom qu'elle portera.
+              */}
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="capacite">Capacité</Label>
