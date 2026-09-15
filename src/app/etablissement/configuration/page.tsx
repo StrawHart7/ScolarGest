@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Check, PartyPopper } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { etatSocle, type ElementSocle } from '@/services/configuration';
 import { blocsSection, getSidebarItems } from '@/lib/navigation';
@@ -64,56 +64,58 @@ export default async function ConfigurationPage() {
           />
         </div>
 
-        {socle.complet ? (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-              <PartyPopper className="h-10 w-10 text-primary" aria-hidden />
-              <h2 className="text-display-sm text-text-primary">Votre établissement est configuré</h2>
-              {/*
-                La question a été posée telle quelle : « une fois les
-                indispensables faits, les autres passent où ? ». Ils restent ici
-                — cet écran ne disparaît pas, il change de rôle. Le dire
-                explicitement coûte une phrase et évite de croire qu'on a tout
-                vu.
-              */}
-              <p className="max-w-prose text-body-sm text-text-secondary">
-                Tout l’indispensable est en place. Les réglages « pour aller au bout » restent
-                listés ci-dessous, et cette page reste accessible depuis Établissement ›
-                Configuration.
+        {/*
+          **Une seule carte, dans les deux états.**
+
+          Il y en avait deux, et celle de l'état fini était un écran de
+          félicitations : cotillons, « Votre établissement est configuré », un
+          paragraphe d'explication et un gros bouton. Le défaut est qu'une
+          félicitation se mérite **une fois**, à la fin du parcours — c'est le
+          rôle de `EcranFinal` à la sortie de `/demarrage`, et il le fait déjà.
+          Rejouée à chaque ouverture de l'écran, elle cesse d'être une nouvelle
+          et devient du décor qu'il faut dépasser pour atteindre la page. Le
+          testeur l'a signalée deux fois le 2026-09-15, en la traversant chaque
+          fois par « Retour à la configuration » depuis les classes.
+
+          La barre pleine et « 9 sur 9 » disent la même chose, sans la fête, et
+          se lisent d'un coup d'œil. La page redevient ce qu'elle est : les
+          réglages de l'établissement.
+        */}
+        <Card>
+          <CardContent className="flex flex-col gap-4 py-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-body-md text-text-primary">
+                <span className="text-display-sm tabular-nums">{socle.faits}</span>
+                <span className="text-text-secondary"> sur {socle.total} réglages indispensables</span>
               </p>
-              <Button asChild variant="primary">
-                <Link href="/dashboard">Aller au tableau de bord</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col gap-4 py-6">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-body-md text-text-primary">
-                  <span className="text-display-sm tabular-nums">{socle.faits}</span>
-                  <span className="text-text-secondary"> sur {socle.total} réglages indispensables</span>
-                </p>
-                <Link
-                  href="/dashboard?tableau=1"
-                  className="text-body-sm text-text-secondary underline underline-offset-4 hover:text-text-primary"
-                >
-                  Aller au tableau de bord
-                </Link>
-              </div>
-              <div
-                className="h-2 w-full overflow-hidden rounded-full bg-surface-container"
-                role="progressbar"
-                aria-valuenow={socle.faits}
-                aria-valuemin={0}
-                aria-valuemax={socle.total}
-                aria-label="Avancement de la configuration"
+              {/*
+                `?tableau=1` y compris ici, et ce n'est pas un détail de
+                cosmétique : sans lui, `/dashboard` refait un `etatSocle()`
+                complet — une quinzaine d'allers-retours vers la base — pour
+                décider de ne pas rediriger quelqu'un qui vient précisément de
+                cet écran. La branche « en cours » portait déjà le paramètre ;
+                celle de l'état fini l'avait oublié, et c'est ce lien-là qui
+                tombait en erreur chez le testeur.
+              */}
+              <Link
+                href="/dashboard?tableau=1"
+                className="text-body-sm text-text-secondary underline underline-offset-4 hover:text-text-primary"
               >
-                <div className="h-full rounded-full bg-primary" style={{ width: `${pourcentage}%` }} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                Aller au tableau de bord
+              </Link>
+            </div>
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-surface-container"
+              role="progressbar"
+              aria-valuenow={socle.faits}
+              aria-valuemin={0}
+              aria-valuemax={socle.total}
+              aria-label="Avancement de la configuration"
+            >
+              <div className="h-full rounded-full bg-primary" style={{ width: `${pourcentage}%` }} />
+            </div>
+          </CardContent>
+        </Card>
 
         <SectionSocle titre="Indispensable" elements={socle.requis} />
         <SectionSocle
