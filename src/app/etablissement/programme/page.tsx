@@ -82,7 +82,7 @@ export default async function ProgrammePage({
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Layers className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-md text-text-primary">
-                Aucun niveau disponible — activez un cycle dans Cycles.
+                Aucun niveau disponible : activez d’abord un cycle, collège ou lycée.
               </p>
             </CardContent>
           </Card>
@@ -121,7 +121,7 @@ export default async function ProgrammePage({
 
               {programme.length === 0 ? (
                 <CardContent className="py-10 text-center text-body-md text-text-secondary">
-                  Aucune matière rattachée à ce niveau pour le moment.
+                  Aucune matière à ce niveau. Le programme national arrive tout seul à la création de vos classes ; ajoutez ici celles qui vous sont propres.
                 </CardContent>
               ) : (
                 <>

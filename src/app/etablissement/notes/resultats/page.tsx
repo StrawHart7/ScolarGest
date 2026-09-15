@@ -8,6 +8,7 @@ import type { Periode } from '@/services/evaluation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -98,6 +99,8 @@ export default async function ResultatsPage({
             description="Comment s'en sort une classe : moyennes par matière, moyenne du trimestre, appréciation et rang de chaque élève."
           />
         </div>
+
+        <SousTitreMobile>Comment s’en sort une classe : moyennes par matière, moyenne du trimestre, appréciation et rang.</SousTitreMobile>
         <h1 className="text-display-sm text-text-primary md:hidden">Moyennes &amp; classement</h1>
 
         <BarreListe
@@ -122,7 +125,7 @@ export default async function ResultatsPage({
               <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-sm text-text-secondary">
                 {classeOptions.length === 0
-                  ? 'Aucune classe accessible pour cette année scolaire.'
+                  ? 'Aucune classe sur cette année : créez-en une avant de consulter des résultats.'
                   : 'Sélectionnez une classe pour afficher les résultats.'}
               </p>
             </CardContent>

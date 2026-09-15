@@ -111,7 +111,7 @@ export default async function CoefficientsPage({
         {!anneeActive ? (
           <Card>
             <CardContent className="py-10 text-center text-body-md text-text-secondary">
-              Aucune année scolaire active — activez-en une avant de définir des coefficients.
+              Aucune année scolaire n’est ouverte. Un coefficient vaut pour une année donnée : il en faut une active.
             </CardContent>
           </Card>
         ) : niveaux.length === 0 ? (
@@ -119,7 +119,7 @@ export default async function CoefficientsPage({
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Calculator className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-md text-text-primary">
-                Aucun niveau disponible — activez un cycle dans Cycles.
+                Aucun niveau disponible : activez d’abord un cycle, collège ou lycée.
               </p>
             </CardContent>
           </Card>

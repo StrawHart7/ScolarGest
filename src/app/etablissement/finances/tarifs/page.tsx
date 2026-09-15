@@ -9,6 +9,7 @@ import { listTarifs, totalTarifs } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { CarteListeMobile, EnteteListe, LigneCarteMobile } from '@/components/ui/carte-liste-mobile';
@@ -85,6 +86,8 @@ export default async function TarifsPage({
             description="Combien coûte chaque frais, classe par classe. C'est d'ici que la facture d'un élève est calculée quand vous l'inscrivez."
           />
         </div>
+
+        <SousTitreMobile>Combien coûte chaque frais, classe par classe. C’est d’ici que la facture d’un élève est calculée quand vous l’inscrivez.</SousTitreMobile>
 
         <BarreListe
           placeholderRecherche="Rechercher un tarif…"

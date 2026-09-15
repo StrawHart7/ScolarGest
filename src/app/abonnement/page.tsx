@@ -239,7 +239,7 @@ export default async function AbonnementPage() {
             <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
               <CreditCard className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-sm text-text-secondary">
-                Aucun règlement enregistré pour cette période.
+                Aucun règlement encaissé sur cette période.
               </p>
             </CardContent>
           ) : (

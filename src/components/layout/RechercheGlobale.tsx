@@ -159,7 +159,9 @@ export function RechercheGlobale() {
         >
           {resultats.length === 0 ? (
             <p className="px-4 py-6 text-center text-body-sm text-text-secondary">
-              {chargement ? 'Recherche en cours…' : 'Aucun résultat.'}
+              {chargement
+                ? 'Recherche en cours…'
+                : 'Rien trouvé. Cette recherche parcourt vos élèves, vos classes et vos enseignants.'}
             </p>
           ) : (
             <ul className="max-h-80 overflow-y-auto py-1">

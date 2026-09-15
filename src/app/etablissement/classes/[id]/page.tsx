@@ -6,7 +6,18 @@ import { listElevesInscritsClasse } from '@/services/eleve';
 import { listProgramme } from '@/services/programme';
 import { listEnseignants } from '@/services/enseignant';
 import { listCreneauxClasse } from '@/services/emploi-du-temps';
+import { getResultatsClasse } from '@/services/resultats-classe';
+import { listSuiviPaiements, totauxSuivi } from '@/services/facture';
+import type { Periode } from '@/services/evaluation';
+import { SEUIL_REUSSITE } from '@/lib/statistiques';
 import { JOURS, RANGS, type Creneau } from '@/lib/emploi-du-temps';
+
+/** Les trimestres, nommés comme l'école les nomme. */
+const LIBELLE_PERIODE: Record<Periode, string> = {
+  TRIMESTRE_1: '1er trimestre',
+  TRIMESTRE_2: '2e trimestre',
+  TRIMESTRE_3: '3e trimestre',
+};
 import { GrilleEmploiDuTemps } from './GrilleEmploiDuTemps';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
@@ -50,6 +61,58 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
   }
   const peutModifierEmploiDuTemps = ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE';
 
+  /**
+   * « Comment s'en sort la 3ème ? » est l'une des quatre questions que pose un
+   * directeur, et l'écran qui porte le nom de la classe n'y répondait pas : il
+   * montrait la liste des élèves et l'emploi du temps. Ni moyenne, ni impayé.
+   *
+   * **Les trois trimestres sont lus, et c'est le plus récent qui porte des
+   * notes qui est affiché.** Figer le premier trimestre afficherait un chiffre
+   * faux de janvier à juillet ; deviner la période à partir de la date
+   * supposerait un calendrier scolaire que le produit ne connaît pas. La donnée
+   * elle-même tranche, et l'écran dit de quel trimestre il parle.
+   *
+   * Les moyennes viennent de `getResultatsClasse`, le même calcul que l'écran
+   * « Moyennes & classement ». Recalculer ici, même à l'identique, ferait courir
+   * le risque d'afficher 11,2 là où l'autre écran affiche 11,4 — et détruirait
+   * la confiance dans les deux.
+   */
+  const PERIODES: Periode[] = ['TRIMESTRE_1', 'TRIMESTRE_2', 'TRIMESTRE_3'];
+  let bilan: { periode: Periode; moyenne: number; evalues: number; reussite: number } | null = null;
+  if (peutVoirEleves && eleves.length > 0) {
+    const resultats = await Promise.all(
+      PERIODES.map((p) =>
+        getResultatsClasse(classe.id, p, classe.anneeScolaireId).catch(() => null),
+      ),
+    );
+    for (let i = PERIODES.length - 1; i >= 0; i -= 1) {
+      const r = resultats[i];
+      const notes = (r?.eleves ?? [])
+        .map((e) => e.moyenneTrimestrielle)
+        .filter((m): m is number => m !== null);
+      if (notes.length === 0) continue;
+      bilan = {
+        periode: PERIODES[i] as Periode,
+        moyenne: notes.reduce((s, m) => s + m, 0) / notes.length,
+        evalues: notes.length,
+        reussite: Math.round(
+          (notes.filter((m) => m >= SEUIL_REUSSITE).length / notes.length) * 100,
+        ),
+      };
+      break;
+    }
+  }
+
+  // Le recouvrement de la classe, avec le même service que le suivi des
+  // paiements. Le COMPTABLE y a droit, l'ENSEIGNANT non.
+  const peutVoirFinance =
+    ctx.role === 'DIRECTEUR' || ctx.role === 'SECRETAIRE' || ctx.role === 'COMPTABLE';
+  const finance = peutVoirFinance
+    ? totauxSuivi(
+        await listSuiviPaiements(classe.anneeScolaireId, { classeId: classe.id }).catch(() => []),
+      )
+    : null;
+
   return (
     <AppLayout
       items={getSidebarItems(ctx.role)}
@@ -79,6 +142,68 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
                 <Link href={`/etablissement/classes/${classe.id}/affectations`}>Affectations</Link>
               </Button>
             </div>
+
+            {/* La réponse d'abord, le dossier ensuite. Effectif, niveau
+                scolaire et recouvrement tiennent sur une rangée ; c'est ce
+                qu'on vient chercher en ouvrant une classe. */}
+            {(bilan || finance || eleves.length > 0) && (
+              <dl className="grid grid-cols-2 gap-4 border-t border-surface-border pt-4 text-body-sm lg:grid-cols-4">
+                <div>
+                  <dt className="text-text-secondary">Élèves inscrits</dt>
+                  <dd className="text-display-sm text-text-primary" data-mono>
+                    {eleves.length}
+                    {classe.capacite ? (
+                      <span className="text-body-sm text-text-secondary"> / {classe.capacite}</span>
+                    ) : null}
+                  </dd>
+                </div>
+                {bilan ? (
+                  <>
+                    <div>
+                      <dt className="text-text-secondary">
+                        Moyenne — {LIBELLE_PERIODE[bilan.periode]}
+                      </dt>
+                      <dd className="text-display-sm text-text-primary" data-mono>
+                        {bilan.moyenne.toFixed(2).replace('.', ',')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-text-secondary">Au-dessus de 10</dt>
+                      <dd className="text-display-sm text-text-primary" data-mono>
+                        {bilan.reussite} %
+                        <span className="text-body-sm text-text-secondary">
+                          {' '}
+                          sur {bilan.evalues} évalué{bilan.evalues > 1 ? 's' : ''}
+                        </span>
+                      </dd>
+                    </div>
+                  </>
+                ) : (
+                  <div className="col-span-1 lg:col-span-2">
+                    <dt className="text-text-secondary">Résultats</dt>
+                    <dd className="text-body-md text-text-secondary">
+                      Aucune note saisie pour l’instant.
+                    </dd>
+                  </div>
+                )}
+                {finance ? (
+                  <div>
+                    <dt className="text-text-secondary">Reste à recouvrer</dt>
+                    <dd
+                      className={
+                        finance.solde > 0
+                          ? 'text-display-sm text-warning'
+                          : 'text-display-sm text-text-primary'
+                      }
+                      data-mono
+                    >
+                      {Number(finance.solde).toLocaleString('fr-FR')}
+                      <span className="text-body-sm text-text-secondary"> FCFA</span>
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            )}
 
             <dl className="grid grid-cols-1 gap-4 border-t border-surface-border pt-4 text-body-sm sm:grid-cols-2">
               <div>

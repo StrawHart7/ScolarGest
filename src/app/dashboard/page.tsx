@@ -259,7 +259,7 @@ export default async function DashboardPage({
               ton: stats.academique.notesEnAttente > 0 ? 'alerte' : 'neutre',
               comparaison:
                 stats.academique.notesEnAttente > 0
-                  ? 'En attente de validation par la Secrétaire'
+                  ? 'Elles n’entrent dans aucun bulletin tant qu’elles ne sont pas validées'
                   : `${nombre(stats.academique.bulletinsGeneres)} bulletins générés`,
               href: lien('/etablissement/notes/approbation'),
             },

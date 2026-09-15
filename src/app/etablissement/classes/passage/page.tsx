@@ -53,7 +53,7 @@ export default async function PassageCohortePage({
         {!anneeSourceId ? (
           <Card>
             <CardContent className="p-6">
-              <p className="text-body-sm text-error">Aucune année scolaire disponible.</p>
+              <p className="text-body-sm text-text-secondary">Aucune année scolaire n’est ouverte. Le passage de cohorte fait monter vos élèves d’une année vers la suivante : il en faut deux.</p>
             </CardContent>
           </Card>
         ) : classesSource.length === 0 ? (
@@ -61,7 +61,7 @@ export default async function PassageCohortePage({
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-md text-text-primary">
-                Aucune classe sur l&apos;année source.
+                Aucune classe sur l’année de départ : il n’y a personne à faire monter.
               </p>
             </CardContent>
           </Card>

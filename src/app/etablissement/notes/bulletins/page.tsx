@@ -117,7 +117,7 @@ export default async function BulletinsPage({
               <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-sm text-text-secondary">
                 {classes.length === 0
-                  ? 'Aucune classe disponible pour cette année scolaire.'
+                  ? 'Aucune classe sur cette année : créez-en une avant d’éditer des bulletins.'
                   : 'Sélectionnez une classe pour afficher les élèves.'}
               </p>
             </CardContent>

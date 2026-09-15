@@ -5,6 +5,7 @@ import { listTypesFrais } from '@/services/type-frais';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -59,6 +60,8 @@ export default async function TypesFraisPage({
             description="Ce que votre école facture : scolarité, inscription, cantine… Vous fixerez ensuite leur montant classe par classe."
           />
         </div>
+
+        <SousTitreMobile>Ce que votre école facture : scolarité, inscription, cantine… Vous fixerez ensuite leur montant classe par classe.</SousTitreMobile>
 
         <BarreListe
           placeholderRecherche="Libellé ou description…"

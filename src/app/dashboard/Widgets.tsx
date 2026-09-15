@@ -218,7 +218,7 @@ export function FluxActivite({ evenements }: { evenements: EvenementAffiche[] })
       <CardContent>
         {evenements.length === 0 ? (
           <p className="py-6 text-center text-body-sm text-text-secondary">
-            Aucune activité enregistrée pour le moment.
+            Rien ne s’est encore passé. Les inscriptions, les encaissements et les notes validées apparaîtront ici au fil de l’eau.
           </p>
         ) : (
           <ol className="relative space-y-4 before:absolute before:bottom-3 before:left-[15px] before:top-3 before:w-px before:bg-surface-border">

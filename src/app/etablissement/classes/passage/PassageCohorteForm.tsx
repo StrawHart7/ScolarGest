@@ -192,7 +192,7 @@ export function PassageCohorteForm({
 
       {decisions.length === 0 ? (
         <p className="p-6 text-body-sm text-text-secondary">
-          Aucune inscription active à traiter dans cette classe.
+          Aucun élève inscrit dans cette classe : il n’y a personne à faire monter.
         </p>
       ) : (
         <Table>

@@ -5,6 +5,7 @@ import { bilanCloture, listAnneesScolaires, type BilanCloture } from '@/services
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -56,6 +57,8 @@ export default async function AnneesScolairesPage() {
             actions={estDirecteur && <AnneeScolaireForm />}
           />
         </div>
+
+        <SousTitreMobile>Une seule année est active à la fois. Tout s’y rattache : classes, tarifs, matricules.</SousTitreMobile>
 
         {/* Sur mobile, la création (qui ouvre un modal) prend la forme d'un
             bouton flottant, comme les listes menant à une page. Le bouton

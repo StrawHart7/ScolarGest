@@ -76,7 +76,7 @@ export function CarteEncaissements({ serie }: { serie: SerieAnnuelle }) {
         variation={serie.variation}
       />
       {serie.total === 0 ? (
-        <Vide message="Aucun paiement enregistré sur cette année scolaire." />
+        <Vide message="Aucun encaissement pour l’instant : la courbe se remplira au premier versement." />
       ) : (
         <CardContent>
           <CourbeAire id="encaissements" points={serie.points} format="fcfa" />
@@ -110,7 +110,7 @@ export function CarteEffectifs({ classes }: { classes: EffectifClasse[] }) {
 
   const resume =
     classes.length === 0
-      ? 'Aucune classe créée pour cette année scolaire'
+      ? 'Aucune classe pour l’instant'
       : `${classes.length} classes, ${total.toLocaleString('fr-FR')} élèves${
           alertes.length > 0 ? ` — ${alertes.join(', ')}` : ''
         }`;

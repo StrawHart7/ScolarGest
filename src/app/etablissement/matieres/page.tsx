@@ -4,6 +4,7 @@ import { listMatieres } from '@/services/matiere';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -58,6 +59,8 @@ export default async function MatieresPage({
             description="Ce que votre école enseigne. Le programme national les apporte à la création de vos classes ; ajoutez ici celles qui vous sont propres."
           />
         </div>
+
+        <SousTitreMobile>Ce que votre école enseigne. Le programme national les apporte à la création de vos classes.</SousTitreMobile>
 
         <BarreListe
           placeholderRecherche="Nom, code ou description…"

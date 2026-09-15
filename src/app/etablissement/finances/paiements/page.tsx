@@ -6,6 +6,7 @@ import { listPaiements, type StatutPaiement } from '@/services/paiement';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -101,6 +102,8 @@ export default async function HistoriqueVersementsPage({
             description="Tous les encaissements de l'année scolaire, du plus récent au plus ancien. Un versement annulé reste visible : il n'est jamais supprimé."
           />
         </div>
+
+        <SousTitreMobile>Tous les encaissements de l’année, du plus récent au plus ancien. Un versement annulé reste visible.</SousTitreMobile>
 
         <BarreListe
           placeholderRecherche="Élève, matricule ou référence…"

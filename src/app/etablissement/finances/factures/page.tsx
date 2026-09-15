@@ -7,6 +7,7 @@ import { listSuiviPaiements, totauxSuivi, type StatutFacture } from '@/services/
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SousTitreMobile } from '@/components/layout/SousTitreMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -191,6 +192,8 @@ export default async function SuiviPaiementsPage({
             description="Qui a payé, qui doit encore. Une ligne par élève : total dû, déjà encaissé, reste à recouvrer."
           />
         </div>
+
+        <SousTitreMobile>Qui a payé, qui doit encore. Une ligne par élève : total dû, déjà encaissé, reste à recouvrer.</SousTitreMobile>
 
         <BarreListe
           placeholderRecherche="Élève, matricule ou classe…"
