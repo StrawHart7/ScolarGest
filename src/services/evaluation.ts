@@ -24,7 +24,12 @@ export interface CreerEvaluationInput {
   matiereId: string;
   type: TypeEvaluation;
   periode: Periode;
-  numero: number;
+  /**
+   * Déduit quand il est absent — et il l'est depuis le 2026-09-15, le
+   * formulaire ne le demande plus. Voir `prochainNumero`. L'import le passe
+   * encore explicitement, lui : un fichier porte ses propres numéros.
+   */
+  numero?: number;
   date: string;
 }
 
@@ -87,12 +92,59 @@ export async function listEvaluations(
  * periode, numero). Validation applicative: INTERROGATION → numero <= 3
  * (Docs/07 §5, au plus 3 interrogations par matière/période).
  */
+/**
+ * Le numéro suivant, pour ce couple classe × matière, ce type et cette période.
+ *
+ * ## Pourquoi il n'est plus saisi
+ *
+ * Le formulaire demandait « Numéro », avec un plafond de 3 sur les
+ * interrogations. Les deux étaient faux.
+ *
+ * Le plafond, parce que le moteur divise par le **nombre** d'interrogations :
+ * quatre donnent un résultat aussi cohérent que trois, et un professeur qui en
+ * fait une quatrième n'avait aucun recours. Le numéro, parce qu'il
+ * n'apparaît **nulle part** — ni sur le bulletin, ni dans le calcul des
+ * moyennes, vérifié : `numero` n'est cité ni dans `calcul-moyennes` ni dans
+ * aucun gabarit PDF. On demandait un renseignement à chaque saisie pour ne
+ * jamais s'en servir.
+ *
+ * ## Une seule composition, un seul devoir par période
+ *
+ * « Composition du 1er trimestre » existe ; « composition 2 » n'existe pas dans
+ * une école togolaise, le devoir non plus. Ces deux types reçoivent donc
+ * toujours `1`, et **c'est la contrainte d'unicité de `0001` qui fait le
+ * travail** — `(classeId, matiereId, type, periode, numero)`. Aucune migration,
+ * aucune règle applicative à maintenir en double : la base refuse le doublon,
+ * et le message ci-dessous le dit en français.
+ *
+ * Les interrogations, elles, s'incrémentent sans plafond.
+ */
+async function prochainNumero(
+  classeId: string,
+  matiereId: string,
+  type: TypeEvaluation,
+  periode: Periode,
+): Promise<number> {
+  if (type !== 'INTERROGATION') return 1;
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('evaluation')
+    .select('numero')
+    .eq('classeId', classeId)
+    .eq('matiereId', matiereId)
+    .eq('type', type)
+    .eq('periode', periode)
+    .order('numero', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+
+  return ((data as { numero: number } | null)?.numero ?? 0) + 1;
+}
+
 export async function creerEvaluation(input: CreerEvaluationInput): Promise<string> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'ENSEIGNANT');
-
-  if (input.type === 'INTERROGATION' && input.numero > 3) {
-    throw new Error('Au maximum 3 interrogations par matière et par période.');
-  }
 
   await verifierPerimetreEnseignant(
     ctx.role,
@@ -103,6 +155,10 @@ export async function creerEvaluation(input: CreerEvaluationInput): Promise<stri
     input.anneeScolaireId,
   );
 
+  const numero =
+    input.numero ??
+    (await prochainNumero(input.classeId, input.matiereId, input.type, input.periode));
+
   const supabase = createClient();
   const { data, error } = await supabase
     .from('evaluation')
@@ -112,14 +168,28 @@ export async function creerEvaluation(input: CreerEvaluationInput): Promise<stri
       matiereId: input.matiereId,
       type: input.type,
       periode: input.periode,
-      numero: input.numero,
+      numero,
       date: input.date,
     })
     .select('id')
     .single();
   if (error) {
     if (error.code === '23505') {
-      throw new Error('Une évaluation identique existe déjà (classe, matière, type, période, numéro).');
+      // Le doublon ne peut plus venir que d'un second devoir ou d'une seconde
+      // composition sur la même période : le numéro n'étant plus saisi, il n'y
+      // a rien à corriger dans le formulaire. Le message doit donc dire ce qui
+      // existe déjà, pas énumérer les colonnes d'une contrainte.
+      if (input.type === 'COMPOSITION') {
+        throw new Error(
+          'Une composition existe déjà pour cette matière sur cette période. Il n’y en a qu’une par période.',
+        );
+      }
+      if (input.type === 'DEVOIR') {
+        throw new Error(
+          'Un devoir existe déjà pour cette matière sur cette période. Il n’y en a qu’un par période.',
+        );
+      }
+      throw new Error('Une évaluation identique existe déjà pour cette matière sur cette période.');
     }
     throw error;
   }

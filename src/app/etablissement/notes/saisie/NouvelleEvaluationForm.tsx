@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,6 @@ export function NouvelleEvaluationForm({
 }) {
   const [error, formAction] = useFormState(creerEvaluationAction, null);
   const [type, setType] = useState<TypeEvaluation>('INTERROGATION');
-  const [numero, setNumero] = useState('1');
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -41,7 +39,19 @@ export function NouvelleEvaluationForm({
       <input type="hidden" name="matiereId" value={matiereId} />
       <input type="hidden" name="periode" value={periode} />
 
-      <div className="grid grid-cols-1 gap-gutter sm:grid-cols-3">
+      {/*
+        Le champ « Numéro » est parti le 2026-09-15, avec son plafond de trois
+        interrogations. Le numéro n'apparaît nulle part — ni sur le bulletin, ni
+        dans le calcul des moyennes — et le plafond n'avait pas de sens : le
+        moteur divise par le nombre d'interrogations, quatre donnent un résultat
+        aussi cohérent que trois.
+
+        Il est déduit côté serveur : les interrogations s'incrémentent, le
+        devoir et la composition valent toujours 1, ce qui les rend uniques par
+        période — « composition du 1er trimestre » existe, « composition 2 »
+        non.
+      */}
+      <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="type">Type</Label>
           <Select value={type} onValueChange={(v) => setType(v as TypeEvaluation)} name="type">
@@ -58,26 +68,25 @@ export function NouvelleEvaluationForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="numero">
-            Numéro {type === 'INTERROGATION' && <span className="normal-case text-text-secondary">(max 3)</span>}
-          </Label>
-          <Input
-            id="numero"
-            name="numero"
-            type="number" inputMode="numeric"
-            min={1}
-            max={type === 'INTERROGATION' ? 3 : undefined}
-            value={numero}
-            onChange={(e) => setNumero(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
           <Label htmlFor="date">Date</Label>
           <DatePicker id="date" name="date" />
         </div>
       </div>
+
+      {/*
+        Ce qu'il fallait dire à la place du numéro. Des professeurs notent sur
+        10 et faussent toute la moyenne de la classe, sans que rien ne les
+        arrête : la saisie accepte 0 à 20, et une note sur 10 y entre sans
+        broncher. Le dire au moment de créer l'évaluation, c'est le dire avant
+        la faute plutôt qu'après.
+      */}
+      <p className="rounded-md bg-primary-container/10 p-3 text-body-sm text-text-secondary">
+        Les notes se saisissent <strong className="text-text-primary">sur 20</strong>, quel que
+        soit le type d&apos;évaluation. Une note sur 10 fausserait la moyenne de la classe.
+        {type === 'INTERROGATION'
+          ? ' Vous pouvez créer autant d’interrogations que nécessaire : la moyenne en tient compte.'
+          : ' Il n’y en a qu’une par période.'}
+      </p>
 
       {error && <p className="text-body-sm text-error">{error}</p>}
       <div className="flex justify-end">

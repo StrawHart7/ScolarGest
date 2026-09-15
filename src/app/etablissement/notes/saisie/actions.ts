@@ -4,28 +4,24 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { creerEvaluation } from '@/services/evaluation';
 
-const creerEvaluationSchema = z
-  .object({
-    anneeScolaireId: z.string().uuid('Année scolaire requise'),
-    classeId: z.string().uuid('Classe requise'),
-    matiereId: z.string().uuid('Matière requise'),
-    type: z.enum(['INTERROGATION', 'DEVOIR', 'COMPOSITION'], { errorMap: () => ({ message: 'Type requis' }) }),
-    periode: z.enum(['TRIMESTRE_1', 'TRIMESTRE_2', 'TRIMESTRE_3'], {
-      errorMap: () => ({ message: 'Période requise' }),
-    }),
-    numero: z.coerce.number().int('Numéro invalide').min(1, 'Numéro invalide'),
-    date: z.string().min(1, 'Date requise'),
-  })
-  .refine((d) => d.type !== 'INTERROGATION' || d.numero <= 3, {
-    message: 'Au maximum 3 interrogations par matière et par période.',
-    path: ['numero'],
-  });
+const creerEvaluationSchema = z.object({
+  anneeScolaireId: z.string().uuid('Année scolaire requise'),
+  classeId: z.string().uuid('Classe requise'),
+  matiereId: z.string().uuid('Matière requise'),
+  type: z.enum(['INTERROGATION', 'DEVOIR', 'COMPOSITION'], { errorMap: () => ({ message: 'Type requis' }) }),
+  periode: z.enum(['TRIMESTRE_1', 'TRIMESTRE_2', 'TRIMESTRE_3'], {
+    errorMap: () => ({ message: 'Période requise' }),
+  }),
+  // Ni `numero` ni plafond de trois interrogations depuis le 2026-09-15 : le
+  // service le déduit, et le devoir comme la composition sont uniques par
+  // période — par la contrainte de `0001`, pas par une règle applicative.
+  date: z.string().min(1, 'Date requise'),
+});
 
 /**
- * Crée une évaluation puis redirige vers la grille de saisie. Le service
- * `creerEvaluation` (Milestone 0, non modifié) applique déjà la même règle
- * INTERROGATION <= 3 et le contrôle de périmètre enseignant — la validation
- * Zod ici ne fait que donner une erreur de formulaire plus tôt/claire.
+ * Crée une évaluation puis redirige vers la grille de saisie. Le contrôle de
+ * périmètre enseignant reste au service ; la validation Zod ici ne fait que
+ * rendre l'erreur de formulaire plus tôt et plus lisible.
  */
 export async function creerEvaluationAction(
   _prevState: string | null,
@@ -37,7 +33,6 @@ export async function creerEvaluationAction(
     matiereId: formData.get('matiereId'),
     type: formData.get('type'),
     periode: formData.get('periode'),
-    numero: formData.get('numero'),
     date: formData.get('date'),
   });
   if (!parsed.success) {
