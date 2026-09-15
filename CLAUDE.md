@@ -3064,3 +3064,190 @@ Sur desktop le hook est inactif (keyboardOffset reste 0).
 **Clavier numérique** : sur tout `<Input type="number">` affiché sur mobile,
 ajouter `inputMode="numeric"` pour ouvrir le clavier numérique au lieu du
 clavier alphanumérique.
+
+
+### La RLS se paie ligne par ligne, et elle se payait deux fois
+
+Migration `20260915192131`, mesurée le 2026-09-15. `/dashboard` tombait par
+intermittence, et le site entier était devenu lent. La cause n'était pas une
+régression de code : c'est le volume qui a franchi un seuil.
+
+    Seq Scan on note  (actual time=23303..23303 rows=0)
+      Filter: (is_super_admin() OR ... OR is_super_admin() OR ...)
+              AND (statut = 'EN_ATTENTE')
+      Rows Removed by Filter: 28132
+      Buffers: shared hit=507
+
+**23,3 secondes pour rendre zéro ligne, et 507 buffers.** Ce n'est pas de
+l'I/O : c'est du CPU passé à rejouer `is_super_admin()` sur chacune des 28 132
+lignes, chaque appel reparsant le JWT. Après correction : **196 ms**.
+
+**Une fonction `auth_*()` sans argument doit s'écrire `(select f())` dans une
+politique.** Elle est `STABLE`, donc constante pour toute la requête — mais
+placée dans un `OR` à côté d'un `EXISTS` corrélé, le planificateur ne peut pas
+la hisser. Le sous-`select` la transforme en InitPlan, évalué une fois. C'est
+le lint Supabase `auth_rls_initplan`, et `get_advisors('performance')` le
+signale nommément.
+
+`est_affecte(classe, matiere, annee)` n'est **pas** enveloppée : elle prend des
+arguments qui varient par ligne. L'envelopper changerait le sens, pas la
+vitesse.
+
+**Une politique `for all` est jouée sur les lectures aussi.** Douze tables
+portaient le couple `_lecture` (SELECT) + `_ecriture` (ALL) : chaque `select`
+évaluait les deux, et tout le travail était fait deux fois. Les politiques
+d'écriture sont désormais découpées en INSERT / UPDATE / DELETE.
+
+Trois précautions, chacune payée :
+
+- **Vérifier que la politique d'écriture est plus étroite que celle de lecture
+  avant de lui retirer SELECT.** Ici `_ecriture` reprenait la condition
+  d'établissement et y ajoutait un rôle : l'union valait donc `_lecture`, et le
+  découpage ne change aucun accès. Contrôlé expression par expression, puis
+  mesuré — comptage sous RLS contre comptage de vérité sur les douze tables,
+  identique partout.
+- **`select ... for update` est évalué contre la politique d'UPDATE.** La
+  politique UPDATE doit donc garder exactement le `using` de l'ancienne `for
+  all`, sans quoi `fn_enregistrer_paiement` répond de nouveau « Facture
+  introuvable » sur une facture parfaitement lisible (piège du 2026-09-11).
+- **Ne pas reprendre les codes que `postgrest-js` reprend déjà** (503 et 520) :
+  les deux mécanismes se multiplieraient.
+
+Les `*_tenant` (`classe`, `annee_scolaire`, `matiere`…) restent en `for all` :
+elles sont la **seule** politique de leur table, et leur retirer SELECT rendrait
+la table invisible.
+
+### Une référence d'erreur peut n'identifier aucune erreur
+
+`src/lib/supabase/reprise-reseau.ts`, écrit le 2026-09-15.
+
+« Une erreur est survenue — Référence 5381 », deux jours et deux compilations
+d'écart, puis la page se charge au clic sur « Réessayer ». **5381 n'est pas un
+identifiant de panne : c'est la graine du hachage de Next**
+(`next/dist/compiled/string-hash`), donc le hachage de la chaîne vide. Next
+calcule le digest sur `err.message + err.stack` ; 5381 signifie que ce qui a été
+levé n'avait **ni message ni pile**. Toute panne de cette famille, sur
+n'importe quelle page, porte la même référence.
+
+La chaîne, vérifiée dans le code de la bibliothèque :
+
+1. `select('id', { count: 'exact', head: true })` émet une requête **HEAD**
+   (`PostgrestQueryBuilder`). Une réponse HEAD ne porte jamais de corps, par la
+   norme HTTP. Or `diagnostiquer()`, `getProgressionOnboarding()` et `compter()`
+   ne sont faits **que** de comptages de ce genre.
+2. Devant une réponse en erreur au corps vide, `postgrest-js` retombe sur
+   `error = { message: body }` — un objet nu, sans `stack`.
+3. Nos services propagent tel quel (`if (error) throw error`). Next hache
+   `'' + ''`.
+
+D'où la couche de reprise, posée sous le client serveur : elle rejoue les
+**lectures** sur 500/502/504 — une seule fois et 120 ms, les valeurs de
+`src/lib/reessayer.ts`, pour ne pas faire cohabiter deux doctrines — et surtout
+elle **donne un corps** aux réponses muettes, avec un code `SG_HTTP_<statut>`.
+C'est le seul moyen de corriger la centaine de `if (error) throw error` d'un
+coup sans les toucher.
+
+Deux bornes : **jamais une écriture** (un versement rejoué encaisse deux fois),
+et **jamais un 404 au corps vide**, dont `postgrest-js` se sert pour reconnaître
+« aucune ligne » — lui inventer un message ferait échouer `maybeSingle()` sur
+toute absence.
+
+### Le découpage de l'année appartient au lycée, pas à l'école
+
+Décision produit du 2026-09-15, après une première règle abandonnée le jour
+même. « Le régime semestriel, c'est seulement au lycée que c'est possible. Au
+collège, c'est toujours et toujours le régime trimestriel. »
+
+La règle de la veille — « aucun mélange, toute l'école à l'un ou à l'autre » —
+ne pouvait pas tenir avec celle-ci : un complexe collège-lycée au semestre
+**mélange** forcément, puisque son collège reste au trimestre.
+
+**`etablissement."regimePeriodes"` décrit le lycée**, et lui seul. Aucune
+migration : c'est le sens de la colonne qui s'est rétréci, et toutes les écoles
+en base y portent `TRIMESTRE`.
+
+`src/lib/periodes.ts` porte les trois fonctions, sans dépendance :
+
+- `regimeDuCycle(cycle, regimeLycee)` — **la seule à employer quand une classe
+  est en vue.** Un cycle inconnu vaut TRIMESTRE : se tromper dans ce sens montre
+  une période vide de trop, dans l'autre cela **cacherait** un troisième
+  trimestre déjà noté, dont les notes comptent pourtant dans la moyenne
+  annuelle.
+- `regimeDominant(cyclesActifs, regimeLycee)` — pour les deux seuls écrans sans
+  aucune classe (`/statistiques`, le suivi de remise). On ne dit « semestre »
+  que si toute l'école y est.
+- `usePeriodes(cycle)` et `useNommerPeriode()` côté client. La seconde existe
+  parce qu'un hook ne s'appelle pas dans une boucle : les files d'approbation
+  mêlent collège et lycée dans le même tableau.
+
+**`getRegimePeriodes()` a été supprimée** : son nom disait « le régime de
+l'école » alors qu'elle rendait celui du lycée. Une fonction dont le nom ment
+est pire qu'une fonction absente — elle sera appelée de bonne foi. Les appelants
+passent par `getContexteRegime()`, qui lit le régime **et** les cycles actifs en
+un seul aller-retour, et croisent eux-mêmes avec le cycle de leur classe.
+
+`definirRegimePeriodes` refuse le semestre à une école sans lycée : sans cette
+garde, la valeur dormirait en base et prendrait effet d'un coup, silencieusement,
+le jour où l'école ouvrirait son lycée.
+
+### Une inscription ne se recrée pas : elle se change
+
+Migration `20260915211046`. `inscription` porte
+`unique("eleveId", "anneeScolaireId")` — une seule ligne par élève et par année,
+quel que soit son statut — et `fn_inscrire_eleve` refuse dès qu'une ligne
+existe, **sans regarder le statut**.
+
+Conséquence constatée par le testeur : une école qui s'était trompée de classe
+annulait l'inscription, puis « Inscrire » répondait « Cet élève est déjà
+inscrit ». Annuler était réversible en théorie et définitif en pratique —
+`reinscrireEleve` existait, gardée et testée, mais **appelée par aucun écran**.
+
+`fn_changer_classe_inscription` est le chemin unique : elle change la classe,
+réactive l'inscription si elle était annulée, **annule l'ancienne facture**
+(jamais de suppression, invariant financier), en émet une nouvelle depuis les
+tarifs de la classe d'arrivée et **y reporte les versements**.
+
+- **La facture est le vrai sujet.** `reinscrireEleve` changeait `classeId` sans
+  y toucher : un élève passé de la 6e à la 2nde aurait gardé les frais de la 6e.
+  Une erreur d'affichage se voit ; une erreur de montant se découvre au
+  recouvrement.
+- **Le statut ne se recalcule pas sur place** : `fn_recalculer_statut_facture`
+  fait foi, comme pour `fn_enregistrer_paiement`.
+- **Le surplus est renvoyé, pas tu.** Si la classe d'arrivée coûte moins cher
+  que ce qui a déjà été versé, la famille est en avance : la fonction le calcule
+  pour que l'écran le dise.
+- Les **reçus déjà édités ne sont pas périmés** : un reçu prouve qu'un versement
+  a été reçu, et cela reste vrai. Seul le numéro de facture qu'il mentionne a
+  changé.
+
+Côté écran, `/eleves/[id]/inscription` porte les deux gestes : la page lit
+l'état de l'élève et choisit l'action, le formulaire ne devine rien. Et le
+bouton de la fiche ne disparaît plus quand l'élève est inscrit — il devient
+« Changer de classe ».
+
+### Les trois sections ouvrent un écran, pas un menu
+
+`BarreSection` (`src/components/layout/BarreSection.tsx`) porte les autres
+écrans d'un domaine en rangée, au-dessus de celui qu'on regarde. Finances ouvre
+le suivi des paiements, Notes la saisie, **Établissement les classes**.
+
+Établissement a rejoint le motif le 2026-09-15, et il lui manquait seulement
+d'être monté : la section était déclarée dans `SECTIONS` avec ses dix blocs, et
+aucun écran ne les rendait. À la place, neuf pages portaient un « Retour à la
+configuration » posé en dur — une école entièrement configurée était donc
+renvoyée vers sa checklist depuis chacun de ses écrans.
+
+**`BarreEtablissement` enveloppe `BarreSection` pour cette section seule** :
+« Configuration » quitte la rangée dès que les neuf réglages indispensables sont
+faits. `blocsSection` filtre par rôle, et le rôle ne sait pas cela — c'est un
+état de l'établissement, passé en `exclure`. L'entrée retirée reste atteignable
+par son adresse : on la range, on ne la ferme pas.
+
+`socleComplet()` délègue à `etatSocle()`, mémoïsé par requête, plutôt que de
+sonder à part : deux listes de réglages finiraient par diverger. Son repli est
+**`false`** — afficher une entrée de trop coûte moins cher que retirer le seul
+chemin vers ce qui reste à régler.
+
+**Une félicitation se mérite une fois.** L'écran de configuration affichait des
+cotillons à chaque ouverture ; c'est le rôle d'`EcranFinal` à la sortie de
+`/demarrage`, et le rejouer le transforme en décor à traverser.

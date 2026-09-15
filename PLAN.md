@@ -692,6 +692,79 @@ réécrites dans ce format.
 
 ---
 
+---
+
+### Fonctionnalité — Parler au directeur : section Établissement, régime par cycle, et le jour où la RLS a lâché
+
+**Statut** : Terminée (2026-09-15) — branche `feat/soko-parler-au-directeur`,
+**non fusionnée**, en attente du verdict de preview de l'utilisateur.
+
+**Objectif** : traiter le retour du testeur sur le parcours complet
+d'onboarding — vocabulaire, navigation, et les pannes rencontrées en chemin.
+
+**Livrables** :
+
+- [x] **Champ absent d'un formulaire** — `formData.get` rend `null` et non
+      `undefined` : `z.string().optional()` refusait toute création de tarif sur
+      un frais existant. `.nullish()`. Dix-neuf cas latents ailleurs, signalés
+      et volontairement non corrigés (leur champ est toujours rendu).
+- [x] **Frontière client/serveur** — `AbonnementBanner` (serveur) important une
+      **valeur** depuis un module `'use client'` faisait tomber toutes les pages
+      montant `AppLayout`. Vocabulaire descendu dans `lib/bandeau-abonnement.ts`,
+      et `frontiere-client-serveur.test.ts` rend la faute impossible.
+- [x] **Reprise réseau et erreurs muettes** (`lib/supabase/reprise-reseau.ts`) —
+      « Référence 5381 » n'identifiait rien : c'est le hachage de la chaîne
+      vide. Les réponses PostgREST en erreur au corps vide reçoivent désormais un
+      message et un code `SG_HTTP_*`, et les lectures transitoires sont rejouées.
+      Douze tests, falsifiés un à un.
+- [x] **Politiques RLS hissées et allégées** (migration `20260915192131`,
+      **appliquée**) — `is_super_admin()` réévalué sur 28 132 lignes, et les
+      politiques d'écriture jouées sur les lectures. **23 329 ms → 196 ms** sur
+      la requête qui faisait tomber `/dashboard`. Visibilité vérifiée identique
+      sur les douze tables, `select ... for update` vérifié, sonde de séparation
+      des rôles au vert (6 refus sur 6).
+- [x] **Section Établissement sur le modèle de Finances** — `BarreSection`
+      montée sur les huit écrans de la section, Classes en page d'entrée, sept
+      « Retour à la configuration » remplacés, et « Configuration » qui quitte la
+      rangée dès que les neuf réglages indispensables sont faits.
+- [x] **Écran de configuration** — l'écran de félicitations rejoué à chaque
+      ouverture est remplacé par une carte de progression.
+- [x] **Régime de périodes par cycle** — le collège est au trimestre, toujours ;
+      le lycée choisit. `etablissement."regimePeriodes"` décrit désormais le
+      lycée seul, **sans migration**. La période se nomme d'après le cycle de la
+      classe : saisie, moyennes, bulletins, files d'approbation, PDF.
+      `getRegimePeriodes()` supprimée — son nom mentait.
+- [x] **Changer un élève de classe** (migration `20260915211046`, **appliquée**)
+      — `unique(eleveId, anneeScolaireId)` plus un `fn_inscrire_eleve` aveugle au
+      statut enfermaient toute école qui s'était trompée de classe.
+      `fn_changer_classe_inscription` change la classe, réactive une inscription
+      annulée, annule l'ancienne facture, en émet une nouvelle aux tarifs de la
+      classe d'arrivée et y reporte les versements.
+
+**Décisions de l'utilisateur, tranchées en séance** :
+- Le régime semestriel est **propre au lycée** ; le collège est trimestriel sans
+  exception. Cela remplace la règle « aucun mélange » posée la veille, qui ne
+  pouvait pas coexister avec celle-ci.
+- Lors d'un changement de classe, **les versements suivent l'élève** sur la
+  nouvelle facture, plutôt que de bloquer le changement ou de les laisser sur la
+  facture annulée.
+- Les deux migrations ont été appliquées sur la base réelle avec son aval
+  explicite.
+
+**Reste ouvert** :
+- Les reçus déjà édités mentionnent une facture annulée après un changement de
+  classe. Non traité : un reçu prouve un versement reçu, ce qui reste vrai.
+- `/abonnement` et `/rapports` sont des blocs de la section Établissement mais
+  ne portent pas la rangée — la question « ce que le COMPTABLE doit y voir » est
+  ouverte.
+- Six points de finition transmis à VERNI (`messages-agents/VERNI.md`), dont la
+  rangée d'Établissement qui porte dix entrées là où `BarreSection` en visait
+  cinq.
+
+**DoD** : lint, typecheck et 584 tests verts ; instantané de la matrice
+régénéré et relu à chaque changement de garde ; les deux migrations appliquées
+et mesurées ; rien sur `main`.
+
 ### Fonctionnalité — Peaufinage responsive (mobile actuel + desktop)
 
 **Statut** : Terminée (2026-08-22)
