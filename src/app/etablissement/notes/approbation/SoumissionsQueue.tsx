@@ -56,7 +56,12 @@ export function SoumissionsQueue({ soumissions }: { soumissions: EvaluationSoumi
           <LigneCarteMobile
             key={s.evaluationId}
             titre={s.classeNom}
-            sousTitre={`${s.matiereNom} · ${nommerEvaluation(s.evaluationType, s.numero)} · ${s.nombreNotes} note(s)`}
+            // La période était sur le tableau et pas sur la carte : le téléphone
+            // ne disait donc pas de quel trimestre venaient les notes qu'on
+            // s'apprête à valider. Elle suit le titre — la classe — de près, ce
+            // qui est exactement ce qui rend lisible qu'une 6e soit au trimestre
+            // pendant qu'une 2nde est au semestre.
+            sousTitre={`${s.matiereNom} · ${nommerEvaluation(s.evaluationType, s.numero)} · ${nommer(s.periode, s.classeCycle)} · ${s.nombreNotes} note(s)`}
             actions={
               <Button size="sm" onClick={() => setSelected(s)}>
                 Examiner

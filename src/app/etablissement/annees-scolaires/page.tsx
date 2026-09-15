@@ -47,7 +47,7 @@ export default async function AnneesScolairesPage() {
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <BarreEtablissement role={ctx.role} actif="/etablissement/annees-scolaires" />
 
         <div className="hidden md:block">

@@ -13,6 +13,7 @@ import type { Periode } from '@/services/evaluation';
 import { formaterCellule, type Rapport } from '@/lib/export/rapport';
 import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BarreEtablissement } from '@/components/layout/BarreEtablissement';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -139,6 +140,14 @@ export default async function RapportsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
+        {/*
+          Même raison que sur `/abonnement` : les rapports appartiennent à la
+          section Établissement mais vivent à la racine. La rangée ne se montre
+          qu'aux rôles qui ont la section — ni le Comptable ni l'Enseignant, qui
+          arrivent ici par le premier niveau de leur barre latérale.
+        */}
+        <BarreEtablissement role={ctx.role} actif="/rapports" />
+
         <div>
           <h1 className="text-display-sm text-text-primary">Rapports et exports</h1>
           <p className="text-body-sm text-text-secondary md:text-body-md">
