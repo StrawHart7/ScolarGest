@@ -139,10 +139,11 @@ export function AjouterResponsableForm({ eleveId }: { eleveId: string }) {
     >
       <input type="hidden" name="eleveId" value={eleveId} />
       <ChampsResponsable prefixe="ajout" />
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="lienParente">Lien de parenté</Label>
-        <Input id="lienParente" name="lienParente" placeholder="Père, Mère, Oncle…" required />
-      </div>
+      {/*
+        « Lien de parenté » retiré le 2026-09-15 : le champ « Type » de
+        `ChampsResponsable` porte déjà père, mère ou tuteur. La colonne en base
+        reste, remplie depuis le type côté action.
+      */}
       <div className="flex items-center gap-2">
         <Checkbox id="principal" name="principal" />
         <Label htmlFor="principal" className="cursor-pointer">

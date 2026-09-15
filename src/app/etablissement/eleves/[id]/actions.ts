@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { archiverEleve } from '@/services/eleve';
 import { annulerInscription } from '@/services/inscription';
 import { linkResponsableEleve, updateResponsable } from '@/services/responsable';
+import { lienParenteDepuisType } from '@/lib/responsables';
 
 const idSchema = z.string().uuid();
 
@@ -93,9 +94,7 @@ export async function ajouterResponsableAction(
   donnees: FormData,
 ): Promise<string | null> {
   const eleveId = String(donnees.get('eleveId') ?? '');
-  const lienParente = String(donnees.get('lienParente') ?? '').trim();
   if (!eleveId) return 'Élève introuvable.';
-  if (!lienParente) return 'Lien de parenté requis.';
 
   const parsed = responsableSchema.safeParse({
     nom: donnees.get('nom'),
@@ -119,7 +118,10 @@ export async function ajouterResponsableAction(
       adresse: parsed.data.adresse || undefined,
       profession: parsed.data.profession || undefined,
       type: parsed.data.type,
-      lienParente,
+      // `eleve_responsable."lienParente"` est `not null` depuis `0001` et
+      // reste : la colonne porte l'historique de toutes les fiches déjà
+      // saisies. Elle se déduit désormais du type.
+      lienParente: lienParenteDepuisType(parsed.data.type),
       principal: donnees.get('principal') === 'on',
     });
   } catch (erreur) {

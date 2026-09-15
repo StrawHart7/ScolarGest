@@ -10,6 +10,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { BarreAction } from '@/components/tactile/barre-action';
+import { lienParenteDepuisType } from '@/lib/responsables';
 import { creerEleve } from './actions';
 
 interface ResponsableDraft {
@@ -19,7 +20,6 @@ interface ResponsableDraft {
   email: string;
   profession: string;
   type: 'PERE' | 'MERE' | 'TUTEUR' | 'AUTRE';
-  lienParente: string;
   principal: boolean;
 }
 
@@ -31,7 +31,6 @@ function newResponsable(principal: boolean): ResponsableDraft {
     email: '',
     profession: '',
     type: 'PERE',
-    lienParente: '',
     principal,
   };
 }
@@ -75,7 +74,6 @@ export function EleveForm({
   const [sexe, setSexe] = useState<'M' | 'F' | ''>('');
   const [lieuNaissance, setLieuNaissance] = useState('');
   const [nationalite, setNationalite] = useState('');
-  const [ancienMatricule, setAncienMatricule] = useState('');
   const [responsables, setResponsables] = useState<ResponsableDraft[]>([newResponsable(true)]);
 
   function updateResponsable(index: number, patch: Partial<ResponsableDraft>) {
@@ -107,13 +105,15 @@ export function EleveForm({
     sexe: sexe || undefined,
     lieuNaissance: lieuNaissance || undefined,
     nationalite: nationalite || undefined,
-    ancienMatricule: ancienMatricule || undefined,
     // dateNaissance is submitted separately via the DatePicker's own hidden
     // input (name="dateNaissance") and merged server-side — see actions.ts.
     anneeScolaireIdPourMatricule: anneeScolaireId,
     classeId: classeId && classeId !== SANS_CLASSE ? classeId : undefined,
     responsables: responsables.map((r) => ({
       ...r,
+      // La colonne `lienParente` est `not null` en base : elle est remplie
+      // depuis le type, qui porte déjà la réponse.
+      lienParente: lienParenteDepuisType(r.type),
       email: r.email || undefined,
       telephone: r.telephone || undefined,
       profession: r.profession || undefined,
@@ -201,14 +201,14 @@ export function EleveForm({
             <Label htmlFor="nationalite">Nationalité</Label>
             <Input id="nationalite" value={nationalite} onChange={(e) => setNationalite(e.target.value)} />
           </div>
-          <div className="flex flex-col gap-1.5 md:col-span-2">
-            <Label htmlFor="ancienMatricule">Ancien matricule (le cas échéant)</Label>
-            <Input
-              id="ancienMatricule"
-              value={ancienMatricule}
-              onChange={(e) => setAncienMatricule(e.target.value)}
-            />
-          </div>
+          {/*
+            « Ancien matricule » est parti le 2026-09-15. Il était écrit à la
+            création et plus jamais relu : la recherche d'élèves porte sur le
+            nom, les prénoms et le matricule, pas sur lui, et la détection de
+            doublons à l'import l'ignore. On demandait donc une information
+            qu'on ne pouvait même pas retrouver — et son intitulé laissait
+            croire à un champ important.
+          */}
         </div>
       </section>
 
@@ -269,16 +269,12 @@ export function EleveForm({
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`lienParente-${index}`}>Lien de parenté</Label>
-                <Input
-                  id={`lienParente-${index}`}
-                  value={r.lienParente}
-                  onChange={(e) => updateResponsable(index, { lienParente: e.target.value })}
-                  placeholder="Ex: Père, Mère, Oncle..."
-                  required
-                />
-              </div>
+              {/*
+                « Lien de parenté » est parti le 2026-09-15 : le menu « Type »
+                juste au-dessus dit déjà père, mère ou tuteur. Deux champs pour
+                une seule réponse, dans un formulaire qui compte quatre
+                sections. La colonne en base reste, remplie depuis le type.
+              */}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">

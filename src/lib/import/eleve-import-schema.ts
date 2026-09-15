@@ -4,6 +4,16 @@ import { z } from 'zod';
  * Gabarit de colonnes fixe pour l'import Excel élèves + responsables (Phase
  * 2). Pas de mapping dynamique en UI : la première ligne du fichier doit
  * reprendre exactement ces en-têtes.
+ *
+ * **Deux colonnes sont sorties du gabarit le 2026-09-15** :
+ * `ancien_matricule`, qui n'était jamais relu — la recherche d'élèves porte
+ * sur le nom, les prénoms et le matricule, pas sur lui — et `lien_parente`,
+ * que `type_responsable` dit déjà.
+ *
+ * Les fichiers déjà distribués continuent de passer : `analyserEntetes` ne
+ * bloque que sur les colonnes **manquantes**, jamais sur celles qu'il ne
+ * connaît pas. Une école qui redépose un ancien modèle verra ces deux colonnes
+ * listées comme inattendues, et elles seront ignorées.
  */
 export const ELEVE_IMPORT_COLUMNS = [
   'nom',
@@ -12,14 +22,12 @@ export const ELEVE_IMPORT_COLUMNS = [
   'date_naissance',
   'lieu_naissance',
   'nationalite',
-  'ancien_matricule',
   'classe',
   'nom_responsable',
   'prenoms_responsable',
   'telephone_responsable',
   'email_responsable',
   'type_responsable',
-  'lien_parente',
   'principal',
 ] as const;
 
@@ -34,7 +42,6 @@ export const eleveImportLigneSchema = z.object({
     .regex(isoDateRegex, 'Date de naissance invalide (format attendu: AAAA-MM-JJ)'),
   lieu_naissance: z.string().optional(),
   nationalite: z.string().optional(),
-  ancien_matricule: z.string().optional(),
   classe: z.string().min(1, 'Classe requise (nom exact de la classe)'),
   nom_responsable: z.string().min(1, 'Nom du responsable requis'),
   prenoms_responsable: z.string().min(1, 'Prénoms du responsable requis'),
@@ -43,7 +50,6 @@ export const eleveImportLigneSchema = z.object({
   type_responsable: z.enum(['PERE', 'MERE', 'TUTEUR', 'AUTRE'], {
     errorMap: () => ({ message: 'Type de responsable invalide' }),
   }),
-  lien_parente: z.string().min(1, 'Lien de parenté requis'),
   principal: z
     .union([z.literal('OUI'), z.literal('NON'), z.literal(''), z.undefined()])
     .optional()

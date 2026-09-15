@@ -3,6 +3,7 @@ import { requireRole } from './authorization';
 import { auditLog } from './audit';
 import { createEleveAvecResponsables } from './eleve';
 import { creerInscriptionAvecFacture } from './inscription';
+import { lienParenteDepuisType } from '@/lib/responsables';
 import { lireClasseur, type LigneBrute } from '@/lib/import/excel';
 import { analyserEntetes } from '@/lib/import/entetes';
 import {
@@ -256,7 +257,6 @@ export async function executerImportEleves(
         dateNaissance: data.date_naissance,
         lieuNaissance: data.lieu_naissance || undefined,
         nationalite: data.nationalite || undefined,
-        ancienMatricule: data.ancien_matricule || undefined,
         anneeScolaireIdPourMatricule: anneeScolaireId,
         responsables: [
           {
@@ -265,7 +265,9 @@ export async function executerImportEleves(
             telephone: data.telephone_responsable || undefined,
             email: data.email_responsable || undefined,
             type: data.type_responsable,
-            lienParente: data.lien_parente,
+            // La colonne est `not null` en base et garde l'historique ; elle
+            // se déduit du type depuis le 2026-09-15.
+            lienParente: lienParenteDepuisType(data.type_responsable),
             principal: data.principal,
           },
         ],

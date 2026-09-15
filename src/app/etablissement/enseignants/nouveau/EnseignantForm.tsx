@@ -9,7 +9,6 @@ import { normaliserIdentifiant, proposerIdentifiant } from '@/lib/identifiants';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Button } from '@/components/ui/button';
 import { BarreAction } from '@/components/tactile/barre-action';
 import { creerEnseignant } from './actions';
@@ -40,8 +39,6 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
   const [identifiantTouche, setIdentifiantTouche] = useState(false);
   const [telephone, setTelephone] = useState('');
   const [adresse, setAdresse] = useState('');
-  const [ancienMatricule, setAncienMatricule] = useState('');
-  const [statut, setStatut] = useState<'ACTIF' | 'INACTIF' | 'CONGE' | 'DEPART'>('ACTIF');
 
   const valeurIdentifiant = identifiantTouche
     ? identifiant
@@ -55,8 +52,10 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
     identifiant: modeAcces === 'IDENTIFIANT' ? valeurIdentifiant : undefined,
     telephone: telephone || undefined,
     adresse: adresse || undefined,
-    ancienMatricule: ancienMatricule || undefined,
-    statut,
+    // `ACTIF` en dur : un enseignant qu'on enregistre est un enseignant qui
+    // travaille. Les autres statuts se posent depuis sa fiche, quand ils
+    // arrivent réellement.
+    statut: 'ACTIF',
     // dateNaissance et dateEmbauche sont soumis séparément via les hidden
     // inputs des DatePicker (name="dateNaissance" / "dateEmbauche") et
     // fusionnés côté serveur — voir actions.ts.
@@ -142,10 +141,6 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
                 <SelectItem value="F">Féminin</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="dateNaissance">Date de naissance</Label>
-            <DatePicker id="dateNaissance" name="dateNaissance" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="telephone">Téléphone</Label>
@@ -250,32 +245,15 @@ export function EnseignantForm({ anneeScolaireId }: { anneeScolaireId: string })
             <Label htmlFor="adresse">Adresse</Label>
             <Input id="adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="dateEmbauche">Date d&apos;embauche</Label>
-            <DatePicker id="dateEmbauche" name="dateEmbauche" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="statut">Statut initial</Label>
-            <Select value={statut} onValueChange={(v) => setStatut(v as typeof statut)}>
-              <SelectTrigger id="statut">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ACTIF">Actif</SelectItem>
-                <SelectItem value="INACTIF">Inactif</SelectItem>
-                <SelectItem value="CONGE">Congé</SelectItem>
-                <SelectItem value="DEPART">Départ</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1.5 md:col-span-2">
-            <Label htmlFor="ancienMatricule">Ancien matricule (le cas échéant)</Label>
-            <Input
-              id="ancienMatricule"
-              value={ancienMatricule}
-              onChange={(e) => setAncienMatricule(e.target.value)}
-            />
-          </div>
+          {/*
+            Quatre champs retirés le 2026-09-15 : date de naissance, date
+            d'embauche, statut initial et ancien matricule.
+            Aucun n'est nécessaire pour qu'un enseignant commence à travailler,
+            et chacun coûtait une hésitation à quelqu'un qui n'a pas le dossier
+            sous les yeux. Le statut naît `ACTIF` — c'est le seul cas qui ait
+            un sens à la création — et se change depuis la fiche. Les colonnes
+            restent, l'import les remplit toujours.
+          */}
         </div>
       </section>
 
