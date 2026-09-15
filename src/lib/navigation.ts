@@ -153,7 +153,12 @@ export const SECTIONS: Record<string, Section> = {
         description: 'Saisir et soumettre les notes de vos évaluations.',
         href: '/etablissement/notes/saisie',
         icone: 'notes',
-        roles: ['ENSEIGNANT'],
+        // Le DIRECTEUR y est entré le 2026-09-15. Beaucoup de directeurs
+        // d'écoles privées togolaises enseignent une matière ; l'écran ne leur
+        // ouvre que leurs propres affectations, et dit comment s'en attribuer
+        // une quand ils n'en ont aucune. Un directeur qui n'enseigne pas y
+        // trouve une explication, pas une porte close.
+        roles: ['ENSEIGNANT', 'DIRECTEUR'],
       },
       {
         titre: 'Approbation des notes',

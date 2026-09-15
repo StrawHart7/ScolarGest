@@ -55,12 +55,18 @@ export default async function SaisieEvaluationPage({
       <div className="space-y-6">
         <LienRetour href="/etablissement/notes/saisie">Retour à la saisie des notes</LienRetour>
 
-        {ctx.role !== 'ENSEIGNANT' ? (
+        {/*
+          Le DIRECTEUR passe ici depuis le 2026-09-15, comme sur l'écran
+          précédent : c'est l'affectation qui décide, pas le rôle. `saisirNote`
+          la revérifie de toute façon — une garde d'écran informe, elle ne
+          protège pas.
+        */}
+        {ctx.role !== 'ENSEIGNANT' && ctx.role !== 'DIRECTEUR' ? (
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <GraduationCap className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-sm text-text-secondary">
-                Cette page est réservée aux comptes enseignants.
+                Seul un enseignant saisit des notes, pour les matières qui lui sont attribuées.
               </p>
             </CardContent>
           </Card>

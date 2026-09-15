@@ -76,9 +76,17 @@ export async function listAffectationsEnseignant(
   return (data ?? []) as unknown as AffectationEnseignant[];
 }
 
-/** Raccourci pour l'espace enseignant connecté: ses propres affectations. */
+/**
+ * Les matières que l'utilisateur connecté enseigne lui-même.
+ *
+ * Ouvert au DIRECTEUR depuis le 2026-09-15 : beaucoup de directeurs d'écoles
+ * privées togolaises enseignent une matière, et c'est cette liste qui décide
+ * de ce qu'ils peuvent saisir. Elle renvoie une liste vide pour qui n'a pas de
+ * fiche enseignant rattachée à son compte — un directeur qui n'enseigne pas
+ * n'est donc pas un cas d'erreur, juste une liste vide.
+ */
 export async function listMesAffectations(anneeScolaireId: string): Promise<AffectationEnseignant[]> {
-  const ctx = await requireRole('ENSEIGNANT');
+  const ctx = await requireRole('ENSEIGNANT', 'DIRECTEUR');
   const soi = await getEnseignantParUtilisateur(ctx.userId);
   if (!soi) return [];
   return listAffectationsEnseignant(soi.id, anneeScolaireId);

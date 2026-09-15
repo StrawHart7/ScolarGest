@@ -55,17 +55,23 @@ async function getEvaluation(id: string): Promise<EvaluationRow> {
   return data as unknown as EvaluationRow;
 }
 
-async function verifierPerimetreEnseignant(
-  role: string,
+/**
+ * Est-ce que l'utilisateur connecté enseigne bien cette matière dans cette
+ * classe ? Réponse par l'affectation, jamais par le rôle.
+ *
+ * Renvoie l'identifiant d'enseignant quand c'est le cas, `null` sinon. Ne lève
+ * pas : deux appelants en font deux choses différentes — l'un refuse, l'autre
+ * s'en sert pour empêcher quelqu'un de valider ses propres notes.
+ */
+async function affectationDeLUtilisateur(
   userId: string,
   etablissementId: string,
   classeId: string,
   matiereId: string,
   anneeScolaireId: string,
-): Promise<void> {
-  if (role !== 'ENSEIGNANT') return;
+): Promise<string | null> {
   const enseignant = await getEnseignantParUtilisateur(userId);
-  if (!enseignant) throw new Error('Accès refusé: profil enseignant introuvable');
+  if (!enseignant) return null;
 
   const supabase = createClient();
   const { count, error } = await supabase
@@ -77,9 +83,50 @@ async function verifierPerimetreEnseignant(
     .eq('matiereId', matiereId)
     .eq('anneeScolaireId', anneeScolaireId);
   if (error) throw error;
-  if ((count ?? 0) === 0) {
+  return (count ?? 0) > 0 ? enseignant.id : null;
+}
+
+/**
+ * Le droit d'écrire une note vient de l'affectation, pas du rôle.
+ *
+ * C'est déjà la règle de la RLS depuis le 2026-09-11 — `est_affecte(classe,
+ * matiere, annee)` — et c'est celle qu'on applique ici. Un Directeur qui
+ * enseigne les mathématiques en 6ème A saisit ses notes comme n'importe quel
+ * professeur, et reste bloqué partout ailleurs.
+ *
+ * L'appelant décide qui y est soumis : la lecture et la soumission gardent la
+ * portée établissement pour le Directeur et la Secrétaire, qui font tourner le
+ * circuit de validation sur toute l'école.
+ */
+async function exigerAffectation(
+  userId: string,
+  etablissementId: string,
+  classeId: string,
+  matiereId: string,
+  anneeScolaireId: string,
+): Promise<void> {
+  const trouvee = await affectationDeLUtilisateur(
+    userId,
+    etablissementId,
+    classeId,
+    matiereId,
+    anneeScolaireId,
+  );
+  if (!trouvee) {
     throw new Error("Accès refusé: vous n'êtes pas affecté à cette classe pour cette matière");
   }
+}
+
+async function verifierPerimetreEnseignant(
+  role: string,
+  userId: string,
+  etablissementId: string,
+  classeId: string,
+  matiereId: string,
+  anneeScolaireId: string,
+): Promise<void> {
+  if (role !== 'ENSEIGNANT') return;
+  await exigerAffectation(userId, etablissementId, classeId, matiereId, anneeScolaireId);
 }
 
 /**
@@ -119,16 +166,28 @@ export async function saisirNote(
   valeur: number,
   observation?: string,
 ): Promise<Note> {
-  const ctx = await requireRole('ENSEIGNANT');
+  // Le DIRECTEUR est admis depuis le 2026-09-15, et **seulement** par
+  // l'affectation. Beaucoup de directeurs d'écoles privées togolaises
+  // enseignent une matière ; la règle précédente les obligeait à tenir un
+  // second compte, avec un second mot de passe, pour saisir leurs propres
+  // notes. La RLS l'autorisait déjà (`note_ecriture` nomme le DIRECTEUR —
+  // l'approbation écrit le statut de la note) : seule la garde applicative
+  // était fermée.
+  //
+  // Les deux paires d'yeux sont préservées autrement, et mieux : il ne peut
+  // pas valider une soumission d'une matière qu'il enseigne lui-même — voir
+  // `validerSoumissionEvaluation`.
+  const ctx = await requireRole('ENSEIGNANT', 'DIRECTEUR');
   const evaluation = await getEvaluation(evaluationId);
-  await verifierPerimetreEnseignant(
-    ctx.role,
-    ctx.userId,
-    ctx.etablissementId,
-    evaluation.classeId,
-    evaluation.matiereId,
-    evaluation.anneeScolaireId,
-  );
+  if (ctx.role !== 'SUPER_ADMIN') {
+    await exigerAffectation(
+      ctx.userId,
+      ctx.etablissementId,
+      evaluation.classeId,
+      evaluation.matiereId,
+      evaluation.anneeScolaireId,
+    );
+  }
 
   if (valeur < 0 || valeur > 20) {
     throw new Error('La note doit être comprise entre 0 et 20.');
@@ -218,7 +277,71 @@ export async function soumettreNotes(evaluationId: string): Promise<number> {
 
 // Le step-up PIN vit dans `pin.ts` : il est partagé par toutes les actions
 // sensibles, pas seulement par l'approbation des notes.
-const verifierPin = (pin: string) => exigerPin(pin, 'SECRETAIRE');
+//
+// **Le DIRECTEUR y est entré le 2026-09-15, et il aurait dû y être avant.**
+// La garde ne nommait que la SECRETAIRE, si bien que les quatre décisions
+// d'approbation lui étaient réservées — alors que l'écran `/etablissement/
+// notes/approbation` est ouvert au Directeur, que la navigation l'y mène et
+// que la RLS l'y autorise. Un Directeur voyait donc la file des soumissions et
+// recevait « Accès refusé: rôle DIRECTEUR non autorisé » en cliquant
+// « Valider ». Dans une école sans secrétariat — le cas courant — plus aucune
+// note ne pouvait devenir officielle.
+//
+// Le trou est ancien : l'élargissement des droits du Directeur du 2026-09-14 a
+// ouvert la RLS, la navigation et l'écran sans regarder cette garde-ci, qui
+// est déléguée et n'apparaît donc dans l'instantané de la matrice que comme
+// `DELEGUEE:verifierPin` — le diff relu ligne à ligne ne montrait rien.
+const verifierPin = (pin: string) => exigerPin(pin, 'DIRECTEUR', 'SECRETAIRE');
+
+/**
+ * Personne ne valide ses propres notes — tant qu'il y a quelqu'un d'autre.
+ *
+ * Un Directeur qui enseigne peut désormais saisir ses notes (voir
+ * `saisirNote`). Le laisser ensuite les valider lui-même supprimerait la
+ * seconde paire d'yeux : il serait à la fois celui qui donne la note et celui
+ * qui la rend officielle.
+ *
+ * **Mais un blocage sec créerait une impasse.** Dans une école d'un seul
+ * administrateur — directeur, professeur de mathématiques et secrétariat à lui
+ * tout seul, ce qui existe — plus aucune note de sa matière ne pourrait jamais
+ * devenir officielle, et rien à l'écran ne dirait comment s'en sortir. Une
+ * garde qui enferme est pire que le risque qu'elle couvre.
+ *
+ * La règle porte donc sur ce qu'elle protège vraiment : deux paires d'yeux
+ * sont exigées **quand deux paires d'yeux existent**. Sinon la validation
+ * passe, et l'audit garde la trace que le valideur était aussi l'enseignant.
+ */
+async function verifierSecondRegard(
+  ctx: { userId: string; etablissementId: string },
+  evaluation: EvaluationRow,
+): Promise<{ estSonPropreCours: boolean }> {
+  const sienne = await affectationDeLUtilisateur(
+    ctx.userId,
+    ctx.etablissementId,
+    evaluation.classeId,
+    evaluation.matiereId,
+    evaluation.anneeScolaireId,
+  );
+  if (!sienne) return { estSonPropreCours: false };
+
+  const supabase = createClient();
+  const { count, error } = await supabase
+    .from('utilisateur')
+    .select('id', { count: 'exact', head: true })
+    .eq('etablissementId', ctx.etablissementId)
+    .in('role', ['DIRECTEUR', 'SECRETAIRE'])
+    .eq('statut', 'ACTIF')
+    .neq('id', ctx.userId);
+  if (error) throw error;
+
+  if ((count ?? 0) > 0) {
+    throw new Error(
+      "Vous enseignez cette matière dans cette classe : la validation de vos propres notes revient à quelqu'un d'autre de la direction.",
+    );
+  }
+
+  return { estSonPropreCours: true };
+}
 
 export interface EvaluationSoumise {
   evaluationId: string;
@@ -292,9 +415,13 @@ export async function validerSoumissionEvaluation(
   evaluationId: string,
   pin: string,
 ): Promise<number> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   await verifierPin(pin);
-  const supabase = createClient();
 
+  const evaluation = await getEvaluation(evaluationId);
+  const { estSonPropreCours } = await verifierSecondRegard(ctx, evaluation);
+
+  const supabase = createClient();
   const { data, error } = await supabase.rpc('fn_valider_soumission', {
     p_evaluation_id: evaluationId,
   });
@@ -305,7 +432,12 @@ export async function validerSoumissionEvaluation(
     module: 'academique',
     objetType: 'Evaluation',
     objetId: evaluationId,
-    nouvelleValeur: { nombreNotes: data },
+    // `autoValidation` n'apparaît que dans le cas où il n'y avait personne
+    // d'autre pour valider. C'est la contrepartie de ne pas avoir bloqué : la
+    // décision reste retrouvable, nominativement, dans le journal d'audit.
+    nouvelleValeur: estSonPropreCours
+      ? { nombreNotes: data, autoValidation: true }
+      : { nombreNotes: data },
   });
 
   return data as number;

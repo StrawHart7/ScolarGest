@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { ClipboardList, GraduationCap } from 'lucide-react';
-import { getTenantContext } from '@/services/tenant';
+import { getTenantContext, type Role } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listMesAffectations } from '@/services/affectation';
 import { listEvaluations, type Periode } from '@/services/evaluation';
@@ -7,6 +8,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { EtatVide } from '@/components/ui/etat-vide';
 import { getSidebarItems } from '@/lib/navigation';
 import { SaisieFiltres } from './SaisieFiltres';
 import { EvaluationsList } from './EvaluationsList';
@@ -56,17 +59,25 @@ export default async function SaisieNotesPage({
           </p>
         </div>
 
-        {ctx.role !== 'ENSEIGNANT' ? (
+        {/*
+          Le DIRECTEUR passe ici depuis le 2026-09-15. Beaucoup de directeurs
+          d'écoles privées togolaises enseignent une matière ; la version
+          précédente leur imposait un second compte, avec un second mot de
+          passe, pour saisir leurs propres notes. Ce n'est pas le rôle qui
+          ouvre la saisie — c'est l'affectation, vérifiée en dessous et à
+          nouveau dans `saisirNote`.
+        */}
+        {ctx.role !== 'ENSEIGNANT' && ctx.role !== 'DIRECTEUR' ? (
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <GraduationCap className="h-10 w-10 text-text-secondary/50" aria-hidden />
               <p className="text-body-sm text-text-secondary">
-                Cette page est réservée aux comptes enseignants.
+                Seul un enseignant saisit des notes, pour les matières qui lui sont attribuées.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <SaisieContent searchParams={searchParams} />
+          <SaisieContent searchParams={searchParams} role={ctx.role} />
         )}
       </div>
     </AppLayout>
@@ -75,8 +86,10 @@ export default async function SaisieNotesPage({
 
 async function SaisieContent({
   searchParams,
+  role,
 }: {
   searchParams: { classeId?: string; matiereId?: string; periode?: Periode };
+  role: Role;
 }) {
   const annees = await listAnneesScolaires();
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
@@ -95,14 +108,30 @@ async function SaisieContent({
   const affectations = await listMesAffectations(anneeActive.id);
 
   if (affectations.length === 0) {
+    // Le directeur, lui, peut s'en sortir tout seul : c'est lui qui attribue
+    // les matières. Lui servir « contactez votre établissement » serait lui
+    // dire de s'écrire à lui-même.
     return (
       <Card>
-        <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-          <GraduationCap className="h-10 w-10 text-text-secondary/50" aria-hidden />
-          <p className="text-body-sm text-text-primary">Vous n’avez pas encore de classe ni de matière affectée : c’est ce qui ouvre la saisie des notes. La direction s’en charge.</p>
-          <p className="text-body-sm text-text-secondary">
-            Contactez votre établissement si vous pensez qu&apos;il s&apos;agit d&apos;une erreur.
-          </p>
+        <CardContent>
+          {role === 'DIRECTEUR' ? (
+            <EtatVide
+              icone={GraduationCap}
+              titre="Vous n’enseignez aucune matière cette année."
+              explication="Si vous êtes aussi professeur d’une matière, inscrivez-vous dans la liste des enseignants avec votre adresse habituelle, puis attribuez-vous la classe et la matière : la saisie s’ouvrira ici, pour celles-là uniquement."
+              action={
+                <Button asChild size="sm">
+                  <Link href="/etablissement/enseignants">Ouvrir la liste des enseignants</Link>
+                </Button>
+              }
+            />
+          ) : (
+            <EtatVide
+              icone={GraduationCap}
+              titre="Vous n’avez pas encore de classe ni de matière attribuée."
+              explication="C’est ce qui ouvre la saisie des notes, et la direction s’en charge. Contactez votre établissement si vous pensez qu’il s’agit d’une erreur."
+            />
+          )}
         </CardContent>
       </Card>
     );
