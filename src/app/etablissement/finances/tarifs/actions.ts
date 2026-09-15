@@ -12,7 +12,16 @@ const schema = z.object({
   anneeScolaireId: z.string().uuid('Année scolaire requise'),
   classeId: z.string().uuid('Classe requise'),
   typeFraisId: z.string().min(1, 'Type de frais requis'),
-  nouveauTypeFrais: z.string().optional(),
+  /**
+   * `.nullish()` et non `.optional()`.
+   *
+   * Le champ n'est rendu que si l'on a choisi « Un autre frais… ». Absent du
+   * formulaire, `formData.get` rend **`null`**, jamais `undefined` — et
+   * `.optional()` accepte le second mais refuse le premier. Le formulaire
+   * répondait donc « Expected string, received null » dès qu'on choisissait un
+   * frais existant, c'est-à-dire dans le cas ordinaire.
+   */
+  nouveauTypeFrais: z.string().nullish(),
   montant: z.coerce.number().min(0, 'Montant invalide'),
 });
 
