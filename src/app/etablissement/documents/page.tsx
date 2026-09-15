@@ -44,7 +44,7 @@ export default async function ParametresDocumentPage() {
       userName={ctx.email}
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
 
         <div>
           <h1 className="text-display-sm text-text-primary">Identité des documents</h1>

@@ -130,7 +130,7 @@ export function ParametresDocumentForm({
               </Button>
             </div>
           ) : (
-            <p className="text-body-sm text-text-secondary">Aucun logo enregistré.</p>
+            <p className="text-body-sm text-text-secondary">Aucun logo. Il apparaîtra en tête de vos bulletins et de vos reçus.</p>
           )}
 
           <form onSubmit={envoyerLogo} className="flex flex-wrap items-end gap-3">

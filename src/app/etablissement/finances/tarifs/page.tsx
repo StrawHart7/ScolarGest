@@ -122,9 +122,9 @@ export default async function TarifsPage({
           {tarifs.length === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <Coins className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucun tarif défini.</p>
+              <p className="text-body-md text-text-primary">Aucun tarif fixé</p>
               <p className="text-body-sm text-text-secondary">
-                Sans tarif, la facture générée à l&apos;inscription reste à 0.
+                Sans tarif, la facture d&apos;un élève est créée à 0 franc quand vous l&apos;inscrivez.
               </p>
               {typesFrais.length === 0 && (
                 <p className="text-body-sm text-text-secondary">

@@ -99,7 +99,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
           </CardHeader>
           <CardContent className="space-y-3">
             {eleve.responsables.length === 0 ? (
-              <p className="text-body-sm text-text-secondary">Aucun responsable enregistré.</p>
+              <p className="text-body-sm text-text-secondary">Aucun responsable légal. C’est lui qu’on appelle en cas de besoin, et c’est à lui que la facture est adressée.</p>
             ) : (
               eleve.responsables.map((r) => (
                 <div
@@ -147,7 +147,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
           </CardHeader>
           <CardContent className="space-y-3">
             {eleve.inscriptions.length === 0 ? (
-              <p className="text-body-sm text-text-secondary">Aucune inscription enregistrée.</p>
+              <p className="text-body-sm text-text-secondary">Cet élève n’est inscrit dans aucune classe : il ne compte pas dans vos effectifs et n’a pas de facture.</p>
             ) : (
               eleve.inscriptions.map((i) => (
                 <div
@@ -180,7 +180,7 @@ export default async function FicheElevePage({ params }: { params: { id: string 
             {factures.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-6 text-center">
                 <FileText className="h-8 w-8 text-text-secondary/50" aria-hidden />
-                <p className="text-body-sm text-text-secondary">Aucune facture pour cet élève.</p>
+                <p className="text-body-sm text-text-secondary">Aucune facture : elle sera créée quand vous l’inscrirez dans une classe.</p>
               </div>
             ) : (
               factures.map((f) => (

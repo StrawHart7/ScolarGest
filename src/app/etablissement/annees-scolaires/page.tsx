@@ -47,7 +47,7 @@ export default async function AnneesScolairesPage() {
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
 
         <div className="hidden md:block">
           <PageHeader

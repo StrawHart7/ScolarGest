@@ -63,7 +63,7 @@ export default async function AffectationsClassePage({ params }: { params: { id:
           {affectations.length === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
               <ClipboardList className="h-8 w-8 text-text-secondary/50" aria-hidden />
-              <p className="text-body-sm text-text-secondary">Aucune affectation pour cette classe.</p>
+              <p className="text-body-sm text-text-secondary">Aucun enseignant affecté à cette classe. Tant qu’il n’y en a pas, personne ne peut y saisir de notes.</p>
             </CardContent>
           ) : (
             <Table>

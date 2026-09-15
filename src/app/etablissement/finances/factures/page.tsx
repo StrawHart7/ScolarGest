@@ -151,6 +151,11 @@ export default async function SuiviPaiementsPage({
   ]);
   const totaux = totauxSuivi(lignesRetenues);
 
+  // « Aucune facture » et « aucune facture qui corresponde » ne se reparent
+  // pas du meme geste : le premier attend une inscription, le second attend
+  // qu'on retire un filtre.
+  const filtreActif = Boolean(parametres.recherche || lireUnique('classeId') || statut);
+
   const page = preparerListe(lignesRetenues, parametres, {
     valeursTri: {
       eleve: (l) => `${l.nom} ${l.prenoms}`,
@@ -246,9 +251,13 @@ export default async function SuiviPaiementsPage({
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
               <Receipt className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucune facture pour cette sélection.</p>
+              <p className="text-body-md text-text-primary">
+                {filtreActif ? 'Aucune facture ne correspond' : 'Aucune facture pour le moment'}
+              </p>
               <p className="text-body-sm text-text-secondary">
-                Les factures sont créées automatiquement à l&apos;inscription d&apos;un élève.
+                {filtreActif
+                  ? 'Modifiez la recherche ou retirez les filtres pour voir toute la liste.'
+                  : 'La facture d’un élève est créée toute seule quand vous l’inscrivez en classe.'}
               </p>
             </CardContent>
           ) : (

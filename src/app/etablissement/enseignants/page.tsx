@@ -70,7 +70,7 @@ export default async function EnseignantsPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
 
         <div className="hidden md:block">
           <PageHeader
@@ -130,10 +130,10 @@ export default async function EnseignantsPage({
           {page.total === 0 ? (
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Users2 className="h-10 w-10 text-text-secondary/50" aria-hidden />
-              <p className="text-body-md text-text-primary">Aucun enseignant trouvé.</p>
+              <p className="text-body-md text-text-primary">Aucun enseignant</p>
               <p className="text-body-sm text-text-secondary">
                 {canWrite
-                  ? 'Créez votre premier enseignant pour commencer.'
+                  ? 'Ajoutez vos enseignants, puis affectez-les à leurs classes et matières : c’est ce qui leur ouvre la saisie des notes.'
                   : 'Aucun enseignant ne correspond à ces critères.'}
               </p>
               {canWrite && (

@@ -48,7 +48,7 @@ export default async function MatieresPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
 
         {/* Sur mobile, le titre descend dans EnteteListe : le PageHeader ferait
             doublon avec la ligne de densité. */}

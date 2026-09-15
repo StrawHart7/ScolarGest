@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
+import { EtatVide } from '@/components/ui/etat-vide';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import {
@@ -74,7 +75,7 @@ export default async function ClassesPage({
       userName={ctx.email}
     >
       <div className="space-y-4 md:space-y-6">
-        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
 
         <div className="hidden md:block">
           <PageHeader
@@ -128,9 +129,17 @@ export default async function ClassesPage({
               />
 
               {page.total === 0 ? (
-                <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-                  <School className="h-10 w-10 text-text-secondary/50" aria-hidden />
-                  <p className="text-body-md text-text-primary">Aucune classe pour cette année.</p>
+                <CardContent>
+                  <EtatVide
+                    icone={School}
+                    titre="Aucune classe sur cette année"
+                    explication="Créez vos classes : c’est ce qui vous permet d’inscrire des élèves, et le programme national arrive tout seul avec elles."
+                    action={
+                      peutCreer && cycles.length > 0 ? (
+                        <ClasseForm anneeScolaireId={anneeScolaireId} cycles={cycles} />
+                      ) : null
+                    }
+                  />
                 </CardContent>
               ) : (
                 <>

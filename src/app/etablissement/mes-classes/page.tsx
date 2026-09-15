@@ -59,7 +59,7 @@ async function MesClassesContent() {
       <Card>
         <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
           <GraduationCap className="h-10 w-10 text-text-secondary/50" aria-hidden />
-          <p className="text-body-sm text-text-secondary">Aucune année scolaire active.</p>
+          <p className="text-body-sm text-text-secondary">Aucune année scolaire n’est ouverte. La direction doit en activer une.</p>
         </CardContent>
       </Card>
     );
@@ -72,7 +72,7 @@ async function MesClassesContent() {
       <Card>
         <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
           <GraduationCap className="h-10 w-10 text-text-secondary/50" aria-hidden />
-          <p className="text-body-sm text-text-primary">Aucune affectation pour le moment.</p>
+          <p className="text-body-sm text-text-primary">Vous n’avez pas encore de classe ni de matière affectée. C’est la direction qui les attribue — signalez-le-lui si vous devez saisir des notes.</p>
           <p className="text-body-sm text-text-secondary">
             Contactez votre établissement si vous pensez qu&apos;il s&apos;agit d&apos;une erreur.
           </p>

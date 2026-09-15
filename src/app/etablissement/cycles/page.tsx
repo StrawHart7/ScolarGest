@@ -20,7 +20,7 @@ export default async function CyclesPage() {
       userName={ctx.email}
     >
       <div className="space-y-6">
-        <LienRetour href="/etablissement">Retour à l&apos;établissement</LienRetour>
+        <LienRetour href="/etablissement/configuration">Retour à la configuration</LienRetour>
 
         <div>
           <h1 className="text-display-sm text-text-primary">Cycles</h1>
