@@ -1568,6 +1568,20 @@ pour un unique probleme situe en ligne 1. La casse et l'ordre sont tolerees :
 les cles sont normalisees a la lecture, sinon le controle accepterait « Nom »
 que la lecture ne trouverait pas.
 
+**Un écran n'explique pas d'avance ce que son diagnostic dira mieux après coup.**
+Les trois écrans d'import ouvraient sur leur mode d'emploi déplié — trois étapes
+numérotées, six phrases, un repli de colonnes — et reléguaient en bas la seule
+chose qu'ils ont à demander : un fichier. Or le bilan est déjà l'explication, et
+une meilleure : il porte sur les données réelles de l'école, ligne à ligne, et
+le contrôle des en-têtes nomme exactement la colonne fautive. Le mode d'emploi
+passe donc **après** la zone de dépôt, replié derrière « Comment préparer le
+fichier », et disparaît dès que le bilan s'affiche.
+
+**Le téléchargement du modèle, lui, reste en clair.** Ce n'est pas une
+information mais l'action qui *supprime* la seule classe d'échec qui arrête
+tout. La replier remettrait en place l'erreur qu'elle évite. Un bouton ne se lit
+pas ; un paragraphe, si.
+
 ### Un composant client n'importe jamais depuis `src/services/`
 
 Panne du 2026-09-02, en production seulement :
