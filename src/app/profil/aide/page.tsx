@@ -1,74 +1,62 @@
 import Link from 'next/link';
-import { LifeBuoy, Check, ArrowRight } from 'lucide-react';
+import { LifeBuoy, Check, ArrowRight, Compass } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listerAide } from '@/services/conseils';
 import { ORDRE_FAMILLES, LIBELLE_FAMILLE, type Famille } from '@/lib/conseils/catalogue';
+import { questionsPourRole } from '@/lib/aide/questions';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { getSidebarItems, SECTIONS } from '@/lib/navigation';
-import type { Role } from '@/services/tenant';
+import { getSidebarItems, SECTIONS, cheminAutorise } from '@/lib/navigation';
+import { QuestionsFrequentes } from './QuestionsFrequentes';
 
-interface Rubrique {
-  question: string;
-  reponse: string;
-  roles: Role[];
-}
+export const metadata = { title: 'Aide' };
 
-const TOUS: Role[] = ['DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT'];
+const LIBELLE_ROLE: Record<string, string> = {
+  DIRECTEUR: 'direction',
+  SECRETAIRE: 'secrétariat',
+  COMPTABLE: 'comptabilité',
+  ENSEIGNANT: 'enseignant',
+  SUPER_ADMIN: 'plateforme',
+};
 
-const RUBRIQUES: Rubrique[] = [
-  {
-    question: 'À quoi sert le PIN de confirmation ?',
-    reponse:
-      "Il protège les actions irréversibles : approbation d'une note, activation d'une année scolaire, verrouillage d'un cycle. Vous le définissez dans Paramètres. Sans PIN configuré, ces actions restent bloquées.",
-    roles: ['DIRECTEUR', 'SECRETAIRE'],
-  },
-  {
-    question: 'Pourquoi ne puis-je pas modifier un tarif déjà appliqué ?',
-    reponse:
-      "Les tarifs sont rattachés à une année scolaire et ne sont jamais modifiés après coup : une facture déjà émise doit rester conforme à ce qui a été facturé. Pour changer un montant, créez un tarif sur la nouvelle année.",
-    roles: ['DIRECTEUR', 'COMPTABLE'],
-  },
-  {
-    question: 'Pourquoi ne puis-je plus modifier les lignes d’une facture ?',
-    reponse:
-      "Dès qu'un premier versement est encaissé, les lignes sont figées. Cela évite qu'une facture change de montant après un paiement. Si la facture est erronée, il faut l'annuler et en émettre une nouvelle.",
-    roles: ['DIRECTEUR', 'COMPTABLE'],
-  },
-  {
-    question: 'Que se passe-t-il quand mon abonnement expire ?',
-    reponse:
-      "La plateforme passe en lecture seule : vous conservez l'accès à toutes vos données et à vos exports, mais les écritures sont suspendues jusqu'au renouvellement. Vos données ne sont jamais retenues.",
-    roles: ['DIRECTEUR'],
-  },
-  {
-    question: 'J’ai soumis des notes, que se passe-t-il ensuite ?',
-    reponse:
-      "Une note soumise part en file d'approbation. La Secrétaire la valide ou la rejette, avec son PIN. Tant qu'elle n'est pas validée, elle n'entre pas dans les moyennes ni dans les bulletins.",
-    roles: ['ENSEIGNANT'],
-  },
-  {
-    question: 'Une note en brouillon compte-t-elle dans la moyenne ?',
-    reponse:
-      "Non. Une note en brouillon n'est pas officielle : elle est ignorée par le calcul des moyennes, des classements et des bulletins, exactement comme une note absente.",
-    roles: TOUS,
-  },
-  {
-    question: 'Comment retrouver rapidement un élève ?',
-    reponse:
-      'Utilisez la barre de recherche du bandeau supérieur (raccourci Ctrl + K). Elle cherche parmi les élèves, les classes et les enseignants de votre établissement.',
-    roles: TOUS,
-  },
-];
-
+/**
+ * L'aide de l'établissement.
+ *
+ * ## Ce que cette page a corrigé, au-delà de sa forme
+ *
+ * Elle portait sept rubriques écrites en dur dans ce fichier, et **deux
+ * d'entre elles étaient devenues fausses** sans que personne le remarque :
+ *
+ * - « les lignes d'une facture sont figées dès le premier versement » — règle
+ *   retirée le 2026-09-16, sur demande de l'utilisateur ;
+ * - « la réponse du support s'affichera sur cette page, visible par votre
+ *   établissement » — une demande ne se relit que par son auteur depuis la
+ *   migration `20260907221109`, pièces jointes comprises.
+ *
+ * Une aide fausse est pire qu'une aide absente : elle est crue, et elle
+ * enseigne à l'école une règle que le produit n'applique plus. Le contenu vit
+ * désormais dans `src/lib/aide/questions.ts`, avec la consigne qui va avec —
+ * toute modification de comportement vient relire ce fichier.
+ *
+ * ## Trois sections, et un ordre qui n'est pas arbitraire
+ *
+ * On arrive ici **avec une question**, pas pour lire l'aide. Les questions
+ * fréquentes passent donc en premier, derrière un champ de recherche.
+ *
+ * L'inventaire — « tout ce que vous pouvez faire » — vient ensuite : c'est la
+ * réponse à une autre question, « qu'est-ce que je peux faire ici ? », que le
+ * panneau de conseils ne peut pas donner en n'en proposant qu'un à la fois.
+ *
+ * La carte de la navigation ferme la page. Elle ne répond à rien, elle
+ * oriente : c'est ce qu'on lit quand on n'a pas trouvé ailleurs.
+ */
 export default async function AidePage() {
   const ctx = await getTenantContext();
-  const rubriques = RUBRIQUES.filter((rubrique) => rubrique.roles.includes(ctx.role));
-  const sections = Object.entries(SECTIONS);
+  const questions = questionsPourRole(ctx.role);
 
   // Inventaire de tout ce que la plateforme sait faire pour ce rôle, avec ce
   // qui est déjà en place. Le panneau de conseils n'en propose qu'un à la
   // fois — bon pour ne pas lasser, mauvais pour qui veut simplement savoir ce
-  // qui existe. C'est la réponse à cette seconde question.
+  // qui existe.
   //
   // Le diagnostic coûte une vingtaine de comptages ; c'est assumé sur un écran
   // qu'on ouvre quelques fois par trimestre, et c'est précisément pourquoi il
@@ -77,13 +65,21 @@ export default async function AidePage() {
   try {
     inventaire = await listerAide();
   } catch {
-    // Une aide amputée vaut mieux qu'une page d'aide inaccessible.
+    // Une aide amputée vaut mieux qu'une page d'aide inaccessible. Les
+    // questions fréquentes, elles, ne dépendent d'aucune lecture.
   }
   const parFamille = ORDRE_FAMILLES.map((famille) => ({
     famille,
     lignes: inventaire.filter((ligne) => ligne.famille === famille),
   })).filter((groupe) => groupe.lignes.length > 0);
-  const restant = inventaire.filter((ligne) => !ligne.fait).length;
+  const enPlace = inventaire.filter((ligne) => ligne.fait).length;
+
+  // Les sections de la navigation sont filtrées par rôle : décrire à un
+  // Enseignant une section « Finances » qu'il ne peut pas ouvrir lui apprend
+  // seulement qu'on ne lui parle pas à lui.
+  const sections = Object.entries(SECTIONS).filter(([chemin]) =>
+    cheminAutorise(chemin, ctx.role),
+  );
 
   return (
     <AppLayout
@@ -92,24 +88,49 @@ export default async function AidePage() {
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="mx-auto max-w-3xl space-y-8">
-        <div>
+      <div className="mx-auto max-w-3xl space-y-8 md:space-y-10">
+        <header className="space-y-1">
           <h1 className="text-display-sm text-text-primary">Aide</h1>
           <p className="text-body-sm text-text-secondary">
-            Réponses aux questions les plus fréquentes pour votre rôle ({ctx.role}).
+            {questions.length} réponses, choisies pour ce que vous faites au quotidien
+            {LIBELLE_ROLE[ctx.role] ? ` (${LIBELLE_ROLE[ctx.role]})` : ''}. Cherchez par mots,
+            ou parcourez par thème.
           </p>
-        </div>
+        </header>
+
+        <QuestionsFrequentes questions={questions} />
+
+        {/* Le recours au support est posé **entre** les deux sections, et non
+            tout en bas : c'est ici qu'on arrive quand les questions fréquentes
+            n'ont rien donné, et c'est ici qu'il faut tendre l'autre canal. En
+            pied de page, il serait sous l'inventaire, c'est-à-dire hors de
+            portée de quelqu'un qui vient de renoncer. */}
+        <section className="rounded-xl border border-primary/25 bg-primary/5 px-5 py-5">
+          <h2 className="text-headline-sm text-text-primary">
+            Votre question n&apos;est pas ici ?
+          </h2>
+          <p className="mt-1 text-body-sm text-text-secondary">
+            Écrivez à l&apos;équipe ScolarGest. Votre demande n&apos;est lisible que par vous —
+            ni vos collègues ni les autres comptes de l&apos;établissement n&apos;y ont accès — et
+            la réponse vous attend sur la page Support.
+          </p>
+          <Link
+            href="/profil/support"
+            className="mt-3 inline-flex items-center gap-1.5 text-body-sm font-medium text-primary-container hover:underline"
+          >
+            <LifeBuoy className="size-4" aria-hidden />
+            Contacter le support
+          </Link>
+        </section>
 
         {parFamille.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div>
-              <h2 className="text-headline-sm text-text-primary">
-                Tout ce que vous pouvez faire
-              </h2>
+              <h2 className="text-headline-sm text-text-primary">Tout ce que vous pouvez faire</h2>
               <p className="text-body-sm text-text-secondary">
-                {restant === 0
+                {enPlace === inventaire.length
                   ? 'Tout est en place pour votre rôle.'
-                  : `${inventaire.length - restant} sur ${inventaire.length} déjà en place.`}
+                  : `${enPlace} sur ${inventaire.length} déjà en place. Le reste n’est pas un retard : c’est ce qui est encore possible.`}
               </p>
             </div>
             {parFamille.map((groupe) => (
@@ -117,7 +138,7 @@ export default async function AidePage() {
                 <h3 className="text-body-sm font-medium text-text-secondary">
                   {LIBELLE_FAMILLE[groupe.famille as Famille]}
                 </h3>
-                <ul className="divide-y divide-surface-border overflow-hidden rounded-lg border border-surface-border bg-surface-container-lowest">
+                <ul className="divide-y divide-surface-border overflow-hidden rounded-xl border border-surface-border bg-surface-container-lowest">
                   {groupe.lignes.map((ligne) => (
                     <li key={ligne.id} className="flex items-start gap-3 px-5 py-3">
                       {/*
@@ -155,53 +176,33 @@ export default async function AidePage() {
           </section>
         )}
 
-        <section className="space-y-3">
-          <h2 className="text-headline-sm text-text-primary">Questions fréquentes</h2>
-          <div className="divide-y divide-surface-border overflow-hidden rounded-lg border border-surface-border bg-surface-container-lowest">
-            {rubriques.map((rubrique) => (
-              <details key={rubrique.question} className="group px-5 py-4">
-                <summary className="cursor-pointer list-none text-body-md font-medium text-text-primary transition-colors hover:text-primary-container">
-                  {rubrique.question}
-                </summary>
-                <p className="mt-2 text-body-sm text-text-secondary">{rubrique.reponse}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-surface-border bg-surface-container-lowest px-5 py-4">
-          <h2 className="text-headline-sm text-text-primary">Votre question n&apos;est pas ici ?</h2>
-          <p className="mt-1 text-body-sm text-text-secondary">
-            Écrivez à l&apos;équipe ScolarGest : la réponse s&apos;affichera sur cette même page,
-            visible par votre établissement.
-          </p>
-          <Link
-            href="/profil/support"
-            className="mt-3 inline-flex items-center gap-1.5 text-body-sm font-medium text-primary-container hover:underline"
-          >
-            <LifeBuoy className="h-4 w-4" aria-hidden />
-            Contacter le support
-          </Link>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-headline-sm text-text-primary">Comment la navigation est organisée</h2>
-          <p className="text-body-sm text-text-secondary">
-            Chaque entrée de la barre latérale regroupe plusieurs écrans. Cliquez dessus pour voir
-            la liste complète de ses fonctionnalités.
-          </p>
-          <ul className="space-y-2">
-            {sections.map(([chemin, section]) => (
-              <li
-                key={chemin}
-                className="rounded-lg border border-surface-border bg-surface-container-lowest px-5 py-3"
-              >
-                <p className="text-body-md text-text-primary">{section.titre}</p>
-                <p className="text-body-sm text-text-secondary">{section.description}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {sections.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-start gap-2.5">
+              <Compass className="mt-0.5 size-4 shrink-0 text-text-secondary" aria-hidden />
+              <div>
+                <h2 className="text-headline-sm text-text-primary">Comment s’organise le menu</h2>
+                <p className="text-body-sm text-text-secondary">
+                  Chaque entrée de la barre latérale ouvre un écran, et porte en tête la rangée de
+                  ceux qui l’accompagnent.
+                </p>
+              </div>
+            </div>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {sections.map(([chemin, section]) => (
+                <li key={chemin}>
+                  <Link
+                    href={chemin}
+                    className="block h-full rounded-xl border border-surface-border bg-surface-container-lowest px-5 py-3 transition-colors hover:border-primary/40 hover:bg-surface-container-low"
+                  >
+                    <p className="text-body-md text-text-primary">{section.titre}</p>
+                    <p className="text-body-sm text-text-secondary">{section.description}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </AppLayout>
   );
