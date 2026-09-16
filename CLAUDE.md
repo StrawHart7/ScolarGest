@@ -601,6 +601,65 @@ porte un aplat pleine largeur (sinon elle carre les coins bas), et un résumé q
 annonce **ce qu'il y a derrière** plutôt que de répéter un avancement déjà
 affiché juste au-dessus.
 
+### La barre du bas : ancrée, libellée, et son centre est la recherche
+
+Refonte du 2026-09-16, sur le modèle de Mixx by Yas. Trois décisions, et une
+contrainte de mesures qui se propage à trois autres composants.
+
+**Elle est ancrée au bord, pleine largeur, opaque.** Elle flottait en pilule à
+24px du bas avec 48px de marges. Ces 48px récupérés sont ce qui paie les
+libellés.
+
+**Les libellés ne sont pas un ornement.** La barre n'avait que des icônes, alors
+que `icones-navigation.ts` a déjà coûté un défaut connu — trois destinations
+partageaient la même icône. `labelCourt` existait depuis toujours dans
+`navigation.ts` et n'était lu par personne. 12px, le plancher du système, jamais
+10 ni 11. La barre passe de 56 à 64px.
+
+**Le centre est la recherche, et il ne change jamais de sens.** Le scanner de
+Mixx dit « la chose devant moi, agis dessus » ; ici c'est « la personne devant
+moi, trouve-la ». Deux pistes ont été écartées, et le raisonnement vaut pour
+toute proposition future :
+
+- **l'action principale de la page** n'existe que sur cinq écrans sur une
+  quarantaine (`BoutonFlottant`), et un bouton qui change de sens au même pixel
+  fait taper à côté — on apprend « bas-centre = nouvel élève », et ailleurs le
+  même pouce encaisse ;
+- **le support** en ferait le premier réflexe de qui ne trouve pas, alors que
+  c'est un recours.
+
+La recherche a un sens sur tous les écrans, et elle comblait un trou réel :
+`RechercheGlobale` était en `hidden md:block`, donc **chercher un élève depuis
+n'importe où était impossible sur téléphone**. Ce qui descendait dans la page
+sous `md` est la recherche de la liste courante, qui ne cherche que dans ce qui
+est déjà affiché. Un seul composant sert les deux présentations, avec trois
+options (`focusAuMontage`, `enFlux`, `onNaviguer`) — deux implémentations
+finiraient par diverger.
+
+`rechercheGlobale` est gardée pour les quatre rôles d'école : la console de
+plateforme n'a pas de bouton central, ses onglets se partagent la largeur.
+
+**Deux teintes du même bleu.** Mixx tient parce qu'il a deux couleurs de marque.
+La palette portait déjà l'écart : barre `primary` (#003d9b), bouton et onglet
+actif `primary-fixed-dim` (#b2c5ff), icône `primary-on-fixed`. Le rond porte un
+liseré de 4px de la couleur de la barre : sans lui, la moitié qui déborde sur la
+page claire n'a presque aucun contraste.
+
+**Les mesures se propagent — c'est le piège de cette barre.** Elle fait 64px et
+le rond en déborde de **28px** ; quatre valeurs en dépendent et se corrigent
+ensemble, sinon quelque chose passe dessous sans que rien ne le signale :
+
+| Ce qui dépend de la barre | Valeur |
+|---|---|
+| `main` dans `AppLayout` | `pb-[calc(6rem+…)]` — dégage aussi le débordement du rond |
+| `BoutonFlottant` | `bottom-[calc(5rem+…)]` — 16px au-dessus de la barre |
+| `BarreAction` | `bottom-[calc(6.5rem+…)]` — au-dessus du rond, pas seulement de la barre |
+| `zone-action` (échelle) | `calc(7rem+…)` — suit `BarreAction` |
+
+La boîte cliquable du bouton central remonte de 28px (`-top-7`) pour englober la
+part qui dépasse : sans cela la moitié haute du rond, la plus visible, ne
+répondrait pas au doigt. Vérifié par `elementFromPoint`, pas au raisonnement.
+
 ### Une ligne qui mène quelque part se clique en entier
 
 Sur téléphone, `LigneCarteMobile` est déjà un lien plein. Le tableau, lui, ne

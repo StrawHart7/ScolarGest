@@ -182,7 +182,7 @@ const config: Config = {
         // 56px de barre d'onglets, 24px de décalage, la barre d'action et
         // l'encoche. `row-standard` reste la hauteur de cible tactile — pas de
         // token `h-touch` en doublon, la valeur existe déjà et vaut 44px.
-        'zone-action': 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+        'zone-action': 'calc(7rem + env(safe-area-inset-bottom, 0px))',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

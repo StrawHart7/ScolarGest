@@ -27,9 +27,11 @@ export function BoutonFlottant({ href, libelle, icone: Icone }: ActionMobileProp
       aria-label={libelle}
       title={libelle}
       className={cn(
-        // Au-dessus de la barre de navigation : 56px de hauteur, 24px de
-        // décalage du bord, 16px de gouttière, plus l'encoche.
-        'fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-30 md:hidden',
+        // Au-dessus de la barre de navigation : 64px de hauteur ancrée au bord,
+        // 16px de gouttière, plus l'encoche. Le bouton reste au coin droit, là où
+        // le centre de la barre porte la recherche : créer et trouver sont deux
+        // gestes, donc deux places.
+        'fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-30 md:hidden',
         'grid h-14 w-14 place-items-center rounded-2xl',
         'bg-primary-container text-white shadow-lg transition-all duration-200',
         'hover:bg-primary active:scale-95',

@@ -82,12 +82,12 @@ export async function AppLayout({ items, schoolName, role, userName, children }:
             <IndicateurFile />
             <RappelFinEssai />
             {/*
-              Le bas de page doit dégager la barre de navigation flottante :
-              56px de hauteur, 24px de décalage du bord, une gouttière, et
-              l'encoche des téléphones. Sans cela la dernière ligne d'une liste
-              reste inaccessible sous la barre.
+              Le bas de page doit dégager la barre de navigation : 64px de
+              hauteur, plus les 28px dont le bouton de recherche déborde en son
+              centre, plus l'encoche des téléphones. Sans cela la dernière ligne
+              d'une liste reste inaccessible sous la barre.
             */}
-            <main className="px-gutter py-gutter pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-container-pad">
+            <main className="px-gutter py-gutter pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-container-pad">
               {children}
             </main>
           </ContenuDecale>
@@ -98,7 +98,7 @@ export async function AppLayout({ items, schoolName, role, userName, children }:
             qui s'affiche normalement, quelle qu'elle soit.
           */}
           <RejeuSignalements />
-          <BottomNav items={items} />
+          <BottomNav items={items} role={role} />
           <BulleSupport role={role} />
           {/*
             Au-dessus de la bulle de support, et jamais en même temps qu'elle
