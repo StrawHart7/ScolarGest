@@ -473,6 +473,41 @@ saisie sont explicitement hors motif (voir la dernière section du document).
 
 **Never use native `<select>` or `<input type="date">` directly** — their dropdown/calendar popups are rendered by the OS/browser and cannot be styled, which breaks the design system. Use `src/components/ui/select.tsx` (Radix Select — still form-submits via a real hidden `<select>`, so it drops into existing `FormData`-based Server Actions unchanged) and `src/components/ui/date-picker.tsx` (Popover + `calendar.tsx`, submits an ISO `yyyy-MM-dd` via a hidden input) instead.
 
+**Ni `<input type="file">` nu.** Même famille : bouton, libellé et police du
+système — « Choose File / No file chosen » en anglais au milieu d'un formulaire
+français — et une largeur minimale intrinsèque que le navigateur refuse de
+réduire, d'où les cinq pixels de débordement relevés sur les écrans d'import. Le
+champ reste, **masqué en `sr-only`** et non en `display:none`, qui le sortirait
+du parcours clavier, et un `label` enveloppant devient la cible. Deux formes
+existent : `src/components/import/ZoneDepot.tsx` pour un fichier dont il n'y a
+rien à montrer sinon un nom, et l'emplacement du logo de
+`/etablissement/documents` quand le fichier **se regarde** — la vignette y est à
+la fois l'aperçu et la cible. Retiré des trois écrans d'import le 2026-09-04,
+l'écran des documents avait été oublié et l'a gardé onze jours de plus.
+
+### Un réglage qui s'imprime se montre
+
+`/etablissement/documents` décide de ce qui part sur les bulletins remis aux
+familles, et n'en montrait rien : deux champs et six phrases grises. On
+choisissait son logo sans le voir, et son filigrane en lisant qu'il serait « en
+diagonale et très estompé » — des affirmations invérifiables avant d'avoir
+généré un bulletin, c'est-à-dire trop tard.
+
+**Une vignette reprend la géométrie du gabarit réel**, pas une idée de
+filigrane : `ApercuFiligrane` met à l'échelle les valeurs de
+`src/lib/pdf/templates/identite.ts` — rotation, place, taille de police au
+rapport des largeurs de page, texte du document dessiné par-dessus comme le fait
+le `z-index` du gabarit. **L'opacité est la seule chose qu'elle relève**, et
+délibérément : réduit au quart, le trait perd sa graisse, et 0,07 à 11px ne
+donne plus rien du tout à l'écran — la vignette annoncerait une page blanche
+pour un filigrane pourtant bien présent, soit l'inverse de la vérité. Elle
+promet le texte, sa place et son angle, pas une densité d'encre.
+
+**Un emplacement vide garde sa place et sa forme.** « Aucun logo » en texte gris
+se confondait avec les deux phrases grises au-dessus. Un cadre en pointillés aux
+proportions qu'aura le logo sur le document dit du même coup ce qui manque et où
+cela ira.
+
 ### Listes : l'en-tête est un composant, pas une composition par page
 
 `BarreListe` (`src/components/ui/barre-liste.tsx`) porte l'en-tête de **toute**
