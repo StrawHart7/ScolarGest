@@ -3090,6 +3090,22 @@ compile et qui est faux.
    l'est pour toutes, et ne se « débranche » pas comme un commit. Le signaler
    explicitement quand on en applique une.
 
+4. **Un bloc déplacé par l'un et modifié par l'autre ne produit aucun conflit
+   visible.** Constaté le 2026-09-16 en fusionnant `main` dans une branche
+   VERNI. VERNI avait déplacé la carte « Détail de la facture » en bas de la
+   colonne ; SOKO avait, sur `main`, changé son contenu — un prop en plus, et un
+   message retiré parce que la règle qu'il énonçait avait sauté. Git a signalé
+   le conflit **sur l'ordre des cartes**, l'a résolu là, et a laissé en bas la
+   version d'avant. Le résultat compilait, passait les tests, et aurait affiché
+   aux écoles une règle que le produit n'applique plus.
+
+   Donc : après toute fusion où l'une des branches a **déplacé** du code, relire
+   le bloc déplacé contre la version de l'autre branche, et pas seulement les
+   marqueurs de conflit. En pratique, `git diff origin/main..HEAD` sur le
+   fichier, lu en entier. Ici c'est une assertion du script de résolution —
+   « la carte du bas contient-elle bien le nouveau prop ? » — qui l'a rattrapé,
+   ce qui est une raison de plus d'en écrire.
+
 Règle qui en découle : **une branche par session, jamais de travail direct sur
 `main`** — y compris juste après un merge, moment où l'on se retrouve sur `main`
 sans y penser. Vérifier `git branch --show-current` avant la première écriture.
