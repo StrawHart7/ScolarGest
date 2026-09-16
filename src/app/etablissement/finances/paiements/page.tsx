@@ -166,14 +166,14 @@ export default async function HistoriqueVersementsPage({
                   </TableHeader>
                   <TableBody>
                     {page.lignes.map((paiement) => (
-                      <TableRow key={paiement.id}>
+                      <TableRow key={paiement.id} className="group relative">
                         <TableCell>
                           {new Date(paiement.datePaiement).toLocaleDateString('fr-FR')}
                         </TableCell>
                         <TableCell className="font-medium">
                           <Link
                             href={`/etablissement/finances/factures/${paiement.factureId}`}
-                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                            className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                           >
                             {paiement.eleveNom} {paiement.elevePrenoms}
                           </Link>

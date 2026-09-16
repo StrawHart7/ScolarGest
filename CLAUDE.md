@@ -601,6 +601,37 @@ porte un aplat pleine largeur (sinon elle carre les coins bas), et un résumé q
 annonce **ce qu'il y a derrière** plutôt que de répéter un avancement déjà
 affiché juste au-dessus.
 
+### Une ligne qui mène quelque part se clique en entier
+
+Sur téléphone, `LigneCarteMobile` est déjà un lien plein. Le tableau, lui, ne
+réagissait qu'au nom : une bande de près de mille pixels dont quelques dizaines
+seulement étaient cliquables, et rien ne distinguait le reste de la ligne d'une
+zone morte.
+
+Un `<a>` ne peut pas envelopper un `<tr>`. Le motif est le recouvrement absolu,
+documenté sur `TableRow` (`src/components/ui/table.tsx`) et appliqué aux neuf
+listes qui mènent à une fiche. Trois morceaux qui ne valent qu'ensemble :
+
+- la ligne porte `group relative` — **c'est elle** qui doit être le bloc
+  contenant. Ancré sur la cellule, le recouvrement ne couvre que la première
+  colonne : c'était le cas sur l'inventaire des écoles, où le commentaire
+  annonçait la ligne entière depuis des mois ;
+- le lien déjà présent porte
+  `after:absolute after:inset-0 after:z-10 after:content-['']` et passe ses états
+  de survol en `group-hover:` ;
+- **toute cellule qui contient une commande porte `relative z-20`.** C'est le
+  seul piège du motif, et il est silencieux : sans ce cran, « Désactiver »
+  ouvrirait la fiche au lieu de fermer le compte.
+
+Le vrai lien est conservé, donc le clavier, l'adresse dans la barre d'état, le
+clic droit et le Ctrl-clic aussi. Contrepartie assumée, la même que sur la carte
+mobile : le texte d'une ligne cliquable ne se sélectionne plus à la souris.
+
+**Une ligne dont le seul lien est une action ne reçoit pas ce traitement.**
+« Valider un paiement », sur les deux tables d'abonnements de la console, reste
+un bouton : la ligne y est un état, pas une destination, et la rendre cliquable
+mènerait à un formulaire d'encaissement par mégarde.
+
 ### Le hero tient dans un écran, à tout niveau de zoom
 
 `min-h-svh` plutôt que `100vh` (la barre d'URL mobile ne recadre plus le bas) et

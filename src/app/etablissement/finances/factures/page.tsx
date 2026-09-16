@@ -300,11 +300,11 @@ export default async function SuiviPaiementsPage({
                   </TableHeader>
                   <TableBody>
                     {page.lignes.map((ligne) => (
-                      <TableRow key={ligne.factureId}>
+                      <TableRow key={ligne.factureId} className="group relative">
                         <TableCell className="font-medium">
                           <Link
                             href={`/etablissement/finances/factures/${ligne.factureId}`}
-                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                            className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                           >
                             {ligne.nom} {ligne.prenoms}
                           </Link>

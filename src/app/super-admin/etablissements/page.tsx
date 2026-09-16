@@ -162,14 +162,14 @@ export default async function EtablissementsPage({
                     </TableHeader>
                     <TableBody>
                       {ecolesFiltrees.map((e) => (
-                        <TableRow key={e.id} className="group">
-                          {/* Toute la ligne mene a la fiche, pas seulement le
-                              nom : viser un mot de trois lettres dans une ligne
-                              de mille pixels est une cible inutilement etroite.
-                              Le lien couvre la premiere cellule et un
-                              recouvrement absolu s'etend sur le reste de la
-                              ligne — un <a> ne peut pas envelopper un <tr>. */}
-                          <TableCell className="relative">
+                        <TableRow key={e.id} className="group relative">
+                          {/* Toute la ligne mène à la fiche, pas seulement le nom.
+                              Le recouvrement était ancré sur la cellule et non sur
+                              la ligne : il ne couvrait donc que la première colonne,
+                              alors que ce commentaire annonçait la ligne entière.
+                              Le `relative` est remonté sur le `<tr>`, seul bloc à la
+                              bonne largeur — un <a> ne peut pas envelopper un <tr>. */}
+                          <TableCell>
                             <Link
                               href={`/super-admin/etablissements/${e.id}`}
                               className="font-medium text-text-primary after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container"

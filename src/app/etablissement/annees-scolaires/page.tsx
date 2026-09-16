@@ -99,11 +99,11 @@ export default async function AnneesScolairesPage() {
                   </TableHeader>
                   <TableBody>
                     {annees.map((annee) => (
-                      <TableRow key={annee.id}>
+                      <TableRow key={annee.id} className="group relative">
                         <TableCell className="font-medium">
                           <Link
                             href={`/etablissement/annees-scolaires/${annee.id}`}
-                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                            className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                           >
                             {annee.libelle}
                           </Link>
@@ -119,7 +119,10 @@ export default async function AnneesScolairesPage() {
                             {STATUT_LABEL[annee.statut]}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        {/* Les deux commandes passent au-dessus du recouvrement :
+                            sans ce cran, activer ou clôturer une année ouvrirait sa
+                            fiche à la place. */}
+                        <TableCell className="relative z-20">
                           {estDirecteur && annee.statut === 'PREPARATION' && (
                             <ActiverAnneeButton
                               anneeScolaireId={annee.id}

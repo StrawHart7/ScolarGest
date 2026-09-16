@@ -179,15 +179,22 @@ export default async function ElevesPage({
                       {/* Le matricule n'est plus en liste : il identifie un élève
                           sur sa fiche, pas dans un tableau de parcours. */}
                       <TriColonne cle="nom">Nom &amp; Prénoms</TriColonne>
+                      {/* La classe était sur la carte du téléphone et absente du
+                          tableau, qui avait pourtant la place : c'est le fait qu'on
+                          cherche juste après le nom d'un élève. */}
+                      <TableHead>Classe</TableHead>
                       <TriColonne cle="statut">Statut</TriColonne>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {page.lignes.map((eleve) => (
-                      <TableRow key={eleve.id}>
+                      <TableRow key={eleve.id} className="group relative">
                         <TableCell className="font-medium">
                           {eleve.nom} {eleve.prenoms}
+                        </TableCell>
+                        <TableCell className="text-text-secondary">
+                          {eleve.classeNom ?? '—'}
                         </TableCell>
                         <TableCell>
                           <Badge variant={STATUT_BADGE[eleve.statut].variant} shape="pill">
@@ -197,7 +204,7 @@ export default async function ElevesPage({
                         <TableCell>
                           <Link
                             href={`/etablissement/eleves/${eleve.id}`}
-                            className="text-text-secondary transition-colors hover:text-primary-container hover:underline"
+                            className="text-text-secondary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                           >
                             Voir la fiche
                           </Link>
