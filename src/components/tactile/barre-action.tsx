@@ -12,10 +12,11 @@ import { cn } from '@/lib/utils';
  * La barre reprend donc l'action principale et la rend visible en permanence.
  * Trois contraintes tenues :
  *
- * - **Elle passe au-dessus de la barre d'onglets**, qui flotte à 24px du bas et
- *   fait 56px : `bottom-[calc(...)]` la pose juste au-dessus, encoche comprise.
- *   Sans cela l'action principale de la page serait recouverte par la
- *   navigation — le défaut qu'on prétend corriger, déplacé d'un cran.
+ * - **Elle passe au-dessus de la barre d'onglets**, ancrée au bord et haute de
+ *   64px, dont le bouton de recherche déborde de 28px en son centre :
+ *   `bottom-[calc(...)]` la pose au-dessus des deux, encoche comprise. Sans
+ *   cela l'action principale de la page serait recouverte par la navigation —
+ *   le défaut qu'on prétend corriger, déplacé d'un cran.
  * - **La page doit dégager la hauteur correspondante** : `zone-action` existe
  *   pour ça dans l'échelle, à poser en `pb-` sur le conteneur du formulaire.
  *   Le composant ne peut pas le faire lui-même, il est en `fixed`.
@@ -38,7 +39,7 @@ export function BarreAction({
   return (
     <div
       className={cn(
-        'fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-30 px-gutter md:hidden',
+        'fixed inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] z-30 px-gutter md:hidden',
         className,
       )}
     >

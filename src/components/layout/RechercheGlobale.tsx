@@ -20,11 +20,28 @@ const LIBELLE_CATEGORIE: Record<CategorieResultat, string> = {
 };
 
 /**
- * Barre de recherche transverse du header — elle remplace le second
- * « ScolarGest », qui répétait celui de la sidebar sans rien apporter.
- * Les résultats arrivent au fil de la frappe et se parcourent au clavier.
+ * Barre de recherche transverse — dans l’en-tête sur bureau, dans la feuille
+ * du bouton central de `BottomNav` sur téléphone. Les résultats arrivent au fil
+ * de la frappe et se parcourent au clavier.
+ *
+ * Un seul composant pour les deux, et non deux implémentations : la table des
+ * icônes de navigation a déjà montré ce que deux copies deviennent. Trois
+ * options portent l'écart entre les deux présentations.
  */
-export function RechercheGlobale() {
+export function RechercheGlobale({
+  focusAuMontage,
+  enFlux,
+  onNaviguer,
+}: {
+  /** Donne le focus au champ dès l'affichage — la feuille du téléphone s'ouvre
+   *  pour chercher, exiger une seconde tape sur le champ serait une tape de trop. */
+  focusAuMontage?: boolean;
+  /** Rend les résultats dans le flux plutôt qu’en panneau flottant. Un panneau
+   *  en `absolute` dans une feuille qui défile se détache de son champ. */
+  enFlux?: boolean;
+  /** Appelé juste avant la navigation, pour refermer la feuille qui l'a ouvert. */
+  onNaviguer?: () => void;
+} = {}) {
   const router = useRouter();
   const [terme, setTerme] = React.useState('');
   const [resultats, setResultats] = React.useState<ResultatRecherche[]>([]);
@@ -33,6 +50,10 @@ export function RechercheGlobale() {
   const [indexActif, setIndexActif] = React.useState(0);
   const conteneur = React.useRef<HTMLDivElement>(null);
   const champ = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (focusAuMontage) champ.current?.focus();
+  }, [focusAuMontage]);
 
   React.useEffect(() => {
     const recherche = terme.trim();
@@ -87,6 +108,7 @@ export function RechercheGlobale() {
   const ouvrir = (resultat: ResultatRecherche) => {
     setOuvert(false);
     setTerme('');
+    onNaviguer?.();
     router.push(resultat.href);
   };
 
@@ -155,7 +177,12 @@ export function RechercheGlobale() {
         <div
           id="resultats-recherche-globale"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-1 animate-slide-up overflow-hidden rounded-lg border border-surface-border bg-surface-container-lowest shadow-floating"
+          className={cn(
+            'overflow-hidden rounded-lg border border-surface-border bg-surface-container-lowest',
+            enFlux
+              ? 'mt-2'
+              : 'absolute left-0 right-0 top-full z-50 mt-1 animate-slide-up shadow-floating',
+          )}
         >
           {resultats.length === 0 ? (
             <p className="px-4 py-6 text-center text-body-sm text-text-secondary">
