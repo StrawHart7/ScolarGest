@@ -58,13 +58,32 @@ import { RechercheGlobale } from './RechercheGlobale';
  * cinq écrans : trouver au centre, créer au coin, aucune des deux places n'étant
  * ambiguë.
  *
+ * ## Une échancrure, pas un rond posé sur un rectangle
+ *
+ * Le fond de la barre est un calque à part, masqué par un dégradé radial qui
+ * creuse un trou de 37px de rayon au milieu de son bord haut. Le bouton fait 28px
+ * de rayon : il reste **9px de jour** tout autour, par lesquels on voit la page.
+ * C'est ce jour qui fait la différence entre un bouton docké et une pastille
+ * collée.
+ *
+ * Le masque est sur un calque et non sur la `<nav>` : un masque s'applique aussi
+ * aux enfants, et il effacerait exactement le bouton qu'il est là pour mettre en
+ * valeur.
+ *
  * ## Deux teintes du même bleu
  *
  * Mixx tient parce qu'il a deux couleurs de marque, jaune sur marine. Le produit
  * n'en a qu'une, mais la palette porte déjà l'écart : barre en `primary`
- * (#003d9b), bouton et onglet actif en `primary-fixed-dim` (#b2c5ff), icône du
- * bouton en `primary-on-fixed`. Le libellé inactif est blanc à 75 %, ce qui
- * reste au-dessus de 4,5:1 sur ce fond.
+ * (#003d9b), disque du bouton en `primary-fixed` (#dae2ff) avec la loupe en
+ * `primary-container` (#0052cc), onglet actif en `primary-fixed-dim` (#b2c5ff).
+ * Les libellés inactifs sont blancs à 70 %, au-dessus de 4,5:1 sur ce fond.
+ *
+ * ## La loupe n'a pas de libellé, et c'est délibéré
+ *
+ * Écrire « Rechercher » sous la loupe coûtait deux fois : la colonne prenait la
+ * largeur du mot, et « Académique » se tronquait en « Académ... » juste à côté.
+ * Une loupe se lit sans légende ; un onglet dont le nom est coupé, non. Le nom
+ * reste en `aria-label`, pour qui ne voit pas l'icône.
  */
 const MAX_ONGLETS_DIRECTS = 3;
 
@@ -93,14 +112,14 @@ function ContenuOnglet({
   return (
     <>
       <Icone
-        className={cn('h-[22px] w-[22px]', actif ? 'text-primary-fixed-dim' : 'text-white/75')}
+        className={cn('h-[22px] w-[22px]', actif ? 'text-primary-fixed-dim' : 'text-white/65')}
         strokeWidth={actif ? 2.25 : 1.75}
         aria-hidden
       />
       <span
         className={cn(
-          'max-w-full truncate text-[12px] leading-[14px]',
-          actif ? 'font-semibold text-primary-fixed-dim' : 'text-white/75',
+          'max-w-full truncate text-[12px] leading-[14px] tracking-tight',
+          actif ? 'font-semibold text-primary-fixed-dim' : 'text-white/70',
         )}
       >
         {libelle}
@@ -109,7 +128,14 @@ function ContenuOnglet({
   );
 }
 
-const CLASSE_ONGLET = 'flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1';
+const CLASSE_ONGLET =
+  'flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1.5 px-0.5';
+
+/**
+ * L'échancrure du fond : un trou de 37px de rayon centré sur le bord haut de la
+ * barre, pour un bouton de 28px de rayon — 9px de jour tout autour.
+ */
+const ECHANCRURE = 'radial-gradient(circle 37px at 50% 0, transparent 98%, #000 100%)';
 
 export function BottomNav({ items, role }: { items: SidebarItem[]; role?: string }) {
   const pathname = usePathname();
@@ -156,29 +182,36 @@ export function BottomNav({ items, role }: { items: SidebarItem[]; role?: string
     <>
       <nav
         aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-40 bg-primary pb-[env(safe-area-inset-bottom,0px)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom,0px)] md:hidden"
       >
-        <div className="flex h-16 items-stretch">
+        <div
+          aria-hidden
+          className="absolute inset-0 rounded-t-[28px] bg-primary"
+          style={
+            avecRecherche ? { WebkitMaskImage: ECHANCRURE, maskImage: ECHANCRURE } : undefined
+          }
+        />
+
+        <div className="relative flex h-16 items-stretch">
           {gauche.map(onglet)}
 
           {avecRecherche && (
-            <div className="relative min-w-0 flex-1">
-              {/*
-                La boîte cliquable remonte de 28px (`-top-7`) pour englober la
-                part du bouton qui dépasse de la barre : sans cela, la moitié
-                haute du rond — la plus visible — ne répondrait pas au doigt.
-              */}
+            /* La colonne est étroite et fixe : le bouton n'a pas de libellé, il
+               n'a donc pas à prendre la largeur d'un onglet. Ce sont les quatre
+               autres qui en profitent, et « Académique » cesse de se tronquer.
+
+               Le bouton fait 56px, soit la cible tactile avec de la marge, et son
+               centre est posé sur le bord haut de la barre : la moitié qui dépasse
+               est cliquable comme le reste. */
+            <div className="relative w-[74px] shrink-0">
               <button
                 type="button"
                 onClick={() => setRechercheOuverte(true)}
                 aria-haspopup="dialog"
                 aria-label="Rechercher un élève, une classe, un enseignant"
-                className="absolute inset-x-0 -top-7 bottom-0 flex flex-col items-center justify-end pb-3"
+                className="absolute left-1/2 top-0 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-primary-fixed text-primary-container shadow-[0_6px_16px_-4px_rgba(0,24,72,0.45)] transition-transform active:scale-95"
               >
-                <span className="absolute left-1/2 top-0 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full border-4 border-primary bg-primary-fixed-dim text-primary-on-fixed shadow-floating transition-transform active:scale-95">
-                  <Search className="h-6 w-6" strokeWidth={2.25} aria-hidden />
-                </span>
-                <span className="text-[12px] leading-[14px] text-white/75">Rechercher</span>
+                <Search className="h-[26px] w-[26px]" strokeWidth={2.5} aria-hidden />
               </button>
             </div>
           )}

@@ -639,11 +639,24 @@ finiraient par diverger.
 `rechercheGlobale` est gardée pour les quatre rôles d'école : la console de
 plateforme n'a pas de bouton central, ses onglets se partagent la largeur.
 
+**Une échancrure, pas un rond posé sur un rectangle.** Le fond de la barre est
+un calque à part, masqué par un dégradé radial qui creuse un trou de 37px de
+rayon au milieu de son bord haut. Le bouton fait 28px de rayon : il reste 9px de
+jour tout autour, par lesquels on voit la page. C'est ce jour qui fait la
+différence entre un bouton docké et une pastille collée. Le masque est sur un
+calque et **non sur la `<nav>`** : un masque s'applique aussi aux enfants, et il
+effacerait exactement le bouton qu'il est là pour mettre en valeur.
+
+**La loupe n'a pas de libellé.** Écrire « Rechercher » dessous coûtait deux
+fois : la colonne prenait la largeur du mot, et « Académique » se tronquait en
+« Académ… » juste à côté. Une loupe se lit sans légende ; un onglet dont le nom
+est coupé, non. La colonne du bouton est donc étroite et fixe (74px), les quatre
+onglets se partagent le reste, et le nom reste en `aria-label`.
+
 **Deux teintes du même bleu.** Mixx tient parce qu'il a deux couleurs de marque.
-La palette portait déjà l'écart : barre `primary` (#003d9b), bouton et onglet
-actif `primary-fixed-dim` (#b2c5ff), icône `primary-on-fixed`. Le rond porte un
-liseré de 4px de la couleur de la barre : sans lui, la moitié qui déborde sur la
-page claire n'a presque aucun contraste.
+La palette portait déjà l'écart : barre `primary` (#003d9b), disque du bouton
+`primary-fixed` (#dae2ff) avec la loupe en `primary-container` (#0052cc), onglet
+actif `primary-fixed-dim` (#b2c5ff).
 
 **Les mesures se propagent — c'est le piège de cette barre.** Elle fait 64px et
 le rond en déborde de **28px** ; quatre valeurs en dépendent et se corrigent
