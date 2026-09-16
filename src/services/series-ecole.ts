@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
+import { trierClasses } from '@/lib/tri-classes';
 
 /**
  * Series temporelles d'une ecole, pour les graphes du tableau de bord.
@@ -190,13 +191,22 @@ export async function effectifsParClasse(anneeScolaireId: string): Promise<Effec
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE');
   const supabase = createClient();
 
-  const { data: classes, error: erreurClasses } = await supabase
+  // La répartition des effectifs se lit dans l'ordre de la scolarité : c'est
+  // une barre par classe, et l'ordre du dictionnaire y mêlait lycée et collège.
+  const { data: classesBrutes, error: erreurClasses } = await supabase
     .from('classe')
-    .select('id, nom, capacite')
+    .select('id, nom, capacite, niveau:niveau(ordre, cycle:cycle(ordre))')
     .eq('etablissementId', ctx.etablissementId)
-    .eq('anneeScolaireId', anneeScolaireId)
-    .order('nom');
+    .eq('anneeScolaireId', anneeScolaireId);
   if (erreurClasses) throw erreurClasses;
+  const classes = trierClasses(
+    (classesBrutes ?? []) as unknown as {
+      id: string;
+      nom: string;
+      capacite: number | null;
+      niveau: { ordre: number | null; cycle: { ordre: number | null } | null } | null;
+    }[],
+  );
 
   const { data: inscriptions, error: erreurInscriptions } = await supabase
     .from('inscription')

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import { trierClasses } from '@/lib/tri-classes';
 
 export interface Classe {
   id: string;
@@ -11,7 +12,11 @@ export interface Classe {
   nom: string;
   capacite: number | null;
   createdAt: string;
-  niveau: { nom: string; cycle: { nom: string } | null };
+  /**
+   * `ordre` est embarqué pour le tri : voir `src/lib/tri-classes.ts`. Sans lui,
+   * les classes reviendraient dans l'ordre du dictionnaire — 1ère avant 6ème.
+   */
+  niveau: { nom: string; ordre: number | null; cycle: { nom: string; ordre: number | null } | null };
   serie: { nom: string } | null;
 }
 
@@ -23,19 +28,28 @@ export interface CreateClasseInput {
   capacite?: number | null;
 }
 
+/**
+ * Les classes de l'année, **dans l'ordre de la scolarité** — 6ème d'abord,
+ * Terminale en dernier.
+ *
+ * Le tri se fait côté application et non en SQL : PostgREST ne sait pas
+ * ordonner sur une ressource imbriquée à deux niveaux (`niveau` puis `cycle`),
+ * et une école compte quelques dizaines de classes. C'est cette fonction qui
+ * alimente presque tous les menus de choix d'une classe : la corriger ici les
+ * corrige tous.
+ */
 export async function listClasses(anneeScolaireId: string): Promise<Classe[]> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
   const { data, error } = await supabase
     .from('classe')
     .select(
-      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, cycle:cycle(nom)), serie:serie(nom)',
+      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, ordre, cycle:cycle(nom, ordre)), serie:serie(nom)',
     )
     .eq('etablissementId', ctx.etablissementId)
-    .eq('anneeScolaireId', anneeScolaireId)
-    .order('nom');
+    .eq('anneeScolaireId', anneeScolaireId);
   if (error) throw error;
-  return (data ?? []) as unknown as Classe[];
+  return trierClasses((data ?? []) as unknown as Classe[]);
 }
 
 export async function getClasse(id: string): Promise<Classe> {
@@ -44,7 +58,7 @@ export async function getClasse(id: string): Promise<Classe> {
   const { data, error } = await supabase
     .from('classe')
     .select(
-      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, cycle:cycle(nom)), serie:serie(nom)',
+      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, ordre, cycle:cycle(nom, ordre)), serie:serie(nom)',
     )
     .eq('id', id)
     .eq('etablissementId', ctx.etablissementId)
@@ -67,7 +81,7 @@ export async function createClasse(input: CreateClasseInput): Promise<Classe> {
       capacite: input.capacite || null,
     })
     .select(
-      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, cycle:cycle(nom)), serie:serie(nom)',
+      'id, "etablissementId", "anneeScolaireId", "niveauId", "serieId", nom, capacite, "createdAt", niveau:niveau(nom, ordre, cycle:cycle(nom, ordre)), serie:serie(nom)',
     )
     .single();
   if (error) throw error;
