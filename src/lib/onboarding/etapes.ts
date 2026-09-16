@@ -96,7 +96,7 @@ export const ETAPES_DIRECTEUR: DefinitionEtape[] = [
     id: 'classes',
     titre: 'Classes',
     question: 'Combien de classes par niveau ?',
-    aide: 'Laissez à zéro les niveaux que vous n’enseignez pas. Les noms sont générés automatiquement (6ème A, 6ème B…). Les matières et les coefficients officiels seront appliqués automatiquement.',
+    aide: 'Laissez à zéro les niveaux que vous n’enseignez pas. Les noms sont générés automatiquement (6ème A, 6ème B…). Les matières et les coefficients officiels seront appliqués automatiquement. Une dernière question, en bas, pose la taille moyenne d’une classe.',
   },
   {
     id: 'enseignants',
