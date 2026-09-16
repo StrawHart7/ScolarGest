@@ -313,6 +313,12 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-16) :
+- `feat/soko-session-perimee` — ✅ terminée et fusionnée sur `main`
+  (2026-09-16), agent SOKO : une session dont l'établissement a disparu est
+  désormais fermée au lieu de tourner une heure en erreurs muettes, et
+  `expirerAbonnementsEchus` passe par la clé de service — la console des
+  abonnements tombait en page d'erreur à chaque ouverture depuis le
+  2026-09-11. Aucune migration. Voir les deux dernières sections de ce fichier.
 - `feat/soko-parler-au-directeur` — ✅ terminée et fusionnée sur `main`
   (2026-09-16), agent SOKO, 37 commits. Le retour du testeur sur le parcours
   complet, traité de bout en bout : section Établissement bâtie sur le modèle de
@@ -3605,3 +3611,77 @@ touche pas la production, réécrire `schema_migrations` sur la base réelle est
 sens unique pour un gain nul. Vérifier la clé enregistrée après chaque
 `apply_migration`, et renommer dans la foulée — c'est le seul moment où l'écart
 est encore visible.
+
+### Un jeton valide ne prouve pas que le monde qu'il décrit existe encore
+
+Constaté le 2026-09-16, sur téléphone, après la remise à zéro d'une école de
+test pendant qu'une session tournait.
+
+`lireIdentiteVerifiee` (`src/services/tenant.ts`) s'appuie sur `getClaims()`,
+qui vérifie la **signature** du jeton hors ligne contre le JWKS — d'où le flot
+de `/.well-known/jwks.json` dans les journaux. C'est le bon choix : une
+vérification par appel réseau à chaque requête coûterait un aller-retour par
+page. Mais elle a une conséquence qu'il faut connaître : **ni un compte
+supprimé, ni un établissement effacé ne s'y voient.** Le jeton reste accepté
+jusqu'à son expiration, une heure.
+
+Pendant cette heure, l'application travaillait avec un `etablissement_id` qui
+ne correspondait plus à aucune ligne :
+
+- les lectures rendaient des listes vides — la RLS faisait son travail ;
+- les écritures tombaient en `23503` (violation de clé étrangère), rendues en
+  `409` par PostgREST puis en page d'erreur avec une référence qui n'explique
+  rien.
+
+**Le piège se refermait par le haut.** Le middleware renvoie `/login` vers
+`/dashboard` tant qu'une session existe : l'utilisateur ne pouvait donc pas se
+reconnecter, et la seule porte de sortie était celle que le produit fermait.
+
+Le middleware lit déjà `etablissement` par son identifiant, pour l'essai et la
+suspension. Il suffisait de **distinguer les deux `null`** : `maybeSingle()`
+rend `{data: null, error: null}` quand la ligne n'existe pas, et un `error` non
+nul quand la lecture échoue. Le premier cas efface les cookies de session **sur
+la réponse de redirection elle-même** — `signOut()` écrirait sur la réponse
+qu'on ne renvoie pas dans cette branche — et mène à `/login?error=
+etablissement_introuvable`.
+
+**La dissymétrie s'inverse par rapport au repli voisin.** Quelques lignes plus
+haut, une lecture en échec laisse passer sans conclure : fermer enfermerait
+dehors une école à jour de ses paiements à cause d'un à-coup d'infrastructure.
+Mais un établissement absent n'est pas un à-coup, et laisser passer n'offre
+aucune requête de grâce — seulement une heure d'erreurs muettes.
+
+Et `/login` ne rebondit plus vers `/dashboard` quand l'adresse porte un motif
+d'erreur : l'effacement des cookies suffit en principe, mais une boucle de
+redirection est le pire qui puisse arriver à cet endroit, et le motif doit de
+toute façon pouvoir s'afficher.
+
+### Révoquer un droit d'exécution casse les appelants qu'on ne visait pas
+
+`/super-admin/abonnements` balaye les échéances avant d'afficher. La migration
+`20260911005324` a révoqué `EXECUTE` sur `fn_expirer_abonnements` pour `anon`
+et `authenticated` — à raison : une fonction qui écrit sur **toutes** les écoles
+de la plateforme n'a rien à faire au bout d'une URL PostgREST.
+
+Mais `expirerAbonnementsEchus` est restée sur le client de session. Résultat :
+`42501` à chaque ouverture, donc page d'erreur, **pendant cinq jours**, sans
+que rien ne le signale. Découvert le 2026-09-16 dans les journaux Postgres, six
+refus en dix minutes — c'était l'utilisateur qui essayait d'ouvrir la page.
+
+**Rendre le droit à `authenticated` rouvrirait ce que la migration a fermé** :
+les rôles Postgres ne distinguent pas le SUPER_ADMIN d'un enseignant, ils sont
+tous `authenticated`. La garde reste donc applicative (`requireRole()`) et
+l'exécution passe par la clé de service — exactement ce que faisait déjà le
+balayage quotidien de `relances-abonnement.ts`, qui lui fonctionnait. Deux
+appelants de la même RPC, un seul corrigé : c'est celui qu'on ne relit pas qui
+tombe.
+
+La règle qui en sort est la même que pour une garde de rôle : **chercher qui
+appelle avant de retirer un droit**, et se souvenir qu'un `revoke` sur
+`authenticated` atteint *tous* les appels faits avec le client de session, y
+compris ceux d'un SUPER_ADMIN parfaitement légitime.
+
+`src/services/__tests__/rpc-hors-api-publique.test.ts` lit les fichiers réels
+plutôt que d'appeler les services : la faute porte sur **quel client** ouvre
+l'appel, pas sur un comportement, et elle se rejouerait au premier
+`createClient()` écrit par réflexe.
