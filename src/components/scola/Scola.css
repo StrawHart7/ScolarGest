@@ -1,0 +1,21 @@
+.scola-character {
+  display: block;
+  overflow: visible;
+}
+
+.scola-character [data-eye] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.scola-character:focus-visible {
+  border-radius: 20px;
+  outline: 2px solid #9270ff;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scola-character * {
+    transition: none !important;
+  }
+}
