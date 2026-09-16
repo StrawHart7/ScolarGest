@@ -333,11 +333,24 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
   donne son modèle au lieu de décrire son gabarit. Migration `20260914122558`,
   **appliquée**. Voir `PLAN.md` § 8 et les sections « Le Directeur peut tout
   faire », « Le verrou de domaine » et « L'import » de ce fichier.
-- `SOKO` (2026-09-13) — **poussée, non fusionnée** : le drapeau
+- `SOKO` — ✅ fusionnée sur `main` (2026-09-16) : le drapeau
   `referentiel_national` est enfin lu par le produit. L'interrupteur existait
   des deux côtés de la base et ne commandait rien — couper depuis la Régie
   écrivait au journal et ne changeait rien chez les écoles. Aucune migration.
-  **En attente de l'aval de l'utilisateur.**
+- `VERNI` — ✅ fusionnée sur `main` (2026-09-16), agent VERNI : les annonces de
+  la Régie passent dans la barre latérale, s'ouvrent toutes en lecteur plein
+  texte, et se marquent lues en pied de modale. Plus les compteurs des tableaux
+  de bord, dont l'intitulé récupère la place que le cartouche en capitales lui
+  prenait. Aucune migration, aucun service touché.
+
+  C'est la branche **permanente** de VERNI depuis le 2026-09-13 : elle n'est pas
+  supprimée après fusion, on y rapatrie `main` régulièrement, et on n'écrit
+  jamais sur `main` depuis elle.
+- `design/verni-section-etablissement` — ✅ fusionnée sur `main` (2026-09-16),
+  agent VERNI : la rangée de section rendue lisible sur les dix entrées
+  d'Établissement, les écrans d'import ramenés à leur zone de dépôt, l'aperçu
+  de ce qui sera imprimé sur l'écran qui le décide, et la ligne entière rendue
+  cliquable sur les neuf listes qui mènent quelque part. Aucune migration.
 
 **Active branches** (2026-09-13) :
 - `SOKO` — ✅ fusionnée sur `main` tout au long du 2026-09-13, agent SOKO. La
@@ -346,12 +359,11 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
   national, index `note_a_traiter`, `annonce_lue`, et quatre défauts silencieux
   corrigés (voir `PLAN.md`). Migrations `20260913011738` à `20260913150152`,
   **toutes appliquées**.
-- `VERNI` — **poussée, non fusionnée** (2026-09-13), agent VERNI : l'annonce
-  passe dans un cadre de la barre latérale à partir de `md`, le bandeau du flux
-  reste sur téléphone, et la seconde annonce devient une rangée d'une ligne pour
-  ne pas manger la moitié de l'écran. Aucune migration. **En attente de l'aval
-  de l'utilisateur**, et il lui reste à poser le bouton « ne plus afficher » au
-  bas du lecteur (l'action `marquerAnnonceLueAction` l'attend).
+- `VERNI` (2026-09-13) — l'annonce passe dans un cadre de la barre latérale à
+  partir de `md`, le bandeau du flux reste sur téléphone, et la seconde annonce
+  devient une rangée d'une ligne pour ne pas manger la moitié de l'écran. Suite
+  et fusion au 2026-09-16, voir plus haut.
+
 **Active branches** (2026-09-12) :
 - `docs/soko-cadre-reglementaire` — ✅ terminée et mergée sur `main`
   (2026-09-12), agent SOKO : le référentiel national fait autorité — matières,
@@ -2979,6 +2991,84 @@ est une panne en attente.
 avait presque le poids visuel de la valeur qu'il annonce — et coûte 16px de
 hauteur par champ. `Label` est donc en casse normale (`touch-label`). Les
 en-têtes de tableau gardent `label-md uppercase`, qui est leur usage d'origine.
+
+**La règle a été enfreinte une seconde fois, sur les compteurs.** Les cartes de
+`CarteMetrique` sont passées à `console-eyebrow uppercase` (11px, interlettre
+0,09em) pour donner aux tableaux de bord l'allure de la console. Le corps est
+plus petit et l'étiquette pourtant **plus large de 17 à 25 %** : des capitales
+espacées coûtent plus qu'elles n'économisent. « ENCAISSÉ CETTE ANNÉE » demandait
+154px pour 121 disponibles, cassait sur deux lignes, et la rangée poussait la
+page hors de l'écran.
+
+Le cartouche en capitales n'est légitime que là où le libellé est **court et
+connu d'avance** : `bandeau-console`, `entete-section`, les en-têtes de colonnes.
+Un intitulé venu d'une page ne l'est jamais.
+
+### Le cadre de référence du bureau est 1280px CSS
+
+Pas 1440, pas 1600. **1920 physiques à 150 % d'agrandissement Windows font
+1280px CSS**, et c'est le réglage par défaut de beaucoup de portables — celui de
+la machine de l'utilisateur. Moins la barre latérale de 260px et les gouttières
+de contenu, il reste **972px**, soit quatre pistes de 231px dans une grille
+`xl:grid-cols-4`.
+
+Deux défauts livrés en septembre 2026 viennent tous deux d'avoir jugé une mise
+en page sur une capture prise à une largeur confortable :
+
+- le tableau de suivi des paiements, qui débordait de 39px une fois « (FCFA) »
+  ajouté aux trois en-têtes numériques ;
+- les intitulés des compteurs, qui cassaient sur deux lignes.
+
+Les deux ont été trouvés par l'utilisateur, sur son écran. Aucun n'apparaissait
+en relisant le code. **Toute mise en page de bureau se mesure à 1280px d'abord**,
+et le point d'arrêt ne connaît pas la barre latérale : `xl:` se déclenche à 1280
+de *viewport* alors que le contenu n'en fait que 972.
+
+### Une surface cliquable sous condition ne s'apprend pas
+
+`CarteAnnonce` n'ouvrait son lecteur que si la troncature du texte avait
+réellement eu lieu, mesurée au pixel (`scrollHeight` contre `clientHeight`)
+après le chargement des polices. L'intention était juste — ne pas proposer
+d'ouvrir ce qui est déjà lisible — et le résultat était un message manifestement
+coupé que l'école ne pouvait pas lire.
+
+Le pire n'est pas la panne, c'est qu'elle est **muette** : personne ne peut
+savoir si un clic sans effet signifie « il n'y a rien de plus » ou « c'est
+cassé ». Et la condition variait avec le contexte — la même annonce s'ouvrait ou
+non selon qu'une seconde existait à côté d'elle.
+
+Ouvrir un message déjà entièrement lu coûte un geste ; en rendre un inaccessible
+coûte l'information. **Une affordance se décide à l'écriture, jamais d'après une
+mesure du rendu** : une hauteur clampée dépend de la police chargée, du moment
+du montage et du navigateur.
+
+### Annonces : la plateforme parle dans la barre latérale
+
+Une annonce de la Régie vit dans la barre latérale à partir de `md`
+(`AnnoncesSidebar`, passée en créneau à `Sidebar`), et dans le flux sous `md`
+(`BandeauAnnonce`), où il n'y a pas de barre latérale. Ce n'est pas une
+duplication : ce sont deux endroits pour deux formes d'écran, nourris par une
+lecture mémoïsée par requête (`annonces-du-rendu.ts`).
+
+Quatre points à ne pas défaire :
+
+- **`data-bandeau` reste sur le seul rendu du téléphone.** La garde de
+  `PanneauConseil` ne vaut que sous 768px et `querySelector` ignore
+  `display:none` : marquer la carte latérale ferait taire la bannière de conseil
+  au profit d'une annonce que le téléphone ne montre jamais.
+- **La carte ne se ferme pas, le lecteur si.** « Marquer comme lu » vit au bas
+  de la modale, jamais sur la carte : il faut avoir ouvert pour pouvoir écarter.
+  Le geste est **par personne** — un collègue qui écarte ne fait pas disparaître
+  l'annonce pour les autres, et le compteur d'écoles de la Régie se déduit des
+  personnes alors que l'inverse ne se rattrape pas.
+- **La deuxième annonce est une rangée, pas une seconde carte.** Deux cartes
+  pleines faisaient 47 % d'un écran de 844px avant le contenu. Deux objets de
+  même poids se concurrencent, et aucun n'est lu.
+- **L'habillage est celui du panneau de conseil**, dégradé compris. Une seconde
+  manière de dire « la plateforme s'adresse à vous » en aurait fait deux objets
+  pour une intention. Le conseil propose quelque chose à faire, l'annonce
+  informe de quelque chose qui arrive : la distinction se lit dans l'icône et
+  l'étiquette.
 
 ### L'action d'un formulaire se double, elle ne se déplace pas
 
