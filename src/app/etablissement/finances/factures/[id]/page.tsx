@@ -133,64 +133,29 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
               mobile au lieu de laisser le tableau défiler localement dans
               son propre `overflow-x-auto`. */}
           <div className="min-w-0 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Détail de la facture</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {canWrite && facture.lignesModifiables ? (
-                  <LignesFactureEditor
-                    factureId={facture.id}
-                    lignesInitiales={facture.lignes.map((l) => ({
-                      typeFraisId: l.typeFraisId,
-                      designation: l.designation,
-                      montant: Number(l.montant),
-                    }))}
-                    typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
-                  />
-                ) : (
-                  <>
-                    {facture.lignes.length === 0 ? (
-                      <p className="text-body-sm text-text-secondary">
-                        Aucune ligne : aucun tarif n&apos;était défini pour la classe au moment de
-                        l&apos;inscription.
-                      </p>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Désignation</TableHead>
-                            <TableHead className="text-right">Montant</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {facture.lignes.map((ligne) => (
-                            <TableRow key={ligne.id}>
-                              <TableCell>{ligne.designation}</TableCell>
-                              <TableCell className="text-right" data-mono>
-                                {fcfa(ligne.montant)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow>
-                            <TableCell className="font-semibold">Total facturé</TableCell>
-                            <TableCell className="text-right font-semibold" data-mono>
-                              {fcfa(facture.montantTotal)}
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    )}
-                    {canWrite && !facture.lignesModifiables && facture.statut !== 'ANNULE' && (
-                      <p className="mt-3 text-body-sm text-text-secondary">
-                        Un versement a déjà été encaissé : les lignes ne sont plus modifiables.
-                        Toute correction passe par un nouveau versement ou une annulation.
-                      </p>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            {/* L'encaissement passe en tête, le détail des lignes en bas.
+
+                Cette page s'ouvre presque toujours pour la même raison : un parent
+                est là et il paie. Le détail des lignes, lui, est un écran de
+                configuration — on y revient quand un tarif a été mal appliqué, pas
+                tous les jours. Il occupait pourtant le premier écran, et sur
+                téléphone le formulaire de versement arrivait après six champs de
+                saisie et tout l'historique.
+
+                L'ordre suit donc la fréquence du geste : encaisser, voir ce qui a
+                été reçu, puis le détail de ce qui est dû. Le bloc disparaît quand le
+                solde est nul — c'est alors l'historique qui prend la tête, ce qui
+                est juste : il n'y a plus rien à encaisser. */}
+            {canWrite && facture.statut !== 'ANNULE' && facture.solde > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nouveau versement</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <NouveauVersementForm factureId={facture.id} solde={facture.solde} />
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader className="flex-row items-baseline justify-between gap-4">
@@ -317,16 +282,64 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
               )}
             </Card>
 
-            {canWrite && facture.statut !== 'ANNULE' && facture.solde > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Nouveau versement</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <NouveauVersementForm factureId={facture.id} solde={facture.solde} />
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Détail de la facture</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {canWrite && facture.lignesModifiables ? (
+                  <LignesFactureEditor
+                    factureId={facture.id}
+                    lignesInitiales={facture.lignes.map((l) => ({
+                      typeFraisId: l.typeFraisId,
+                      designation: l.designation,
+                      montant: Number(l.montant),
+                    }))}
+                    typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
+                  />
+                ) : (
+                  <>
+                    {facture.lignes.length === 0 ? (
+                      <p className="text-body-sm text-text-secondary">
+                        Aucune ligne : aucun tarif n&apos;était défini pour la classe au moment de
+                        l&apos;inscription.
+                      </p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Désignation</TableHead>
+                            <TableHead className="text-right">Montant</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {facture.lignes.map((ligne) => (
+                            <TableRow key={ligne.id}>
+                              <TableCell>{ligne.designation}</TableCell>
+                              <TableCell className="text-right" data-mono>
+                                {fcfa(ligne.montant)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow>
+                            <TableCell className="font-semibold">Total facturé</TableCell>
+                            <TableCell className="text-right font-semibold" data-mono>
+                              {fcfa(facture.montantTotal)}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    )}
+                    {canWrite && !facture.lignesModifiables && facture.statut !== 'ANNULE' && (
+                      <p className="mt-3 text-body-sm text-text-secondary">
+                        Un versement a déjà été encaissé : les lignes ne sont plus modifiables.
+                        Toute correction passe par un nouveau versement ou une annulation.
+                      </p>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <Card className="h-fit">
