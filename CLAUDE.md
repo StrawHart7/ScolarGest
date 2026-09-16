@@ -313,6 +313,12 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-16) :
+- `feat/soko-tri-classes-configuration` + `feat/soko-aide-complete` — ✅
+  terminées et fusionnées sur `main` (2026-09-16), agent SOKO : les classes se
+  rangent dans l'ordre de la scolarité, « Configuration » reste en permanence
+  dans la rangée d'Établissement et l'écran change de métier une fois tout
+  réglé, et la page d'aide passe de sept questions — dont deux fausses — à
+  quarante et une, cherchables. Aucune migration. Voir `PLAN.md` § 8.
 - `feat/soko-session-perimee` — ✅ terminée et fusionnée sur `main`
   (2026-09-16), agent SOKO : une session dont l'établissement a disparu est
   désormais fermée au lieu de tourner une heure en erreurs muettes, et
@@ -3841,3 +3847,109 @@ compris ceux d'un SUPER_ADMIN parfaitement légitime.
 plutôt que d'appeler les services : la faute porte sur **quel client** ouvre
 l'appel, pas sur un comportement, et elle se rejouerait au premier
 `createClient()` écrit par réflexe.
+
+### L'ordre d'une liste est une donnée, pas un tri par défaut
+
+`order('nom')` sur les classes donnait « 1ère, 2nde, 3ème, 4ème, 5ème, 6ème,
+Tle » — l'ordre du dictionnaire, qui n'est l'ordre de personne. Un directeur
+cherchait sa 6ème A en cinquième position, et tout menu de choix d'une classe
+commençait par la Première. Signalé par le testeur le 2026-09-16.
+
+**Le bon ordre était déjà en base** — `cycle.ordre` puis `niveau.ordre` — et
+personne ne s'en servait. Rien à migrer : seulement à lire. C'est le cas le plus
+fréquent de ce dépôt, et il vaut d'être cherché avant d'écrire quoi que ce soit.
+
+`src/lib/tri-classes.ts` porte le comparateur, sans dépendance — les menus de
+choix sont des composants clients. Trois services l'appliquent : `listClasses`,
+qui alimente presque tous les menus, plus le rapport d'effectifs et la
+répartition du tableau de bord. Un export qui classerait la 1ère avant la 6ème
+serait relu de travers par l'école qui le reçoit.
+
+**Le tri se fait côté application, pas en SQL** : PostgREST ne sait pas ordonner
+sur une ressource imbriquée à deux niveaux, et une école compte quelques dizaines
+de classes.
+
+**La comparaison du nom est numérique** (`numeric: true`), sans quoi « Tle D10 »
+se range entre « Tle D1 » et « Tle D2 ». Dix divisions n'est pas une hypothèse
+d'école : c'est le cas ordinaire d'un grand lycée de Lomé.
+
+**Une classe sans rang se range à la fin**, jamais au début. Ce cas ne se produit
+que si l'appelant a oublié d'embarquer `niveau(ordre, cycle(ordre))` ; la mettre
+en tête ferait passer un défaut de requête pour une décision. D'où
+`CHAMPS_RANG_CLASSE`, écrit une fois plutôt que recopié trois.
+
+### Un écran peut changer de métier au lieu de disparaître
+
+« Configuration » quittait la rangée d'Établissement dès que les neuf réglages
+indispensables étaient faits. Décision de l'utilisateur, revue le 2026-09-16 :
+**elle y reste en permanence, comme les autres entrées.**
+
+Une entrée qui va et vient se cherche — on apprend une rangée par sa forme, et
+une forme qui change selon un état invisible oblige à relire à chaque visite.
+
+Mais la vraie raison est ailleurs : **l'écran devient autre chose une fois tout
+réglé.** Tant qu'il reste un réglage, c'est une checklist. Tout réglé,
+recommandés compris, c'est la page où l'on apprend ce que la plateforme sait
+faire de neuf. Cacher le seul chemin qui y mène le jour où il n'y a plus rien à
+régler, c'était le fermer exactement quand il commence à servir.
+
+**`toutFait` est distinct de `complet`**, et c'est tout le point : `complet`
+répond à « l'école peut-elle facturer et éditer un bulletin ? », `toutFait` à
+« reste-t-il quoi que ce soit à régler ou à découvrir ? ». Une école peut être
+complète sans logo ni filigrane pendant des mois ; basculer l'écran sur `complet`
+lui dirait « vous n'avez rien à faire » avec des réglages listés juste dessous.
+
+**Les nouveautés réutilisent ce qui existait.** Le catalogue des conseils porte
+depuis le 2026-09-04 un champ `nouveaute` comparé à la date de création du
+compte : rien à inventer, seulement une seconde surface. Elles sont prises dans
+**tout** le catalogue et pas seulement dans le socle — la capacité des classes ou
+l'emploi du temps sont des fonctionnalités qu'on fait connaître, pas des réglages
+manquants. Filtrées par rôle, et retirées dès qu'elles sont utilisées : ce n'est
+pas un journal des versions.
+
+`socleComplet()` a été **supprimée** avec l'exclusion : une fonction de service
+gardée que personne n'appelle finit par être rappelée de bonne foi. Son effet de
+bord disparaît avec elle — elle déclenchait un diagnostic d'une quinzaine de
+comptages à l'ouverture de **chacun** des huit écrans de la section.
+
+### Une aide fausse est pire qu'une aide absente
+
+La page d'aide portait sept rubriques écrites en dur dans son `page.tsx`, et
+**deux d'entre elles étaient devenues fausses** sans que personne le remarque :
+
+- « les lignes d'une facture sont figées dès le premier versement » — règle
+  retirée le matin même, sur demande de l'utilisateur. La page conseillait encore
+  d'annuler la facture pour y ajouter une ligne de cantine ;
+- « la réponse du support s'affichera sur cette page, visible par votre
+  établissement » — une demande ne se relit que par son auteur depuis la
+  migration `20260907221109`, et c'était tout l'objet de ce resserrement.
+
+Elle est crue, et elle enseigne à l'école une règle que le produit n'applique
+plus. **Toute modification de comportement vient relire
+`src/lib/aide/questions.ts`**, au même titre que ce fichier.
+
+Trois règles pour une réponse :
+
+- **Vraie aujourd'hui.** Chaque réponse qui découle d'une décision porte sa date
+  en commentaire dans la source — pas à l'écran, où elle n'intéresse personne.
+- **Elle dit pourquoi**, pas seulement quoi. « Vous ne pouvez pas » sans raison
+  se lit comme une panne ; une école qui comprend la règle cesse de la
+  contourner.
+- **Elle nomme l'écran où agir.** Chercher était déjà la raison d'ouvrir l'aide.
+
+**Le test des liens vaut d'être copié ailleurs.** Il compare chaque `href` à
+`cheminAutorise` — la fonction qui construit la barre latérale — pour **chaque
+rôle qui voit la question**. Au premier passage il a refusé deux entrées :
+l'aide envoyait la Secrétaire sur `/etablissement/configuration` et sur
+`/abonnement`, deux écrans qui lui sont fermés. Sans lui, l'aide se serait
+retournée contre elle-même en prouvant qu'on ne lui parle pas à elle.
+
+Les questions portent aussi des **mots-clés absents du texte** — « écolage »,
+« bordereau », « délestage ». La recherche doit répondre au vocabulaire de
+l'école, pas au nôtre.
+
+**Un écart relevé au passage, non corrigé** : ce fichier affirme que
+`/abonnement` est ouverte à tous les rôles et que le motif de suspension est
+affiché à la Secrétaire. `SECTIONS` ne la déclare que pour le Directeur et le
+Comptable. Si la Secrétaire subit bien la lecture seule, elle n'a aucun chemin
+visible vers l'explication. Question de périmètre, laissée à l'utilisateur.

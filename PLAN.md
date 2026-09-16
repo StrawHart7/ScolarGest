@@ -692,6 +692,59 @@ réécrites dans ce format.
 
 ---
 
+### Fonctionnalité — La journée de finition : session périmée, tri des classes, page d'aide
+
+**Statut** : ✅ Terminée et fusionnée sur `main` (2026-09-16), agent SOKO.
+Trois branches, aucune migration : `feat/soko-session-perimee`,
+`feat/soko-tri-classes-configuration`, `feat/soko-aide-complete`.
+
+**Objectif** : traiter les retours du testeur sur téléphone, et les deux défauts
+que les journaux ont sortis en cherchant la cause d'une panne de connexion.
+
+**Livrables** :
+
+- [x] **Une session qui a survécu à son établissement** — le jeton se vérifie
+      hors ligne contre les clés publiques : ni un compte supprimé ni une école
+      effacée ne s'y voient, et il reste accepté une heure. Les lectures rendaient
+      des listes vides, les écritures tombaient en `23503`, et `/login` renvoyait
+      vers `/dashboard` tant qu'une session existait — l'utilisateur ne pouvait
+      pas se reconnecter. Le middleware distingue désormais « la lecture a
+      échoué » de « l'établissement n'existe pas ».
+- [x] **La console des abonnements, cassée depuis cinq jours** — la migration de
+      durcissement `20260911005324` avait révoqué `EXECUTE` sur
+      `fn_expirer_abonnements` à `authenticated`, mais l'appel de
+      `/super-admin/abonnements` était resté sur le client de session. `42501` à
+      chaque ouverture, donc page d'erreur, sans que rien ne le signale.
+- [x] **Tri des classes dans l'ordre de la scolarité** — `order('nom')` donnait
+      l'ordre du dictionnaire. Le bon ordre était déjà en base et personne ne le
+      lisait. Trois services alignés, un comparateur sans dépendance.
+- [x] **« Configuration » reste dans la rangée d'Établissement** — et l'écran
+      change de métier une fois tout réglé : il devient la page où les nouvelles
+      fonctionnalités sont présentées. `toutFait` distinct de `complet`,
+      `socleComplet()` supprimée avec l'exclusion.
+- [x] **La taille moyenne d'une classe, demandée à l'onboarding** — la plomberie
+      existait, l'écran ne l'envoyait jamais.
+- [x] **Page d'aide** — de sept questions, dont **deux fausses**, à quarante et
+      une, rangées en neuf thèmes et cherchables. Le test des liens compare chaque
+      `href` à `cheminAutorise` par rôle : il a refusé deux entrées au premier
+      passage.
+
+**Décisions de l'utilisateur, tranchées en séance** :
+- « Configuration » ne disparaît plus de la rangée : elle devient le support des
+  nouveautés une fois l'établissement entièrement réglé.
+- Les classes se rangent de la 6ème à la Terminale, partout.
+
+**Reste ouvert** :
+- `/abonnement` n'est déclarée que pour le Directeur et le Comptable, alors que
+  `CLAUDE.md` affirme le contraire et que le motif de suspension doit être
+  affiché à la Secrétaire. Question de périmètre, signalée à l'utilisateur.
+- Une classe de l'école de démonstration porte le nom « 6e A » sur le niveau
+  **CP1** : la donnée est fausse, pas le tri.
+
+**DoD** : lint, typecheck et **635 tests** verts ; instantané de la matrice
+régénéré à chaque changement de garde ; aucune migration ; les trois branches
+fusionnées après aval explicite.
+
 ---
 
 ### Fonctionnalité — Parler au directeur : section Établissement, régime par cycle, et le jour où la RLS a lâché
