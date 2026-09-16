@@ -68,7 +68,10 @@ export function ApprobationQueue({ notes }: { notes: NoteEnAttente[] }) {
           <LigneCarteMobile
             key={note.id}
             titre={`${note.elevePrenoms} ${note.eleveNom}`}
-            sousTitre={`${note.classeNom} · ${note.matiereNom} · ${nommerEvaluation(note.evaluationType, note.numero)}`}
+            // Voir `SoumissionsQueue` : la période manquait sur la carte alors
+            // qu'elle est sur le tableau. Elle vient après la classe, dont elle
+            // dépend désormais — collège au trimestre, lycée au régime choisi.
+            sousTitre={`${note.classeNom} · ${note.matiereNom} · ${nommerEvaluation(note.evaluationType, note.numero)} · ${nommer(note.periode, note.classeCycle)}`}
             valeurSecondaire={
               <span>
                 <span className="text-text-secondary">{note.valeur ?? '—'}</span>

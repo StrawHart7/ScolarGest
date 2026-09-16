@@ -93,8 +93,6 @@ export function ImportForm({ anneeScolaireId }: { anneeScolaireId: string }) {
 
   return (
     <div className="space-y-6">
-      {!analyse && <PreparerFichier domaine="enseignants" />}
-
       <form onSubmit={analyser} className="flex flex-col gap-4">
         <ZoneDepot
           fichier={fichier}
@@ -116,6 +114,11 @@ export function ImportForm({ anneeScolaireId }: { anneeScolaireId: string }) {
       </form>
 
       {message && <p className="text-body-sm text-error">{message}</p>}
+
+      {/* Le mode d'emploi vient après la zone de dépôt, et disparaît une fois
+          le bilan affiché : il a servi, et il repousserait le résultat hors
+          de l'écran. */}
+      {!analyse && <PreparerFichier domaine="enseignants" />}
 
       {analyse && (
         <ApercuImport

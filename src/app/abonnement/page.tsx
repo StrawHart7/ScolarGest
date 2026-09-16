@@ -9,6 +9,7 @@ import {
 } from '@/services/abonnement';
 import { evaluerAcces, statutEffectif } from '@/services/abonnement-acces';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BarreEtablissement } from '@/components/layout/BarreEtablissement';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +88,23 @@ export default async function AbonnementPage() {
       role={ctx.role}
       userName={ctx.email}
     >
+      {/*
+        L'abonnement appartient à la section Établissement — il y est déclaré
+        dans `SECTIONS` — mais son adresse vit à la racine. Sans la rangée, on
+        perdait le repère de section en y arrivant depuis l'école.
+
+        Elle reste **hors** de la colonne centrée, comme sur « Identité des
+        documents » : c'est la largeur du contenu qui est particulière ici, pas
+        celle de la barre.
+
+        Elle ne s'affiche qu'aux rôles qui ont la section — voir
+        `BarreEtablissement`. Le Comptable, qui atteint cette page par le
+        premier niveau de sa barre latérale, n'en voit aucune.
+      */}
+      <div className="mb-4 md:mb-6">
+        <BarreEtablissement role={ctx.role} actif="/abonnement" />
+      </div>
+
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

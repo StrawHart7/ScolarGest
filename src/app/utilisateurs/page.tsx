@@ -154,11 +154,11 @@ export default async function UtilisateursPage({
                   </TableHeader>
                   <TableBody>
                     {page.lignes.map((u) => (
-                      <TableRow key={u.id}>
+                      <TableRow key={u.id} className="group relative">
                         <TableCell className="font-medium">
                           <Link
                             href={`/utilisateurs/${u.id}`}
-                            className="text-text-primary transition-colors hover:text-primary-container hover:underline"
+                            className="text-text-primary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                           >
                             {u.prenom} {u.nom}
                           </Link>
@@ -180,7 +180,9 @@ export default async function UtilisateursPage({
                         <TableCell>
                           <Badge variant={STATUT_BADGE[u.statut]}>{u.statut}</Badge>
                         </TableCell>
-                        <TableCell className="flex flex-wrap items-center gap-1">
+                        {/* Les commandes passent au-dessus du recouvrement : sans ce
+                            cran, désactiver un compte ouvrirait sa fiche à la place. */}
+                        <TableCell className="relative z-20 flex flex-wrap items-center gap-1">
                           {/*
                             La réinitialisation n'est offerte que sur les comptes
                             sans adresse : eux seuls n'ont pas de « mot de passe

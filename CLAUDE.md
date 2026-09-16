@@ -325,14 +325,7 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
   Migrations `20260915160508`, `20260915192131`, `20260915211046`,
   `20260916063052` et `20260916065141`, **toutes appliquées**. Voir `PLAN.md`
   § 8 et les huit sections de doctrine ajoutées à la fin de ce fichier.
-- `feat/soko-directeur-complet` + `feat/soko-prise-en-main` +
-  `feat/soko-import-lisible` — ✅ terminées et mergées sur `main` (2026-09-14),
-  agent SOKO : le Directeur peut tout faire dans son établissement, le verrou de
-  domaine remplace les écrans vides, la checklist de configuration, le parcours
-  de prise en main réparé sur sept points relevés par un testeur, et l'import
-  donne son modèle au lieu de décrire son gabarit. Migration `20260914122558`,
-  **appliquée**. Voir `PLAN.md` § 8 et les sections « Le Directeur peut tout
-  faire », « Le verrou de domaine » et « L'import » de ce fichier.
+
 - `SOKO` — ✅ fusionnée sur `main` (2026-09-16) : le drapeau
   `referentiel_national` est enfin lu par le produit. L'interrupteur existait
   des deux côtés de la base et ne commandait rien — couper depuis la Régie
@@ -347,10 +340,25 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
   supprimée après fusion, on y rapatrie `main` régulièrement, et on n'écrit
   jamais sur `main` depuis elle.
 - `design/verni-section-etablissement` — ✅ fusionnée sur `main` (2026-09-16),
-  agent VERNI : la rangée de section rendue lisible sur les dix entrées
-  d'Établissement, les écrans d'import ramenés à leur zone de dépôt, l'aperçu
-  de ce qui sera imprimé sur l'écran qui le décide, et la ligne entière rendue
-  cliquable sur les neuf listes qui mènent quelque part. Aucune migration.
+  agent VERNI : la rangée de section reprise pour les **dix** entrées
+  d'Établissement — puces à 32px sur bureau, repli nommé sous `md` où l'écran
+  courant se trouvait **586px hors champ**, rangée posée sur `/abonnement` et
+  `/rapports` mais seulement pour les rôles qui ont la section, et section
+  « Indispensable » repliée une fois les neuf réglages faits. Plus les écrans
+  d'import ramenés à leur zone de dépôt, l'aperçu de ce qui sera imprimé sur
+  l'écran qui le décide, et la ligne entière rendue cliquable sur les neuf
+  listes qui mènent quelque part. Aucune migration, aucun service. Voir
+  `PLAN.md` § 8 et la section « La rangée de section » de ce fichier.
+
+**Active branches** (2026-09-14) :
+- `feat/soko-directeur-complet` + `feat/soko-prise-en-main` +
+  `feat/soko-import-lisible` — ✅ terminées et mergées sur `main` (2026-09-14),
+  agent SOKO : le Directeur peut tout faire dans son établissement, le verrou de
+  domaine remplace les écrans vides, la checklist de configuration, le parcours
+  de prise en main réparé sur sept points relevés par un testeur, et l'import
+  donne son modèle au lieu de décrire son gabarit. Migration `20260914122558`,
+  **appliquée**. Voir `PLAN.md` § 8 et les sections « Le Directeur peut tout
+  faire », « Le verrou de domaine » et « L'import » de ce fichier.
 
 **Active branches** (2026-09-13) :
 - `SOKO` — ✅ fusionnée sur `main` tout au long du 2026-09-13, agent SOKO. La
@@ -482,6 +490,41 @@ saisie sont explicitement hors motif (voir la dernière section du document).
 
 **Never use native `<select>` or `<input type="date">` directly** — their dropdown/calendar popups are rendered by the OS/browser and cannot be styled, which breaks the design system. Use `src/components/ui/select.tsx` (Radix Select — still form-submits via a real hidden `<select>`, so it drops into existing `FormData`-based Server Actions unchanged) and `src/components/ui/date-picker.tsx` (Popover + `calendar.tsx`, submits an ISO `yyyy-MM-dd` via a hidden input) instead.
 
+**Ni `<input type="file">` nu.** Même famille : bouton, libellé et police du
+système — « Choose File / No file chosen » en anglais au milieu d'un formulaire
+français — et une largeur minimale intrinsèque que le navigateur refuse de
+réduire, d'où les cinq pixels de débordement relevés sur les écrans d'import. Le
+champ reste, **masqué en `sr-only`** et non en `display:none`, qui le sortirait
+du parcours clavier, et un `label` enveloppant devient la cible. Deux formes
+existent : `src/components/import/ZoneDepot.tsx` pour un fichier dont il n'y a
+rien à montrer sinon un nom, et l'emplacement du logo de
+`/etablissement/documents` quand le fichier **se regarde** — la vignette y est à
+la fois l'aperçu et la cible. Retiré des trois écrans d'import le 2026-09-04,
+l'écran des documents avait été oublié et l'a gardé onze jours de plus.
+
+### Un réglage qui s'imprime se montre
+
+`/etablissement/documents` décide de ce qui part sur les bulletins remis aux
+familles, et n'en montrait rien : deux champs et six phrases grises. On
+choisissait son logo sans le voir, et son filigrane en lisant qu'il serait « en
+diagonale et très estompé » — des affirmations invérifiables avant d'avoir
+généré un bulletin, c'est-à-dire trop tard.
+
+**Une vignette reprend la géométrie du gabarit réel**, pas une idée de
+filigrane : `ApercuFiligrane` met à l'échelle les valeurs de
+`src/lib/pdf/templates/identite.ts` — rotation, place, taille de police au
+rapport des largeurs de page, texte du document dessiné par-dessus comme le fait
+le `z-index` du gabarit. **L'opacité est la seule chose qu'elle relève**, et
+délibérément : réduit au quart, le trait perd sa graisse, et 0,07 à 11px ne
+donne plus rien du tout à l'écran — la vignette annoncerait une page blanche
+pour un filigrane pourtant bien présent, soit l'inverse de la vérité. Elle
+promet le texte, sa place et son angle, pas une densité d'encre.
+
+**Un emplacement vide garde sa place et sa forme.** « Aucun logo » en texte gris
+se confondait avec les deux phrases grises au-dessus. Un cadre en pointillés aux
+proportions qu'aura le logo sur le document dit du même coup ce qui manque et où
+cela ira.
+
 ### Listes : l'en-tête est un composant, pas une composition par page
 
 `BarreListe` (`src/components/ui/barre-liste.tsx`) porte l'en-tête de **toute**
@@ -520,6 +563,91 @@ aurait rien de plus à filtrer.
 `FiltresMobile` et `BarreOutilsListe` ne sont plus importés nulle part mais
 restent en place — d'autres branches les utilisent encore, les supprimer ferait
 échouer leur merge.
+
+### La rangée de section : une barre qui ne dit pas où l'on est ne sert à rien
+
+`BarreSection` porte les autres écrans d'un domaine en tête de la destination —
+c'est ce qui a remplacé les pages d'aiguillage d'Établissement, de Finances et
+de Notes. Elle a **deux présentations**, et la frontière est `md`.
+
+**Sous `md`, c'est un repli, pas un défilement.** Le premier jet faisait défiler
+la rangée horizontalement, en assumant qu'un menu coûterait un clic de plus pour
+voir ce qui existe. Mesuré le 2026-09-15 sur 390px : la rangée d'Établissement
+fait **1 345px**, trois entrées sur dix sont visibles, et l'écran courant — le
+huitième — se trouve **586px au-delà du bord droit**. Rien ne signalait qu'il y
+avait quelque chose à droite. Le repli fermé fait 46px contre 44 pour la
+rangée : à hauteur égale, il nomme la section *et* l'écran courant.
+
+La leçon dépasse ce composant : **une barre de navigation qui peut cacher
+l'élément courant ne remplit pas son rôle**, et le clic qu'elle économise ne
+compense pas ce qu'elle ne montre pas. L'argument « cinq entrées courtes tiennent
+en deux coups de pouce » ne tient que si l'entrée courante est l'une des
+premières — ce que rien ne garantit.
+
+**Au-dessus de `md`, la rangée passe à la ligne, et ses puces font 32px.**
+`row-standard` (44px) est le **plancher tactile** ; il n'a aucune raison de
+valoir à la souris. Deux rangs passent de 96 à 72px.
+
+**La barre ne s'affiche que si elle peut marquer l'écran courant.**
+`/abonnement` est ouverte à tous les rôles par conception, mais son bloc n'est
+déclaré que pour le Directeur et le Comptable : une Secrétaire y recevait une
+rangée où rien n'était marqué.
+
+**Et seulement pour les rôles qui ont la section.** `/abonnement` et `/rapports`
+appartiennent à Établissement mais vivent à la racine ; la rangée les suit,
+pour ne pas perdre le repère en y arrivant depuis l'école. Le Comptable, lui,
+les a au **premier niveau** de sa barre latérale et n'a pas de section
+Établissement — `BarreEtablissement` teste donc `getSidebarItems(role)` plutôt
+qu'une liste de rôles écrite en dur, et le fait **avant** d'appeler
+`socleComplet()`, qui est une quinzaine de comptages.
+
+### Une section terminée se replie, elle ne change pas de rang
+
+Les neuf lignes cochées de « Indispensable », sur `/etablissement/configuration`,
+mesurent près de 600px et repoussaient sous la ligne de flottaison « Pour aller
+au bout » — seule section encore actionnable une fois le socle fait.
+
+Le réflexe est de la **descendre** sous l'autre. C'est un mauvais réflexe : une
+section qui change d'ordre selon son état se cherche à chaque visite. Ce qui
+change est sa **hauteur**, pas son rang.
+
+`<details>` / `<summary>`, jamais un état client : ces pages sont rendues au
+serveur, et le navigateur sait replier seul, au clavier compris. Deux détails
+qui vont avec — `overflow-hidden` sur le `<details>` dès qu'une ligne interne
+porte un aplat pleine largeur (sinon elle carre les coins bas), et un résumé qui
+annonce **ce qu'il y a derrière** plutôt que de répéter un avancement déjà
+affiché juste au-dessus.
+
+### Une ligne qui mène quelque part se clique en entier
+
+Sur téléphone, `LigneCarteMobile` est déjà un lien plein. Le tableau, lui, ne
+réagissait qu'au nom : une bande de près de mille pixels dont quelques dizaines
+seulement étaient cliquables, et rien ne distinguait le reste de la ligne d'une
+zone morte.
+
+Un `<a>` ne peut pas envelopper un `<tr>`. Le motif est le recouvrement absolu,
+documenté sur `TableRow` (`src/components/ui/table.tsx`) et appliqué aux neuf
+listes qui mènent à une fiche. Trois morceaux qui ne valent qu'ensemble :
+
+- la ligne porte `group relative` — **c'est elle** qui doit être le bloc
+  contenant. Ancré sur la cellule, le recouvrement ne couvre que la première
+  colonne : c'était le cas sur l'inventaire des écoles, où le commentaire
+  annonçait la ligne entière depuis des mois ;
+- le lien déjà présent porte
+  `after:absolute after:inset-0 after:z-10 after:content-['']` et passe ses états
+  de survol en `group-hover:` ;
+- **toute cellule qui contient une commande porte `relative z-20`.** C'est le
+  seul piège du motif, et il est silencieux : sans ce cran, « Désactiver »
+  ouvrirait la fiche au lieu de fermer le compte.
+
+Le vrai lien est conservé, donc le clavier, l'adresse dans la barre d'état, le
+clic droit et le Ctrl-clic aussi. Contrepartie assumée, la même que sur la carte
+mobile : le texte d'une ligne cliquable ne se sélectionne plus à la souris.
+
+**Une ligne dont le seul lien est une action ne reçoit pas ce traitement.**
+« Valider un paiement », sur les deux tables d'abonnements de la console, reste
+un bouton : la ligne y est un état, pas une destination, et la rendre cliquable
+mènerait à un formulaire d'encaissement par mégarde.
 
 ### Le hero tient dans un écran, à tout niveau de zoom
 
@@ -1487,6 +1615,20 @@ colonne s'appelle « Date de naissance » produirait 230 fois la meme erreur Zod
 pour un unique probleme situe en ligne 1. La casse et l'ordre sont tolerees :
 les cles sont normalisees a la lecture, sinon le controle accepterait « Nom »
 que la lecture ne trouverait pas.
+
+**Un écran n'explique pas d'avance ce que son diagnostic dira mieux après coup.**
+Les trois écrans d'import ouvraient sur leur mode d'emploi déplié — trois étapes
+numérotées, six phrases, un repli de colonnes — et reléguaient en bas la seule
+chose qu'ils ont à demander : un fichier. Or le bilan est déjà l'explication, et
+une meilleure : il porte sur les données réelles de l'école, ligne à ligne, et
+le contrôle des en-têtes nomme exactement la colonne fautive. Le mode d'emploi
+passe donc **après** la zone de dépôt, replié derrière « Comment préparer le
+fichier », et disparaît dès que le bilan s'affiche.
+
+**Le téléchargement du modèle, lui, reste en clair.** Ce n'est pas une
+information mais l'action qui *supprime* la seule classe d'échec qui arrête
+tout. La replier remettrait en place l'erreur qu'elle évite. Un bouton ne se lit
+pas ; un paragraphe, si.
 
 ### Un composant client n'importe jamais depuis `src/services/`
 

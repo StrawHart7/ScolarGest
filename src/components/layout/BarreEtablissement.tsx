@@ -1,4 +1,5 @@
 import { socleComplet } from '@/services/configuration';
+import { getSidebarItems } from '@/lib/navigation';
 import type { Role } from '@/services/tenant';
 import { BarreSection } from './BarreSection';
 
@@ -46,6 +47,25 @@ export async function BarreEtablissement({
   /** L'écran affiché, tel qu'il est déclaré dans `SECTIONS`. */
   actif: string;
 }) {
+  // **Seuls les rôles qui ont la section la voient.**
+  //
+  // `/abonnement` et `/rapports` appartiennent à Établissement, et la rangée
+  // les suit désormais jusque-là : en venant de la section, on ne doit pas
+  // perdre son repère parce que l'adresse vit à la racine. Mais le Comptable
+  // les a au **premier niveau** de sa barre latérale et n'a pas de section
+  // Établissement du tout — lui poser cette rangée lui inventerait une section
+  // qu'il n'a pas, avec deux entrées, dont l'écran qu'il regarde déjà.
+  //
+  // Le test se fait sur sa barre latérale plutôt que sur une liste de rôles
+  // écrite ici : le jour où un rôle gagne ou perd la section, la rangée suit
+  // toute seule.
+  //
+  // Il est posé **avant** l'appel : `socleComplet()` est un diagnostic d'une
+  // quinzaine de comptages, et le Comptable n'a aucune raison de le payer pour
+  // un composant qui ne rendra rien.
+  const aLaSection = getSidebarItems(role).some((item) => item.href === '/etablissement');
+  if (!aLaSection) return null;
+
   const complet = await socleComplet();
 
   return (

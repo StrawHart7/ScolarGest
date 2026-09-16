@@ -57,7 +57,7 @@ export function EvaluationsList({
           </TableHeader>
           <TableBody>
             {evaluations.map((ev) => (
-              <TableRow key={ev.id}>
+              <TableRow key={ev.id} className="group relative">
                 <TableCell>
                   <Badge variant="primary" shape="pill">
                     {TYPE_LABEL[ev.type]}
@@ -68,7 +68,7 @@ export function EvaluationsList({
                 <TableCell className="text-right">
                   <Link
                     href={`/etablissement/notes/saisie/${ev.id}`}
-                    className="text-text-secondary hover:text-primary-container"
+                    className="text-text-secondary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                   >
                     Saisir les notes
                   </Link>

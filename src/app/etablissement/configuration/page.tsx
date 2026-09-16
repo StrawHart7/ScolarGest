@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { etatSocle, type ElementSocle } from '@/services/configuration';
 import { getSidebarItems } from '@/lib/navigation';
@@ -83,7 +83,10 @@ export default async function ConfigurationPage() {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="text-body-md text-text-primary">
                 <span className="text-display-sm tabular-nums">{socle.faits}</span>
-                <span className="text-text-secondary"> sur {socle.total} réglages indispensables</span>
+                <span className="text-text-secondary">
+                  {' '}
+                  sur {socle.total} réglages indispensables
+                </span>
               </p>
               {/*
                 `?tableau=1` y compris ici, et ce n'est pas un détail de
@@ -109,7 +112,10 @@ export default async function ConfigurationPage() {
               aria-valuemax={socle.total}
               aria-label="Avancement de la configuration"
             >
-              <div className="h-full rounded-full bg-primary" style={{ width: `${pourcentage}%` }} />
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${pourcentage}%` }}
+              />
             </div>
           </CardContent>
         </Card>
@@ -137,6 +143,30 @@ export default async function ConfigurationPage() {
   );
 }
 
+/**
+ * Une section de la checklist — et, une fois tout coché, un simple repli.
+ *
+ * ## Pourquoi le repli
+ *
+ * Les neuf lignes de « Indispensable » mesurent près de 600px. Tant qu'il en
+ * reste une à régler, c'est exactement ce qu'on vient chercher. Toutes cochées,
+ * elles n'apprennent plus rien et repoussent sous la ligne de flottaison
+ * « Pour aller au bout », qui est alors la **seule** section encore
+ * actionnable de la page.
+ *
+ * La section garde sa place et son titre plutôt que de descendre sous l'autre :
+ * une section qui change d'ordre selon son état se cherche à chaque visite. Ce
+ * qui change est sa hauteur, pas son rang.
+ *
+ * `<details>` et non un état client : la page est rendue au serveur, et
+ * l'ouverture d'un repli n'a aucune raison de coûter un composant client. Le
+ * navigateur sait le faire seul, au clavier compris.
+ *
+ * Le résumé annonce **ce qu'il y a derrière le repli** — « 9 réglages » — et
+ * non l'avancement : celui-ci est déjà sur la carte, en gros chiffres et en
+ * barre pleine, deux centimètres plus haut. Le répéter ferait dire deux fois
+ * la même chose à deux éléments qui se touchent.
+ */
 function SectionSocle({
   titre,
   description,
@@ -148,6 +178,39 @@ function SectionSocle({
 }) {
   if (elements.length === 0) return null;
 
+  const tout = elements.every((element) => element.fait);
+
+  if (tout) {
+    return (
+      <details className="group rounded-lg border border-surface-border bg-surface-container-lowest">
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+          <span
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-on"
+            aria-hidden
+          >
+            <Check className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 text-body-md font-medium text-text-primary">{titre}</span>
+          <span className="ml-auto shrink-0 text-body-sm tabular-nums text-text-secondary">
+            {elements.length} réglages
+          </span>
+          <ChevronDown
+            className="h-4 w-4 shrink-0 text-text-secondary transition-transform group-open:rotate-180"
+            aria-hidden
+          />
+        </summary>
+        <div className="space-y-3 border-t border-surface-border p-4">
+          {description ? <p className="text-body-sm text-text-secondary">{description}</p> : null}
+          <ul className="flex flex-col gap-2">
+            {elements.map((element) => (
+              <LigneSocle key={element.id} element={element} />
+            ))}
+          </ul>
+        </div>
+      </details>
+    );
+  }
+
   return (
     <section className="space-y-3">
       <div>
@@ -157,48 +220,51 @@ function SectionSocle({
 
       <ul className="flex flex-col gap-2">
         {elements.map((element) => (
-          <li
-            key={element.id}
-            className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface-container-lowest p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className={
-                  element.fait
-                    ? 'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-on'
-                    : 'mt-0.5 h-6 w-6 shrink-0 rounded-full border border-surface-border'
-                }
-                aria-hidden
-              >
-                {element.fait ? <Check className="h-4 w-4" /> : null}
-              </span>
-              <div className="flex flex-col gap-1">
-                <p className="text-body-md text-text-primary">{element.titre}</p>
-                {/* Le texte du catalogue porte son propre chiffre — « 4 classes
-                    sur 6 » — parce que `formaterTexte` a déjà substitué les
-                    jetons côté serveur. Une fois fait, il n'apprend plus rien
-                    et n'est plus affiché. */}
-                {element.fait ? null : (
-                  <p className="text-body-sm text-text-secondary">{element.texte}</p>
-                )}
-              </div>
-            </div>
-
-            {element.fait || !element.action ? null : element.actionnable ? (
-              <Button asChild variant="primary" className="shrink-0 sm:ml-4">
-                <Link href={element.action.href}>
-                  {element.action.label}
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
-                </Link>
-              </Button>
-            ) : (
-              <p className="shrink-0 text-body-sm text-text-secondary sm:ml-4">
-                À faire par la direction.
-              </p>
-            )}
-          </li>
+          <LigneSocle key={element.id} element={element} />
         ))}
       </ul>
     </section>
+  );
+}
+
+function LigneSocle({ element }: { element: ElementSocle }) {
+  return (
+    <li className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface-container-lowest p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <span
+          className={
+            element.fait
+              ? 'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-on'
+              : 'mt-0.5 h-6 w-6 shrink-0 rounded-full border border-surface-border'
+          }
+          aria-hidden
+        >
+          {element.fait ? <Check className="h-4 w-4" /> : null}
+        </span>
+        <div className="flex flex-col gap-1">
+          <p className="text-body-md text-text-primary">{element.titre}</p>
+          {/* Le texte du catalogue porte son propre chiffre — « 4 classes
+              sur 6 » — parce que `formaterTexte` a déjà substitué les
+              jetons côté serveur. Une fois fait, il n'apprend plus rien
+              et n'est plus affiché. */}
+          {element.fait ? null : (
+            <p className="text-body-sm text-text-secondary">{element.texte}</p>
+          )}
+        </div>
+      </div>
+
+      {element.fait || !element.action ? null : element.actionnable ? (
+        <Button asChild variant="primary" className="shrink-0 sm:ml-4">
+          <Link href={element.action.href}>
+            {element.action.label}
+            <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+          </Link>
+        </Button>
+      ) : (
+        <p className="shrink-0 text-body-sm text-text-secondary sm:ml-4">
+          À faire par la direction.
+        </p>
+      )}
+    </li>
   );
 }

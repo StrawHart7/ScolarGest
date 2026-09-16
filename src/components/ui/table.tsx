@@ -67,6 +67,38 @@ TableBody.displayName = 'TableBody';
  *
  * La bordure basse est retiree : `TableBody` porte deja `divide-y`, les deux
  * dessinaient le meme trait au meme endroit.
+ *
+ * ## Une ligne qui mene quelque part se clique en entier
+ *
+ * Sur telephone, la carte de liste est deja un lien plein
+ * (`LigneCarteMobile` : `<Link className="block">`). Le tableau, lui, ne
+ * reagissait qu'au nom : une bande de pres de mille pixels dont quelques
+ * dizaines seulement etaient cliquables, sans rien qui distingue le reste de la
+ * ligne d'une zone morte.
+ *
+ * Un `<a>` ne peut pas envelopper un `<tr>`. Le motif est donc le recouvrement
+ * absolu, en trois morceaux qui ne valent qu'ensemble :
+ *
+ * 1. la ligne porte `group relative` — c'est elle qui doit etre le bloc
+ *    contenant, et non la cellule ; ancre sur la cellule, le recouvrement ne
+ *    couvre que la premiere colonne, ce qui etait le cas sur l'inventaire des
+ *    ecoles ;
+ * 2. le lien deja present dans la ligne porte
+ *    `after:absolute after:inset-0 after:z-10 after:content-['']` et passe ses
+ *    etats de survol en `group-hover:` ;
+ * 3. **toute cellule qui contient une commande** — un bouton, une case a
+ *    cocher, un second lien — porte `relative z-20`, sans quoi le recouvrement
+ *    la rend inerte. C'est le seul piege du motif, et il est silencieux :
+ *    « Desactiver » ouvrirait la fiche au lieu de fermer le compte.
+ *
+ * On garde ainsi un vrai lien : navigation au clavier, adresse dans la barre
+ * d'etat, clic droit et Ctrl-clic pour ouvrir a cote. Contrepartie assumee,
+ * la meme que sur la carte mobile : le texte d'une ligne cliquable ne se
+ * selectionne plus a la souris.
+ *
+ * Une ligne dont le seul lien est une **action** ne recoit pas ce traitement :
+ * « Valider un paiement » sur les abonnements de la console reste un bouton,
+ * la ligne n'y est pas une destination.
  */
 export const TableRow = React.forwardRef<
   HTMLTableRowElement,

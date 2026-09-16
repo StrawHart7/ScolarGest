@@ -43,9 +43,22 @@ export default async function ParametresDocumentPage() {
       role={ctx.role}
       userName={ctx.email}
     >
-      <div className="mx-auto max-w-3xl space-y-6">
-        <BarreEtablissement role={ctx.role} actif="/etablissement/documents" />
+      {/*
+        La rangée de section reste **hors** de la colonne centrée. Deux écrans
+        de la section se lisent en `max-w-3xl`, celui-ci et `/abonnement` :
+        laisser la rangée dedans la rendait plus courte et décalée du bord ici,
+        alors qu'elle borde le contenu partout ailleurs. Un repère qui change de
+        place d'un écran à l'autre de la même section cesse d'être un repère —
+        c'est la largeur du formulaire qui est particulière, pas la barre.
 
+        `mb-4 md:mb-6` plutôt qu'un conteneur en `space-y-*` : l'écart est le
+        même, et la colonne centrée n'a pas à être réindentée pour y entrer.
+      */}
+      <div className="mb-4 md:mb-6">
+        <BarreEtablissement role={ctx.role} actif="/etablissement/documents" />
+      </div>
+
+      <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <h1 className="text-display-sm text-text-primary">Identité des documents</h1>
           <p className="text-body-md text-text-secondary">

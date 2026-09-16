@@ -156,7 +156,7 @@ export default async function EnseignantsPage({
                   </TableHeader>
                   <TableBody>
                   {page.lignes.map((enseignant) => (
-                    <TableRow key={enseignant.id}>
+                    <TableRow key={enseignant.id} className="group relative">
                       <TableCell className="font-medium">
                         {enseignant.nom} {enseignant.prenoms}
                       </TableCell>
@@ -168,7 +168,7 @@ export default async function EnseignantsPage({
                       <TableCell>
                         <Link
                           href={`/etablissement/enseignants/${enseignant.id}`}
-                          className="text-text-secondary transition-colors hover:text-primary-container hover:underline"
+                          className="text-text-secondary transition-colors after:absolute after:inset-0 after:z-10 after:content-[''] group-hover:text-primary-container group-hover:underline"
                         >
                           Voir la fiche
                         </Link>

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check } from 'lucide-react';
+import { Check, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { appelerAction } from '../appel-action';
 import { ErreurEtape } from '../Bulles';
@@ -162,8 +162,8 @@ export function EtapeCycles({
               Comment découpez-vous l&apos;année au lycée ?
             </p>
             <p className="text-body-sm text-text-secondary">
-              Cela décide du nombre de bulletins et du mot employé pour vos classes de 2nde,
-              1re et Terminale.
+              Cela décide du nombre de bulletins et du mot employé pour vos classes de 2nde, 1re et
+              Terminale.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -194,11 +194,22 @@ export function EtapeCycles({
             chose : un complexe qui choisit les semestres doit savoir tout de
             suite que sa 6e gardera trois trimestres. Le découvrir au premier
             bulletin serait pris pour une erreur du produit.
+
+            **Le cadre est celui de `FilDemarrage`**, qui habille déjà les
+            mentions irréversibles de ce même parcours. Le token de couleur seul
+            ne suffisait pas : posée sur le fond de la carte, juste sous deux
+            boutons qui viennent de changer d'état, la phrase se lisait comme la
+            légende de l'option choisie. Deux façons d'avertir dans une même
+            carte en vaudraient zéro — celle-ci reprend donc l'autre à
+            l'identique plutôt que d'en proposer une seconde.
           */}
           {collegeChoisi && regime === 'SEMESTRE' && (
-            <p className="text-body-sm text-warning-on-container">
-              Vos classes de collège resteront en trimestres : c&apos;est la règle pour la 6e, la
-              5e, la 4e et la 3e.
+            <p className="flex items-start gap-2 rounded border border-warning/30 bg-warning/10 p-2 text-body-sm text-warning-on-container">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <span>
+                Vos classes de collège resteront en trimestres : c&apos;est la règle pour la 6e, la
+                5e, la 4e et la 3e.
+              </span>
             </p>
           )}
           <p className="text-body-sm text-text-secondary">
