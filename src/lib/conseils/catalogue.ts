@@ -51,6 +51,7 @@ export type IdConseil =
   | 'professeur-principal'
   | 'eleves-sans-responsable'
   | 'factures-impayees'
+  | 'capacite-classes'
   // Confort — l'outillage personnel
   | 'pin'
   | 'equipe-administrative'
@@ -109,6 +110,7 @@ export type NomSonde =
   | 'bulletins'
   | 'classesAvecEmploiDuTemps'
   | 'classesAvecProfesseurPrincipal'
+  | 'classesAvecCapacite'
   | 'matieresAvecNotesRendues'
   | 'elevesAvecResponsable'
   | 'facturesSoldees'
@@ -556,6 +558,34 @@ export const CATALOGUE: Conseil[] = [
     sonde: 'filigraneDefini',
     poids: 20,
     exigeEcriture: true,
+  },
+  /**
+   * Ni `socle`, ni COMPLETION, délibérément.
+   *
+   * Une classe sans capacité n'est pas inachevée : plafonner ses effectifs est
+   * un choix d'école, et beaucoup n'en font pas. L'inscrire au socle la ferait
+   * compter comme un manque, rouvrirait « Configuration » dans la rangée
+   * d'Établissement d'une école parfaitement réglée, et transformerait une
+   * commodité en reproche permanent.
+   *
+   * Elle est en revanche introuvable sans qu'on en parle : `/demarrage` ne la
+   * demande pas — on y crée douze classes d'affilée, poser un plafond à chacune
+   * n'aurait aucun sens à ce moment-là — et rien ensuite n'y ramène.
+   */
+  {
+    id: 'capacite-classes',
+    titre: 'Plafonnez les effectifs de vos classes',
+    texte:
+      '{fait} classes sur {total} ont une capacité. La plateforme signale alors celles qui débordent, et le tableau de bord montre où il reste de la place.',
+    action: { label: 'Définir les capacités', href: '/etablissement/classes' },
+    roles: ['DIRECTEUR'],
+    famille: 'CONFORT',
+    prerequis: ['classes'],
+    sonde: 'classesAvecCapacite',
+    poids: 20,
+    contexte: ['/etablissement/classes'],
+    exigeEcriture: true,
+    nouveaute: '2026-09-16',
   },
   {
     id: 'statistiques',

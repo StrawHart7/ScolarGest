@@ -90,6 +90,26 @@ export function calculerSolde(
 }
 
 /**
+ * Reste dû d'une facture, **son statut compris**. Une facture annulée ne doit
+ * plus rien : son montant a cessé d'être réclamé le jour où on l'a annulée.
+ *
+ * `calculerSolde` seule ne le sait pas — elle ne reçoit pas le statut — et
+ * rendait donc le montant entier d'une facture annulée. Constaté le 2026-09-16
+ * par le testeur : après un changement de classe, l'écran « Suivi des
+ * paiements » réclamait 269 000 F à une école qui n'en attendait que 91 000,
+ * et l'état des paiements de `/rapports` en faisait autant. Le total dû d'une
+ * école est le premier chiffre qu'on lui donne ; faux, il vaut mieux qu'absent.
+ */
+export function soldeDuAvecStatut(
+  montantTotal: number,
+  paiements: Pick<PaiementFacture, 'montant' | 'statut'>[],
+  statut: StatutFacture,
+): number {
+  if (statut === 'ANNULE') return 0;
+  return calculerSolde(montantTotal, paiements);
+}
+
+/**
  * Statut informatif d'une facture (doc 08 §16) — aucun blocage système n'en
  * découle. Miroir exact de `fn_recalculer_statut_facture` côté base : la base
  * fait foi, cette fonction sert à l'affichage et aux tests.
@@ -298,7 +318,7 @@ export async function listSuiviPaiements(
       classeNom: classe?.nom ?? null,
       montantTotal: Number(f.montantTotal),
       totalPaye: totalPaye(paiementsFacture),
-      solde: calculerSolde(f.montantTotal, paiementsFacture),
+      solde: soldeDuAvecStatut(f.montantTotal, paiementsFacture, f.statut),
       statut: f.statut,
     };
   });
@@ -310,19 +330,42 @@ export async function listSuiviPaiements(
   return filtrees.sort((a, b) => `${a.nom} ${a.prenoms}`.localeCompare(`${b.nom} ${b.prenoms}`));
 }
 
-/** Totaux d'un suivi — affichés en pied de tableau (maquette « Suivi des paiements »). */
+/**
+ * Totaux d'un suivi — la bande de chiffres en tête de l'écran, le pied de
+ * l'état des paiements de `/rapports`, et le « Reste à recouvrer » de la fiche
+ * de classe. Une seule fonction pour les trois, délibérément : trois calculs
+ * donneraient trois chiffres, et c'est le genre d'écart qui se découvre devant
+ * un parent.
+ *
+ * **Une facture annulée ne compte pas dans le total dû ni dans le reste à
+ * recouvrer.** Elle reste dans la liste — elle a existé, l'invariant financier
+ * du dépôt interdit de l'effacer — mais elle ne se réclame plus.
+ *
+ * **Ses versements, eux, restent dans l'encaissé** : l'argent a bien été reçu.
+ * L'annulation d'une facture n'a jamais rendu un franc à personne. C'est aussi
+ * la seule façon de voir qu'un remboursement est dû, quand l'encaissé dépasse
+ * le total. Un changement de classe reporte les versements sur la nouvelle
+ * facture (`fn_changer_classe_inscription`), donc le cas ne se présente que sur
+ * une annulation franche.
+ */
 export function totauxSuivi(lignes: SuiviPaiementLigne[]): {
   montantTotal: number;
   totalPaye: number;
   solde: number;
+  /** Factures écartées du total dû, pour que l'écran puisse le dire. */
+  annulees: number;
 } {
   return lignes.reduce(
-    (acc, l) => ({
-      montantTotal: acc.montantTotal + l.montantTotal,
-      totalPaye: acc.totalPaye + l.totalPaye,
-      solde: acc.solde + l.solde,
-    }),
-    { montantTotal: 0, totalPaye: 0, solde: 0 },
+    (acc, l) => {
+      const annulee = l.statut === 'ANNULE';
+      return {
+        montantTotal: acc.montantTotal + (annulee ? 0 : l.montantTotal),
+        totalPaye: acc.totalPaye + l.totalPaye,
+        solde: acc.solde + l.solde,
+        annulees: acc.annulees + (annulee ? 1 : 0),
+      };
+    },
+    { montantTotal: 0, totalPaye: 0, solde: 0, annulees: 0 },
   );
 }
 

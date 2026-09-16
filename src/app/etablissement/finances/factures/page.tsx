@@ -240,6 +240,16 @@ export default async function SuiviPaiementsPage({
               </span>
               {parametres.recherche ? ' correspondant à la recherche' : ''}
             </p>
+            {/* Une facture annulée reste dans la liste mais sort du total dû.
+                Le dire est obligatoire : sans cette ligne, le total ne
+                correspond plus à la somme des lignes affichées, et un comptable
+                qui vérifie à la main conclut à une erreur de la plateforme. */}
+            {totaux.annulees > 0 && (
+              <p className="mt-1 text-body-sm text-text-secondary">
+                Dont {totaux.annulees} facture{totaux.annulees > 1 ? 's' : ''} annulée
+                {totaux.annulees > 1 ? 's' : ''}, hors du total dû et du reste à recouvrer.
+              </p>
+            )}
             <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
               <ChiffreTotal libelle="Total dû" valeur={totaux.montantTotal} />
               <ChiffreTotal libelle="Encaissé" valeur={totaux.totalPaye} accent="regle" />

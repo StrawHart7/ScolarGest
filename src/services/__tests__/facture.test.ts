@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculerSolde,
   calculerSoldeFacture,
+  soldeDuAvecStatut,
   statutFacture,
   totalPaye,
   totauxSuivi,
@@ -82,8 +83,28 @@ describe('calculerSoldeFacture (fiche élève, Phase 2)', () => {
   });
 });
 
+describe('soldeDuAvecStatut', () => {
+  it('se comporte comme calculerSolde tant que la facture est en vigueur', () => {
+    expect(soldeDuAvecStatut(1200000, [paye(500000)], 'PARTIEL')).toBe(700000);
+  });
+
+  it('ne réclame plus rien sur une facture annulée', () => {
+    // Le cas du testeur : inscription changée de classe, ancienne facture
+    // annulée. Le montant restait dû à l'écran.
+    expect(soldeDuAvecStatut(178000, [], 'ANNULE')).toBe(0);
+  });
+
+  it('ne réclame rien non plus sur une annulée partiellement réglée', () => {
+    expect(soldeDuAvecStatut(178000, [paye(50000)], 'ANNULE')).toBe(0);
+  });
+});
+
 describe('totauxSuivi', () => {
-  const ligne = (montantTotal: number, paye: number): SuiviPaiementLigne => ({
+  const ligne = (
+    montantTotal: number,
+    paye: number,
+    statut: SuiviPaiementLigne['statut'] = 'PARTIEL',
+  ): SuiviPaiementLigne => ({
     factureId: 'f',
     eleveId: 'e',
     matricule: 'ELV-2025-000001',
@@ -93,8 +114,8 @@ describe('totauxSuivi', () => {
     classeNom: '6ème A',
     montantTotal,
     totalPaye: paye,
-    solde: montantTotal - paye,
-    statut: 'PARTIEL',
+    solde: soldeDuAvecStatut(montantTotal, [{ montant: paye, statut: 'PAYE' }], statut),
+    statut,
   });
 
   it('additionne facturé, encaissé et reste à recouvrer', () => {
@@ -102,10 +123,35 @@ describe('totauxSuivi', () => {
       montantTotal: 2300000,
       totalPaye: 1800000,
       solde: 500000,
+      annulees: 0,
     });
   });
 
   it('retourne des totaux nuls sur une liste vide', () => {
-    expect(totauxSuivi([])).toEqual({ montantTotal: 0, totalPaye: 0, solde: 0 });
+    expect(totauxSuivi([])).toEqual({ montantTotal: 0, totalPaye: 0, solde: 0, annulees: 0 });
+  });
+
+  /**
+   * Oracle à la main, sur les chiffres réels du testeur (Complexe Scolaire La
+   * Semence, 2026-09-16) : deux factures, l'une de 178 000 annulée après un
+   * changement de classe, l'autre de 169 000 dont 78 000 encaissés. L'écran
+   * annonçait 347 000 dus et 269 000 à recouvrer, soit la facture annulée
+   * réclamée deux fois — une fois dans le dû, une fois dans le reste.
+   */
+  it('écarte une facture annulée du total dû et du reste à recouvrer', () => {
+    const totaux = totauxSuivi([ligne(178000, 0, 'ANNULE'), ligne(169000, 78000)]);
+    expect(totaux.montantTotal).toBe(169000);
+    expect(totaux.solde).toBe(91000);
+    expect(totaux.annulees).toBe(1);
+  });
+
+  it('garde dans l’encaissé l’argent reçu sur une facture ensuite annulée', () => {
+    // L'annulation ne rend pas l'argent : le retirer de l'encaissé ferait
+    // disparaître de la caisse un versement bien réel, et masquerait le
+    // remboursement dû à la famille.
+    const totaux = totauxSuivi([ligne(178000, 50000, 'ANNULE')]);
+    expect(totaux.montantTotal).toBe(0);
+    expect(totaux.totalPaye).toBe(50000);
+    expect(totaux.solde).toBe(0);
   });
 });

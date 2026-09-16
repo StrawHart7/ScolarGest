@@ -18,6 +18,7 @@ const LIBELLE_PERIODE: Record<Periode, string> = {
   TRIMESTRE_3: '3e trimestre',
 };
 import { GrilleEmploiDuTemps } from './GrilleEmploiDuTemps';
+import { CapaciteClasse } from './CapaciteClasse';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -205,12 +206,12 @@ export default async function ClasseDetailPage({ params }: { params: { id: strin
             )}
 
             <dl className="grid grid-cols-1 gap-4 border-t border-surface-border pt-4 text-body-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-text-secondary">Capacité</dt>
-                <dd className="text-text-primary" data-mono>
-                  {classe.capacite ?? '—'}
-                </dd>
-              </div>
+              <CapaciteClasse
+                classeId={classe.id}
+                capacite={classe.capacite}
+                effectif={eleves.length}
+                modifiable={ctx.role === 'DIRECTEUR'}
+              />
               <div>
                 <dt className="text-text-secondary">Créée le</dt>
                 <dd className="text-text-primary" data-mono>

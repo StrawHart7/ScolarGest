@@ -238,7 +238,7 @@ export async function diagnostiquer(): Promise<Diagnostic> {
   // Ces sondes ne sont mesurées que si leur univers existe : sans classe, il
   // n'y a pas d'emploi du temps manquant, il n'y a rien du tout.
   if (anneeId && classes > 0) {
-    const [avecEmploiDuTemps, avecTitulaire] = await Promise.all([
+    const [avecEmploiDuTemps, avecTitulaire, avecCapacite] = await Promise.all([
       compterDistinct('emploi_du_temps_creneau', 'classeId', etablissementId, {
         anneeScolaireId: anneeId,
       }),
@@ -252,9 +252,25 @@ export async function diagnostiquer(): Promise<Diagnostic> {
         if (error) throw error;
         return new Set((data ?? []).map((l) => (l as { classeId: string }).classeId)).size;
       })(),
+      (async () => {
+        // Un comptage en tête (`head: true`) suffit : on ne veut que le
+        // nombre. `not('capacite', 'is', null)` et non `.neq(...)` — une
+        // comparaison à NULL en SQL ne rend jamais vrai, et la sonde
+        // annoncerait « 0 classe sur 12 » à une école qui les a toutes
+        // plafonnées.
+        const { count, error } = await supabase
+          .from('classe')
+          .select('id', { count: 'exact', head: true })
+          .eq('etablissementId', etablissementId)
+          .eq('anneeScolaireId', anneeId)
+          .not('capacite', 'is', null);
+        if (error) throw error;
+        return count ?? 0;
+      })(),
     ]);
     diagnostic.classesAvecEmploiDuTemps = { fait: avecEmploiDuTemps, total: classes };
     diagnostic.classesAvecProfesseurPrincipal = { fait: avecTitulaire, total: classes };
+    diagnostic.classesAvecCapacite = { fait: avecCapacite, total: classes };
   }
 
   if (eleves > 0) {

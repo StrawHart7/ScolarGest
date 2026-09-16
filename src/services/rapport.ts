@@ -401,7 +401,13 @@ async function rapportPaiements(
     })),
     totaux: {
       matricule: 'Totaux',
-      eleve: `${suivi.length} facture(s)`,
+      // Les factures annulées figurent dans les lignes mais sortent du total
+      // dû : l'écart entre les deux nombres doit se lire sur la ligne de
+      // totaux, sinon l'export ne s'additionne pas à la main.
+      eleve:
+        totaux.annulees > 0
+          ? `${suivi.length} facture(s), dont ${totaux.annulees} annulée(s) hors total`
+          : `${suivi.length} facture(s)`,
       du: totaux.montantTotal,
       paye: totaux.totalPaye,
       solde: totaux.solde,
