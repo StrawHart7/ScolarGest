@@ -228,8 +228,10 @@ export async function getFactureDetail(factureId: string): Promise<FactureDetail
     paiements: paiementsList,
     totalPaye: totalPaye(paiementsList),
     solde: calculerSolde(f.montantTotal, paiementsList),
-    lignesModifiables:
-      f.statut !== 'ANNULE' && paiementsList.filter((p) => p.statut !== 'ANNULE').length === 0,
+    // Une facture annulée, et elle seule, a des lignes figées. La condition
+    // portait aussi « aucun versement encaissé » jusqu'au 2026-09-16 : une
+    // école ne pouvait plus ajouter la cantine dès qu'un franc était arrivé.
+    lignesModifiables: f.statut !== 'ANNULE',
     eleve: eleve as unknown as FactureDetail['eleve'],
     classeNom:
       (inscription as unknown as { classe: { nom: string } | null } | null)?.classe?.nom ?? null,
@@ -379,22 +381,39 @@ export interface LigneFactureInput {
   montant: number;
 }
 
+export interface ResultatLignesFacture {
+  montantTotal: number;
+  totalPaye: number;
+  solde: number;
+  statut: StatutFacture;
+  /** Versé au-delà du nouveau total. Zéro dans le cas ordinaire. */
+  surplus: number;
+}
+
 /**
  * Remplace les lignes d'une facture (remises, frais spéciaux, cas
- * particuliers — doc 08 §8/§9) et recalcule le total puis le statut. Refusé
- * dès qu'un versement est encaissé : la règle est portée par la RPC, pas
- * seulement par l'UI.
+ * particuliers — doc 08 §8/§9) et recalcule le total puis le statut.
+ *
+ * **Modifiable à tout moment**, versements encaissés compris, depuis le
+ * 2026-09-16 (migration `20260916061825`). La RPC refusait jusque-là dès qu'un
+ * franc était arrivé, et le seul recours annoncé était « un nouveau versement
+ * ou une annulation » — disproportionné quand une famille ajoute la cantine en
+ * janvier. Seule une facture **annulée** reste intouchable.
+ *
+ * Le retour vient de la base et non d'un calcul local : `surplus` dit que le
+ * nouveau total est passé sous ce qui a déjà été versé, pour que l'écran
+ * l'annonce. Le taire le ferait découvrir au recouvrement.
  */
 export async function modifierLignesFacture(
   factureId: string,
   lignes: LigneFactureInput[],
-): Promise<void> {
+): Promise<ResultatLignesFacture> {
   await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   const supabase = createClient();
 
   const avant = await getFactureDetail(factureId);
 
-  const { error } = await supabase.rpc('fn_modifier_lignes_facture', {
+  const { data, error } = await supabase.rpc('fn_modifier_lignes_facture', {
     p_facture_id: factureId,
     p_lignes: lignes.map((l) => ({
       typeFraisId: l.typeFraisId,
@@ -404,14 +423,32 @@ export async function modifierLignesFacture(
   });
   if (error) throw new Error(error.message);
 
+  const resultat = data as unknown as ResultatLignesFacture;
+
   await auditLog({
     action: 'MODIFIER_LIGNES_FACTURE',
     module: 'finance',
     objetType: 'FactureEleve',
     objetId: factureId,
     ancienneValeur: { montantTotal: avant.montantTotal, lignes: avant.lignes },
-    nouvelleValeur: { lignes },
+    // Le total payé est consigné : c'est ce qui rend l'écriture relisible des
+    // mois plus tard, quand la question sera « pourquoi cette facture a-t-elle
+    // changé de montant alors qu'elle était déjà réglée ? ».
+    nouvelleValeur: {
+      lignes,
+      montantTotal: Number(resultat?.montantTotal ?? 0),
+      totalPaye: Number(resultat?.totalPaye ?? 0),
+      surplus: Number(resultat?.surplus ?? 0),
+    },
   });
+
+  return {
+    montantTotal: Number(resultat?.montantTotal ?? 0),
+    totalPaye: Number(resultat?.totalPaye ?? 0),
+    solde: Number(resultat?.solde ?? 0),
+    statut: (resultat?.statut ?? 'IMPAYE') as StatutFacture,
+    surplus: Number(resultat?.surplus ?? 0),
+  };
 }
 
 /** Annule une facture (statut ANNULE, jamais de suppression — doc 08 §14). */

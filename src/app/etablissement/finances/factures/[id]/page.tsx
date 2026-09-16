@@ -147,6 +147,7 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
                       montant: Number(l.montant),
                     }))}
                     typesFrais={typesFrais.map((t) => ({ id: t.id, nom: t.nom }))}
+                    totalPaye={Number(facture.totalPaye)}
                   />
                 ) : (
                   <>
@@ -181,10 +182,14 @@ export default async function FactureDetailPage({ params }: { params: { id: stri
                         </TableBody>
                       </Table>
                     )}
-                    {canWrite && !facture.lignesModifiables && facture.statut !== 'ANNULE' && (
+                    {/* Le message « un versement a déjà été encaissé : les
+                        lignes ne sont plus modifiables » vivait ici. La règle
+                        a sauté le 2026-09-16 — on ajoute une ligne à tout
+                        moment — et il ne reste que l'annulation, qui, elle,
+                        fige vraiment la facture. */}
+                    {canWrite && facture.statut === 'ANNULE' && (
                       <p className="mt-3 text-body-sm text-text-secondary">
-                        Un versement a déjà été encaissé : les lignes ne sont plus modifiables.
-                        Toute correction passe par un nouveau versement ou une annulation.
+                        Cette facture est annulée : ses lignes sont figées.
                       </p>
                     )}
                   </>

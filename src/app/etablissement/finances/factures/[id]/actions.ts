@@ -108,25 +108,44 @@ const lignesSchema = z.object({
     .max(50, 'Trop de lignes'),
 });
 
-/** Remplace les lignes de la facture (remise, frais spécial, cas particulier). */
+export interface ResultatLignesAction {
+  error: string | null;
+  /** Nouveau total facturé, pour le confirmer sans attendre le rechargement. */
+  montantTotal?: number;
+  /** Versé au-delà du nouveau total : l'école doit le savoir tout de suite. */
+  surplus?: number;
+}
+
+/**
+ * Remplace les lignes de la facture (remise, frais spécial, cas particulier).
+ *
+ * Rend un objet et non un message : depuis que les lignes sont modifiables
+ * après un versement, l'enregistrement peut réussir **et** avoir quelque chose
+ * à signaler — un total passé sous ce qui a déjà été payé. Un `string | null`
+ * ne sait dire que « erreur » ou « rien », et ce cas n'est ni l'un ni l'autre.
+ */
 export async function enregistrerLignesAction(
   factureId: string,
   lignes: { typeFraisId: string; designation: string; montant: number }[],
-): Promise<string | null> {
+): Promise<ResultatLignesAction> {
   const parsed = lignesSchema.safeParse({ factureId, lignes });
   if (!parsed.success) {
-    return parsed.error.issues[0]?.message ?? 'Lignes invalides';
+    return { error: parsed.error.issues[0]?.message ?? 'Lignes invalides' };
   }
 
+  let resultat;
   try {
-    await modifierLignesFacture(parsed.data.factureId, parsed.data.lignes);
+    resultat = await modifierLignesFacture(parsed.data.factureId, parsed.data.lignes);
   } catch (e) {
-    return e instanceof Error ? e.message : 'Erreur lors de la mise à jour des lignes';
+    return {
+      error: e instanceof Error ? e.message : 'Erreur lors de la mise à jour des lignes',
+    };
   }
 
   revalidatePath(`/etablissement/finances/factures/${factureId}`);
   revalidatePath('/etablissement/finances/factures');
-  return null;
+  revalidatePath('/etablissement/finances/paiements');
+  return { error: null, montantTotal: resultat.montantTotal, surplus: resultat.surplus };
 }
 
 export async function annulerFactureAction(factureId: string): Promise<string | null> {
