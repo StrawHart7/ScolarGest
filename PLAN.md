@@ -754,6 +754,21 @@ d'onboarding — vocabulaire, navigation, et les pannes rencontrées en chemin.
       cette colonne, et le conseil `capacite-classes` la fait connaître — hors
       socle, parce que plafonner est un choix d'école et non un réglage
       manquant.
+- [x] **La taille moyenne d'une classe, demandée à l'onboarding** (2026-09-16,
+      sans migration) — une question en bas de l'étape « Classes », appliquée à
+      tout le lot. La plomberie existait déjà : `creerClassesAction` acceptait
+      `capacite` par classe, l'écran ne l'envoyait jamais.
+- [x] **Lignes de facture rouvertes après un versement** (migration
+      `20260916063052`, **appliquée**) — la cantine se décide en janvier, le
+      transport au deuxième trimestre. Seule une facture annulée garde ses
+      lignes figées. Baisser le total sous ce qui a été versé reste possible, et
+      le `surplus` est annoncé plutôt que tu.
+- [x] **L'offre d'où vient un prospect** (migration `20260916065141`,
+      **appliquée**) — les six boutons menant au formulaire public produisaient
+      la même demande indistincte. L'adresse porte le choix
+      (`/?offre=fondateur#demo`), le SUPER_ADMIN le lit en tête de carte, et les
+      demandes fondatrices sans réponse sont comptées à part. Déclaré par le
+      navigateur : indication commerciale, jamais une preuve.
 
 **Décisions de l'utilisateur, tranchées en séance** :
 - Le régime semestriel est **propre au lycée** ; le collège est trimestriel sans
