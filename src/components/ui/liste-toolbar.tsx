@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from './button';
 import { Spinner } from './spinner';
 import { TableHead } from './table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
@@ -289,60 +288,143 @@ export function PaginationListe({
   const precedentInactif = page <= 1;
   const suivantInactif = page >= nombrePages;
 
+  const compteur = (
+    <>
+      {debut}–{fin} sur {total} {libelle}
+    </>
+  );
+
   return (
     // Sous `md`, la liste est une carte autonome : un filet supérieur pleine
     // largeur flotterait sous elle sans rien séparer. La pagination y devient
     // une simple rangée détachée.
-    <div className="flex flex-col gap-2 px-1 py-1 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3 md:border-t md:border-surface-border md:px-4 md:py-3">
-      <p className="text-body-sm text-text-secondary">
-        {debut}–{fin} sur {total} {libelle}
-      </p>
-      {/* Sur téléphone, les deux commandes prennent toute la largeur et le
-          compteur de pages les sépare. Serrées à droite, elles se partageaient la
-          moitié de l'écran et « Suivant » passait sous le bouton flottant. */}
-      <div className="flex items-center justify-between gap-2 md:justify-end">
-        <Button
-          asChild={!precedentInactif}
-          variant="secondary"
-          size="sm"
-          disabled={precedentInactif}
-          aria-label="Page précédente"
-        >
-          {precedentInactif ? (
-            <span>
-              <ChevronLeft className="h-4 w-4" aria-hidden />
-              Précédent
-            </span>
-          ) : (
-            <Link href={lienVers(page - 1)} prefetch scroll={false}>
-              <ChevronLeft className="h-4 w-4" aria-hidden />
-              Précédent
-            </Link>
-          )}
-        </Button>
-        <span className="px-1 text-body-sm text-text-secondary">
-          Page {page} / {nombrePages}
-        </span>
-        <Button
-          asChild={!suivantInactif}
-          variant="secondary"
-          size="sm"
-          disabled={suivantInactif}
-          aria-label="Page suivante"
-        >
-          {suivantInactif ? (
-            <span>
-              Suivant
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </span>
-          ) : (
-            <Link href={lienVers(page + 1)} prefetch scroll={false}>
-              Suivant
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </Link>
-          )}
-        </Button>
+    <div className="px-1 py-1 md:border-t md:border-surface-border md:px-4 md:py-3">
+      {/*
+        Téléphone : une seule commande, pleine largeur.
+
+        Trois objets flottant au bas d'un écran de 390px — un compteur, deux
+        boutons bordés — ne forment pas une commande, ils forment un reste. La
+        barre les réunit : une piste claire, les deux flèches en pastilles blanches
+        à ses extrémités, la page au milieu. C'est le même objet que la liste
+        au-dessus, à la même largeur, et le pouce n'a plus à viser.
+
+        L'inventaire passe sous la barre, en gris et centré : c'est une indication,
+        pas une commande, et il ne mérite pas la moitié de la rangée.
+      */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between gap-2 rounded-full bg-surface-container p-1">
+          <FlechePage
+            href={lienVers(page - 1)}
+            inactif={precedentInactif}
+            libelle="Page précédente"
+            icone={ChevronLeft}
+            pastille
+          />
+          <span className="text-body-sm font-medium tabular-nums text-text-primary">
+            Page {page} sur {nombrePages}
+          </span>
+          <FlechePage
+            href={lienVers(page + 1)}
+            inactif={suivantInactif}
+            libelle="Page suivante"
+            icone={ChevronRight}
+            pastille
+          />
+        </div>
+        <p className="mt-2 text-center text-body-sm text-text-secondary">{compteur}</p>
+      </div>
+
+      {/* Bureau : la rangée tient dans la largeur, elle la garde. */}
+      <div className="hidden items-center justify-between gap-3 md:flex">
+        <p className="text-body-sm text-text-secondary">{compteur}</p>
+
+        {/*
+        Deux flèches et un compteur, sans boîte.
+
+        C'était deux boutons bordés côte à côte, « Précédent » et « Suivant », qui
+        pesaient dans le bas de page autant que les rangées de la liste au-dessus —
+        pour une commande qui ne sert que si on ne trouve pas ce qui est déjà à
+        l'écran. Une flèche de part et d'autre de « Page 1 / 30 » dit la même chose
+        et ne dispute rien à la liste.
+
+        Les libellés ne sont pas perdus : ils vivent en `aria-label`, seule forme
+        dont un lecteur d'écran ait besoin.
+        */}
+        <div className="flex shrink-0 items-center gap-1">
+          <FlechePage
+            href={lienVers(page - 1)}
+            inactif={precedentInactif}
+            libelle="Page précédente"
+            icone={ChevronLeft}
+          />
+          <span className="px-1 text-body-sm tabular-nums text-text-secondary">
+            Page {page} / {nombrePages}
+          </span>
+          <FlechePage
+            href={lienVers(page + 1)}
+            inactif={suivantInactif}
+            libelle="Page suivante"
+            icone={ChevronRight}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Une flèche de pagination : cible tactile pleine, fond qui n'apparaît qu'au
+ * survol.
+ *
+ * 44px sous `md` et 36px au-delà, comme le reste du produit : le plancher tactile
+ * ne vaut que pour le doigt. Inactive, elle reste à sa place et perd sa couleur —
+ * la retirer ferait sauter le compteur d'un côté à l'autre à la première et à la
+ * dernière page.
+ */
+function FlechePage({
+  href,
+  inactif,
+  libelle,
+  icone: Icone,
+  pastille,
+}: {
+  href: string;
+  inactif: boolean;
+  libelle: string;
+  icone: typeof ChevronLeft;
+  /** Présentation de la barre du téléphone : un rond blanc posé sur la piste. */
+  pastille?: boolean;
+}) {
+  const classe = cn(
+    'grid h-row-standard w-row-standard shrink-0 place-items-center rounded-full transition-colors',
+    !pastille && 'md:h-9 md:w-9',
+  );
+
+  // Inactive, la flèche garde sa place et perd sa couleur : la retirer ferait
+  // sauter le compteur d'un côté à l'autre à la première et à la dernière page.
+  if (inactif) {
+    return (
+      <span aria-hidden className={cn(classe, "text-outline-variant")}>
+        <Icone className="h-[18px] w-[18px]" />
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      prefetch
+      scroll={false}
+      aria-label={libelle}
+      title={libelle}
+      className={cn(
+        classe,
+        pastille
+          ? 'bg-surface-container-lowest text-text-primary shadow-subtle active:bg-surface-container'
+          : 'text-text-secondary hover:bg-surface-container hover:text-text-primary active:bg-surface-container-high',
+      )}
+    >
+      <Icone className="h-[18px] w-[18px]" aria-hidden />
+    </Link>
   );
 }

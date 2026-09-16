@@ -630,9 +630,19 @@ le composant est déclaré — c'est-à-dire en fin de page. Elle ne coûte rien
 quarante écrans qui n'en ont pas. Tout élément flottant ajouté plus tard doit
 faire pareil : ce qu'il recouvre ne se voit qu'en bas de page, donc tard.
 
-La pagination en profite pour se répartir sur toute la largeur sous `md`, avec
-le compteur de pages entre les deux commandes. Serrées à droite, elles se
-partageaient la moitié de l'écran.
+**Et le bas de liste n'est pas un reste.** Deux boutons bordés « Précédent » et
+« Suivant » pesaient autant que les rangées au-dessus, pour une commande qui ne
+sert que si on ne trouve pas ce qui est déjà à l'écran. Sous `md', ils
+deviennent **une seule barre pleine largeur** : une piste grise, les deux flèches
+en pastilles blanches à ses extrémités, la page au milieu, et l'inventaire
+(« 1–10 sur 293 ») en gris sous la barre — c'est une indication, pas une
+commande. Au-delà de `md` la rangée tient dans la largeur, elle la garde.
+
+Deux détails qui comptent : une flèche inactive **garde sa place** et perd sa
+couleur, sinon le compteur saute d'un côté à l'autre à la première et à la
+dernière page ; et la piste est en `surface-container` et non en
+`surface-container-low`, qui est à un cheveu du fond de page — le premier jet
+avait une piste rigoureusement invisible.
 
 ### La barre du bas : ancrée, libellée, et son centre est la recherche
 
