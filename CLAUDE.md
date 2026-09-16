@@ -601,6 +601,39 @@ porte un aplat pleine largeur (sinon elle carre les coins bas), et un résumé q
 annonce **ce qu'il y a derrière** plutôt que de répéter un avancement déjà
 affiché juste au-dessus.
 
+### Le poids se réserve à ce qui le mérite
+
+Chaque titre de rangée était en `font-bold`. Sur une liste, tout mettre en gras
+revient à ne rien mettre en gras : dix noms de la même graisse ne hiérarchisent
+rien, ils fatiguent. Le titre est en `font-medium` — il reste la ligne la plus
+lourde de sa rangée sans peser sur la page.
+
+Les pastilles de statut suivent : plus de gras, et le ton « succès » quitte le
+vert plein sur blanc pour un vert teinté. Une pastille n'a pas à crier, sa
+couleur dit déjà ce qu'elle annonce. Les filets passent à 60 % : une liste est
+une suite de rangées, pas une grille à quadriller.
+
+Densité mesurée à 390px : **61px** pour une rangée à sous-titre contre 53
+auparavant, 52px pour une rangée nue. La cible tactile de 44px reste largement
+dépassée et six rangées tiennent encore dans un écran.
+
+### Un élément `fixed` ne pousse rien : il dégage sa propre place
+
+Le bouton flottant de création recouvrait la dernière chose de la page. Sur une
+liste, cette dernière chose est la pagination : « Suivant » se retrouvait à
+moitié caché derrière le rond, sur les cinq écrans qui portent ce bouton. Le
+`pb` du contenu est posé une fois pour toutes dans `AppLayout` et ne peut pas
+savoir si la page porte un bouton.
+
+`BoutonFlottant` rend donc **une cale en plus du bouton**, dans le flux, là où
+le composant est déclaré — c'est-à-dire en fin de page. Elle ne coûte rien aux
+quarante écrans qui n'en ont pas. Tout élément flottant ajouté plus tard doit
+faire pareil : ce qu'il recouvre ne se voit qu'en bas de page, donc tard.
+
+La pagination en profite pour se répartir sur toute la largeur sous `md`, avec
+le compteur de pages entre les deux commandes. Serrées à droite, elles se
+partageaient la moitié de l'écran.
+
 ### La barre du bas : ancrée, libellée, et son centre est la recherche
 
 Refonte du 2026-09-16, sur le modèle de Mixx by Yas. Trois décisions, et une

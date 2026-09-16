@@ -11,15 +11,31 @@ import { cn } from '@/lib/utils';
  * rangée dense — avatar, titre, référence et contexte, statut et chevron —
  * dans une carte unique bordée. Le tableau reste inchangé à partir de `md`.
  *
- * Densité assumée : 48px par rangée (8px + 32px + 8px), ce qui reste au-delà
- * de la cible tactile de 44px du design system tout en montrant huit élèves
- * sans défiler.
+ * ## Le poids se réserve à ce qui le mérite
+ *
+ * Chaque titre était en `font-bold`. Sur une liste, tout mettre en gras revient
+ * à ne rien mettre en gras : dix noms de la même graisse ne hiérarchisent rien,
+ * ils fatiguent. Le titre passe en `font-medium`, il reste la ligne la plus
+ * lourde de sa rangée sans peser sur la page. Les pastilles de statut suivent —
+ * une pastille n'a pas à crier, sa couleur dit déjà ce qu'elle a à dire, et le
+ * ton « succès » quitte le vert plein sur blanc pour un vert teinté.
+ *
+ * Même raison pour les filets, passés à 60 % : une liste est une suite de
+ * rangées, pas une grille à quadriller.
+ *
+ * ## Densité
+ *
+ * Mesurée à 390px : 61px pour une rangée à sous-titre (10px + 41px de texte +
+ * 10px + filet) contre 53 auparavant, 52px pour une rangée nue. La cible tactile
+ * de 44px reste largement dépassée, six rangées tiennent encore dans un écran, et
+ * la rangée respire — c'est le premier reproche qu'on fait à une liste dense
+ * parcourue au pouce.
  */
 export function CarteListeMobile({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {
   return (
     <ul
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-container-lowest shadow-sm md:hidden',
+        'flex flex-col overflow-hidden rounded-xl border border-surface-border/80 bg-surface-container-lowest shadow-sm md:hidden',
         className,
       )}
       {...props}
@@ -29,7 +45,7 @@ export function CarteListeMobile({ className, ...props }: React.HTMLAttributes<H
 
 /** Tons de statut, alignés sur les rôles sémantiques du design system. */
 const TONS_STATUT = {
-  succes: 'bg-tertiary-container text-white',
+  succes: 'bg-tertiary/10 text-tertiary',
   erreur: 'bg-error-container text-error-on-container',
   alerte: 'bg-warning/10 text-warning-on-container',
   info: 'bg-secondary-container text-primary',
@@ -76,17 +92,17 @@ export function LigneCarteMobile({
   actions,
 }: LigneCarteMobileProps) {
   const ligne = (
-    <div className="flex items-center gap-3 p-2">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-surface-border bg-surface-container text-secondary">
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-container-low text-outline">
         <Icone className="h-5 w-5" aria-hidden />
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-body-md font-bold text-text-primary">{titre}</p>
+        <p className="truncate text-body-md font-medium text-text-primary">{titre}</p>
         {(reference || sousTitre) && (
           <div className="flex items-center gap-2">
             {reference && (
-              <span className="shrink-0 font-mono text-touch-meta text-secondary" data-mono>
+              <span className="shrink-0 font-mono text-touch-meta text-text-secondary" data-mono>
                 {reference}
               </span>
             )}
@@ -94,7 +110,7 @@ export function LigneCarteMobile({
               <span className="h-1 w-1 shrink-0 rounded-full bg-outline-variant" aria-hidden />
             )}
             {sousTitre && (
-              <span className="truncate text-touch-meta text-on-surface-variant">{sousTitre}</span>
+              <span className="truncate text-touch-meta text-text-secondary">{sousTitre}</span>
             )}
           </div>
         )}
@@ -105,11 +121,11 @@ export function LigneCarteMobile({
           {statut && (
             <span
               className={cn(
-                // 11px et non 10 : c'est le plancher lisible. Le poids, lui,
-                // ne bouge pas — passee en capitales espacees, la pastille
-                // prenait le pas sur le nom de l'ecole, qui est le sujet de la
-                // ligne.
-                'rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-4',
+                // 11px et non 10 : c'est le plancher lisible. Ni capitales ni
+                // espacement — la pastille prendrait le pas sur le nom, qui est le
+                // sujet de la ligne. Le gras est tombé pour la meme raison : la
+                // couleur porte deja le statut, le poids par-dessus est du bruit.
+                'rounded-full px-2 py-0.5 text-[11px] font-medium leading-4',
                 TONS_STATUT[statut.ton],
               )}
             >
@@ -117,9 +133,7 @@ export function LigneCarteMobile({
             </span>
           )}
           {valeurSecondaire && (
-            <span className="font-mono text-[11px] font-medium text-text-primary">
-              {valeurSecondaire}
-            </span>
+            <span className="font-mono text-[11px] text-text-primary">{valeurSecondaire}</span>
           )}
           {href && <ChevronRight className="h-4 w-4 text-outline" aria-hidden />}
         </div>
@@ -129,10 +143,10 @@ export function LigneCarteMobile({
 
   if (href) {
     return (
-      <li className="border-b border-surface-border last:border-b-0">
+      <li className="border-b border-surface-border/60 last:border-b-0">
         <Link
           href={href}
-          className="block transition-colors hover:bg-surface-container-low active:bg-surface-container-high"
+          className="block transition-colors hover:bg-surface-container-low active:bg-surface-container"
         >
           {ligne}
         </Link>
@@ -141,11 +155,12 @@ export function LigneCarteMobile({
   }
 
   return (
-    <li className="border-b border-surface-border last:border-b-0">
+    <li className="border-b border-surface-border/60 last:border-b-0">
       {ligne}
-      {/* Aligné sur le titre, pas sur la pastille : 8px de padding + 32px d'avatar + 12px de gouttière. */}
+      {/* Aligné sur le titre, pas sur la pastille : 12px de padding + 32px d'avatar
+          + 12px de gouttière. */}
       {actions && (
-        <div className="flex flex-wrap items-center gap-2 pb-2 pl-[3.25rem] pr-2">{actions}</div>
+        <div className="flex flex-wrap items-center gap-2 pb-2.5 pl-14 pr-3">{actions}</div>
       )}
     </li>
   );

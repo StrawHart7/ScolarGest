@@ -293,11 +293,14 @@ export function PaginationListe({
     // Sous `md`, la liste est une carte autonome : un filet supérieur pleine
     // largeur flotterait sous elle sans rien séparer. La pagination y devient
     // une simple rangée détachée.
-    <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1 md:border-t md:border-surface-border md:px-4 md:py-3">
+    <div className="flex flex-col gap-2 px-1 py-1 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3 md:border-t md:border-surface-border md:px-4 md:py-3">
       <p className="text-body-sm text-text-secondary">
         {debut}–{fin} sur {total} {libelle}
       </p>
-      <div className="flex items-center gap-2">
+      {/* Sur téléphone, les deux commandes prennent toute la largeur et le
+          compteur de pages les sépare. Serrées à droite, elles se partageaient la
+          moitié de l'écran et « Suivant » passait sous le bouton flottant. */}
+      <div className="flex items-center justify-between gap-2 md:justify-end">
         <Button
           asChild={!precedentInactif}
           variant="secondary"

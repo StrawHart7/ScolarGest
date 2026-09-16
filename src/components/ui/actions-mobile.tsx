@@ -19,27 +19,42 @@ export interface ActionMobileProps {
   icone: LucideIcon;
 }
 
-/** Action principale de la page, flottante en bas à droite. */
+/**
+ * Action principale de la page, flottante en bas à droite — et l'espace qu'elle
+ * occupe, réservé dans le flux.
+ *
+ * Un élément `fixed` ne pousse rien : la dernière chose de la page passait sous
+ * le bouton, et sur les listes cette dernière chose est la pagination — « Suivant »
+ * se retrouvait à moitié caché derrière le rond. Le `pb` du contenu, lui, est posé
+ * une fois pour toutes dans `AppLayout` et ne sait pas si la page porte un bouton.
+ *
+ * D'où la cale : rendue là où le composant est déclaré, c'est-à-dire à la fin de
+ * la page, elle ne coûte rien aux quarante écrans qui n’ont pas de bouton
+ * flottant et dégage exactement ce qu’il faut aux cinq qui en ont.
+ */
 export function BoutonFlottant({ href, libelle, icone: Icone }: ActionMobileProps) {
   return (
-    <Link
-      href={href}
-      aria-label={libelle}
-      title={libelle}
-      className={cn(
-        // Au-dessus de la barre de navigation : 64px de hauteur ancrée au bord,
-        // 16px de gouttière, plus l'encoche. Le bouton reste au coin droit, là où
-        // le centre de la barre porte la recherche : créer et trouver sont deux
-        // gestes, donc deux places.
-        'fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-30 md:hidden',
-        'grid h-14 w-14 place-items-center rounded-2xl',
-        'bg-primary-container text-white shadow-lg transition-all duration-200',
-        'hover:bg-primary active:scale-95',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/50 focus-visible:ring-offset-2',
-      )}
-    >
-      <Icone className="h-6 w-6" aria-hidden />
-    </Link>
+    <>
+      <div aria-hidden className="h-14 md:hidden" />
+      <Link
+        href={href}
+        aria-label={libelle}
+        title={libelle}
+        className={cn(
+          // Au-dessus de la barre de navigation : 64px de hauteur ancrée au bord,
+          // 16px de gouttière, plus l'encoche. Le bouton reste au coin droit, là où
+          // le centre de la barre porte la recherche : créer et trouver sont deux
+          // gestes, donc deux places.
+          'fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-30 md:hidden',
+          'grid h-14 w-14 place-items-center rounded-2xl',
+          'bg-primary-container text-white shadow-lg transition-all duration-200',
+          'hover:bg-primary active:scale-95',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container/50 focus-visible:ring-offset-2',
+        )}
+      >
+        <Icone className="h-6 w-6" aria-hidden />
+      </Link>
+    </>
   );
 }
 
