@@ -3318,3 +3318,46 @@ les confondre est le défaut déjà payé sur le filigrane.
 Et la sonde s'écrit `not('capacite', 'is', null)`, jamais `.neq(...)` : une
 comparaison à NULL n'est jamais vraie en SQL, et le conseil aurait annoncé
 « 0 classe sur 12 » à une école qui les a toutes plafonnées.
+
+### Les lignes d'une facture se modifient à tout moment
+
+Décision produit du 2026-09-16, migration `20260916063052`. Elle **remplace**
+la règle d'origine : `fn_modifier_lignes_facture` refusait dès qu'un versement
+non annulé existait, et l'écran annonçait « toute correction passe par un
+nouveau versement ou une annulation ».
+
+La règle ne tenait pas devant le calendrier d'une école togolaise : la cantine
+se décide en janvier, le transport au deuxième trimestre, une remise
+fraternelle après coup. Annuler une facture pour y ajouter une ligne de cantine
+détruit le document que la famille a reçu et déplace ses versements — une
+réponse sans rapport avec le geste demandé.
+
+**Seule une facture annulée garde ses lignes figées.** `lignesModifiables` vaut
+donc exactement `statut !== 'ANNULE'`.
+
+**Baisser le total sous ce qui a déjà été versé est autorisé, et annoncé.** La
+fonction renvoie `surplus`, l'éditeur le montre pendant la saisie puis le
+confirme avec le chiffre de la base. Refuser bloquerait une école qui a
+surfacturé par erreur ; se taire lui ferait découvrir le trop-perçu en
+réclamant de l'argent à quelqu'un qui n'en doit pas. Même doctrine que
+`fn_changer_classe_inscription`.
+
+**Une action qui peut réussir *et* avoir quelque chose à dire ne rend pas
+`string | null`.** `enregistrerLignesAction` n'avait que « erreur » ou « rien » ;
+le surplus n'entrait dans aucun des deux, et serait resté invisible.
+
+### `apply_migration` horodate de son côté
+
+Le fichier créé par `npx supabase migration new` et l'entrée écrite dans
+`supabase_migrations.schema_migrations` par l'outil MCP `apply_migration`
+portent **deux horodatages différents** — ici `20260916061825` contre
+`20260916063052`, six minutes d'écart. C'est exactement la divergence décrite
+plus haut : un environnement neuf provisionné par `db push` appliquerait la
+migration sous la clé du fichier, la base réelle la connaît sous celle du
+journal, et à partir de là tout diagnostic d'écart entre journaux ment.
+
+**Le fichier s'aligne sur le journal**, jamais l'inverse : un renommage ne
+touche pas la production, réécrire `schema_migrations` sur la base réelle est à
+sens unique pour un gain nul. Vérifier la clé enregistrée après chaque
+`apply_migration`, et renommer dans la foulée — c'est le seul moment où l'écart
+est encore visible.
