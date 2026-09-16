@@ -740,6 +740,20 @@ d'onboarding — vocabulaire, navigation, et les pannes rencontrées en chemin.
       `fn_changer_classe_inscription` change la classe, réactive une inscription
       annulée, annule l'ancienne facture, en émet une nouvelle aux tarifs de la
       classe d'arrivée et y reporte les versements.
+- [x] **Une facture annulée ne se réclame plus** (2026-09-16, sans migration) —
+      elle comptait dans le total dû **et** dans le reste à recouvrer :
+      347 000 F annoncés pour 169 000 réellement attendus. `calculerSolde` ne
+      reçoit pas le statut ; `soldeDuAvecStatut` le lui donne et `totauxSuivi`
+      écarte ces lignes. Trois écrans corrigés d'un coup — la bande de totaux,
+      la fiche de classe, et l'état des paiements de `/rapports`. Les versements
+      restent dans l'encaissé : l'argent a bien été reçu.
+- [x] **Capacité d'une classe, après coup** (2026-09-16, sans migration) — il
+      n'existait aucune écriture sur `classe` hors `createClasse`, et
+      `/demarrage` ne demande pas la capacité : une classe née du parcours guidé
+      ne pouvait plus jamais en recevoir. `definirCapaciteClasse` ne touche que
+      cette colonne, et le conseil `capacite-classes` la fait connaître — hors
+      socle, parce que plafonner est un choix d'école et non un réglage
+      manquant.
 
 **Décisions de l'utilisateur, tranchées en séance** :
 - Le régime semestriel est **propre au lycée** ; le collège est trimestriel sans

@@ -3251,3 +3251,70 @@ chemin vers ce qui reste à régler.
 **Une félicitation se mérite une fois.** L'écran de configuration affichait des
 cotillons à chaque ouverture ; c'est le rôle d'`EcranFinal` à la sortie de
 `/demarrage`, et le rejouer le transforme en décor à traverser.
+
+### Un calcul qui ne reçoit pas le statut ne peut pas en tenir compte
+
+Constaté le 2026-09-16. `calculerSolde(montantTotal, paiements)` rendait le
+montant entier d'une facture **annulée** : elle ne reçoit pas `statut`, donc
+elle ne pouvait pas savoir. Le suivi des paiements annonçait 347 000 F dus et
+269 000 F à recouvrer à une école qui n'attendait que 169 000 et 91 000 — la
+facture annulée par un changement de classe était comptée deux fois, une fois
+dans le dû, une fois dans le reste.
+
+`soldeDuAvecStatut(montantTotal, paiements, statut)` répond zéro sur une
+facture annulée, et `totauxSuivi` écarte ces lignes du total dû.
+
+**Trois écrans sont tombés ensemble parce qu'ils s'appuient sur les deux mêmes
+fonctions** : la bande de totaux du suivi, le « Reste à recouvrer » de la fiche
+de classe, et l'état des paiements de `/rapports`. C'est l'argument pour poser
+la correction dans le calcul et non dans chaque page — et l'argument pour ne
+jamais recalculer un total à côté de `totauxSuivi` : deux chiffres différents
+pour la même école se découvrent devant un parent.
+
+**Les versements d'une facture annulée restent dans l'encaissé.** Une
+annulation n'a jamais rendu un franc à personne. Les retirer ferait disparaître
+de la caisse un versement bien réel, et masquerait le remboursement dû à la
+famille : l'écart entre encaissé et total dû est le seul signal qui l'annonce.
+
+**La ligne annulée reste affichée**, invariant financier du dépôt, et un reçu
+déjà remis la mentionne. Mais l'écran **dit** combien de factures sont hors
+total. Sans cette phrase, le total ne s'additionne plus à la main et un
+comptable qui vérifie conclut à une erreur de la plateforme — un total juste
+qu'on ne peut pas recouper vaut à peine mieux qu'un total faux.
+
+Les autres agrégats financiers écartaient déjà `ANNULE` **à la requête**
+(`dashboard.ts`, `annee-scolaire.ts`, `conseils.ts`, `series-ecole.ts`). Le
+suivi ne le pouvait pas : il doit montrer la ligne.
+
+### Une colonne qu'aucun écran ne sait réécrire est une colonne morte
+
+`classe.capacite` était demandée à la création et **nulle part ailleurs**. Or
+`/demarrage` ne la demande pas — on y crée douze classes d'affilée, poser un
+plafond à chacune n'aurait aucun sens à ce moment-là. Une école configurée par
+le parcours guidé ne pouvait donc jamais en avoir une, et les trois écrans qui
+s'en servent (répartition du tableau de bord, rapport d'effectifs, alerte de
+surcapacité) restaient muets pour elle. La fiche affichait « Capacité — » sans
+aucun recours.
+
+La règle en sort élargie : **toute colonne saisie à la création doit avoir un
+chemin de modification**, ou bien ne pas exister. C'est la même famille que
+`etablissement.logo` et `matiere.matiereOfficielleId`, à l'envers — là une
+colonne jamais lue, ici une colonne jamais réécrite.
+
+`definirCapaciteClasse` ne touche **que** la capacité. Le nom d'une classe est
+composé depuis son niveau et sa série (`lib/noms-classes.ts`) et n'est pas une
+saisie libre ; changer le niveau ou la série déplacerait sous les pieds d'une
+classe déjà notée son programme, ses coefficients et ses bulletins. `null` est
+une valeur et non un échec : poser un plafond par curiosité ne doit pas être
+irréversible.
+
+**Le conseil qui l'accompagne est hors socle, délibérément.** Plafonner ses
+effectifs est un choix d'école, pas un réglage manquant : l'inscrire au socle
+le ferait compter comme un manque et rouvrirait « Configuration » dans la
+rangée d'Établissement d'une école parfaitement réglée. `famille` répond à
+« dans quel ordre on en parle », `socle` à « l'établissement est-il configuré » —
+les confondre est le défaut déjà payé sur le filigrane.
+
+Et la sonde s'écrit `not('capacite', 'is', null)`, jamais `.neq(...)` : une
+comparaison à NULL n'est jamais vraie en SQL, et le conseil aurait annoncé
+« 0 classe sur 12 » à une école qui les a toutes plafonnées.
