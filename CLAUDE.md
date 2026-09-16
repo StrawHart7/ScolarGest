@@ -312,7 +312,19 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-14) :
+**Active branches** (2026-09-16) :
+- `feat/soko-parler-au-directeur` — ✅ terminée et fusionnée sur `main`
+  (2026-09-16), agent SOKO, 37 commits. Le retour du testeur sur le parcours
+  complet, traité de bout en bout : section Établissement bâtie sur le modèle de
+  Finances, régime de périodes rendu au lycée, inscription qui se change au lieu
+  de se recréer, capacité des classes rouverte et demandée à l'onboarding,
+  lignes de facture modifiables après un versement, facture annulée qui cesse
+  d'être réclamée, origine commerciale d'un prospect. Plus deux pannes
+  diagnostiquées en production — les erreurs muettes de PostgREST
+  (« Référence 5381 ») et la RLS payée ligne par ligne, **23,3 s → 196 ms**.
+  Migrations `20260915160508`, `20260915192131`, `20260915211046`,
+  `20260916063052` et `20260916065141`, **toutes appliquées**. Voir `PLAN.md`
+  § 8 et les huit sections de doctrine ajoutées à la fin de ce fichier.
 - `feat/soko-directeur-complet` + `feat/soko-prise-en-main` +
   `feat/soko-import-lisible` — ✅ terminées et mergées sur `main` (2026-09-14),
   agent SOKO : le Directeur peut tout faire dans son établissement, le verrou de

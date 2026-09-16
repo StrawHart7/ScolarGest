@@ -696,8 +696,11 @@ réécrites dans ce format.
 
 ### Fonctionnalité — Parler au directeur : section Établissement, régime par cycle, et le jour où la RLS a lâché
 
-**Statut** : Terminée (2026-09-15) — branche `feat/soko-parler-au-directeur`,
-**non fusionnée**, en attente du verdict de preview de l'utilisateur.
+**Statut** : ✅ Terminée et fusionnée sur `main` (2026-09-16) après validation de
+la preview par l'utilisateur — branche `feat/soko-parler-au-directeur`, 37
+commits. Six migrations, **toutes appliquées** : `20260914122558`,
+`20260915160508`, `20260915192131`, `20260915211046`, `20260916063052`,
+`20260916065141`.
 
 **Objectif** : traiter le retour du testeur sur le parcours complet
 d'onboarding — vocabulaire, navigation, et les pannes rencontrées en chemin.
