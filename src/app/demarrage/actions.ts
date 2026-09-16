@@ -267,7 +267,14 @@ export async function creerClassesAction(
   try {
     const resultat = await projeterReferentielNational(anneeScolaireId);
     const total = resultat.programme.lignesCreees;
-    if (total > 0) {
+    // `applique` à faux dit que la plateforme a fermé la projection pour cette
+    // école. Se taire laisserait le Directeur avec des classes sans programme
+    // et aucune idée de l'étape qui manque — le silence se lirait comme un
+    // oubli de sa part.
+    if (!resultat.applique) {
+      referentiel =
+        ' Les matières et les coefficients restent à définir depuis l’écran du programme.';
+    } else if (total > 0) {
       referentiel = ` Programme national appliqué : ${total} matière${total > 1 ? 's' : ''} par niveau, ${resultat.projetes} coefficient${resultat.projetes > 1 ? 's' : ''}.`;
     }
   } catch {

@@ -81,6 +81,7 @@ document.listDocumentsParType = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 document.marquerBulletinsPrecedentsObsoletes = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 document.marquerObsolete = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
 document-numero.generateNumeroDocument = AUTHENTIFIE
+drapeau.drapeauActif = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE+ENSEIGNANT
 eleve.archiverEleve = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 eleve.createEleveAvecResponsables = SUPER_ADMIN+DIRECTEUR+SECRETAIRE
 eleve.getEleve = SUPER_ADMIN+DIRECTEUR+SECRETAIRE+COMPTABLE
