@@ -1,4 +1,3 @@
-import { BookOpen } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listMatieres } from '@/services/matiere';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -92,8 +91,7 @@ export default async function MatieresPage({
           {page.total === 0 ? (
             <CardContent>
               <EtatVide
-                icone={BookOpen}
-                titre="Aucune matière"
+                titre="Je n’ai aucune matière en catalogue."
                 explication="Les matières du programme national arrivent toutes seules à la création de vos classes. Ajoutez-en une ici si votre école en enseigne une qui n’y figure pas."
                 action={canWrite && <MatiereForm />}
               />
@@ -137,7 +135,6 @@ export default async function MatieresPage({
                 {page.lignes.map((matiere) => (
                   <LigneCarteMobile
                     key={matiere.id}
-                    icone={BookOpen}
                     titre={matiere.nom}
                     reference={matiere.code ?? undefined}
                     sousTitre={matiere.description ?? undefined}

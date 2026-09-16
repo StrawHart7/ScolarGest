@@ -3,8 +3,9 @@
 import * as React from 'react';
 import Link from 'next/link';
 import * as Sentry from '@sentry/nextjs';
-import { ShieldAlert, TriangleAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScolaIllustration } from '@/components/scola/illustration';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignalerIncident } from '@/components/erreur/SignalerIncident';
 import { normaliserRoute } from '@/lib/telemetrie';
@@ -108,20 +109,30 @@ export default function Erreur({
     <div className="grid min-h-[60vh] place-items-center p-6">
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+          {/*
+            Scola sur la panne, le bouclier sur le refus — et la distinction
+            n'est pas décorative. Une panne est de notre fait : la mascotte peut
+            l'assumer, et c'est même ce qui désamorce. Un refus d'accès, lui, est
+            le produit qui fonctionne : y mettre une mascotte reviendrait à
+            s'excuser d'une règle, et à laisser croire qu'elle est négociable.
+
+            L'état est `surprised` et non `error` : le fantôme fâché a l'air de
+            reprocher quelque chose à qui vient de perdre sa page.
+          */}
           {refusAcces ? (
             <ShieldAlert className="h-12 w-12 text-text-secondary/60" aria-hidden />
           ) : (
-            <TriangleAlert className="h-12 w-12 text-error" aria-hidden />
+            <ScolaIllustration etat="surprised" taille={92} />
           )}
 
           <h1 className="text-headline-sm text-text-primary">
-            {refusAcces ? 'Accès refusé' : 'Une erreur est survenue'}
+            {refusAcces ? 'Accès refusé' : 'Quelque chose a lâché de mon côté'}
           </h1>
 
           <p className="text-body-sm text-text-secondary">
             {refusAcces
               ? "Votre rôle ne donne pas accès à cette page. Si vous pensez qu'il s'agit d'une erreur, contactez la direction de votre établissement."
-              : "La page n'a pas pu être affichée. Réessayez ; si le problème persiste, signalez-le en précisant la référence ci-dessous."}
+              : "Je n'ai pas réussi à afficher cette page. Réessayez ; si ça recommence, dites-le-moi avec la référence ci-dessous et je transmets au support."}
           </p>
 
           {!refusAcces && error.digest && (

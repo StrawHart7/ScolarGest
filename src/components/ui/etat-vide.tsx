@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { ScolaIllustration } from '@/components/scola/illustration';
 
 /**
  * Ce qu'un écran dit quand il n'a rien à montrer.
@@ -15,7 +15,23 @@ import type { LucideIcon } from 'lucide-react';
  * existait, il n'était appliqué nulle part ailleurs : c'est exactement le genre
  * d'écart qu'un composant supprime et qu'une consigne ne supprime pas.
  *
- * ## Trois règles
+ * ## C'est Scola qui parle
+ *
+ * L'icône par écran a disparu : un reçu ici, un cartable là, une salle de
+ * classe ailleurs — vingt-cinq dessins pour dire la même chose, l'absence.
+ * C'est la mascotte qui la dit maintenant, et elle est la même partout.
+ *
+ * Son état suit la situation et non l'écran : `thinking` quand le vide vient
+ * d'une recherche — il cherche encore —, `idle` quand il n'y a simplement rien
+ * à montrer.
+ *
+ * Le `titre` est **sa phrase**, à la première personne quand c'est lui qui n'a
+ * rien à présenter (« Je n'ai encore aucune facture à vous montrer »), et à la
+ * deuxième quand la phrase parle de l'utilisateur et non de lui. Il ne dit
+ * jamais « je » sur un échec ni sur de l'argent : un logiciel ne s'excuse pas
+ * d'avoir avalé un versement, il l'annonce.
+ *
+ * ## Trois règles qui ne bougent pas
  *
  * **L'état vide porte le geste, il ne le nomme pas.** « Créez une classe avant
  * d'inscrire un élève » demande de retrouver l'écran des classes tout seul.
@@ -30,7 +46,8 @@ import type { LucideIcon } from 'lucide-react';
  *
  * **Ce n'est jamais une erreur.** Ni rouge, ni `error`. Une école qui n'a pas
  * encore de tarifs n'a rien cassé — c'est l'état normal d'une école de trois
- * jours. Même raison que pour la bannière hors-ligne.
+ * jours. Même raison que pour la bannière hors-ligne, et c'est aussi pourquoi
+ * Scola n'y prend jamais une tête fâchée.
  *
  * ## Mobile
  *
@@ -40,14 +57,12 @@ import type { LucideIcon } from 'lucide-react';
  * ligne de flottaison quand une barre d'outils la précédait.
  */
 export function EtatVide({
-  icone: Icone,
   titre,
   explication,
   action,
   filtre = false,
 }: {
-  icone: LucideIcon;
-  /** Ce qui manque, dit simplement. Pas « Aucun X trouvé » quand on n'a pas cherché. */
+  /** La phrase de Scola. Pas « Aucun X trouvé » quand on n'a pas cherché. */
   titre: string;
   /** Pourquoi ça compte, ou ce qui se débloque ensuite. Facultatif quand c'est évident. */
   explication?: string;
@@ -58,7 +73,7 @@ export function EtatVide({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 py-10 text-center md:py-14">
-      <Icone className="h-10 w-10 text-text-secondary/50" aria-hidden />
+      <ScolaIllustration etat={filtre ? 'thinking' : 'idle'} taille={88} />
       <p className="text-body-md text-text-primary">{titre}</p>
       {explication ? (
         <p className="max-w-prose text-body-sm text-text-secondary">{explication}</p>

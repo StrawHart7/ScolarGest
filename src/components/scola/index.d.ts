@@ -33,7 +33,7 @@ export type EtatScola =
   | 'singing';
 
 export interface ScolaProps
-  extends Omit<SVGProps<SVGSVGElement>, 'role' | 'width' | 'height' | 'children'> {
+  extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height' | 'children'> {
   /** Réaction jouée. `idle` par défaut. */
   state?: EtatScola;
   /** Côté du carré, en pixels. 256 par défaut — presque toujours à réduire. */

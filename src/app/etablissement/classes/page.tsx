@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRightLeft, School } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
@@ -136,8 +136,7 @@ export default async function ClassesPage({
               {page.total === 0 ? (
                 <CardContent>
                   <EtatVide
-                    icone={School}
-                    titre="Aucune classe sur cette année"
+                    titre="Je n’ai aucune classe sur cette année."
                     explication="Créez vos classes : c’est ce qui vous permet d’inscrire des élèves, et le programme national arrive tout seul avec elles."
                     action={
                       peutCreer && cycles.length > 0 ? (
@@ -199,7 +198,6 @@ export default async function ClassesPage({
                       <LigneCarteMobile
                         key={classe.id}
                         href={`/etablissement/classes/${classe.id}`}
-                        icone={School}
                         titre={classe.nom}
                         sousTitre={
                           classe.serie?.nom

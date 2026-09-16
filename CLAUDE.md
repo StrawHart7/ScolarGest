@@ -692,6 +692,51 @@ dernière page ; et la piste est en `surface-container` et non en
 `surface-container-low`, qui est à un cheveu du fond de page — le premier jet
 avait une piste rigoureusement invisible.
 
+### Scola : quatre endroits, et une voix qui sait se taire
+
+Mascotte SVG issue de l'export Wobbi (MIT), dans `src/components/scola/`.
+54 Ko, aucune dépendance hors React, tout en SVG en ligne : pas de fichier
+image, pas d'appel réseau, donc elle vit pendant une coupure.
+
+**Quatre poses, et pas une de plus** : la bulle de support, les états vides
+(`EtatVide`, donc une trentaine d'écrans d'un coup), l'écran de chargement
+(`BrandedLoader`, une cinquantaine de frontières de route) et la page d'erreur
+technique. Le reste du produit ne la voit pas.
+
+**Elle parle à la première personne, sauf sur l'argent et les échecs.** « Je
+n'ai aucune classe sur cette année » : elle n'a rien à montrer, elle le dit.
+« Le versement n'a pas été enregistré » reste impersonnel — un logiciel ne
+s'excuse pas d'avoir avalé de l'argent, il l'annonce, et une mascotte qui prend
+la faute d'un encaissement perdu décrédibilise l'écran le plus sérieux du
+produit. Même silence sur les refus métier : une école suspendue, un import
+refusé, un rôle qui n'ouvre pas une page. **Le produit vouvoie, Scola aussi.**
+
+**`interactive` commande deux choses, et il fallait les séparer.** Dans le
+moteur, ce seul drapeau donne à la fois le regard qui suit le curseur — ce qui
+la rend vivante — et le statut de bouton : `role="button"`, arrêt de tabulation,
+réaction au clic. Or le bouton gêne partout où on veut la poser : un arrêt de
+tabulation avant l'action réelle sur un écran vide, un bouton imbriqué dans un
+lien dans la bulle de support. `ScolaIllustration`
+(`src/components/scola/illustration.tsx`) garde le regard et neutralise le
+reste — le composant étale ses props après ses attributs internes, ce qui permet
+de les écraser, gestionnaires compris. **Poser `<Scola>` directement est
+presque toujours une erreur.**
+
+**Elle disparaît sur un fond bleu.** `primary-container` (#0052cc) sur
+`primary` (#003d9b), c'est la même valeur. La bulle de support est donc passée
+du bleu plein au blanc bordé, et le médaillon du chargement a disparu. Toute
+pose future sur un fond bleu — la barre du bas, un bouton primaire — demande
+d'inverser le fond, pas de repeindre la mascotte.
+
+**Le typage vit dans `index.d.ts`, pas dans le moteur.** `tsconfig.json` garde
+`allowJs: false` et n'inclut que les `.ts`/`.tsx` : TypeScript ne voit que cette
+déclaration, le bundler résout `index.js`. Conséquence : **modifier le moteur ne
+fait échouer aucun typecheck**. C'est voulu pour du code tiers figé.
+
+Les icônes par écran des états vides ont disparu avec : vingt-cinq dessins
+différents pour dire la même chose, l'absence. L'état de la mascotte suit la
+situation — `thinking` quand le vide vient d'une recherche, `idle` sinon.
+
 ### La barre du bas : ancrée, libellée, et son centre est la recherche
 
 Refonte du 2026-09-16, sur le modèle de Mixx by Yas. Trois décisions, et une

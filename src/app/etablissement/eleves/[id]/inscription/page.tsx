@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { CalendarRange, School } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
@@ -82,8 +81,7 @@ export default async function InscriptionPage({ params }: { params: { id: string
           <Card>
             <CardContent>
               <EtatVide
-                icone={CalendarRange}
-                titre="Aucune année scolaire n’est ouverte"
+                titre="Il me faut une année scolaire ouverte avant d’inscrire un élève."
                 explication="Une inscription se rattache à une année : il en faut une active avant de continuer."
                 action={
                   <Button asChild variant="primary">
@@ -97,8 +95,7 @@ export default async function InscriptionPage({ params }: { params: { id: string
           <Card>
             <CardContent>
               <EtatVide
-                icone={School}
-                titre="Aucune classe sur cette année"
+                titre="Il me faut une classe où inscrire cet élève."
                 explication="Créez la classe dans laquelle vous voulez inscrire cet élève, puis revenez ici."
                 action={
                   <Button asChild variant="primary">

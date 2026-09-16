@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { UserPlus, Users2 } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listUtilisateurs } from '@/services/utilisateur';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -129,7 +129,6 @@ export default async function UtilisateursPage({
           {page.total === 0 ? (
             <CardContent>
               <EtatVide
-                icone={Users2}
                 titre="Vous êtes seul sur la plateforme"
                 explication="Ajoutez votre secrétaire ou votre comptable. Avec une adresse email, la personne reçoit un lien et choisit son mot de passe ; sans adresse, vous lui remettez un identifiant et un mot de passe de la main à la main."
                 action={

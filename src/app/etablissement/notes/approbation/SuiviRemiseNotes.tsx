@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ClipboardList } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatVide } from '@/components/ui/etat-vide';
@@ -81,13 +80,11 @@ export function SuiviRemiseNotes({
       <CardContent>
         {coursTotal === 0 ? (
           <EtatVide
-            icone={ClipboardList}
             titre="Aucun enseignant n'a encore de matière attribuée."
             explication="Attribuez leurs matières à vos enseignants : cette liste vous dira ensuite, période par période, qui vous a rendu ses notes et qui ne les a pas encore rendues."
           />
         ) : enseignantsEnAttente === 0 ? (
           <EtatVide
-            icone={ClipboardList}
             titre={`Tous vos enseignants ont rendu leurs notes pour le ${phrasePeriode(periode, regime)}.`}
             explication="Une matière sort de cette liste dès qu'une note y est rendue. Changez de période ci-dessus pour vérifier les autres."
           />

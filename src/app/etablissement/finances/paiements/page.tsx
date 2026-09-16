@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Wallet } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listPaiements, type StatutPaiement } from '@/services/paiement';
@@ -137,7 +136,6 @@ export default async function HistoriqueVersementsPage({
           {page.total === 0 ? (
             <CardContent>
               <EtatVide
-                icone={Wallet}
                 titre="Aucun versement pour le moment"
                 explication="Les encaissements se saisissent depuis la facture d’un élève : ils apparaîtront ici au fur et à mesure."
                 action={

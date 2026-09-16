@@ -1,4 +1,4 @@
-import { GraduationCap } from 'lucide-react';
+import { ScolaIllustration } from '@/components/scola/illustration';
 
 /**
  * Écran de chargement de la marque — c'est ce que `loading.tsx` affiche
@@ -8,6 +8,21 @@ import { GraduationCap } from 'lucide-react';
  * Avant ce composant, ces ~50 frontières rendaient un simple squelette de
  * tableau gris (`PageSkeleton`) — correct mais interchangeable avec
  * n'importe quel produit. Celui-ci porte la marque.
+ *
+ * ## Scola y attend à la place du médaillon
+ *
+ * Le chapeau de diplômé dans sa pastille bleue disait « école » à quelqu'un qui
+ * sait déjà quel produit il a ouvert. La mascotte, elle, occupe l'attente : son
+ * état `loading` a sa propre boucle, et c'est très exactement ce qu'on demande
+ * à un écran de chargement.
+ *
+ * Elle est posée sur le fond clair et non plus dans une pastille : en
+ * `primary-container`, elle disparaîtrait sur le dégradé bleu qui s'y trouvait.
+ * Les anneaux qui battent restent, ils sont ce qui donne le rythme.
+ *
+ * **Le SVG est rendu au serveur**, seule l'animation attend le JavaScript :
+ * un chargement lent — le cas où cet écran compte — montre donc déjà la
+ * mascotte au premier octet, immobile puis vivante.
  */
 export function BrandedLoader() {
   return (
@@ -35,27 +50,25 @@ export function BrandedLoader() {
         />
       </div>
 
-      <div className="relative flex flex-col items-center gap-6 animate-fade-in">
-        <div className="relative grid h-24 w-24 place-items-center">
-          <span className="absolute inset-0 rounded-full border border-primary-container/40 animate-ring-pulse" />
+      <div className="relative flex animate-fade-in flex-col items-center gap-6">
+        <div className="relative grid h-28 w-28 place-items-center">
+          <span className="animate-ring-pulse absolute inset-0 rounded-full border border-primary-container/40" />
           <span
-            className="absolute inset-0 rounded-full border border-primary-container/40 animate-ring-pulse"
+            className="animate-ring-pulse absolute inset-0 rounded-full border border-primary-container/40"
             style={{ animationDelay: '0.7s' }}
           />
           <span
-            className="absolute inset-0 rounded-full border border-primary-container/30 animate-ring-pulse"
+            className="animate-ring-pulse absolute inset-0 rounded-full border border-primary-container/30"
             style={{ animationDelay: '1.4s' }}
           />
-          <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-primary-container to-primary text-white shadow-glow animate-mark-breathe">
-            <GraduationCap className="h-8 w-8" aria-hidden />
-          </span>
+          <ScolaIllustration etat="loading" taille={76} />
         </div>
 
         <div className="flex flex-col items-center gap-1">
           <span className="text-headline-md font-bold tracking-tight text-primary-container">
             ScolarGest
           </span>
-          <span className="text-body-sm text-text-secondary">Chargement en cours…</span>
+          <span className="text-body-sm text-text-secondary">Je rassemble vos données…</span>
         </div>
 
         <div className="h-1 w-44 overflow-hidden rounded-full bg-surface-container">

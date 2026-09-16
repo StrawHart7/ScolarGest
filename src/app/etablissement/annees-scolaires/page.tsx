@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { CalendarRange } from 'lucide-react';
 import { getTenantContext } from '@/services/tenant';
 import { bilanCloture, listAnneesScolaires, type BilanCloture } from '@/services/annee-scolaire';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -78,8 +77,7 @@ export default async function AnneesScolairesPage() {
           {annees.length === 0 ? (
             <CardContent>
               <EtatVide
-                icone={CalendarRange}
-                titre="Aucune année scolaire ouverte"
+                titre="Je n’ai pas encore d’année scolaire à vous montrer."
                 explication="Tout part de là : les classes, les tarifs et les matricules de vos élèves sont rattachés à une année."
                 action={estDirecteur && <AnneeScolaireForm />}
               />
@@ -157,7 +155,6 @@ export default async function AnneesScolairesPage() {
                   <LigneCarteMobile
                     key={annee.id}
                     href={`/etablissement/annees-scolaires/${annee.id}`}
-                    icone={CalendarRange}
                     titre={annee.libelle}
                     sousTitre={`${new Date(annee.dateDebut).toLocaleDateString('fr-FR')} – ${new Date(annee.dateFin).toLocaleDateString('fr-FR')}`}
                     statut={{

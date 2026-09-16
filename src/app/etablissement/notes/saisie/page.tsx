@@ -115,14 +115,12 @@ async function SaisieContent({
         <CardContent>
           {role === 'DIRECTEUR' ? (
             <EtatVide
-              icone={GraduationCap}
               titre="Vous n’enseignez aucune matière cette année."
               explication="Si vous êtes aussi professeur, déclarez-le : votre fiche enseignant sera rattachée à ce compte, et vous pourrez saisir les notes des matières que vous vous attribuerez — celles-là uniquement."
               action={<DeclarationEnseignant />}
             />
           ) : (
             <EtatVide
-              icone={GraduationCap}
               titre="Vous n’avez pas encore de classe ni de matière attribuée."
               explication="C’est ce qui ouvre la saisie des notes, et la direction s’en charge. Contactez votre établissement si vous pensez qu’il s’agit d’une erreur."
             />
