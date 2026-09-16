@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Receipt } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
@@ -59,27 +60,53 @@ const STATUTS: StatutFacture[] = ['PAYE', 'PARTIEL', 'IMPAYE', 'ANNULE'];
  * lisible sans peser autant que le montant. C'est le traitement déjà retenu
  * pour le bandeau de la console plateforme.
  */
+/**
+ * Un chiffre de la bande de totaux — et deux densités, pas deux composants.
+ *
+ * Trois chiffres à 28px empilés prenaient 180px du premier écran du téléphone,
+ * avant même la première facture, et leurs intitulés en capitales espacées
+ * criaient trois fois. Sous `sm`, « Total dû » et « Encaissé » deviennent donc
+ * deux lignes de relevé — intitulé à gauche, montant à droite — et seul « Reste à
+ * recouvrer » garde sa taille : c'est le seul des trois sur lequel on agit, les
+ * deux autres le situent.
+ *
+ * L'ordre ne change pas d'un écran à l'autre, seule la densité : quelqu'un qui
+ * passe du bureau au téléphone retrouve ses chiffres au même rang.
+ */
 function ChiffreTotal({
   libelle,
   valeur,
   accent,
+  vedette,
 }: {
   libelle: string;
   valeur: number;
   accent?: 'regle' | 'reste';
+  /** Garde la grande taille sous `sm`, sur sa propre ligne. */
+  vedette?: boolean;
 }) {
+  const couleur =
+    accent === 'regle'
+      ? 'text-tertiary'
+      : accent === 'reste' && valeur > 0
+        ? 'text-error'
+        : 'text-text-primary';
+
   return (
-    <div>
-      <p className="text-console-eyebrow uppercase text-text-secondary">{libelle}</p>
-      <p className="mt-1 flex items-baseline gap-1.5">
+    <div
+      className={cn(
+        'flex items-baseline justify-between gap-3 sm:block',
+        vedette && 'max-sm:block max-sm:border-t max-sm:border-surface-border max-sm:pt-3',
+      )}
+    >
+      <p className="text-touch-meta text-text-secondary sm:text-body-sm">{libelle}</p>
+      <p className="flex items-baseline gap-1.5 sm:mt-1">
         <span
-          className={
-            accent === 'regle'
-              ? 'text-console-figure-sm text-tertiary'
-              : accent === 'reste' && valeur > 0
-                ? 'text-console-figure-sm text-error'
-                : 'text-console-figure-sm text-text-primary'
-          }
+          className={cn(
+            'text-body-md font-semibold sm:text-console-figure-sm sm:font-normal',
+            vedette && 'max-sm:mt-1 max-sm:text-console-figure-sm max-sm:font-normal',
+            couleur,
+          )}
           data-mono
         >
           {fcfa(valeur)}
@@ -240,10 +267,15 @@ export default async function SuiviPaiementsPage({
               </span>
               {parametres.recherche ? ' correspondant à la recherche' : ''}
             </p>
-            <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-3 sm:gap-y-4">
               <ChiffreTotal libelle="Total dû" valeur={totaux.montantTotal} />
               <ChiffreTotal libelle="Encaissé" valeur={totaux.totalPaye} accent="regle" />
-              <ChiffreTotal libelle="Reste à recouvrer" valeur={totaux.solde} accent="reste" />
+              <ChiffreTotal
+                libelle="Reste à recouvrer"
+                valeur={totaux.solde}
+                accent="reste"
+                vedette
+              />
             </div>
           </section>
         )}

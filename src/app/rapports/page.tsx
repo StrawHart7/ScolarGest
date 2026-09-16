@@ -184,7 +184,10 @@ export default async function RapportsPage({
               nombreFiltresLibresActifs={classeId ? 1 : 0}
               className="mb-4 md:mb-6"
               actions={
-                <div className="flex items-center gap-2">
+                // Les trois formats se partagent la largeur du téléphone plutôt
+                // que de déborder de la carte. Au-delà de `md` ils reprennent leur
+                // largeur de contenu, à droite de la rangée.
+                <div className="flex w-full items-center gap-2 [&>*]:flex-1 md:[&>*]:flex-none">
                   <Button asChild size="sm" variant="secondary" disabled={!rapport}>
                     <a href={lienExport('xlsx')} download>
                       <FileSpreadsheet className="h-4 w-4" aria-hidden />
@@ -294,16 +297,19 @@ export default async function RapportsPage({
                     devient une carte clé/valeur — titre = première colonne, le
                     reste en paires libellé/valeur. Générique, quel que soit le
                     rapport. */}
-                  <ul className="flex flex-col divide-y divide-surface-border md:hidden">
+                  {/* Une carte, comme partout ailleurs sous `md` : sans elle les
+                      rangées flottaient à même le fond de page, la `Card` qui les
+                      entoure étant neutralisée par `max-md:border-0`. */}
+                  <ul className="flex flex-col divide-y divide-surface-border/60 overflow-hidden rounded-xl border border-surface-border/80 bg-surface-container-lowest shadow-sm md:hidden md:divide-surface-border md:rounded-none md:border-0 md:shadow-none">
                     {lignesAffichees.slice(0, MAX_LIGNES_APERCU_MOBILE).map((ligne, index) => {
                       const [premiere, ...reste] = rapport!.colonnes;
                       if (!premiere) return null;
                       return (
                         // eslint-disable-next-line react/no-array-index-key -- lignes de rapport sans identifiant propre
-                        <li key={index} className="px-1 py-3">
+                        <li key={index} className="px-3 py-3">
                           <p
                             className={cn(
-                              'text-body-md font-bold text-text-primary',
+                              'text-body-md font-medium text-text-primary',
                               premiere.numerique && 'font-mono',
                             )}
                           >
@@ -316,12 +322,12 @@ export default async function RapportsPage({
                                   key={colonne.cle}
                                   className="flex items-baseline justify-between gap-3"
                                 >
-                                  <dt className="shrink-0 text-[11px] uppercase tracking-wide text-on-surface-variant">
+                                  <dt className="min-w-0 shrink text-touch-meta text-text-secondary">
                                     {colonne.libelle}
                                   </dt>
                                   <dd
                                     className={cn(
-                                      'min-w-0 truncate text-right text-body-sm text-text-primary',
+                                      'min-w-0 break-words text-right text-body-sm text-text-primary',
                                       colonne.numerique && 'font-mono',
                                     )}
                                   >
@@ -348,12 +354,12 @@ export default async function RapportsPage({
                                 key={colonne.cle}
                                 className="flex items-baseline justify-between gap-3"
                               >
-                                <dt className="shrink-0 text-[11px] uppercase tracking-wide text-on-surface-variant">
+                                <dt className="min-w-0 shrink text-touch-meta text-text-secondary">
                                   {colonne.libelle}
                                 </dt>
                                 <dd
                                   className={cn(
-                                    'min-w-0 truncate text-right text-body-sm font-semibold text-text-primary',
+                                    'min-w-0 break-words text-right text-body-sm font-semibold text-text-primary',
                                     colonne.numerique && 'font-mono',
                                   )}
                                 >

@@ -93,12 +93,27 @@ export function BarreListe({
         className,
       )}
     >
-      <div className="flex items-center gap-2 md:gap-3">
+      {/*
+        Sous `md`, les actions de page passent sur leur propre rangée.
+
+        Elles partageaient la première avec la recherche et les filtres. Sur
+        `/rapports`, qui en porte trois — Excel, CSV, PDF —, le champ de recherche
+        se retrouvait écrasé à une dizaine de pixels et les boutons débordaient de
+        la carte : la barre ne remplissait plus aucune de ses deux fonctions.
+
+        `flex-wrap` plus `w-full` sur le groupe d'actions : elles tombent à la
+        ligne sous `md` et reviennent à droite de la rangée au-delà. La recherche
+        garde alors sa largeur fixe de bureau.
+      */}
+      <div className="flex flex-wrap items-center gap-2 md:gap-3">
         {placeholderRecherche && (
-          <RechercheListe placeholder={placeholderRecherche} className="md:w-80" />
+          <RechercheListe
+            placeholder={placeholderRecherche}
+            className="min-w-0 flex-1 md:w-80 md:flex-none"
+          />
         )}
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {(filtres.length > 0 || filtresLibres) && (
             <BoutonBarre
               onClick={() => setPanneauOuvert(true)}
@@ -109,8 +124,11 @@ export function BarreListe({
             />
           )}
           {tri && tri.length > 0 && <MenuTri options={tri} />}
-          {actions}
         </div>
+
+        {actions && (
+          <div className="flex w-full items-center gap-2 md:ml-auto md:w-auto">{actions}</div>
+        )}
       </div>
 
       {actifs.length > 0 && <PastillesFiltres actifs={actifs} />}

@@ -601,6 +601,31 @@ porte un aplat pleine largeur (sinon elle carre les coins bas), et un résumé q
 annonce **ce qu'il y a derrière** plutôt que de répéter un avancement déjà
 affiché juste au-dessus.
 
+**Les actions de page passent sur leur propre rangée sous `md`.** Elles
+partageaient la première avec la recherche et les filtres. Sur `/rapports`, qui
+en porte trois — Excel, CSV, PDF —, le champ de recherche se retrouvait écrasé à
+une dizaine de pixels et les boutons débordaient de la carte : la barre ne
+remplissait plus aucune de ses deux fonctions. `flex-wrap` sur la rangée et
+`w-full md:w-auto` sur le groupe d'actions suffisent — elles tombent à la ligne
+sur téléphone et reviennent à droite au-delà, la recherche gardant sa largeur
+fixe de bureau. Une page qui passe trois actions les fait remplir la largeur
+(`[&>*]:flex-1`) plutôt que les laisser flotter à gauche.
+
+**Un libellé de donnée n'est pas un en-tête de colonne.** Les lignes de rapport
+annonçaient « NOM », « PRÉNOMS », « DATE DE NAISSANCE » en capitales espacées à
+11px, et tronquaient la valeur en face — « Adjovi Mawuli (91785… ». Même faute
+que sur les étiquettes de formulaire, corrigée le 2026-09-04 : les capitales
+sont l'usage des `TableHead`, pas des paires libellé/valeur. Casse normale à
+12px, et la valeur passe à la ligne au lieu d'être coupée. Ce qui est coupé est
+perdu ; ce qui passe à la ligne coûte 20px.
+
+**Une bande de chiffres a deux densités, pas deux composants.** Trois montants à
+28px empilés prenaient 180px du premier écran du téléphone, avant la première
+facture. Sous `sm`, « Total dû » et « Encaissé » deviennent deux lignes de
+relevé — intitulé à gauche, montant à droite — et seul « Reste à recouvrer »
+garde sa taille : c'est le seul des trois sur lequel on agit. **L'ordre ne change
+pas d'un écran à l'autre**, seule la densité.
+
 ### Le poids se réserve à ce qui le mérite
 
 Chaque titre de rangée était en `font-bold`. Sur une liste, tout mettre en gras
