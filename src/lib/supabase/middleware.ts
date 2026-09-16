@@ -101,7 +101,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && pathname === '/login') {
+  // Une session encore présente renvoie vers le tableau de bord — sauf quand
+  // `/login` porte un motif. Sans cette exception, un utilisateur renvoyé ici
+  // *parce que* sa session est périmée serait immédiatement rebouclé vers
+  // `/dashboard`, et n'aurait aucun moyen de se reconnecter. C'est un
+  // deuxième garde-fou : l'effacement des cookies suffit en principe, mais
+  // une boucle de redirection est le pire qui puisse arriver à cet endroit.
+  if (user && pathname === '/login' && !request.nextUrl.searchParams.get('error')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -252,6 +258,43 @@ async function gardeAbonnement(
   // On ne mémorise rien dans le cookie de cache : la prochaine requête
   // retentera. Un verdict faux mis en cache durerait une minute.
   if (abonnementLu.error || etabLu.error) return RIEN;
+
+  // **Une session valide qui désigne un établissement disparu.**
+  //
+  // `etabLu.error` est nul et `etabLu.data` l'est aussi : la lecture a abouti
+  // et n'a trouvé personne. L'école n'existe plus, la session pointe dans le
+  // vide.
+  //
+  // Rien ne le signalait. `lireIdentiteVerifiee` s'appuie sur `getClaims()`,
+  // qui vérifie la signature du jeton **hors ligne** contre le JWKS : ni le
+  // compte supprimé, ni l'établissement effacé ne sont vus, et le jeton reste
+  // accepté jusqu'à son expiration — une heure. Pendant cette heure, les
+  // lectures rendaient des listes vides et les écritures tombaient en violation
+  // de clé étrangère (`23503`), donc en page d'erreur avec une référence qui
+  // n'explique rien. Constaté le 2026-09-16, sur téléphone, après la remise à
+  // zéro d'une école de test.
+  //
+  // Le piège se referme au-dessus : `/login` renvoie vers `/dashboard` tant
+  // qu'une session existe. L'utilisateur ne pouvait donc pas se reconnecter —
+  // la seule porte de sortie était celle que le middleware fermait.
+  //
+  // On préfère **effacer la session** plutôt que laisser passer : ici la
+  // dissymétrie s'inverse par rapport au repli plus haut. Laisser passer ne
+  // donne aucune requête de grâce, seulement une heure d'erreurs muettes.
+  if (etabLu.data === null) {
+    const destination = new URL('/login', request.url);
+    destination.searchParams.set('error', 'etablissement_introuvable');
+    const sortie = NextResponse.redirect(destination);
+    // Les cookies de session sont retirés sur la réponse de redirection
+    // elle-même : `signOut()` écrirait sur `response`, que l'on n'renvoie pas
+    // dans cette branche. Sans cela, la requête suivante reporterait le même
+    // jeton et l'on tournerait en rond.
+    for (const cookie of request.cookies.getAll()) {
+      if (cookie.name.startsWith('sb-')) sortie.cookies.delete(cookie.name);
+    }
+    sortie.cookies.delete(COOKIE_ACCES);
+    return { reponse: sortie, acces: null };
+  }
 
   const data = abonnementLu.data;
   const etab = etabLu.data;

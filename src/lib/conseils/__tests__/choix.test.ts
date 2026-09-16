@@ -175,6 +175,51 @@ describe('chronologie', () => {
   });
 });
 
+// ---------------------------------------------------- capacité des classes --
+
+describe('capacité des classes', () => {
+  it('se propose quand des classes n’ont pas de plafond', () => {
+    // `/demarrage` ne demande pas la capacité — on y crée douze classes
+    // d'affilée — et rien n'y ramenait ensuite. Sans ce conseil, le champ
+    // ajouté à la fiche de classe ne serait jamais trouvé.
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      classesAvecCapacite: { fait: 2, total: 12 },
+    };
+    const choix = choisirConseil(contexte({ diagnostic }));
+    expect(choix?.conseil.id).toBe('capacite-classes');
+    expect(choix?.texte).toContain('2 classes sur 12');
+  });
+
+  it('se tait dès que toutes les classes en ont une', () => {
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      classesAvecCapacite: { fait: 12, total: 12 },
+    };
+    expect(
+      choisirConseil(contexte({ diagnostic, historique: DECOUVERTES_VUES })),
+    ).toBeNull();
+  });
+
+  it('ne compte pas dans le socle de configuration', () => {
+    // Plafonner ses effectifs est un choix d'école, pas un réglage manquant.
+    // L'inscrire au socle rouvrirait « Configuration » dans la rangée
+    // d'Établissement d'une école parfaitement réglée.
+    expect(PAR_ID.get('capacite-classes')?.socle).toBeUndefined();
+  });
+
+  it('cède le pas à un vrai manque', () => {
+    // CONFORT, donc derrière la complétion : une grille hebdomadaire absente
+    // passe avant une capacité non renseignée.
+    const diagnostic: Diagnostic = {
+      ...ECOLE_INSTALLEE,
+      classesAvecCapacite: { fait: 0, total: 12 },
+      classesAvecEmploiDuTemps: { fait: 4, total: 12 },
+    };
+    expect(choisirConseil(contexte({ diagnostic }))?.conseil.id).toBe('emploi-du-temps-partiel');
+  });
+});
+
 // ------------------------------------------------------------ complétion --
 
 describe('complétion partielle', () => {

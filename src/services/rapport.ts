@@ -3,6 +3,7 @@ import { requireRole } from './authorization';
 import { getTenantContext, type Role } from './tenant';
 import { listSuiviPaiements, totauxSuivi } from './facture';
 import { listMesAffectations } from './affectation';
+import { trierClasses } from '@/lib/tri-classes';
 import {
   classement,
   moyenneClasse,
@@ -295,13 +296,23 @@ async function rapportEffectifs(
   const ctx = await getTenantContext();
   const supabase = createClient();
 
-  const { data: classes, error } = await supabase
+  // Le rapport d'effectifs suit l'ordre de la scolarité, comme les écrans :
+  // un export qui classerait la 1ère avant la 6ème serait relu de travers par
+  // l'école qui le reçoit.
+  const { data: classesBrutes, error } = await supabase
     .from('classe')
-    .select('id, nom, capacite, niveau:niveau(nom)')
+    .select('id, nom, capacite, niveau:niveau(nom, ordre, cycle:cycle(ordre))')
     .eq('etablissementId', ctx.etablissementId)
-    .eq('anneeScolaireId', parametres.anneeScolaireId)
-    .order('nom');
+    .eq('anneeScolaireId', parametres.anneeScolaireId);
   if (error) throw error;
+  const classes = trierClasses(
+    (classesBrutes ?? []) as unknown as {
+      id: string;
+      nom: string;
+      capacite: number | null;
+      niveau: { nom: string; ordre: number | null; cycle: { ordre: number | null } | null } | null;
+    }[],
+  );
 
   const { data: inscriptions } = await supabase
     .from('inscription')
@@ -401,7 +412,13 @@ async function rapportPaiements(
     })),
     totaux: {
       matricule: 'Totaux',
-      eleve: `${suivi.length} facture(s)`,
+      // Les factures annulées figurent dans les lignes mais sortent du total
+      // dû : l'écart entre les deux nombres doit se lire sur la ligne de
+      // totaux, sinon l'export ne s'additionne pas à la main.
+      eleve:
+        totaux.annulees > 0
+          ? `${suivi.length} facture(s), dont ${totaux.annulees} annulée(s) hors total`
+          : `${suivi.length} facture(s)`,
       du: totaux.montantTotal,
       paye: totaux.totalPaye,
       solde: totaux.solde,

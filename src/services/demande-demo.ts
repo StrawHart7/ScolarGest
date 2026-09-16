@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from './authorization';
 import { auditLog } from './audit';
+import type { OrigineDemande } from '@/lib/origine-demande';
+
+export type { OrigineDemande };
 
 /**
  * Demandes de démo issues du formulaire public de la page d'accueil.
@@ -32,11 +35,18 @@ export interface DemandeDemo {
   ville: string | null;
   message: string | null;
   statut: StatutDemande;
+  /**
+   * Offre depuis laquelle le formulaire a été ouvert (migration
+   * `20260916...origine_demande_demo`). Le vocabulaire vit dans
+   * `src/lib/origine-demande.ts`, sans dépendance, parce que la grille
+   * tarifaire et le formulaire sont des composants clients.
+   */
+  origine: OrigineDemande;
   createdAt: string;
 }
 
 const CHAMPS =
-  'id, "nomEtablissement", "nomContact", email, telephone, ville, message, statut, "createdAt"';
+  'id, "nomEtablissement", "nomContact", email, telephone, ville, message, statut, origine, "createdAt"';
 
 /**
  * Toutes les demandes, les plus récentes d'abord.

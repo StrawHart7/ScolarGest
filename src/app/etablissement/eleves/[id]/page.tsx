@@ -48,9 +48,18 @@ export default async function FicheElevePage({ params }: { params: { id: string 
               <Badge variant={eleve.statut === 'ACTIF' ? 'success' : 'neutral'} shape="pill">
                 {eleve.statut}
               </Badge>
-              {canWrite && !inscriptionActive && (
-                <Button asChild size="sm">
-                  <Link href={`/etablissement/eleves/${eleve.id}/inscription`}>Inscrire</Link>
+              {/*
+                Le bouton ne disparaît plus quand l'élève est inscrit : il
+                change de mot. « Inscrire » était caché dès qu'une inscription
+                active existait, et une erreur de classe n'avait alors aucune
+                sortie — annuler la faisait réapparaître, mais elle menait à
+                « Cet élève est déjà inscrit ». Constaté le 2026-09-15.
+              */}
+              {canWrite && (
+                <Button asChild size="sm" variant={inscriptionActive ? 'secondary' : 'primary'}>
+                  <Link href={`/etablissement/eleves/${eleve.id}/inscription`}>
+                    {inscriptionActive ? 'Changer de classe' : 'Inscrire'}
+                  </Link>
                 </Button>
               )}
               <Button asChild size="sm" variant="secondary">

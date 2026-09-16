@@ -4,6 +4,7 @@ import { getTenantContext } from '@/services/tenant';
 import { getEleve } from '@/services/eleve';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
+import { getInscriptionEleve } from '@/services/inscription';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,28 @@ export default async function InscriptionPage({ params }: { params: { id: string
     listAnneesScolaires(),
   ]);
   const anneeActive = annees.find((a) => a.statut === 'ACTIVE');
-  const classes = anneeActive ? await listClasses(anneeActive.id) : [];
+  const [classes, inscription] = anneeActive
+    ? await Promise.all([
+        listClasses(anneeActive.id),
+        getInscriptionEleve(params.id, anneeActive.id),
+      ])
+    : [[], null];
+
+  // Une ligne d'inscription existe-t-elle déjà pour l'année active, **quel que
+  // soit son statut** ? La contrainte `unique(eleveId, anneeScolaireId)` en
+  // interdit une seconde : cet écran ne peut alors pas inscrire, il ne peut que
+  // changer la classe de celle-là. C'est le mur que le testeur a rencontré le
+  // 2026-09-15 en annulant une inscription puis en cliquant « Inscrire ».
+  const changement = inscription
+    ? {
+        id: inscription.id,
+        classeId: inscription.classeId,
+        annulee: inscription.statut !== 'ACTIVE',
+      }
+    : null;
+  const classeActuelle = inscription
+    ? classes.find((c) => c.id === inscription.classeId)?.nom
+    : undefined;
 
   return (
     <AppLayout
@@ -34,10 +56,22 @@ export default async function InscriptionPage({ params }: { params: { id: string
         </LienRetour>
 
         <div>
-          <h1 className="text-display-sm text-text-primary">Inscription en classe</h1>
+          <h1 className="text-display-sm text-text-primary">
+            {changement ? 'Changer de classe' : 'Inscription en classe'}
+          </h1>
           <p className="text-body-sm text-text-secondary">
             {eleve.nom} {eleve.prenoms} — <span data-mono>{eleve.matricule}</span>
           </p>
+          {/* Dire d'où l'on part. Sans cela, le directeur doit se souvenir de
+              la classe qu'il croyait avoir saisie — et c'est précisément parce
+              qu'il s'en est méfié qu'il est ici. */}
+          {changement && (
+            <p className="mt-1 text-body-sm text-text-secondary">
+              {changement.annulee
+                ? `Inscription annulée${classeActuelle ? ` en ${classeActuelle}` : ''}. Choisissez la classe pour la réactiver.`
+                : `Actuellement en ${classeActuelle ?? 'classe inconnue'}.`}
+            </p>
+          )}
         </div>
 
         {/* Ni l'un ni l'autre n'est une erreur : le Directeur n'a rien cassé,
@@ -80,7 +114,12 @@ export default async function InscriptionPage({ params }: { params: { id: string
               <CardTitle>Année active : {anneeActive.libelle}</CardTitle>
             </CardHeader>
             <CardContent>
-              <InscriptionForm eleveId={eleve.id} anneeScolaireId={anneeActive.id} classes={classes} />
+              <InscriptionForm
+                eleveId={eleve.id}
+                anneeScolaireId={anneeActive.id}
+                classes={classes}
+                inscriptionExistante={changement}
+              />
             </CardContent>
           </Card>
         )}

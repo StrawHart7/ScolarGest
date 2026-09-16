@@ -15,20 +15,31 @@ interface LigneEditable {
   montant: string;
 }
 
+const fcfa = (montant: number) => `${Math.round(montant).toLocaleString('fr-FR')} FCFA`;
+
 /**
- * Ajustement des lignes avant tout encaissement (remises, frais spéciaux,
- * enfants du personnel — doc 08 §8). L'écran envoie la liste complète : le
- * remplacement intégral en une transaction évite les états intermédiaires où
- * le total ne correspondrait plus à la somme des lignes.
+ * Ajustement des lignes d'une facture (remises, frais spéciaux, enfants du
+ * personnel — doc 08 §8). L'écran envoie la liste complète : le remplacement
+ * intégral en une transaction évite les états intermédiaires où le total ne
+ * correspondrait plus à la somme des lignes.
+ *
+ * **L'écran reste ouvert après un encaissement** depuis le 2026-09-16 : une
+ * famille ajoute la cantine en janvier, le transport au deuxième trimestre. Il
+ * ne s'agit donc plus d'un ajustement « avant tout versement », et l'éditeur
+ * doit dire ce qui a déjà été payé — sans quoi on retire une ligne de 60 000 F
+ * sans voir que la famille l'a réglée.
  */
 export function LignesFactureEditor({
   factureId,
   lignesInitiales,
   typesFrais,
+  totalPaye,
 }: {
   factureId: string;
   lignesInitiales: { typeFraisId: string; designation: string; montant: number }[];
   typesFrais: { id: string; nom: string }[];
+  /** Somme déjà encaissée sur cette facture, versements annulés exclus. */
+  totalPaye: number;
 }) {
   const [lignes, setLignes] = useState<LigneEditable[]>(
     lignesInitiales.map((l) => ({
@@ -42,6 +53,10 @@ export function LignesFactureEditor({
   const [error, setError] = useState<string | null>(null);
 
   const total = lignes.reduce((somme, l) => somme + (Number(l.montant) || 0), 0);
+
+  // Averti pendant la saisie, avant d'enregistrer : le dire après coup
+  // laisserait l'école découvrir le trop-perçu une fois l'écriture faite.
+  const surplusPrevu = Math.max(totalPaye - total, 0);
 
   function majLigne(index: number, champ: keyof LigneEditable, valeur: string) {
     setLignes((prev) =>
@@ -67,6 +82,16 @@ export function LignesFactureEditor({
 
   return (
     <div className="space-y-4">
+      {totalPaye > 0 && (
+        // Un état, pas une faute : ajouter la cantine en janvier est le cours
+        // normal d'une année. D'où le ton neutre — `warning` est réservé à ce
+        // qui approche d'un problème, `error` à ce qui a échoué.
+        <p className="text-body-sm text-text-secondary">
+          {fcfa(totalPaye)} déjà encaissés sur cette facture. Modifier les lignes recalcule le
+          solde ; les versements ne bougent pas.
+        </p>
+      )}
+
       <div className="hidden md:block">
         <Table>
           <TableHeader>
@@ -208,6 +233,14 @@ export function LignesFactureEditor({
         </div>
       </div>
 
+      {surplusPrevu > 0 && (
+        <p className="text-body-sm text-warning">
+          Ce total passe sous les {fcfa(totalPaye)} déjà versés : la famille aura payé{' '}
+          {fcfa(surplusPrevu)} de trop. L&apos;enregistrement reste possible — le remboursement
+          est votre décision, la plateforme ne le fait pas à votre place.
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <Button
           size="sm"
@@ -235,6 +268,10 @@ export function LignesFactureEditor({
             setError(null);
             setMessage(null);
             startTransition(async () => {
+              // Une Server Action interrompue peut se résoudre sur `undefined`
+              // (CLAUDE.md § « Server Actions ») : sans ce repli, annoncer
+              // « enregistré » sur une coupure réseau serait un mensonge sur
+              // une écriture financière.
               const resultat = await enregistrerLignesAction(
                 factureId,
                 lignes.map((l) => ({
@@ -242,9 +279,23 @@ export function LignesFactureEditor({
                   designation: l.designation.trim(),
                   montant: Number(l.montant) || 0,
                 })),
+              ).catch(() => undefined);
+
+              if (!resultat) {
+                setError("L'enregistrement n'a pas abouti. Vérifiez votre connexion et réessayez.");
+                return;
+              }
+              if (resultat.error) {
+                setError(resultat.error);
+                return;
+              }
+              // Le surplus rendu par la base fait foi, pas celui calculé à
+              // l'écran : un versement encaissé entre-temps le changerait.
+              setMessage(
+                resultat.surplus && resultat.surplus > 0
+                  ? `Lignes enregistrées. Total ${fcfa(resultat.montantTotal ?? total)} — ${fcfa(resultat.surplus)} versés en trop.`
+                  : 'Lignes enregistrées.',
               );
-              if (resultat) setError(resultat);
-              else setMessage('Lignes enregistrées.');
             });
           }}
         >

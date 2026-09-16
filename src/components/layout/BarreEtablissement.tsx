@@ -1,4 +1,3 @@
-import { socleComplet } from '@/services/configuration';
 import { getSidebarItems } from '@/lib/navigation';
 import type { Role } from '@/services/tenant';
 import { BarreSection } from './BarreSection';
@@ -12,11 +11,29 @@ import { BarreSection } from './BarreSection';
  * un écran courant, et rend une rangée. C'est ce qui la rend identique sur
  * Finances et sur Notes.
  *
- * Établissement a une règle que les deux autres n'ont pas : **« Configuration »
- * s'efface quand il n'y a plus rien à configurer**. Mettre cette lecture dans
- * `BarreSection` la rendrait asynchrone pour toutes les sections, donc
- * coûteuse là où elle n'a rien à lire. Elle vit donc ici, dans une enveloppe
- * qui ne sert qu'à cette section.
+ * Établissement a une règle de rôle que les deux autres n'ont pas — voir le
+ * commentaire dans le corps. Elle vit ici, dans une enveloppe qui ne sert qu'à
+ * cette section.
+ *
+ * ## « Configuration » ne disparaît plus
+ *
+ * Elle s'effaçait de la rangée dès que les neuf réglages indispensables étaient
+ * faits. Décision de l'utilisateur, revue le 2026-09-16 : **elle y reste en
+ * permanence, comme les autres entrées.** Deux raisons, et la seconde est la
+ * vraie.
+ *
+ * Une entrée qui va et vient se cherche. On apprend une rangée par sa forme,
+ * et une forme qui change selon un état invisible oblige à relire à chaque
+ * visite.
+ *
+ * Surtout, l'écran devient autre chose une fois tout réglé : la page où l'on
+ * apprend ce que la plateforme sait faire de neuf. Cacher le seul chemin qui y
+ * mène le jour où il n'y a plus rien à régler, c'est le fermer précisément
+ * quand il commence à servir.
+ *
+ * Bénéfice de bord : `socleComplet()` disparaît avec l'exclusion, et avec elle
+ * un diagnostic d'une quinzaine de comptages payé à l'ouverture de **chacun**
+ * des huit écrans de la section.
  *
  * ## Ce qu'elle remplace
  *
@@ -31,15 +48,8 @@ import { BarreSection } from './BarreSection';
  * y a d'autre, et — tant que la configuration n'est pas finie — qu'il reste
  * quelque chose à régler.
  *
- * ## Le coût, et ce qu'il deviendra
- *
- * `socleComplet()` délègue à `etatSocle()`, mémoïsé par requête : une page qui
- * lit déjà le socle ne paie rien de plus, les autres paient un diagnostic. Ces
- * sondes sont des comptages parallèles — leur lenteur actuelle vient des
- * politiques RLS qui réévaluent `is_super_admin()` ligne à ligne, pas de leur
- * nombre. Voir le compte rendu du 2026-09-15.
  */
-export async function BarreEtablissement({
+export function BarreEtablissement({
   role,
   actif,
 }: {
@@ -60,20 +70,8 @@ export async function BarreEtablissement({
   // écrite ici : le jour où un rôle gagne ou perd la section, la rangée suit
   // toute seule.
   //
-  // Il est posé **avant** l'appel : `socleComplet()` est un diagnostic d'une
-  // quinzaine de comptages, et le Comptable n'a aucune raison de le payer pour
-  // un composant qui ne rendra rien.
   const aLaSection = getSidebarItems(role).some((item) => item.href === '/etablissement');
   if (!aLaSection) return null;
 
-  const complet = await socleComplet();
-
-  return (
-    <BarreSection
-      chemin="/etablissement"
-      role={role}
-      actif={actif}
-      exclure={complet ? ['/etablissement/configuration'] : []}
-    />
-  );
+  return <BarreSection chemin="/etablissement" role={role} actif={actif} />;
 }

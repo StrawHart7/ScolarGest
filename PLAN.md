@@ -692,6 +692,111 @@ réécrites dans ce format.
 
 ---
 
+---
+
+### Fonctionnalité — Parler au directeur : section Établissement, régime par cycle, et le jour où la RLS a lâché
+
+**Statut** : ✅ Terminée et fusionnée sur `main` (2026-09-16) après validation de
+la preview par l'utilisateur — branche `feat/soko-parler-au-directeur`, 37
+commits. Six migrations, **toutes appliquées** : `20260914122558`,
+`20260915160508`, `20260915192131`, `20260915211046`, `20260916063052`,
+`20260916065141`.
+
+**Objectif** : traiter le retour du testeur sur le parcours complet
+d'onboarding — vocabulaire, navigation, et les pannes rencontrées en chemin.
+
+**Livrables** :
+
+- [x] **Champ absent d'un formulaire** — `formData.get` rend `null` et non
+      `undefined` : `z.string().optional()` refusait toute création de tarif sur
+      un frais existant. `.nullish()`. Dix-neuf cas latents ailleurs, signalés
+      et volontairement non corrigés (leur champ est toujours rendu).
+- [x] **Frontière client/serveur** — `AbonnementBanner` (serveur) important une
+      **valeur** depuis un module `'use client'` faisait tomber toutes les pages
+      montant `AppLayout`. Vocabulaire descendu dans `lib/bandeau-abonnement.ts`,
+      et `frontiere-client-serveur.test.ts` rend la faute impossible.
+- [x] **Reprise réseau et erreurs muettes** (`lib/supabase/reprise-reseau.ts`) —
+      « Référence 5381 » n'identifiait rien : c'est le hachage de la chaîne
+      vide. Les réponses PostgREST en erreur au corps vide reçoivent désormais un
+      message et un code `SG_HTTP_*`, et les lectures transitoires sont rejouées.
+      Douze tests, falsifiés un à un.
+- [x] **Politiques RLS hissées et allégées** (migration `20260915192131`,
+      **appliquée**) — `is_super_admin()` réévalué sur 28 132 lignes, et les
+      politiques d'écriture jouées sur les lectures. **23 329 ms → 196 ms** sur
+      la requête qui faisait tomber `/dashboard`. Visibilité vérifiée identique
+      sur les douze tables, `select ... for update` vérifié, sonde de séparation
+      des rôles au vert (6 refus sur 6).
+- [x] **Section Établissement sur le modèle de Finances** — `BarreSection`
+      montée sur les huit écrans de la section, Classes en page d'entrée, sept
+      « Retour à la configuration » remplacés, et « Configuration » qui quitte la
+      rangée dès que les neuf réglages indispensables sont faits.
+- [x] **Écran de configuration** — l'écran de félicitations rejoué à chaque
+      ouverture est remplacé par une carte de progression.
+- [x] **Régime de périodes par cycle** — le collège est au trimestre, toujours ;
+      le lycée choisit. `etablissement."regimePeriodes"` décrit désormais le
+      lycée seul, **sans migration**. La période se nomme d'après le cycle de la
+      classe : saisie, moyennes, bulletins, files d'approbation, PDF.
+      `getRegimePeriodes()` supprimée — son nom mentait.
+- [x] **Changer un élève de classe** (migration `20260915211046`, **appliquée**)
+      — `unique(eleveId, anneeScolaireId)` plus un `fn_inscrire_eleve` aveugle au
+      statut enfermaient toute école qui s'était trompée de classe.
+      `fn_changer_classe_inscription` change la classe, réactive une inscription
+      annulée, annule l'ancienne facture, en émet une nouvelle aux tarifs de la
+      classe d'arrivée et y reporte les versements.
+- [x] **Une facture annulée ne se réclame plus** (2026-09-16, sans migration) —
+      elle comptait dans le total dû **et** dans le reste à recouvrer :
+      347 000 F annoncés pour 169 000 réellement attendus. `calculerSolde` ne
+      reçoit pas le statut ; `soldeDuAvecStatut` le lui donne et `totauxSuivi`
+      écarte ces lignes. Trois écrans corrigés d'un coup — la bande de totaux,
+      la fiche de classe, et l'état des paiements de `/rapports`. Les versements
+      restent dans l'encaissé : l'argent a bien été reçu.
+- [x] **Capacité d'une classe, après coup** (2026-09-16, sans migration) — il
+      n'existait aucune écriture sur `classe` hors `createClasse`, et
+      `/demarrage` ne demande pas la capacité : une classe née du parcours guidé
+      ne pouvait plus jamais en recevoir. `definirCapaciteClasse` ne touche que
+      cette colonne, et le conseil `capacite-classes` la fait connaître — hors
+      socle, parce que plafonner est un choix d'école et non un réglage
+      manquant.
+- [x] **La taille moyenne d'une classe, demandée à l'onboarding** (2026-09-16,
+      sans migration) — une question en bas de l'étape « Classes », appliquée à
+      tout le lot. La plomberie existait déjà : `creerClassesAction` acceptait
+      `capacite` par classe, l'écran ne l'envoyait jamais.
+- [x] **Lignes de facture rouvertes après un versement** (migration
+      `20260916063052`, **appliquée**) — la cantine se décide en janvier, le
+      transport au deuxième trimestre. Seule une facture annulée garde ses
+      lignes figées. Baisser le total sous ce qui a été versé reste possible, et
+      le `surplus` est annoncé plutôt que tu.
+- [x] **L'offre d'où vient un prospect** (migration `20260916065141`,
+      **appliquée**) — les six boutons menant au formulaire public produisaient
+      la même demande indistincte. L'adresse porte le choix
+      (`/?offre=fondateur#demo`), le SUPER_ADMIN le lit en tête de carte, et les
+      demandes fondatrices sans réponse sont comptées à part. Déclaré par le
+      navigateur : indication commerciale, jamais une preuve.
+
+**Décisions de l'utilisateur, tranchées en séance** :
+- Le régime semestriel est **propre au lycée** ; le collège est trimestriel sans
+  exception. Cela remplace la règle « aucun mélange » posée la veille, qui ne
+  pouvait pas coexister avec celle-ci.
+- Lors d'un changement de classe, **les versements suivent l'élève** sur la
+  nouvelle facture, plutôt que de bloquer le changement ou de les laisser sur la
+  facture annulée.
+- Les deux migrations ont été appliquées sur la base réelle avec son aval
+  explicite.
+
+**Reste ouvert** :
+- Les reçus déjà édités mentionnent une facture annulée après un changement de
+  classe. Non traité : un reçu prouve un versement reçu, ce qui reste vrai.
+- `/abonnement` et `/rapports` sont des blocs de la section Établissement mais
+  ne portent pas la rangée — la question « ce que le COMPTABLE doit y voir » est
+  ouverte.
+- Six points de finition transmis à VERNI (`messages-agents/VERNI.md`), dont la
+  rangée d'Établissement qui porte dix entrées là où `BarreSection` en visait
+  cinq.
+
+**DoD** : lint, typecheck et 584 tests verts ; instantané de la matrice
+régénéré et relu à chaque changement de garde ; les deux migrations appliquées
+et mesurées ; rien sur `main`.
+
 ### Fonctionnalité — Peaufinage responsive (mobile actuel + desktop)
 
 **Statut** : Terminée (2026-08-22)
@@ -3787,12 +3892,199 @@ Deux règles en sortent :
 
 ---
 
+### Fonctionnalité — Annonces de la Régie : la présentation côté école
+
+**Statut** : ✅ livrée le 2026-09-13, branche `VERNI`, **fusionnée sur `main` le
+2026-09-16**. Aucune migration, aucun service touché. Le dos (table `annonce_lue`, service, action,
+KPI) est de SOKO, voir l'entrée « Régie » correspondante.
+
+**Objectif** — SOKO avait branché l'affichage au plus simple, en recopiant la
+forme d'`AbonnementBanner` : une rangée dans le flux, au-dessus du contenu.
+C'est la place des messages qu'on subit une fois — on les lit, on descend, et
+la page suivante les efface de l'attention même lorsqu'ils sont toujours là.
+
+Une annonce de plateforme n'a pas ce rythme. « Les épreuves du BAC commencent
+lundi » doit rester sous les yeux les quatre jours qui précèdent, sans jamais
+se mettre en travers du travail.
+
+#### Où elle vit
+
+- **À partir de `md`** : une carte dans la barre latérale, entre la navigation
+  et le pied. Pas dans la navigation, qui défile — le Directeur a onze entrées
+  et l'annonce sortirait de l'écran. Pas dans le pied non plus, qui porte
+  Paramètres, Aide et Support : glisser un message de la plateforme au milieu
+  de trois destinations permanentes ferait prendre l'un pour l'autre.
+- **Sous `md`** : il n'y a pas de barre latérale, la barre basse d'onglets la
+  remplace. Le bandeau dans le flux reste le seul rendu du téléphone, et c'est
+  lui qui porte `data-bandeau` — le poser aussi sur la carte latérale ferait
+  taire la bannière de conseil au profit d'une annonce que le téléphone ne
+  montre jamais, la garde de `PanneauConseil` ne valant que sous 768px.
+- **Rail replié (72px)** : l'annonce se réduit à sa pastille, qui ouvre le même
+  lecteur. Un repli d'interface décidé par l'utilisateur ne doit pas lui faire
+  perdre une information que la plateforme a décidé d'envoyer.
+
+`Sidebar` est un composant client : les annonces lui arrivent en **créneau**
+(`annonces={<AnnoncesSidebar />}`), rendues au serveur. Passer les données en
+props depuis chaque page aurait touché une quarantaine de fichiers, et la
+première page oubliée aurait perdu ses annonces sans que rien ne le signale.
+Les deux points d'affichage partagent une lecture mémoïsée par requête
+(`annonces-du-rendu.ts`, `cache()` de React) — sans quoi la même information
+coûtait deux requêtes sur chaque page de l'application.
+
+#### Le défaut le plus instructif : une surface cliquable sous condition
+
+La première version ne rendait la carte cliquable **que si** la troncature avait
+réellement eu lieu, mesurée au pixel (`scrollHeight` contre `clientHeight`)
+après le chargement des polices. L'intention était de ne pas proposer d'ouvrir
+ce qui est déjà lisible.
+
+Résultat en preview : sur une annonce longue **seule**, aucun bouton, aucun
+clic, et un message visiblement coupé que l'école ne pouvait pas lire. Le cas à
+deux annonces fonctionnait — la rangée, elle, a toujours été cliquable — si bien
+que le même contenu s'ouvrait ou non selon qu'une autre annonce existait à côté.
+
+**La leçon dépasse le bug.** Un utilisateur ne peut pas savoir si son clic ne
+fait rien parce qu'il n'y a rien de plus, ou parce que l'application est cassée.
+Ouvrir un message déjà entièrement lu coûte un geste ; en rendre un inaccessible
+coûte l'information. La mesure a été retirée, et avec elle toute une classe de
+pannes silencieuses — mesurer une hauteur clampée dépend de la police chargée,
+du moment du montage et du navigateur.
+
+#### Hiérarchie : la deuxième annonce est une rangée
+
+Mesuré sur maquette compilée avec les tokens du produit, **deux cartes pleines**
+faisaient 349px dans une barre latérale de 760px et **397px avant le contenu sur
+un écran de 844px, soit 47 %** une fois ajoutés l'en-tête et le bandeau
+d'abonnement. La page commençait sous la ligne de flottaison.
+
+La première annonce garde sa carte, la suivante devient une rangée d'une ligne
+qui ouvre le même lecteur : 235px et 261px. Deux cartes de même poids ne se
+lisent d'ailleurs pas deux fois — elles se concurrencent, et aucune n'est lue.
+
+**Conséquence pour le service** : l'ordre décide désormais laquelle est mise en
+avant. SOKO est passé de `debuteLe` décroissant à **`finitLe` croissant — la
+plus périssable d'abord**, sans hiérarchie entre les types : une maintenance a
+une fenêtre courte par nature, elle gagne toute seule.
+
+#### Le style est celui du panneau de conseil
+
+Même dégradé, même texte blanc, même pastille d'icône en `bg-white/15`, même
+pied séparé par un filet `border-white/15`, même action inversée en blanc — le
+bouton primaire du système est bleu, il disparaîtrait sur ce fond.
+
+Une première version en **encre** distinguait bien l'annonce de la page, mais
+introduisait une seconde manière de dire « la plateforme s'adresse à vous » là
+où le produit en avait déjà une. Le conseil propose quelque chose à faire,
+l'annonce informe de quelque chose qui arrive : la distinction se lit dans
+l'icône et l'étiquette, pas dans un habillage séparé.
+
+`MAINTENANCE` garde son propre fond, `warning-on-container` : un ambré foncé qui
+porte le blanc à 6:1 là où l'ambre clair ne le porterait pas. Ce n'est pas
+`error` — une interruption annoncée n'est la faute de personne.
+
+#### « Marquer comme lu », en pied de lecteur
+
+Décision de l'utilisateur du 2026-09-13, qui **ne défait pas** la contrainte
+« pas de bouton pour fermer » : elle la précise. La carte de la barre latérale
+ne se ferme toujours pas — c'est ce qui donne à une annonce sa durée. Ce qui
+change, c'est qu'il faut avoir **ouvert** pour pouvoir écarter. Refuser ce geste
+à quelqu'un qui vient de tout lire transforme l'information en décor, et on
+apprend vite à sauter le décor.
+
+Le libellé est « Marquer comme lu » et non « Ne plus afficher » : le second est
+ambigu sur sa portée — cette annonce, ou toutes ? La conséquence est dite à
+côté, et elle règle la seule question que le bouton pose vraiment : « Elle
+disparaîtra pour vous seulement. »
+
+Le lecteur **reste ouvert pendant l'écriture**, bouton en attente. Le fermer
+tout de suite laisserait la carte à l'écran le temps de la revalidation du
+layout, et ce clignotement se lit comme un geste qui n'a pas pris.
+
+#### Trois mesures qui ont changé le dessin
+
+| constat | avant | après |
+|---|---|---|
+| deux annonces, barre latérale de 760px | 349px | 235px |
+| deux annonces, téléphone 390×844 | 397px (47 %) | 243px (38 %) |
+| pied du lecteur, phrase de conséquence | 83px, bouton à la ligne | 57px, une ligne |
+
+Et un défaut d'alignement que seule la mesure a montré : sur téléphone, la
+phrase et le bouton ne tiennent pas sur la même ligne, et `justify-between`
+renvoyait alors le bouton à **gauche** de la seconde ligne. Le pied garde
+`justify-end`, la phrase est poussée par `mr-auto`.
+
+**Fichiers** : `src/components/layout/CarteAnnonce.tsx` (nouveau, client),
+`AnnoncesSidebar.tsx` (nouveau, serveur), `annonces-du-rendu.ts` (nouveau,
+lecture mémoïsée), `BandeauAnnonce.tsx` (réécrit), `Sidebar.tsx` (créneau),
+`AppLayout.tsx` (branchement).
+
+---
+
+### Fonctionnalité — Compteurs du tableau de bord : rendre sa place à l'intitulé
+
+**Statut** : ✅ livrée le 2026-09-13, branche `VERNI`, **poussée et non
+fusionnée**. Un seul fichier, `src/components/ui/carte-metrique.tsx`. Concerne
+`dashboard` (les cinq rôles), `statistiques` et `super-admin`.
+
+**Le signalement** — « Je pense que tu as modifié la taille de police. En 100 %
+du navigateur, il y a beaucoup d'informations qui sont coupées. Je suis obligé
+de dézoomer pour voir le potentiel du design. »
+
+**Ce qui n'avait pas changé** : l'échelle de base. `body-md` vaut 14px et
+`body-sm` 13px depuis le commit initial, vérifié par `git log -S`. Et les
+en-têtes de tableau, passés au même token que les cartes, ne gagnent que
+**1px** — les listes n'étaient pas concernées. Le tableau de bord est la page
+d'atterrissage de tous les rôles, d'où l'impression que c'était partout.
+
+**Ce qui avait changé** : `c05dcc5` avait passé l'intitulé de `text-body-sm`
+(13px, casse normale) à `text-console-eyebrow uppercase` (11px, interlettre
+0,09em). Le corps est plus petit, l'étiquette est plus large — des capitales
+espacées coûtent de **17 à 25 %** de largeur en plus pour la même information.
+
+**Et ce que la seule casse normale ne réglait pas.** Mesure faite avant
+d'écrire la correction, sur le cadre réel — 1280px CSS, soit 1920 physiques à
+150 %, le réglage par défaut de beaucoup de portables :
+
+```
+budget de l'intitule, ancienne disposition : 121px
+« ENCAISSE CETTE ANNEE » capitales         : 154px -> deux lignes
+« Encaissé cette année » casse normale     : 132px -> deux lignes quand meme
+hauteur de la rangee                       : 159px -> 159px (zero gagne)
+```
+
+Le reste du budget était pris par le bloc posé **à droite** de l'intitulé : une
+flèche décorative de 16px, sa gouttière de 8, la pastille de 32 et la gouttière
+de 12. L'intitulé vivait dans 121px sur une carte de 231.
+
+**La correction est une disposition, pas une typographie.** La pastille passe à
+gauche, l'intitulé à sa droite, rien d'autre sur la ligne : budget 132px, les
+quatre intitulés tiennent sur une ligne, **à hauteur de rangée identique**.
+
+La flèche `ArrowUpRight` disparaît — ce sont ses 24px qui manquaient. Ce qu'elle
+disait est déjà dit par le soulèvement au survol, la bordure qui se teinte et
+l'anneau de focus ; elle avait d'ailleurs déjà coûté un défaut consigné dans le
+fichier.
+
+**La règle qui en sort** : `DESIGN.md` réserve `label-md uppercase` aux
+**en-têtes de colonnes**. C'est la même règle que celle déjà écrite pour les
+étiquettes de formulaire, et elle vaut ici pour la même raison — une étiquette
+qui crie prend la place de ce qu'elle annonce. Le cartouche en capitales reste
+où il est à sa place : `bandeau-console` et `entete-section`, où les libellés
+sont courts.
+
+**Méthode** : le défaut a été trouvé par l'utilisateur sur **son** cadre, pas
+sur le mien. J'avais jugé ce travail sur des captures prises à une largeur
+confortable, sans jamais poser 1280px comme cadre de référence. Toute mise en
+page de bureau se vérifie désormais à 1280px CSS d'abord.
+
+---
+
 ### Fonctionnalité — La rangée de section, et les dix entrées d'Établissement
 
 **Statut** : ✅ livrée le 2026-09-15, branche `design/verni-section-etablissement`
-(partie de `feat/soko-parler-au-directeur`, dont elle dépend), **poussée et non
-fusionnée** — en attente du verdict de preview de l'utilisateur. Agent VERNI.
-Aucune migration, aucun service, aucune garde `requireRole`.
+(partie de `feat/soko-parler-au-directeur`, dont elle dépend), **fusionnée sur
+`main` le 2026-09-16**. Agent VERNI. Aucune migration, aucun service, aucune
+garde `requireRole`.
 
 **Objectif** — SOKO venait de remplacer les pages d'aiguillage d'Établissement,
 de Finances et de Notes par `BarreSection`, une rangée d'écrans posée en tête de

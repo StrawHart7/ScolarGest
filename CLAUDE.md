@@ -312,20 +312,49 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
-**Active branches** (2026-09-15) :
-- `design/verni-section-etablissement` — **poussée, non fusionnée**
-  (2026-09-15), agent VERNI : la rangée de section, reprise pour les dix
-  entrées d'Établissement. Puces à 32px sur bureau, repli nommé sous `md` où
-  l'écran courant se trouvait 586px hors champ, rangée posée sur `/abonnement`
-  et `/rapports` mais **seulement pour les rôles qui ont la section**, section
-  « Indispensable » repliée une fois les neuf réglages faits. Aucune migration,
-  aucun service. **Partie de `feat/soko-parler-au-directeur`, dont elle
-  dépend** : une preview issue de `main` ne montre aucun de ces écrans. En
-  attente du verdict de preview de l'utilisateur. Voir `PLAN.md` § 8 et la
-  section « La rangée de section » de ce fichier.
-- `feat/soko-parler-au-directeur` — **poussée, non fusionnée** (2026-09-15),
-  agent SOKO : Établissement bâti sur le modèle de Finances, découpage de
-  l'année rendu au lycée, le collège au trimestre.
+**Active branches** (2026-09-16) :
+- `feat/soko-session-perimee` — ✅ terminée et fusionnée sur `main`
+  (2026-09-16), agent SOKO : une session dont l'établissement a disparu est
+  désormais fermée au lieu de tourner une heure en erreurs muettes, et
+  `expirerAbonnementsEchus` passe par la clé de service — la console des
+  abonnements tombait en page d'erreur à chaque ouverture depuis le
+  2026-09-11. Aucune migration. Voir les deux dernières sections de ce fichier.
+- `feat/soko-parler-au-directeur` — ✅ terminée et fusionnée sur `main`
+  (2026-09-16), agent SOKO, 37 commits. Le retour du testeur sur le parcours
+  complet, traité de bout en bout : section Établissement bâtie sur le modèle de
+  Finances, régime de périodes rendu au lycée, inscription qui se change au lieu
+  de se recréer, capacité des classes rouverte et demandée à l'onboarding,
+  lignes de facture modifiables après un versement, facture annulée qui cesse
+  d'être réclamée, origine commerciale d'un prospect. Plus deux pannes
+  diagnostiquées en production — les erreurs muettes de PostgREST
+  (« Référence 5381 ») et la RLS payée ligne par ligne, **23,3 s → 196 ms**.
+  Migrations `20260915160508`, `20260915192131`, `20260915211046`,
+  `20260916063052` et `20260916065141`, **toutes appliquées**. Voir `PLAN.md`
+  § 8 et les huit sections de doctrine ajoutées à la fin de ce fichier.
+
+- `SOKO` — ✅ fusionnée sur `main` (2026-09-16) : le drapeau
+  `referentiel_national` est enfin lu par le produit. L'interrupteur existait
+  des deux côtés de la base et ne commandait rien — couper depuis la Régie
+  écrivait au journal et ne changeait rien chez les écoles. Aucune migration.
+- `VERNI` — ✅ fusionnée sur `main` (2026-09-16), agent VERNI : les annonces de
+  la Régie passent dans la barre latérale, s'ouvrent toutes en lecteur plein
+  texte, et se marquent lues en pied de modale. Plus les compteurs des tableaux
+  de bord, dont l'intitulé récupère la place que le cartouche en capitales lui
+  prenait. Aucune migration, aucun service touché.
+
+  C'est la branche **permanente** de VERNI depuis le 2026-09-13 : elle n'est pas
+  supprimée après fusion, on y rapatrie `main` régulièrement, et on n'écrit
+  jamais sur `main` depuis elle.
+- `design/verni-section-etablissement` — ✅ fusionnée sur `main` (2026-09-16),
+  agent VERNI : la rangée de section reprise pour les **dix** entrées
+  d'Établissement — puces à 32px sur bureau, repli nommé sous `md` où l'écran
+  courant se trouvait **586px hors champ**, rangée posée sur `/abonnement` et
+  `/rapports` mais seulement pour les rôles qui ont la section, et section
+  « Indispensable » repliée une fois les neuf réglages faits. Plus les écrans
+  d'import ramenés à leur zone de dépôt, l'aperçu de ce qui sera imprimé sur
+  l'écran qui le décide, et la ligne entière rendue cliquable sur les neuf
+  listes qui mènent quelque part. Aucune migration, aucun service. Voir
+  `PLAN.md` § 8 et la section « La rangée de section » de ce fichier.
 
 **Active branches** (2026-09-14) :
 - `feat/soko-directeur-complet` + `feat/soko-prise-en-main` +
@@ -336,11 +365,6 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
   donne son modèle au lieu de décrire son gabarit. Migration `20260914122558`,
   **appliquée**. Voir `PLAN.md` § 8 et les sections « Le Directeur peut tout
   faire », « Le verrou de domaine » et « L'import » de ce fichier.
-- `SOKO` (2026-09-13) — **poussée, non fusionnée** : le drapeau
-  `referentiel_national` est enfin lu par le produit. L'interrupteur existait
-  des deux côtés de la base et ne commandait rien — couper depuis la Régie
-  écrivait au journal et ne changeait rien chez les écoles. Aucune migration.
-  **En attente de l'aval de l'utilisateur.**
 
 **Active branches** (2026-09-13) :
 - `SOKO` — ✅ fusionnée sur `main` tout au long du 2026-09-13, agent SOKO. La
@@ -349,12 +373,11 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
   national, index `note_a_traiter`, `annonce_lue`, et quatre défauts silencieux
   corrigés (voir `PLAN.md`). Migrations `20260913011738` à `20260913150152`,
   **toutes appliquées**.
-- `VERNI` — **poussée, non fusionnée** (2026-09-13), agent VERNI : l'annonce
-  passe dans un cadre de la barre latérale à partir de `md`, le bandeau du flux
-  reste sur téléphone, et la seconde annonce devient une rangée d'une ligne pour
-  ne pas manger la moitié de l'écran. Aucune migration. **En attente de l'aval
-  de l'utilisateur**, et il lui reste à poser le bouton « ne plus afficher » au
-  bas du lecteur (l'action `marquerAnnonceLueAction` l'attend).
+- `VERNI` (2026-09-13) — l'annonce passe dans un cadre de la barre latérale à
+  partir de `md`, le bandeau du flux reste sur téléphone, et la seconde annonce
+  devient une rangée d'une ligne pour ne pas manger la moitié de l'écran. Suite
+  et fusion au 2026-09-16, voir plus haut.
+
 **Active branches** (2026-09-12) :
 - `docs/soko-cadre-reglementaire` — ✅ terminée et mergée sur `main`
   (2026-09-12), agent SOKO : le référentiel national fait autorité — matières,
@@ -3257,6 +3280,84 @@ avait presque le poids visuel de la valeur qu'il annonce — et coûte 16px de
 hauteur par champ. `Label` est donc en casse normale (`touch-label`). Les
 en-têtes de tableau gardent `label-md uppercase`, qui est leur usage d'origine.
 
+**La règle a été enfreinte une seconde fois, sur les compteurs.** Les cartes de
+`CarteMetrique` sont passées à `console-eyebrow uppercase` (11px, interlettre
+0,09em) pour donner aux tableaux de bord l'allure de la console. Le corps est
+plus petit et l'étiquette pourtant **plus large de 17 à 25 %** : des capitales
+espacées coûtent plus qu'elles n'économisent. « ENCAISSÉ CETTE ANNÉE » demandait
+154px pour 121 disponibles, cassait sur deux lignes, et la rangée poussait la
+page hors de l'écran.
+
+Le cartouche en capitales n'est légitime que là où le libellé est **court et
+connu d'avance** : `bandeau-console`, `entete-section`, les en-têtes de colonnes.
+Un intitulé venu d'une page ne l'est jamais.
+
+### Le cadre de référence du bureau est 1280px CSS
+
+Pas 1440, pas 1600. **1920 physiques à 150 % d'agrandissement Windows font
+1280px CSS**, et c'est le réglage par défaut de beaucoup de portables — celui de
+la machine de l'utilisateur. Moins la barre latérale de 260px et les gouttières
+de contenu, il reste **972px**, soit quatre pistes de 231px dans une grille
+`xl:grid-cols-4`.
+
+Deux défauts livrés en septembre 2026 viennent tous deux d'avoir jugé une mise
+en page sur une capture prise à une largeur confortable :
+
+- le tableau de suivi des paiements, qui débordait de 39px une fois « (FCFA) »
+  ajouté aux trois en-têtes numériques ;
+- les intitulés des compteurs, qui cassaient sur deux lignes.
+
+Les deux ont été trouvés par l'utilisateur, sur son écran. Aucun n'apparaissait
+en relisant le code. **Toute mise en page de bureau se mesure à 1280px d'abord**,
+et le point d'arrêt ne connaît pas la barre latérale : `xl:` se déclenche à 1280
+de *viewport* alors que le contenu n'en fait que 972.
+
+### Une surface cliquable sous condition ne s'apprend pas
+
+`CarteAnnonce` n'ouvrait son lecteur que si la troncature du texte avait
+réellement eu lieu, mesurée au pixel (`scrollHeight` contre `clientHeight`)
+après le chargement des polices. L'intention était juste — ne pas proposer
+d'ouvrir ce qui est déjà lisible — et le résultat était un message manifestement
+coupé que l'école ne pouvait pas lire.
+
+Le pire n'est pas la panne, c'est qu'elle est **muette** : personne ne peut
+savoir si un clic sans effet signifie « il n'y a rien de plus » ou « c'est
+cassé ». Et la condition variait avec le contexte — la même annonce s'ouvrait ou
+non selon qu'une seconde existait à côté d'elle.
+
+Ouvrir un message déjà entièrement lu coûte un geste ; en rendre un inaccessible
+coûte l'information. **Une affordance se décide à l'écriture, jamais d'après une
+mesure du rendu** : une hauteur clampée dépend de la police chargée, du moment
+du montage et du navigateur.
+
+### Annonces : la plateforme parle dans la barre latérale
+
+Une annonce de la Régie vit dans la barre latérale à partir de `md`
+(`AnnoncesSidebar`, passée en créneau à `Sidebar`), et dans le flux sous `md`
+(`BandeauAnnonce`), où il n'y a pas de barre latérale. Ce n'est pas une
+duplication : ce sont deux endroits pour deux formes d'écran, nourris par une
+lecture mémoïsée par requête (`annonces-du-rendu.ts`).
+
+Quatre points à ne pas défaire :
+
+- **`data-bandeau` reste sur le seul rendu du téléphone.** La garde de
+  `PanneauConseil` ne vaut que sous 768px et `querySelector` ignore
+  `display:none` : marquer la carte latérale ferait taire la bannière de conseil
+  au profit d'une annonce que le téléphone ne montre jamais.
+- **La carte ne se ferme pas, le lecteur si.** « Marquer comme lu » vit au bas
+  de la modale, jamais sur la carte : il faut avoir ouvert pour pouvoir écarter.
+  Le geste est **par personne** — un collègue qui écarte ne fait pas disparaître
+  l'annonce pour les autres, et le compteur d'écoles de la Régie se déduit des
+  personnes alors que l'inverse ne se rattrape pas.
+- **La deuxième annonce est une rangée, pas une seconde carte.** Deux cartes
+  pleines faisaient 47 % d'un écran de 844px avant le contenu. Deux objets de
+  même poids se concurrencent, et aucun n'est lu.
+- **L'habillage est celui du panneau de conseil**, dégradé compris. Une seconde
+  manière de dire « la plateforme s'adresse à vous » en aurait fait deux objets
+  pour une intention. Le conseil propose quelque chose à faire, l'annonce
+  informe de quelque chose qui arrive : la distinction se lit dans l'icône et
+  l'étiquette.
+
 ### L'action d'un formulaire se double, elle ne se déplace pas
 
 `BarreAction` reprend l'action principale et la colle en bas sous `md`. Le bouton
@@ -3353,3 +3454,374 @@ Sur desktop le hook est inactif (keyboardOffset reste 0).
 **Clavier numérique** : sur tout `<Input type="number">` affiché sur mobile,
 ajouter `inputMode="numeric"` pour ouvrir le clavier numérique au lieu du
 clavier alphanumérique.
+
+
+### La RLS se paie ligne par ligne, et elle se payait deux fois
+
+Migration `20260915192131`, mesurée le 2026-09-15. `/dashboard` tombait par
+intermittence, et le site entier était devenu lent. La cause n'était pas une
+régression de code : c'est le volume qui a franchi un seuil.
+
+    Seq Scan on note  (actual time=23303..23303 rows=0)
+      Filter: (is_super_admin() OR ... OR is_super_admin() OR ...)
+              AND (statut = 'EN_ATTENTE')
+      Rows Removed by Filter: 28132
+      Buffers: shared hit=507
+
+**23,3 secondes pour rendre zéro ligne, et 507 buffers.** Ce n'est pas de
+l'I/O : c'est du CPU passé à rejouer `is_super_admin()` sur chacune des 28 132
+lignes, chaque appel reparsant le JWT. Après correction : **196 ms**.
+
+**Une fonction `auth_*()` sans argument doit s'écrire `(select f())` dans une
+politique.** Elle est `STABLE`, donc constante pour toute la requête — mais
+placée dans un `OR` à côté d'un `EXISTS` corrélé, le planificateur ne peut pas
+la hisser. Le sous-`select` la transforme en InitPlan, évalué une fois. C'est
+le lint Supabase `auth_rls_initplan`, et `get_advisors('performance')` le
+signale nommément.
+
+`est_affecte(classe, matiere, annee)` n'est **pas** enveloppée : elle prend des
+arguments qui varient par ligne. L'envelopper changerait le sens, pas la
+vitesse.
+
+**Une politique `for all` est jouée sur les lectures aussi.** Douze tables
+portaient le couple `_lecture` (SELECT) + `_ecriture` (ALL) : chaque `select`
+évaluait les deux, et tout le travail était fait deux fois. Les politiques
+d'écriture sont désormais découpées en INSERT / UPDATE / DELETE.
+
+Trois précautions, chacune payée :
+
+- **Vérifier que la politique d'écriture est plus étroite que celle de lecture
+  avant de lui retirer SELECT.** Ici `_ecriture` reprenait la condition
+  d'établissement et y ajoutait un rôle : l'union valait donc `_lecture`, et le
+  découpage ne change aucun accès. Contrôlé expression par expression, puis
+  mesuré — comptage sous RLS contre comptage de vérité sur les douze tables,
+  identique partout.
+- **`select ... for update` est évalué contre la politique d'UPDATE.** La
+  politique UPDATE doit donc garder exactement le `using` de l'ancienne `for
+  all`, sans quoi `fn_enregistrer_paiement` répond de nouveau « Facture
+  introuvable » sur une facture parfaitement lisible (piège du 2026-09-11).
+- **Ne pas reprendre les codes que `postgrest-js` reprend déjà** (503 et 520) :
+  les deux mécanismes se multiplieraient.
+
+Les `*_tenant` (`classe`, `annee_scolaire`, `matiere`…) restent en `for all` :
+elles sont la **seule** politique de leur table, et leur retirer SELECT rendrait
+la table invisible.
+
+### Une référence d'erreur peut n'identifier aucune erreur
+
+`src/lib/supabase/reprise-reseau.ts`, écrit le 2026-09-15.
+
+« Une erreur est survenue — Référence 5381 », deux jours et deux compilations
+d'écart, puis la page se charge au clic sur « Réessayer ». **5381 n'est pas un
+identifiant de panne : c'est la graine du hachage de Next**
+(`next/dist/compiled/string-hash`), donc le hachage de la chaîne vide. Next
+calcule le digest sur `err.message + err.stack` ; 5381 signifie que ce qui a été
+levé n'avait **ni message ni pile**. Toute panne de cette famille, sur
+n'importe quelle page, porte la même référence.
+
+La chaîne, vérifiée dans le code de la bibliothèque :
+
+1. `select('id', { count: 'exact', head: true })` émet une requête **HEAD**
+   (`PostgrestQueryBuilder`). Une réponse HEAD ne porte jamais de corps, par la
+   norme HTTP. Or `diagnostiquer()`, `getProgressionOnboarding()` et `compter()`
+   ne sont faits **que** de comptages de ce genre.
+2. Devant une réponse en erreur au corps vide, `postgrest-js` retombe sur
+   `error = { message: body }` — un objet nu, sans `stack`.
+3. Nos services propagent tel quel (`if (error) throw error`). Next hache
+   `'' + ''`.
+
+D'où la couche de reprise, posée sous le client serveur : elle rejoue les
+**lectures** sur 500/502/504 — une seule fois et 120 ms, les valeurs de
+`src/lib/reessayer.ts`, pour ne pas faire cohabiter deux doctrines — et surtout
+elle **donne un corps** aux réponses muettes, avec un code `SG_HTTP_<statut>`.
+C'est le seul moyen de corriger la centaine de `if (error) throw error` d'un
+coup sans les toucher.
+
+Deux bornes : **jamais une écriture** (un versement rejoué encaisse deux fois),
+et **jamais un 404 au corps vide**, dont `postgrest-js` se sert pour reconnaître
+« aucune ligne » — lui inventer un message ferait échouer `maybeSingle()` sur
+toute absence.
+
+### Le découpage de l'année appartient au lycée, pas à l'école
+
+Décision produit du 2026-09-15, après une première règle abandonnée le jour
+même. « Le régime semestriel, c'est seulement au lycée que c'est possible. Au
+collège, c'est toujours et toujours le régime trimestriel. »
+
+La règle de la veille — « aucun mélange, toute l'école à l'un ou à l'autre » —
+ne pouvait pas tenir avec celle-ci : un complexe collège-lycée au semestre
+**mélange** forcément, puisque son collège reste au trimestre.
+
+**`etablissement."regimePeriodes"` décrit le lycée**, et lui seul. Aucune
+migration : c'est le sens de la colonne qui s'est rétréci, et toutes les écoles
+en base y portent `TRIMESTRE`.
+
+`src/lib/periodes.ts` porte les trois fonctions, sans dépendance :
+
+- `regimeDuCycle(cycle, regimeLycee)` — **la seule à employer quand une classe
+  est en vue.** Un cycle inconnu vaut TRIMESTRE : se tromper dans ce sens montre
+  une période vide de trop, dans l'autre cela **cacherait** un troisième
+  trimestre déjà noté, dont les notes comptent pourtant dans la moyenne
+  annuelle.
+- `regimeDominant(cyclesActifs, regimeLycee)` — pour les deux seuls écrans sans
+  aucune classe (`/statistiques`, le suivi de remise). On ne dit « semestre »
+  que si toute l'école y est.
+- `usePeriodes(cycle)` et `useNommerPeriode()` côté client. La seconde existe
+  parce qu'un hook ne s'appelle pas dans une boucle : les files d'approbation
+  mêlent collège et lycée dans le même tableau.
+
+**`getRegimePeriodes()` a été supprimée** : son nom disait « le régime de
+l'école » alors qu'elle rendait celui du lycée. Une fonction dont le nom ment
+est pire qu'une fonction absente — elle sera appelée de bonne foi. Les appelants
+passent par `getContexteRegime()`, qui lit le régime **et** les cycles actifs en
+un seul aller-retour, et croisent eux-mêmes avec le cycle de leur classe.
+
+`definirRegimePeriodes` refuse le semestre à une école sans lycée : sans cette
+garde, la valeur dormirait en base et prendrait effet d'un coup, silencieusement,
+le jour où l'école ouvrirait son lycée.
+
+### Une inscription ne se recrée pas : elle se change
+
+Migration `20260915211046`. `inscription` porte
+`unique("eleveId", "anneeScolaireId")` — une seule ligne par élève et par année,
+quel que soit son statut — et `fn_inscrire_eleve` refuse dès qu'une ligne
+existe, **sans regarder le statut**.
+
+Conséquence constatée par le testeur : une école qui s'était trompée de classe
+annulait l'inscription, puis « Inscrire » répondait « Cet élève est déjà
+inscrit ». Annuler était réversible en théorie et définitif en pratique —
+`reinscrireEleve` existait, gardée et testée, mais **appelée par aucun écran**.
+
+`fn_changer_classe_inscription` est le chemin unique : elle change la classe,
+réactive l'inscription si elle était annulée, **annule l'ancienne facture**
+(jamais de suppression, invariant financier), en émet une nouvelle depuis les
+tarifs de la classe d'arrivée et **y reporte les versements**.
+
+- **La facture est le vrai sujet.** `reinscrireEleve` changeait `classeId` sans
+  y toucher : un élève passé de la 6e à la 2nde aurait gardé les frais de la 6e.
+  Une erreur d'affichage se voit ; une erreur de montant se découvre au
+  recouvrement.
+- **Le statut ne se recalcule pas sur place** : `fn_recalculer_statut_facture`
+  fait foi, comme pour `fn_enregistrer_paiement`.
+- **Le surplus est renvoyé, pas tu.** Si la classe d'arrivée coûte moins cher
+  que ce qui a déjà été versé, la famille est en avance : la fonction le calcule
+  pour que l'écran le dise.
+- Les **reçus déjà édités ne sont pas périmés** : un reçu prouve qu'un versement
+  a été reçu, et cela reste vrai. Seul le numéro de facture qu'il mentionne a
+  changé.
+
+Côté écran, `/eleves/[id]/inscription` porte les deux gestes : la page lit
+l'état de l'élève et choisit l'action, le formulaire ne devine rien. Et le
+bouton de la fiche ne disparaît plus quand l'élève est inscrit — il devient
+« Changer de classe ».
+
+### Les trois sections ouvrent un écran, pas un menu
+
+`BarreSection` (`src/components/layout/BarreSection.tsx`) porte les autres
+écrans d'un domaine en rangée, au-dessus de celui qu'on regarde. Finances ouvre
+le suivi des paiements, Notes la saisie, **Établissement les classes**.
+
+Établissement a rejoint le motif le 2026-09-15, et il lui manquait seulement
+d'être monté : la section était déclarée dans `SECTIONS` avec ses dix blocs, et
+aucun écran ne les rendait. À la place, neuf pages portaient un « Retour à la
+configuration » posé en dur — une école entièrement configurée était donc
+renvoyée vers sa checklist depuis chacun de ses écrans.
+
+**`BarreEtablissement` enveloppe `BarreSection` pour cette section seule** :
+« Configuration » quitte la rangée dès que les neuf réglages indispensables sont
+faits. `blocsSection` filtre par rôle, et le rôle ne sait pas cela — c'est un
+état de l'établissement, passé en `exclure`. L'entrée retirée reste atteignable
+par son adresse : on la range, on ne la ferme pas.
+
+`socleComplet()` délègue à `etatSocle()`, mémoïsé par requête, plutôt que de
+sonder à part : deux listes de réglages finiraient par diverger. Son repli est
+**`false`** — afficher une entrée de trop coûte moins cher que retirer le seul
+chemin vers ce qui reste à régler.
+
+**Une félicitation se mérite une fois.** L'écran de configuration affichait des
+cotillons à chaque ouverture ; c'est le rôle d'`EcranFinal` à la sortie de
+`/demarrage`, et le rejouer le transforme en décor à traverser.
+
+### Un calcul qui ne reçoit pas le statut ne peut pas en tenir compte
+
+Constaté le 2026-09-16. `calculerSolde(montantTotal, paiements)` rendait le
+montant entier d'une facture **annulée** : elle ne reçoit pas `statut`, donc
+elle ne pouvait pas savoir. Le suivi des paiements annonçait 347 000 F dus et
+269 000 F à recouvrer à une école qui n'attendait que 169 000 et 91 000 — la
+facture annulée par un changement de classe était comptée deux fois, une fois
+dans le dû, une fois dans le reste.
+
+`soldeDuAvecStatut(montantTotal, paiements, statut)` répond zéro sur une
+facture annulée, et `totauxSuivi` écarte ces lignes du total dû.
+
+**Trois écrans sont tombés ensemble parce qu'ils s'appuient sur les deux mêmes
+fonctions** : la bande de totaux du suivi, le « Reste à recouvrer » de la fiche
+de classe, et l'état des paiements de `/rapports`. C'est l'argument pour poser
+la correction dans le calcul et non dans chaque page — et l'argument pour ne
+jamais recalculer un total à côté de `totauxSuivi` : deux chiffres différents
+pour la même école se découvrent devant un parent.
+
+**Les versements d'une facture annulée restent dans l'encaissé.** Une
+annulation n'a jamais rendu un franc à personne. Les retirer ferait disparaître
+de la caisse un versement bien réel, et masquerait le remboursement dû à la
+famille : l'écart entre encaissé et total dû est le seul signal qui l'annonce.
+
+**La ligne annulée reste affichée**, invariant financier du dépôt, et un reçu
+déjà remis la mentionne. Mais l'écran **dit** combien de factures sont hors
+total. Sans cette phrase, le total ne s'additionne plus à la main et un
+comptable qui vérifie conclut à une erreur de la plateforme — un total juste
+qu'on ne peut pas recouper vaut à peine mieux qu'un total faux.
+
+Les autres agrégats financiers écartaient déjà `ANNULE` **à la requête**
+(`dashboard.ts`, `annee-scolaire.ts`, `conseils.ts`, `series-ecole.ts`). Le
+suivi ne le pouvait pas : il doit montrer la ligne.
+
+### Une colonne qu'aucun écran ne sait réécrire est une colonne morte
+
+`classe.capacite` était demandée à la création et **nulle part ailleurs**. Or
+`/demarrage` ne la demande pas — on y crée douze classes d'affilée, poser un
+plafond à chacune n'aurait aucun sens à ce moment-là. Une école configurée par
+le parcours guidé ne pouvait donc jamais en avoir une, et les trois écrans qui
+s'en servent (répartition du tableau de bord, rapport d'effectifs, alerte de
+surcapacité) restaient muets pour elle. La fiche affichait « Capacité — » sans
+aucun recours.
+
+La règle en sort élargie : **toute colonne saisie à la création doit avoir un
+chemin de modification**, ou bien ne pas exister. C'est la même famille que
+`etablissement.logo` et `matiere.matiereOfficielleId`, à l'envers — là une
+colonne jamais lue, ici une colonne jamais réécrite.
+
+`definirCapaciteClasse` ne touche **que** la capacité. Le nom d'une classe est
+composé depuis son niveau et sa série (`lib/noms-classes.ts`) et n'est pas une
+saisie libre ; changer le niveau ou la série déplacerait sous les pieds d'une
+classe déjà notée son programme, ses coefficients et ses bulletins. `null` est
+une valeur et non un échec : poser un plafond par curiosité ne doit pas être
+irréversible.
+
+**Le conseil qui l'accompagne est hors socle, délibérément.** Plafonner ses
+effectifs est un choix d'école, pas un réglage manquant : l'inscrire au socle
+le ferait compter comme un manque et rouvrirait « Configuration » dans la
+rangée d'Établissement d'une école parfaitement réglée. `famille` répond à
+« dans quel ordre on en parle », `socle` à « l'établissement est-il configuré » —
+les confondre est le défaut déjà payé sur le filigrane.
+
+Et la sonde s'écrit `not('capacite', 'is', null)`, jamais `.neq(...)` : une
+comparaison à NULL n'est jamais vraie en SQL, et le conseil aurait annoncé
+« 0 classe sur 12 » à une école qui les a toutes plafonnées.
+
+### Les lignes d'une facture se modifient à tout moment
+
+Décision produit du 2026-09-16, migration `20260916063052`. Elle **remplace**
+la règle d'origine : `fn_modifier_lignes_facture` refusait dès qu'un versement
+non annulé existait, et l'écran annonçait « toute correction passe par un
+nouveau versement ou une annulation ».
+
+La règle ne tenait pas devant le calendrier d'une école togolaise : la cantine
+se décide en janvier, le transport au deuxième trimestre, une remise
+fraternelle après coup. Annuler une facture pour y ajouter une ligne de cantine
+détruit le document que la famille a reçu et déplace ses versements — une
+réponse sans rapport avec le geste demandé.
+
+**Seule une facture annulée garde ses lignes figées.** `lignesModifiables` vaut
+donc exactement `statut !== 'ANNULE'`.
+
+**Baisser le total sous ce qui a déjà été versé est autorisé, et annoncé.** La
+fonction renvoie `surplus`, l'éditeur le montre pendant la saisie puis le
+confirme avec le chiffre de la base. Refuser bloquerait une école qui a
+surfacturé par erreur ; se taire lui ferait découvrir le trop-perçu en
+réclamant de l'argent à quelqu'un qui n'en doit pas. Même doctrine que
+`fn_changer_classe_inscription`.
+
+**Une action qui peut réussir *et* avoir quelque chose à dire ne rend pas
+`string | null`.** `enregistrerLignesAction` n'avait que « erreur » ou « rien » ;
+le surplus n'entrait dans aucun des deux, et serait resté invisible.
+
+### `apply_migration` horodate de son côté
+
+Le fichier créé par `npx supabase migration new` et l'entrée écrite dans
+`supabase_migrations.schema_migrations` par l'outil MCP `apply_migration`
+portent **deux horodatages différents** — ici `20260916061825` contre
+`20260916063052`, six minutes d'écart. C'est exactement la divergence décrite
+plus haut : un environnement neuf provisionné par `db push` appliquerait la
+migration sous la clé du fichier, la base réelle la connaît sous celle du
+journal, et à partir de là tout diagnostic d'écart entre journaux ment.
+
+**Le fichier s'aligne sur le journal**, jamais l'inverse : un renommage ne
+touche pas la production, réécrire `schema_migrations` sur la base réelle est à
+sens unique pour un gain nul. Vérifier la clé enregistrée après chaque
+`apply_migration`, et renommer dans la foulée — c'est le seul moment où l'écart
+est encore visible.
+
+### Un jeton valide ne prouve pas que le monde qu'il décrit existe encore
+
+Constaté le 2026-09-16, sur téléphone, après la remise à zéro d'une école de
+test pendant qu'une session tournait.
+
+`lireIdentiteVerifiee` (`src/services/tenant.ts`) s'appuie sur `getClaims()`,
+qui vérifie la **signature** du jeton hors ligne contre le JWKS — d'où le flot
+de `/.well-known/jwks.json` dans les journaux. C'est le bon choix : une
+vérification par appel réseau à chaque requête coûterait un aller-retour par
+page. Mais elle a une conséquence qu'il faut connaître : **ni un compte
+supprimé, ni un établissement effacé ne s'y voient.** Le jeton reste accepté
+jusqu'à son expiration, une heure.
+
+Pendant cette heure, l'application travaillait avec un `etablissement_id` qui
+ne correspondait plus à aucune ligne :
+
+- les lectures rendaient des listes vides — la RLS faisait son travail ;
+- les écritures tombaient en `23503` (violation de clé étrangère), rendues en
+  `409` par PostgREST puis en page d'erreur avec une référence qui n'explique
+  rien.
+
+**Le piège se refermait par le haut.** Le middleware renvoie `/login` vers
+`/dashboard` tant qu'une session existe : l'utilisateur ne pouvait donc pas se
+reconnecter, et la seule porte de sortie était celle que le produit fermait.
+
+Le middleware lit déjà `etablissement` par son identifiant, pour l'essai et la
+suspension. Il suffisait de **distinguer les deux `null`** : `maybeSingle()`
+rend `{data: null, error: null}` quand la ligne n'existe pas, et un `error` non
+nul quand la lecture échoue. Le premier cas efface les cookies de session **sur
+la réponse de redirection elle-même** — `signOut()` écrirait sur la réponse
+qu'on ne renvoie pas dans cette branche — et mène à `/login?error=
+etablissement_introuvable`.
+
+**La dissymétrie s'inverse par rapport au repli voisin.** Quelques lignes plus
+haut, une lecture en échec laisse passer sans conclure : fermer enfermerait
+dehors une école à jour de ses paiements à cause d'un à-coup d'infrastructure.
+Mais un établissement absent n'est pas un à-coup, et laisser passer n'offre
+aucune requête de grâce — seulement une heure d'erreurs muettes.
+
+Et `/login` ne rebondit plus vers `/dashboard` quand l'adresse porte un motif
+d'erreur : l'effacement des cookies suffit en principe, mais une boucle de
+redirection est le pire qui puisse arriver à cet endroit, et le motif doit de
+toute façon pouvoir s'afficher.
+
+### Révoquer un droit d'exécution casse les appelants qu'on ne visait pas
+
+`/super-admin/abonnements` balaye les échéances avant d'afficher. La migration
+`20260911005324` a révoqué `EXECUTE` sur `fn_expirer_abonnements` pour `anon`
+et `authenticated` — à raison : une fonction qui écrit sur **toutes** les écoles
+de la plateforme n'a rien à faire au bout d'une URL PostgREST.
+
+Mais `expirerAbonnementsEchus` est restée sur le client de session. Résultat :
+`42501` à chaque ouverture, donc page d'erreur, **pendant cinq jours**, sans
+que rien ne le signale. Découvert le 2026-09-16 dans les journaux Postgres, six
+refus en dix minutes — c'était l'utilisateur qui essayait d'ouvrir la page.
+
+**Rendre le droit à `authenticated` rouvrirait ce que la migration a fermé** :
+les rôles Postgres ne distinguent pas le SUPER_ADMIN d'un enseignant, ils sont
+tous `authenticated`. La garde reste donc applicative (`requireRole()`) et
+l'exécution passe par la clé de service — exactement ce que faisait déjà le
+balayage quotidien de `relances-abonnement.ts`, qui lui fonctionnait. Deux
+appelants de la même RPC, un seul corrigé : c'est celui qu'on ne relit pas qui
+tombe.
+
+La règle qui en sort est la même que pour une garde de rôle : **chercher qui
+appelle avant de retirer un droit**, et se souvenir qu'un `revoke` sur
+`authenticated` atteint *tous* les appels faits avec le client de session, y
+compris ceux d'un SUPER_ADMIN parfaitement légitime.
+
+`src/services/__tests__/rpc-hors-api-publique.test.ts` lit les fichiers réels
+plutôt que d'appeler les services : la faute porte sur **quel client** ouvre
+l'appel, pas sur un comportement, et elle se rejouerait au premier
+`createClient()` écrit par réflexe.

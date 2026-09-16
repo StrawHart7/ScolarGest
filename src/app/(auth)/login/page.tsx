@@ -35,6 +35,12 @@ const MESSAGES_CALLBACK: Record<string, string> = {
     "Ce lien est incomplet. Copiez-le entierement depuis votre email, ou demandez-en un nouveau.",
   auth_callback_failed: "La connexion n'a pas abouti. Reessayez.",
   google_auth_failed: "La connexion Google n'a pas abouti. Reessayez.",
+  // Le jeton se verifie hors ligne : ni un compte supprime ni un
+  // etablissement efface ne s'y voient. Une session peut donc survivre a
+  // l'ecole qu'elle designait, et le message doit le dire — sinon
+  // l'utilisateur croit que c'est son mot de passe qui ne passe plus.
+  etablissement_introuvable:
+    "Votre session ne correspond plus a aucun etablissement. Elle a ete fermee : reconnectez-vous.",
 };
 
 /** Arguments de reassurance du panneau de gauche. */

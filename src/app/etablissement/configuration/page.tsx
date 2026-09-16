@@ -61,22 +61,22 @@ export default async function ConfigurationPage() {
           />
         </div>
 
+        {socle.toutFait ? <ToutEstRegle nouveautes={socle.nouveautes} /> : null}
+
         {/*
-          **Une seule carte, dans les deux états.**
+          **Une seule carte de progression, dans les deux états.**
 
           Il y en avait deux, et celle de l'état fini était un écran de
-          félicitations : cotillons, « Votre établissement est configuré », un
-          paragraphe d'explication et un gros bouton. Le défaut est qu'une
-          félicitation se mérite **une fois**, à la fin du parcours — c'est le
-          rôle de `EcranFinal` à la sortie de `/demarrage`, et il le fait déjà.
-          Rejouée à chaque ouverture de l'écran, elle cesse d'être une nouvelle
-          et devient du décor qu'il faut dépasser pour atteindre la page. Le
-          testeur l'a signalée deux fois le 2026-09-15, en la traversant chaque
-          fois par « Retour à la configuration » depuis les classes.
+          félicitations rejoué à chaque ouverture — cotillons compris. Une
+          félicitation se mérite **une fois**, et c'est le rôle d'`EcranFinal` à
+          la sortie de `/demarrage`. Le testeur l'a signalée deux fois le
+          2026-09-15.
 
-          La barre pleine et « 9 sur 9 » disent la même chose, sans la fête, et
-          se lisent d'un coup d'œil. La page redevient ce qu'elle est : les
-          réglages de l'établissement.
+          Ce que l'écran gagne au-dessus le 2026-09-16 n'est pas ce décor-là :
+          c'est une **réponse**, et elle ne s'affiche que lorsque tout est réglé,
+          recommandés compris. Elle dit ce qu'il reste à découvrir, ou qu'il n'y
+          a rien. La nuance tient à ce qu'elle apporte une information qui change
+          — la barre de progression, elle, répète un chiffre déjà atteint.
         */}
         <Card>
           <CardContent className="flex flex-col gap-4 py-6">
@@ -140,6 +140,75 @@ export default async function ConfigurationPage() {
         */}
       </div>
     </AppLayout>
+  );
+}
+
+/**
+ * Ce que l'écran devient quand il n'a plus rien à réclamer.
+ *
+ * ## Pourquoi cette page ne disparaît pas
+ *
+ * « Configuration » quittait la rangée d'Établissement une fois les neuf
+ * réglages faits. Elle y reste désormais en permanence — décision de
+ * l'utilisateur le 2026-09-16 — et c'est ici que la décision prend son sens :
+ * l'écran change de métier au lieu de s'effacer. Tant qu'il reste un réglage,
+ * c'est une checklist. Tout réglé, c'est **la page où l'on apprend ce que la
+ * plateforme sait faire de neuf**.
+ *
+ * Cacher le seul chemin qui y mène le jour où il n'y a plus rien à régler,
+ * c'était le fermer exactement quand il commence à servir.
+ *
+ * ## Deux états, et l'un des deux est une bonne nouvelle
+ *
+ * Une nouveauté est une entrée du catalogue portant une date postérieure à la
+ * création du compte, pas encore utilisée — voir `etatSocle`. Aucune : on le
+ * dit franchement plutôt que d'afficher une section vide. C'est une phrase
+ * qu'une école doit pouvoir lire avec plaisir, pas un état d'erreur.
+ *
+ * Le ton est neutre et non festif : cet écran se rouvre, et une fête rejouée
+ * devient du décor — c'est précisément le défaut qu'on a retiré la veille.
+ */
+function ToutEstRegle({ nouveautes }: { nouveautes: ElementSocle[] }) {
+  return (
+    <Card className="border-primary/25 bg-primary/5">
+      <CardContent className="flex flex-col gap-4 py-6">
+        <div className="flex items-start gap-3">
+          <span
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-on"
+            aria-hidden
+          >
+            <Check className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-body-lg font-medium text-text-primary">
+              Votre établissement est entièrement configuré
+            </h2>
+            <p className="text-body-sm text-text-secondary">
+              Tout est réglé, y compris ce qui était facultatif. Vous n’avez rien à faire ici :
+              revenez-y quand une fonctionnalité nouvelle vous est proposée, c’est à cet endroit
+              qu’elle apparaîtra.
+            </p>
+          </div>
+        </div>
+
+        {nouveautes.length === 0 ? (
+          <p className="rounded-lg border border-surface-border bg-surface-container-lowest p-4 text-body-sm text-text-secondary">
+            Vous n’avez pour l’instant aucune nouvelle fonctionnalité à découvrir.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="text-body-md font-medium text-text-primary">
+              Nouveau depuis votre inscription
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {nouveautes.map((element) => (
+                <LigneSocle key={element.id} element={element} />
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

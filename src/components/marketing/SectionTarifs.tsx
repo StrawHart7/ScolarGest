@@ -6,6 +6,7 @@ import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/Reveal';
 import { phrasePlaces, type PlacesFondatrices } from '@/lib/fondateur';
+import { jetonDe, PARAMETRE_OFFRE, type OrigineDemande } from '@/lib/origine-demande';
 import {
   REMISE_ANNUELLE_POURCENT,
   formaterFCFA,
@@ -55,6 +56,32 @@ interface Offre {
   mise_en_avant: boolean;
   inclus: string[];
   cta: string;
+  /**
+   * Ce que le SUPER_ADMIN lira dans sa file de prospects. Sans lui, les trois
+   * boutons de cette grille et ceux du bandeau d'accueil produisaient la même
+   * demande indistincte, et l'on rappelait « Rejoindre le programme » comme on
+   * rappelait une curiosité.
+   */
+  origine: OrigineDemande;
+}
+
+/**
+ * Le clic emporte l'offre dans l'adresse — `/?offre=fondateur#demo`.
+ *
+ * L'URL plutôt qu'un état partagé : la grille et le formulaire sont deux
+ * composants clients sans parent commun côté client, et une valeur passée par
+ * la mémoire ne survivrait ni au rafraîchissement, ni au lien qu'on se
+ * transmet. L'adresse, elle, est visible, partageable et se diagnostique à
+ * l'œil quand un prospect arrive mal attribué.
+ *
+ * Une ancre nue et non `<Link>` : le rechargement garantit que le formulaire se
+ * remonte et relise le paramètre. Une navigation client laisserait le
+ * formulaire monté avec l'origine précédente — le prospect serait attribué à
+ * l'offre sur laquelle on avait cliqué en premier.
+ */
+function lienVersDemo(origine: OrigineDemande): string {
+  const jeton = jetonDe(origine);
+  return jeton ? `/?${PARAMETRE_OFFRE}=${jeton}#demo` : '#demo';
 }
 
 const OFFRES: Offre[] = [
@@ -71,6 +98,7 @@ const OFFRES: Offre[] = [
       'Élèves, enseignants et comptes sans limite de nombre',
     ],
     cta: 'Demander une démo',
+    origine: 'OFFRE_1_CYCLE',
   },
   {
     nom: 'Collège et lycée',
@@ -86,6 +114,7 @@ const OFFRES: Offre[] = [
       'Un seul abonnement, une seule facture',
     ],
     cta: 'Demander une démo',
+    origine: 'OFFRE_2_CYCLES',
   },
   {
     nom: 'École fondatrice',
@@ -101,6 +130,7 @@ const OFFRES: Offre[] = [
       'Vos retours décident des prochaines fonctionnalités',
     ],
     cta: 'Rejoindre le programme',
+    origine: 'PROGRAMME_FONDATEUR',
   },
 ];
 
@@ -248,7 +278,7 @@ export function SectionTarifs({ places }: { places: PlacesFondatrices }) {
                   variant={offre.mise_en_avant ? 'primary' : 'secondary'}
                   className="w-full"
                 >
-                  <a href="#demo">{offre.cta}</a>
+                  <a href={lienVersDemo(offre.origine)}>{offre.cta}</a>
                 </Button>
               </div>
             </Reveal>

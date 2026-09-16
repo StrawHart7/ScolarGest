@@ -30,7 +30,22 @@ interface ClasseACreer {
   niveauId: string;
   serieId: string | null;
   nom: string;
+  capacite: number | null;
 }
+
+/**
+ * Plafond d'effectif appliqué à toutes les classes créées ici.
+ *
+ * Une école togolaise a des salles de contenance comparable : demander la
+ * taille moyenne une fois vaut mieux que la demander vingt fois, et infiniment
+ * mieux que de ne jamais la demander — ce qui était le cas jusqu'au 2026-09-16,
+ * laissant la répartition du tableau de bord et le rapport d'effectifs sans
+ * référence pour toute école passée par le parcours guidé.
+ *
+ * Le champ est **facultatif** : une école qui ne plafonne pas ses effectifs
+ * laisse vide, et chaque classe se règle ensuite depuis sa fiche.
+ */
+const CAPACITE_MAX = 500;
 
 /** Même forme de clé que `src/lib/filiere.ts` : série vide au collège. */
 function cleDivision(niveauId: string, serieId: string | null): string {
@@ -177,8 +192,17 @@ export function EtapeClasses({
    * dire « pas ce niveau ».
    */
   const [divisions, setDivisions] = React.useState<Record<string, number>>({});
+  /** Saisie libre : `''` vaut « pas de plafond », et c'est une réponse valable. */
+  const [capacite, setCapacite] = React.useState('');
   const [erreur, setErreur] = React.useState<string | null>(null);
   const [enCours, setEnCours] = React.useState(false);
+
+  const capaciteNombre = Number(capacite);
+  const capaciteValide =
+    capacite.trim() === '' ||
+    (Number.isInteger(capaciteNombre) && capaciteNombre >= 1 && capaciteNombre <= CAPACITE_MAX);
+  const capaciteAAppliquer =
+    capacite.trim() === '' || !capaciteValide ? null : capaciteNombre;
 
   const niveauxParCycle = React.useMemo(() => {
     const groupes = new Map<string, NiveauAvecCycle[]>();
@@ -237,6 +261,7 @@ export function EtapeClasses({
               niveauId: niveau.id,
               serieId: serie.id,
               nom: nommer(niveau.nom, serie.nom, nombre, i),
+              capacite: capaciteAAppliquer,
             });
           }
         }
@@ -249,11 +274,12 @@ export function EtapeClasses({
           niveauId: niveau.id,
           serieId: null,
           nom: nommer(niveau.nom, null, nombre, i),
+          capacite: capaciteAAppliquer,
         });
       }
     }
     return resultat;
-  }, [niveaux, series, divisions]);
+  }, [niveaux, series, divisions, capaciteAAppliquer]);
 
   const niveauxRetenus = React.useMemo(
     () => new Set(classes.map((c) => c.niveauId)).size,
@@ -359,15 +385,50 @@ export function EtapeClasses({
         </div>
       ))}
 
+      {/* En bas, après les compteurs : c'est une réponse unique qui vaut pour
+          tout ce qui vient d'être décidé au-dessus. La poser en tête ferait
+          répondre avant de savoir sur quoi. */}
+      <div className="flex flex-col gap-2 border-t border-surface-border pt-4">
+        <label htmlFor="capacite-moyenne" className="text-body-md font-medium text-text-primary">
+          Combien d’élèves par classe, en moyenne ?
+        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            id="capacite-moyenne"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={CAPACITE_MAX}
+            step={1}
+            value={capacite}
+            onChange={(e) => setCapacite(e.target.value)}
+            placeholder="30"
+            className="h-row-standard w-28"
+          />
+          <span className="text-body-sm text-text-secondary">élèves au plus par classe</span>
+        </div>
+        {capaciteValide ? (
+          <p className="text-body-sm text-text-secondary">
+            Facultatif. Le nombre s’applique à toutes les classes créées ici ; vous ajusterez une
+            classe en particulier depuis sa fiche. Il n’empêche aucune inscription : il sert à
+            signaler les classes qui débordent.
+          </p>
+        ) : (
+          <p className="text-body-sm text-error">
+            Indiquez un nombre entier entre 1 et {CAPACITE_MAX}, ou laissez vide.
+          </p>
+        )}
+      </div>
+
       <ErreurEtape message={erreur} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-body-sm text-text-secondary">
           {classes.length === 0
             ? 'Aucune classe pour le moment.'
-            : `${classes.length} classe${classes.length > 1 ? 's' : ''} sur ${niveauxRetenus} niveau${niveauxRetenus > 1 ? 'x' : ''}.`}
+            : `${classes.length} classe${classes.length > 1 ? 's' : ''} sur ${niveauxRetenus} niveau${niveauxRetenus > 1 ? 'x' : ''}${capaciteAAppliquer ? `, ${capaciteAAppliquer} élèves au plus` : ''}.`}
         </p>
-        <Button onClick={valider} disabled={enCours || classes.length === 0}>
+        <Button onClick={valider} disabled={enCours || classes.length === 0 || !capaciteValide}>
           {enCours
             ? 'Création…'
             : classes.length === 0

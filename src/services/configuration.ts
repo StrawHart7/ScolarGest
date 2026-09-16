@@ -122,6 +122,25 @@ export interface EtatSocle {
   total: number;
   /** Vrai quand tous les requis sont faits : l'établissement est configuré. */
   complet: boolean;
+  /**
+   * Vrai quand **tout** est fait — requis et recommandés.
+   *
+   * Distinct de `complet`, et c'est le point : `complet` répond à « l'école
+   * peut-elle facturer et éditer un bulletin ? », `toutFait` à « reste-t-il
+   * quoi que ce soit à régler ou à découvrir ? ». Une école peut être complète
+   * sans filigrane ni logo pendant des mois.
+   */
+  toutFait: boolean;
+  /**
+   * Fonctionnalités apparues **après** la création du compte, et pas encore
+   * utilisées. C'est ce que l'écran de configuration montre quand il n'a plus
+   * de réglage à réclamer.
+   *
+   * Prises dans tout le catalogue, pas seulement dans le socle : une nouveauté
+   * n'est pas forcément un réglage manquant — la capacité des classes ou
+   * l'emploi du temps sont des fonctionnalités qu'on fait connaître.
+   */
+  nouveautes: ElementSocle[];
 }
 
 /**
@@ -145,7 +164,15 @@ export interface EtatSocle {
  */
 export const etatSocle = memoiserParRequete(async function etatSocle(): Promise<EtatSocle> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE', 'ENSEIGNANT');
-  const diagnostic = await diagnostiquer();
+  const supabase = createClient();
+  const [diagnostic, { data: compte }] = await Promise.all([
+    diagnostiquer(),
+    // La date de création du compte départage « nouveauté » et « fonctionnalité
+    // que je n'ai jamais utilisée ». Lue en parallèle du diagnostic : elle ne
+    // dépend de rien, l'enchaîner coûterait un aller-retour pour rien.
+    supabase.from('utilisateur').select('"createdAt"').eq('id', ctx.userId).maybeSingle(),
+  ]);
+  const compteCreeLe = (compte as { createdAt: string } | null)?.createdAt ?? null;
 
   const construire = (conseil: Conseil): ElementSocle => {
     const valeur = conseil.sonde ? diagnostic[conseil.sonde] : undefined;
@@ -167,38 +194,48 @@ export const etatSocle = memoiserParRequete(async function etatSocle(): Promise<
   const recommandes = duSocle('RECOMMANDE');
   const faits = requis.filter((e) => e.fait).length;
 
-  return { requis, recommandes, faits, total: requis.length, complet: faits === requis.length };
+  /**
+   * Une nouveauté ne l'est que pour qui était déjà là avant elle — même règle
+   * que `choisirConseil`, et pour la même raison : pour un compte créé après,
+   * la fonctionnalité a toujours existé, et l'annoncer comme neuve serait faux.
+   *
+   * Filtrées par rôle : on ne propose pas à une Secrétaire une nouveauté dont
+   * l'écran lui est fermé. Et déjà faites, elles disparaissent — ce n'est pas
+   * un journal des versions, c'est ce qu'il reste à découvrir.
+   */
+  const nouveautes = CATALOGUE.filter(
+    (c) =>
+      c.nouveaute &&
+      compteCreeLe &&
+      new Date(compteCreeLe) < new Date(c.nouveaute) &&
+      c.roles.includes(ctx.role),
+  )
+    .map(construire)
+    .filter((e) => !e.fait && e.actionnable);
+
+  return {
+    requis,
+    recommandes,
+    faits,
+    total: requis.length,
+    complet: faits === requis.length,
+    toutFait: faits === requis.length && recommandes.every((e) => e.fait),
+    nouveautes,
+  };
 });
 
-/**
- * Les neuf réglages indispensables sont-ils faits ?
+/*
+ * `socleComplet()` vivait ici. Elle ne servait qu'à retirer « Configuration »
+ * de la rangée d'Établissement une fois les neuf réglages faits — décision
+ * revue par l'utilisateur le 2026-09-16 : l'entrée y reste en permanence.
  *
- * ## Pourquoi déléguer plutôt que recompter
+ * Supprimée plutôt que laissée en place : une fonction de service gardée que
+ * personne n'appelle finit par être rappelée de bonne foi, et celle-ci
+ * répondait à une question — « peut-on cacher la configuration ? » — que le
+ * produit ne se pose plus. C'est le même geste que pour `reinscrireEleve` le
+ * matin même.
  *
- * La tentation était de ne sonder que ce dont les entrées `REQUIS` ont besoin,
- * pour une page plus légère. Ce serait une **seconde vérité** : le jour où une
- * entrée du catalogue change de sonde, l'écran de configuration et la barre de
- * la section ne diraient plus la même chose, et c'est toujours celle qu'on ne
- * relit pas qui se trompe. Même raisonnement que pour `etatSocle`, qui puise
- * déjà dans le catalogue des conseils au lieu de tenir sa propre liste.
- *
- * La mémoïsation par requête est ce qui rend le partage gratuit : l'écran de
- * configuration appelle `etatSocle` pour son contenu, la barre appelle
- * `socleComplet` pour sa composition, et le diagnostic ne tourne qu'une fois.
- *
- * ## Elle ne lève jamais
- *
- * Une lecture qui échoue ne doit pas emporter la page : la barre de navigation
- * n'est pas le sujet de l'écran qu'on est venu voir. Le repli est **`false`**,
- * c'est-à-dire « on garde Configuration visible ». Se tromper dans ce sens
- * affiche une entrée de trop ; se tromper dans l'autre ferait disparaître le
- * seul chemin vers ce qui reste à régler, précisément à une école qui n'a pas
- * fini de se configurer.
+ * Son effet de bord était lourd et il disparaît avec elle : elle déclenchait
+ * un diagnostic d'une quinzaine de comptages à l'ouverture de chacun des huit
+ * écrans de la section.
  */
-export async function socleComplet(): Promise<boolean> {
-  try {
-    return (await etatSocle()).complet;
-  } catch {
-    return false;
-  }
-}

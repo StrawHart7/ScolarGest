@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2 } from 'lucide-react';
 import { submitDemandeDemo, type DemandeDemoState } from '@/app/demande-demo-actions';
+import { lireOrigine, LIBELLE_ORIGINE, type OrigineDemande } from '@/lib/origine-demande';
 
 const initialState: DemandeDemoState = { status: 'idle', message: '' };
 
@@ -21,6 +23,23 @@ function SubmitButton() {
 
 export function DemandeDemoForm() {
   const [state, formAction] = useFormState(submitDemandeDemo, initialState);
+
+  /**
+   * L'offre d'où vient le visiteur, lue dans l'adresse.
+   *
+   * `useEffect` sur `window.location.search`, et **non** `useSearchParams` :
+   * ce dernier impose une frontière `Suspense` et fait échouer le build d'une
+   * page prérendue — la page d'accueil en est une. Le piège est déjà consigné
+   * dans `CLAUDE.md` à propos du motif d'erreur de `/login`.
+   *
+   * Le premier rendu vaut donc `DIRECT` côté serveur, corrigé à l'hydratation.
+   * C'est sans conséquence : personne ne soumet un formulaire avant qu'il ne
+   * soit hydraté.
+   */
+  const [origine, setOrigine] = React.useState<OrigineDemande>('DIRECT');
+  React.useEffect(() => {
+    setOrigine(lireOrigine(window.location.search));
+  }, []);
 
   if (state.status === 'success') {
     return (
@@ -38,6 +57,18 @@ export function DemandeDemoForm() {
 
   return (
     <form action={formAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <input type="hidden" name="origine" value={origine} />
+
+      {/* Le visiteur doit voir ce que le formulaire a retenu de son clic. Sans
+          ce rappel, quelqu'un venu de « Rejoindre le programme » se retrouve
+          devant un formulaire de démo générique et croit avoir perdu son
+          choix — il le réécrit alors dans le message, ou renonce. */}
+      {origine !== 'DIRECT' && (
+        <p className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-body-sm text-text-primary sm:col-span-2">
+          Votre demande porte sur : <strong className="font-semibold">{LIBELLE_ORIGINE[origine]}</strong>.
+        </p>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nomEtablissement">Nom de l&apos;établissement *</Label>
         <Input id="nomEtablissement" name="nomEtablissement" required />
