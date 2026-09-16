@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from './authorization';
 import { getTenantContext } from './tenant';
 import { auditLog } from './audit';
@@ -411,16 +412,31 @@ export interface PaiementAbonnement {
 }
 
 /**
- * Constate en base les abonnements dont l'échéance est passée. Appelée à
- * l'ouverture de la console plateforme : sans planificateur dans le MVP,
- * c'est le point de passage naturel. L'affichage ne dépend pas de ce
- * balayage — `statutEffectif()` déduit l'expiration de la date — mais le
- * stocker garde la base cohérente pour les exports et les rapports.
+ * Constate en base les abonnements dont l'échéance est passée.
+ *
+ * **Passe par la clé de service, et non par le client de session.** La
+ * migration `20260911005324` a retiré `EXECUTE` sur `fn_expirer_abonnements`
+ * à `anon` et `authenticated` — à raison : une fonction qui écrit sur toutes
+ * les écoles de la plateforme ne doit pas être au bout d'une URL PostgREST.
+ * Mais cet appel-ci était resté sur le client RLS, si bien qu'il répondait
+ * `42501` à un SUPER_ADMIN pourtant légitime, et que `/super-admin/abonnements`
+ * tombait en page d'erreur **à chaque ouverture depuis le 2026-09-11**.
+ * Découvert le 2026-09-16 dans les journaux Postgres, six refus en dix minutes.
+ *
+ * Rendre le droit à `authenticated` rouvrirait ce que la migration a fermé :
+ * les rôles Postgres ne distinguent pas le SUPER_ADMIN d'un enseignant, ils
+ * sont tous `authenticated`. La garde de rôle reste donc applicative, et
+ * l'exécution passe par la clé de service — exactement ce que fait déjà le
+ * balayage quotidien de `relances-abonnement.ts`.
+ *
+ * **La leçon dépasse le cas** : retirer un droit d'exécution à `authenticated`
+ * casse tous les appels faits avec le client de session, pas seulement ceux
+ * qu'on visait. Chercher les appelants avant, comme pour une garde de rôle.
  */
 export async function expirerAbonnementsEchus(): Promise<number> {
   await requireRole();
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc('fn_expirer_abonnements');
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc('fn_expirer_abonnements');
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
 }
