@@ -4079,6 +4079,133 @@ page de bureau se vérifie désormais à 1280px CSS d'abord.
 
 ---
 
+### Fonctionnalité — La passe de finition du téléphone : barre du bas, listes, bas de page
+
+**Statut** : ✅ livrée et **fusionnée sur `main` le 2026-09-16**, branche
+`design/verni-section-etablissement`. Agent VERNI. Aucune migration, aucun
+service, aucune garde `requireRole`.
+
+**Objectif** — Une suite de retours de l'utilisateur sur le rendu mobile, traités
+dans l'ordre où ils sont tombés. Le fil commun : le produit était juste
+fonctionnellement et pauvre visuellement là où on le tient dans la main.
+
+#### La barre du bas, sur le modèle de Mixx by Yas
+
+Elle flottait en pilule translucide à 24px du bord, avec 48px de marges et
+**aucun libellé**. Ancrée au bord et pleine largeur, elle récupère ces 48px — et
+c'est cette largeur qui paie les libellés, à 12px, le plancher du système. Les
+`labelCourt` de `navigation.ts` existaient depuis toujours et n'étaient lus par
+personne.
+
+**Le centre est la recherche, et il ne change jamais de sens.** Le scanner de
+Mixx dit « la chose devant moi, agis dessus » ; ici c'est « la personne devant
+moi, trouve-la ». Deux pistes écartées, et le raisonnement vaut pour la suite :
+l'action principale de la page n'existe que sur cinq écrans sur une quarantaine,
+et un bouton qui change de sens au même pixel fait taper à côté ; le support en
+ferait le premier réflexe de qui ne trouve pas.
+
+Elle comblait surtout un trou réel : `RechercheGlobale` était en
+`hidden md:block`, donc **chercher un élève depuis n'importe où était impossible
+sur téléphone**. Ce qui descendait dans la page sous `md` est la recherche de la
+liste courante, qui ne cherche que dans ce qui est déjà affiché.
+
+Le fond est un calque masqué par un dégradé radial qui creuse une échancrure de
+37px de rayon ; le bouton en fait 28, il reste 9px de jour par lesquels on voit
+la page. Le masque est sur un calque et **non** sur la `<nav>` : un masque
+s'applique aussi aux enfants, et il effacerait le bouton qu'il met en valeur.
+
+Quatre mesures en dépendent et se corrigent ensemble — le `pb` du contenu, le
+bouton flottant, `BarreAction` et le token `zone-action`.
+
+#### Une ligne qui mène quelque part se clique en entier
+
+Neuf listes. Le motif existait déjà dans le dépôt, en double et à moitié faux :
+`/etablissement/classes` l'avait juste, `/super-admin/etablissements` posait le
+`relative` sur la **cellule** — le recouvrement ne couvrait donc que la première
+colonne, alors que son commentaire annonçait la ligne entière depuis des mois.
+
+Un gestionnaire de clic en JavaScript a été écrit puis jeté : il perdait
+l'adresse dans la barre d'état, le clic droit, le Ctrl-clic et le parcours
+clavier. Le recouvrement les garde tous. **Toute cellule qui porte une commande
+prend `relative z-20`** — seul piège du motif, et il est silencieux.
+
+Deux rangées non converties, délibérément : les tables d'abonnements de la
+console n'ont pour tout lien qu'un « Valider un paiement ». Une ligne est une
+destination ou elle ne l'est pas.
+
+#### Les listes se détendent
+
+Tous les titres de rangée étaient en `font-bold` : dix noms de la même graisse ne
+hiérarchisent rien, ils fatiguent. `font-medium`, pastilles sans gras, ton
+« succès » en vert teinté plutôt qu'en vert plein, filets à 60 %. La rangée passe
+de 53 à 61px.
+
+**Le bouton flottant dégage sa propre place.** Un élément `fixed` ne pousse
+rien : « Suivant » passait sous le rond sur les cinq écrans qui en portent un.
+Il rend désormais une cale dans le flux, là où il est déclaré — donc en fin de
+page, et sans rien coûter aux quarante écrans qui n'en ont pas.
+
+**Le bas de liste devient une commande.** Deux boutons bordés et un compteur
+flottant au bas d'un écran de 390px ne forment pas une commande, ils forment un
+reste. Sous `md` : une piste grise pleine largeur, les deux flèches en pastilles
+blanches, la page au milieu, l'inventaire en gris dessous. Une flèche inactive
+garde sa place — la retirer ferait sauter le compteur à la première et à la
+dernière page.
+
+#### Les trois écrans nommément corrigés
+
+**`/etablissement/documents`** — le dernier `<input type="file">` nu du produit,
+oublié quand `ZoneDepot` les avait retirés des écrans d'import onze jours plus
+tôt. L'emplacement du logo devient à la fois l'aperçu et la cible, et le
+filigrane se **montre** au lieu de se décrire : une vignette reprend la géométrie
+du gabarit PDF, seule l'opacité étant relevée pour rester visible au quart de
+l'échelle.
+
+**Les trois écrans d'import** ouvraient sur leur mode d'emploi déplié et
+repoussaient la zone de dépôt à 760px du haut. Le bilan d'analyse est déjà
+l'explication, et une meilleure : le mode d'emploi passe après la zone, replié.
+Le téléchargement du modèle reste en clair — c'est l'action qui *supprime* la
+seule classe d'échec qui arrête tout.
+
+**`/rapports`** — trois actions d'export sur la même rangée que la recherche
+écrasaient celle-ci à une dizaine de pixels. Corrigé dans `BarreListe`, donc pour
+les onze pages de liste. Les libellés de données cessent d'être en capitales et
+les valeurs de se tronquer : sur un rapport, la valeur *est* le contenu.
+
+**La fiche de facture** met l'encaissement en tête et le détail des lignes en
+bas : cette page s'ouvre presque toujours parce qu'un parent est là et qu'il
+paie.
+
+**Fichiers** : `BottomNav.tsx`, `RechercheGlobale.tsx`, `AppLayout.tsx`,
+`table.tsx`, `barre-liste.tsx`, `liste-toolbar.tsx`, `carte-liste-mobile.tsx`,
+`actions-mobile.tsx`, `barre-action.tsx`, `tailwind.config.ts`,
+`PreparerFichier.tsx`, `ParametresDocumentForm.tsx` + `ApercuFiligrane.tsx`, les
+trois `ImportForm.tsx`, `rapports/page.tsx`, les deux écrans de facture, et les
+neuf pages de liste.
+
+---
+
+### Fonctionnalité — Scola, la mascotte
+
+**Statut** : ⛔ **abandonnée le 2026-09-16** sur décision de l'utilisateur, après
+livraison complète sur `design/verni-scola`. **Jamais fusionnée, jamais mise en
+production** — vérifié : `src/components/scola/` est absent de `origin/main` et
+le mot « mascotte » n'y apparaît pas. La branche est conservée telle quelle.
+
+**Ce qui avait été fait** — mascotte SVG issue de l'export Wobbi (MIT), 54 Ko
+sans dépendance hors React, recolorée aux jetons du produit et renommée Scola.
+Posée sur quatre écrans et pas un de plus : la bulle de support, les états vides
+(`EtatVide`), l'écran de chargement (`BrandedLoader`) et la page d'erreur
+technique. Elle parlait à la première personne, en vouvoyant, **sauf sur l'argent
+et les échecs**.
+
+**Ce qu'il en reste d'utile, si le sujet revient** : `interactive` commande à la
+fois le regard qui suit le curseur et le statut de bouton, qu'il faut séparer ;
+et une mascotte en `primary-container` disparaît sur tout fond bleu du produit.
+SOKO a été prévenu par sa boîte aux lettres, statut `[Écarté]`.
+
+---
+
 ### Fonctionnalité — La rangée de section, et les dix entrées d'Établissement
 
 **Statut** : ✅ livrée le 2026-09-15, branche `design/verni-section-etablissement`

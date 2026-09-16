@@ -313,6 +313,20 @@ See `PLAN.md` for the full roadmap. **All 9 phases are complete** (Phases 0–9 
 **Post-Phase 9 work is tracked by feature, not by numbered phase.** New work lives in `PLAN.md` § 8 "Fonctionnalités", one independent entry per feature (Statut / Objectif / Livrables checklist / Dépendances / DoD). **Listing a feature there — even fully detailed with a checklist — is not authorization to implement it.** Work on a given feature starts only when the user explicitly asks for that specific feature.
 
 **Active branches** (2026-09-16) :
+- `design/verni-section-etablissement` — ✅ terminée et fusionnée sur `main`
+  (2026-09-16), agent VERNI : la rangée de section sur les dix entrées
+  d'Établissement, puis toute la passe de finition du téléphone — barre du bas
+  ancrée et libellée avec la recherche à son centre, lignes de liste cliquables
+  en entier sur neuf listes, listes détendues, bas de liste en barre pleine
+  largeur, écrans d'import et de documents repris, `/rapports` rendu lisible,
+  encaissement en tête de la fiche de facture. Aucune migration, aucun service,
+  aucune garde. Voir `PLAN.md` § 8, deux entrées.
+- `design/verni-scola` — ⛔ **abandonnée** (2026-09-16), agent VERNI : mascotte
+  Scola posée sur quatre écrans. Décision de l'utilisateur après livraison.
+  **Jamais fusionnée, rien en production.** La branche est conservée mais ne doit
+  être ni fusionnée ni servir de base — elle modifie la signature d'`EtatVide`,
+  `BulleSupport`, `BrandedLoader` et `src/app/error.tsx`, dont aucune version de
+  `main` ne correspond. Voir `PLAN.md` § 8 et la boîte de SOKO.
 - `feat/soko-session-perimee` — ✅ terminée et fusionnée sur `main`
   (2026-09-16), agent SOKO : une session dont l'établissement a disparu est
   désormais fermée au lieu de tourner une heure en erreurs muettes, et
