@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { DemandeDemo, StatutDemande } from '@/services/demande-demo';
+import {
+  CONTEXTE_ORIGINE,
+  LIBELLE_ORIGINE,
+  estPrioritaire,
+  type OrigineDemande,
+} from '@/lib/origine-demande';
 import { changerStatutAction } from './actions';
 
 /**
@@ -41,6 +47,27 @@ const SUIVANTS: Record<StatutDemande, StatutDemande[]> = {
   CONVERTIE: ['CONTACTEE'],
   REJETEE: ['NOUVELLE'],
 };
+
+/**
+ * L'origine se lit **avant** les coordonnées, en tête de carte.
+ *
+ * C'est elle qui décide de la première phrase de l'appel : on ne réexplique pas
+ * le produit à quelqu'un qui a lu l'offre fondatrice et cliqué « Rejoindre le
+ * programme ». La reléguer en bas de carte reviendrait à la découvrir après
+ * avoir composé le numéro.
+ *
+ * Seul le programme fondateur est mis en couleur. Teindre les quatre origines
+ * n'en distinguerait aucune, et c'est la seule dont les places sont comptées —
+ * donc la seule où le délai de rappel a un coût.
+ */
+function EtiquetteOrigine({ origine }: { origine: OrigineDemande }) {
+  if (origine === 'DIRECT') return null;
+  return (
+    <Badge shape="pill" variant={estPrioritaire(origine) ? 'primary' : 'neutral'}>
+      {LIBELLE_ORIGINE[origine]}
+    </Badge>
+  );
+}
 
 function ilYA(iso: string): string {
   const jours = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -94,7 +121,8 @@ export function CarteDemande({ demande }: { demande: DemandeDemo }) {
           </p>
           <p className="text-body-sm text-text-secondary">{demande.nomContact}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <EtiquetteOrigine origine={demande.origine} />
           {enRetard && (
             <Badge shape="pill" variant="warning">
               En retard
@@ -105,6 +133,10 @@ export function CarteDemande({ demande }: { demande: DemandeDemo }) {
           </Badge>
         </div>
       </div>
+
+      {demande.origine !== 'DIRECT' && (
+        <p className="text-body-sm text-text-secondary">{CONTEXTE_ORIGINE[demande.origine]}</p>
+      )}
 
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-body-sm">
         <a

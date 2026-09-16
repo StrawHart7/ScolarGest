@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BarreListe } from '@/components/ui/barre-liste';
 import { EnteteSection, TEINTE } from '@/components/console/entete-section';
 import { getSidebarItems } from '@/lib/navigation';
+import { LIBELLE_ORIGINE } from '@/lib/origine-demande';
 import { CarteDemande } from './CarteDemande';
 
 export const metadata = { title: 'Demandes de démo' };
@@ -43,9 +44,11 @@ export default async function DemandesPage({
   // recherche a du sens — retrouver un prospect quand la file s'allonge.
   const brut = searchParams.q;
   const terme = ((Array.isArray(brut) ? brut[0] : brut) ?? '').trim().toLowerCase();
+  // L'origine entre dans la recherche : « fondateur » doit ramener les écoles
+  // venues du programme, c'est la question la plus probable sur cet écran.
   const correspond = (d: (typeof demandes)[number]) =>
     !terme ||
-    `${d.nomEtablissement} ${d.nomContact} ${d.email} ${d.ville ?? ''}`
+    `${d.nomEtablissement} ${d.nomContact} ${d.email} ${d.ville ?? ''} ${LIBELLE_ORIGINE[d.origine]}`
       .toLowerCase()
       .includes(terme);
 
@@ -59,6 +62,14 @@ export default async function DemandesPage({
   const converties = demandes.filter((d) => d.statut === 'CONVERTIE').length;
   const traitees = demandes.length - aTraiter.length;
   const tauxConversion = traitees > 0 ? Math.round((converties / traitees) * 100) : null;
+
+  // Le programme fondateur est compté séparément dans le sous-titre : ses
+  // places sont limitées, et une demande fondatrice qui attend coûte une place
+  // qu'on ne peut pas rendre. Compté sur les demandes **non traitées** — un
+  // total historique n'appellerait aucune action.
+  const fondatricesEnAttente = aTraiter.filter(
+    (d) => d.origine === 'PROGRAMME_FONDATEUR',
+  ).length;
 
   const sections: {
     titre: string;
@@ -96,15 +107,22 @@ export default async function DemandesPage({
       <div className="mx-auto max-w-4xl space-y-6">
         <PageHeader
           title="Demandes de démo"
-          description={
+          description={[
+            `${demandes.length} demande${demandes.length > 1 ? 's' : ''} reçue${demandes.length > 1 ? 's' : ''}`,
             tauxConversion !== null
-              ? `${demandes.length} demande${demandes.length > 1 ? 's' : ''} reçue${demandes.length > 1 ? 's' : ''}, ${tauxConversion} % de conversion sur celles traitées.`
-              : `${demandes.length} demande${demandes.length > 1 ? 's' : ''} reçue${demandes.length > 1 ? 's' : ''}.`
-          }
+              ? `${tauxConversion} % de conversion sur celles traitées`
+              : null,
+            fondatricesEnAttente > 0
+              ? `${fondatricesEnAttente} pour le programme fondateur, sans réponse`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(', ')
+            .concat('.')}
         />
 
         {demandes.length > 0 && (
-          <BarreListe placeholderRecherche="École, contact, e-mail ou ville…" />
+          <BarreListe placeholderRecherche="École, contact, e-mail, ville ou offre…" />
         )}
 
         {demandes.length === 0 || nombreAffichees === 0 ? (

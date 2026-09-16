@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { normaliserOrigine } from '@/lib/origine-demande';
 
 export interface DemandeDemoState {
   status: 'idle' | 'success' | 'error';
@@ -17,6 +18,11 @@ export async function submitDemandeDemo(
   const telephone = String(formData.get('telephone') ?? '').trim();
   const ville = String(formData.get('ville') ?? '').trim();
   const message = String(formData.get('message') ?? '').trim();
+  // Le champ arrive d'un `<input type="hidden">` rempli par le navigateur : il
+  // est donc normalisé, jamais écrit tel quel. Une valeur inventée retombe sur
+  // `DIRECT` plutôt que de faire échouer l'envoi — perdre un prospect coûte
+  // infiniment plus cher que perdre son attribution.
+  const origine = normaliserOrigine(formData.get('origine'));
 
   if (!nomEtablissement || !nomContact || !email) {
     return { status: 'error', message: 'Merci de remplir les champs obligatoires.' };
@@ -30,6 +36,7 @@ export async function submitDemandeDemo(
     telephone: telephone || null,
     ville: ville || null,
     message: message || null,
+    origine,
   });
 
   if (error) {
