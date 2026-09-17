@@ -571,10 +571,22 @@ export async function getEtatFacturation(etablissementId: string): Promise<EtatF
  * provisionnée trois semaines avant la rentrée.
  *
  * Idempotente par le `is null` : rappeler cette fonction ne prolonge rien. Les
- * dates elles-mêmes sont imposées par le trigger `fn_proteger_dates_essai`
- * (migration `0015`) — la valeur envoyée ici n'est qu'un déclencheur, pas une
- * donnée de confiance, puisque la RLS laisse le Directeur écrire sur sa propre
- * ligne d'établissement.
+ * dates elles-mêmes sont imposées par le trigger `fn_proteger_facturation`
+ * (migration `0026`, ex-`fn_proteger_dates_essai`) — la valeur envoyée ici
+ * n'est qu'un déclencheur, jamais une donnée de confiance.
+ *
+ * **Écrit avec la clé de plateforme, derrière sa garde de rôle**, comme
+ * `expirerAbonnementsEchus`. Depuis le resserrement du 2026-09-17, l'écriture
+ * sur `etablissement` est réservée au Directeur ; or cette fonction admet
+ * délibérément la Secrétaire et le Comptable, parce que le premier compte à
+ * ouvrir une école neuve n'est pas toujours le Directeur. Sans ce passage par
+ * la clé de plateforme, la RLS aurait filtré leur ligne **sans lever** — le
+ * `return` silencieux juste dessous s'en serait accommodé, et l'école serait
+ * restée sans essai sans qu'aucune erreur ne le dise nulle part.
+ *
+ * Leur accorder l'écriture d'`etablissement` pour ce seul geste leur rouvrirait
+ * le nom, l'adresse et le contact de l'école. Et octroyer trente jours est de
+ * toute façon une décision de la plateforme, pas une écriture du locataire.
  *
  * Ne lève jamais : un essai qui ne démarre pas ne doit pas faire échouer
  * l'étape de configuration qui l'a déclenché. L'établissement resterait
@@ -583,7 +595,7 @@ export async function getEtatFacturation(etablissementId: string): Promise<EtatF
 export async function demarrerEssaiSiNecessaire(): Promise<void> {
   const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
   if (!ctx.etablissementId) return;
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('etablissement')
     .update({ essaiDebuteLe: new Date().toISOString() })

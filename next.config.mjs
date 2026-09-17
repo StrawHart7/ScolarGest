@@ -49,6 +49,50 @@ const nextConfig = {
   eslint: {
     dirs: ['src'],
   },
+  /**
+   * En-têtes de sécurité — aucun n'existait avant le 2026-09-17.
+   *
+   * Ce qui est ici est volontairement ce dont l'effet est **certain sans avoir
+   * à ouvrir l'application** : aucun ne restreint le chargement de scripts, de
+   * styles ou d'images, donc aucun ne peut casser une page.
+   *
+   * `frame-ancestors 'none'` plutôt que `X-Frame-Options` : même effet, mais
+   * c'est la directive que les navigateurs récents honorent, et elle couvre les
+   * cadres imbriqués que l'en-tête historique laissait passer. Sans elle,
+   * `/login` peut être chargée dans un cadre invisible sur un site tiers et
+   * recevoir les frappes d'un visiteur qui croit cliquer ailleurs. C'est le
+   * seul écran du produit où l'on tape un mot de passe.
+   *
+   * `Referrer-Policy` n'est pas décoratif ici : une invitation et une
+   * réinitialisation de mot de passe arrivent sur `/auth/callback` avec le
+   * `token_hash` **dans l'URL**. Sans politique, cette URL complète part en
+   * `Referer` vers toute origine tierce que la page contacte — le jeton avec.
+   *
+   * Ce qui manque encore, et pourquoi : une CSP sur `script-src`. Elle demande
+   * de recenser les sources réelles (Next, Sentry, FedaPay) et de la constater
+   * sur une page rendue. Posée au jugé, elle casse l'application en silence
+   * chez l'utilisateur et pas chez nous. Elle se tranche sur une preview.
+   */
+  async headers() {
+    return [
+      {
+        source: '/:chemin*',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {

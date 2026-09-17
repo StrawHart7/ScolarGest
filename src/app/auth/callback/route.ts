@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { journaliserConnexion } from '@/services/audit';
 import { urlApplication } from '@/lib/url-app';
+import { destinationInterne } from '@/lib/redirection';
 
 /**
  * Point d'arrivée de toutes les authentifications par lien : OAuth Google,
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   // au tableau de bord le laisserait sans moyen de se reconnecter demain.
   const destinationParDefaut =
     type === 'recovery' || type === 'invite' ? '/update-password' : '/dashboard';
-  const next = searchParams.get('next') ?? destinationParDefaut;
+  const next = destinationInterne(searchParams.get('next'), destinationParDefaut);
 
   const supabase = createClient();
 

@@ -161,7 +161,11 @@ async function creerEcole(cle: 'A' | 'B', niveauId: string): Promise<Ecole> {
   // Un abonnement et une ligne d'audit, sans lesquels les tentatives portant sur
   // ces deux tables ne prouveraient rien : une lecture qui ne ramène rien parce
   // que la table est vide n'est pas une isolation, c'est un test à vide.
-  const { data: plan } = await admin.from('plan_abonnement').select('id').limit(1).maybeSingle();
+  const { data: plan } = await admin
+    .from('plan_abonnement')
+    .select('id, prix')
+    .limit(1)
+    .maybeSingle();
   if (plan) {
     await trouverOuCreer(
       'abonnement_etablissement',
@@ -172,6 +176,18 @@ async function creerEcole(cle: 'A' | 'B', niveauId: string): Promise<Ecole> {
         dateDebut: '2025-09-01',
         dateFin: '2026-08-31',
         statut: 'ACTIF',
+        // `montantTotal` est `not null` depuis la migration `0027`
+        // (2026-09-03). Sans ces deux colonnes, le montage des deux ecoles
+        // echouait en `23502` et **la sonde ne demarrait plus du tout** —
+        // constate le 2026-09-17, soit deux semaines pendant lesquelles le
+        // seul controle du cloisonnement entre ecoles etait muet.
+        //
+        // Une sonde qui ne demarre pas ne signale rien, et rien ressemble a
+        // un succes. Meme famille que le piege note juste au-dessus : une
+        // lecture qui ne ramene rien parce que la table est vide n'est pas
+        // une isolation.
+        nombreCycles: 1,
+        montantTotal: (plan as { prix?: number }).prix ?? 0,
       },
     );
   }
