@@ -379,12 +379,30 @@ function estRouteApplicative(pathname: string): boolean {
 /**
  * Le cookie doit être posé sur la *réponse* pour atteindre le navigateur :
  * `request.cookies.set` ne ferait que réécrire l'en-tête entrant côté serveur.
+ *
+ * **Ce cookie n'est pas signé, et ce n'est pas un oubli.** `httpOnly` n'arrête
+ * que JavaScript : son porteur contrôle son propre navigateur et peut y écrire
+ * `sg_acces=OK` à la main. La question est donc ce qu'il y gagne, et la réponse
+ * est : rien qui compte. Le cache n'est consulté que pour les **lectures**
+ * (`if (!ecriture)` plus haut) — toute écriture relit la base sans exception.
+ * Une école suspendue qui forge ce cookie retarde l'affichage de sa page
+ * d'abonnement, et ne gagne pas une ligne de saisie. Signer ce verdict
+ * coûterait une clé à gérer pour protéger un aiguillage d'une minute.
+ *
+ * Ce qu'il ne faut pas faire, en revanche : étendre ce cache aux écritures. Là,
+ * il deviendrait une autorisation portée par le client, et il faudrait le
+ * signer — ou le supprimer.
+ *
+ * `secure` est conditionné à la production : en développement le serveur est en
+ * clair sur localhost, et un cookie `secure` n'y serait jamais renvoyé — le
+ * cache ne servirait plus à rien sans que rien ne le signale.
  */
 function memoriserAcces(response: NextResponse, niveau: string): void {
   response.cookies.set({
     name: COOKIE_ACCES,
     value: niveau,
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: DUREE_CACHE_ACCES,

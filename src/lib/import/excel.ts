@@ -24,6 +24,16 @@ export interface ClasseurLu {
 }
 
 /**
+ * Noms de colonne qu'on refuse de reporter sur un objet.
+ *
+ * Une colonne du fichier devient une clé de `valeurs`. Écrire
+ * `objet['__proto__'] = …` ne crée pas une propriété : ça **remplace le
+ * prototype**. Aucun fichier scolaire ne nomme une colonne ainsi ; un fichier
+ * qui le fait cherche autre chose.
+ */
+const CLES_INTERDITES = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
  * Lit la première feuille : en-têtes bruts et lignes de données.
  *
  * Les clés des lignes sont **normalisées en minuscules** et débarrassées de
@@ -32,6 +42,29 @@ export interface ClasseurLu {
  * minuscules — puis produirait un « Nom requis » sur chacune de ses lignes,
  * parce que la lecture, elle, cherchait la clé exacte. Les deux étapes doivent
  * s'accorder sur ce qu'est une colonne.
+ *
+ * ## Une seule lecture, en matrice, et c'est une décision de sécurité
+ *
+ * Il y avait deux appels à `sheet_to_json` : un en mode matrice pour les
+ * en-têtes, un en mode objet pour les lignes. Le second est le chemin de la
+ * pollution de prototype de SheetJS (GHSA-4r6h-8v6p-xvw6) : c'est **la
+ * bibliothèque** qui construit alors les objets, en prenant pour clés les
+ * en-têtes du fichier, et une colonne nommée `__proto__` atteint le prototype
+ * de tous les objets du processus.
+ *
+ * Le paquet npm `xlsx` est figé en 0.18.5 — SheetJS a quitté npm, et le
+ * correctif ne vit que sur son propre CDN. Y aller ferait dépendre chaque
+ * `npm ci` et chaque déploiement d'un service tiers, ce que ce dépôt s'interdit
+ * depuis l'incident Sentry du 2026-09-01. On retire donc le vecteur au lieu
+ * d'attendre une version : la matrice ne rend que des tableaux, et c'est nous
+ * qui fabriquons les objets, en refusant trois noms de clé.
+ *
+ * ## Effet de bord : les numéros de ligne redeviennent justes
+ *
+ * Le mode objet **saute les lignes entièrement vides**, et le numéro annoncé
+ * était `index + 2`. Une seule ligne blanche au milieu d'un fichier décalait
+ * donc tout le rapport d'import : « erreur ligne 34 » désignait la 35. Le
+ * numéro vient maintenant de la position réelle dans la feuille.
  */
 export function lireClasseur(buffer: ArrayBuffer | Buffer): ClasseurLu {
   const workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -46,19 +79,23 @@ export function lireClasseur(buffer: ArrayBuffer | Buffer): ClasseurLu {
     raw: false,
   });
   const entetes = (matrice[0] ?? []).map((v) => String(v ?? ''));
+  const cles = entetes.map((e) => e.trim().toLowerCase());
 
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: '',
-    raw: false,
-  });
+  const lignes: LigneBrute[] = [];
+  for (let index = 1; index < matrice.length; index += 1) {
+    const cellules = matrice[index] ?? [];
+    // Une ligne blanche n'est pas une ligne en erreur : la sauter évite un
+    // rapport rempli de « Nom requis » sur les lignes vides de fin de fichier,
+    // que tout tableur produit en quantité.
+    if (cellules.every((v) => String(v ?? '').trim() === '')) continue;
 
-  const lignes = rows.map((valeurs, index) => {
-    const normalisees: Record<string, unknown> = {};
-    for (const [cle, valeur] of Object.entries(valeurs)) {
-      normalisees[cle.trim().toLowerCase()] = valeur;
-    }
-    return { ligne: index + 2, valeurs: normalisees }; // +2 : 1-based + en-tête
-  });
+    const valeurs: Record<string, unknown> = {};
+    cles.forEach((cle, colonne) => {
+      if (!cle || CLES_INTERDITES.has(cle)) return;
+      valeurs[cle] = cellules[colonne] ?? '';
+    });
+    lignes.push({ ligne: index + 1, valeurs }); // +1 : la feuille est 1-based
+  }
 
   return { entetes, lignes };
 }
