@@ -15,7 +15,9 @@
     "supabase:start": "supabase start",
     "supabase:migrate": "supabase db push",
     "supabase:seed": "supabase db reset",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "sauvegarde": "tsx scripts/sauvegarde.ts",
+    "sauvegarde:verifier": "tsx scripts/sauvegarde.ts --verifier"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

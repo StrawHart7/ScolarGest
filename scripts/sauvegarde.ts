@@ -17,6 +17,21 @@
  * remis aux familles et les recus de paiement : ce que l'ecole aurait le plus
  * de mal a refabriquer, et ce qu'on lui a promis de garder.
  *
+ * **Le projet est sur le plan gratuit** — confirme par l'utilisateur le
+ * 2026-09-17. Le premier constat s'applique donc, et il faut le lire sans
+ * adoucissement : il n'existe aujourd'hui **aucune autre sauvegarde que
+ * celle-ci**. Ce script n'est pas une precaution supplementaire, c'est le seul
+ * exemplaire. Tant qu'il n'est pas lance, il n'y a rien.
+ *
+ * Deux consequences pratiques :
+ *
+ * - le lancer regulierement n'est pas une bonne pratique, c'est la seule
+ *   pratique. Une sauvegarde d'il y a trois semaines vaut trois semaines de
+ *   saisie perdues ;
+ * - la copie doit quitter la machine. Le disque qui porte le depot et le
+ *   disque qui porte la sauvegarde ne doivent pas etre le meme, sans quoi une
+ *   panne materielle emporte les deux d'un coup.
+ *
  * ## Ce que ce script sauvegarde, et ce qu'il ne sauvegarde pas
  *
  * **Il prend** : toutes les tables exposees par l'API, tous les fichiers de
@@ -40,22 +55,51 @@
  *
  * ## Usage
  *
- *   npx tsx scripts/sauvegarde.ts                  # sauvegarde dans ./sauvegardes/
- *   npx tsx scripts/sauvegarde.ts --vers D:/coffre # ailleurs, de preference hors machine
- *   npx tsx scripts/sauvegarde.ts --verifier <dossier>
+ * Depuis la racine du depot :
+ *
+ *   npm run sauvegarde                             # dans ./sauvegardes/
+ *   npm run sauvegarde -- --vers "D:/Coffre"       # ailleurs, de preference
+ *   npm run sauvegarde:verifier "D:/Coffre/<date>" # hors de cette machine
+ *
+ * **Ou depuis n'importe ou**, en donnant le chemin complet du script — c'est
+ * voulu, et verifie le 2026-09-17 en le lancant depuis `C:\` :
+ *
+ *   npx tsx D:/.../scripts/sauvegarde.ts --vers "D:/Coffre"
+ *
+ * Le script retrouve seul le depot, son `.env` et ses migrations a partir de
+ * son propre emplacement. Une sauvegarde sera lancee depuis un raccourci ou une
+ * tache planifiee, jamais depuis un terminal deja place au bon endroit.
  *
  * `--verifier` relit le manifeste et recompte en base : c'est ce qui distingue
  * une sauvegarde d'un dossier de fichiers. Une sauvegarde qu'on n'a jamais
  * relue n'est pas une sauvegarde, c'est une intention.
  */
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readdirSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 
-config({ path: '.env' });
+/**
+ * La racine du depot, deduite de l'emplacement de **ce fichier**.
+ *
+ * Les autres scripts du depot lisent `.env` relativement au dossier courant, ce
+ * qui les oblige a etre lances depuis la racine. Passe encore pour un semis de
+ * donnees de test. Pas pour une sauvegarde : elle sera lancee depuis un
+ * raccourci, une tache planifiee ou un autre disque, et `dotenv` **ne leve pas**
+ * quand le fichier est absent — le script serait parti avec des variables vides
+ * et aurait echoue plus loin, sur un message parlant d'autre chose.
+ *
+ * Meme raison pour `supabase/migrations` : lu depuis le mauvais dossier, le
+ * manifeste aurait annonce « derniere migration : inconnue » sans que rien ne
+ * s'arrete. Une sauvegarde dont on ignore la version de schema ne se restaure
+ * pas.
+ */
+const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+config({ path: join(RACINE, '.env') });
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -236,7 +280,11 @@ async function sauvegarder(destination: string): Promise<void> {
   console.log(`${comptes.length} comptes Auth\n`);
 
   // --- Le manifeste --------------------------------------------------------
-  const migrations = readdirSync('supabase/migrations')
+  const dossierMigrations = join(RACINE, 'supabase', 'migrations');
+  if (!existsSync(dossierMigrations)) {
+    throw new Error(`Migrations introuvables dans ${dossierMigrations}`);
+  }
+  const migrations = readdirSync(dossierMigrations)
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
@@ -357,9 +405,12 @@ async function main(): Promise<void> {
   }
 
   const iVers = args.indexOf('--vers');
-  const destination = iVers !== -1 ? args[iVers + 1] : 'sauvegardes';
+  // Sans `--vers`, on ecrit dans le depot — jamais dans le dossier courant, qui
+  // depend d'ou la commande a ete tapee et disperserait les sauvegardes.
+  // `sauvegardes/` est ignore par Git, precisement pour ce cas.
+  const destination = iVers !== -1 ? args[iVers + 1] : join(RACINE, 'sauvegardes');
   if (!destination) throw new Error('--vers attend un chemin');
-  await sauvegarder(destination);
+  await sauvegarder(resolve(destination));
 }
 
 main().catch((e) => {

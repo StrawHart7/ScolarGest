@@ -4160,3 +4160,54 @@ d'une minute.
 **Ce qu'il ne faut pas faire** : étendre ce cache aux écritures. Il deviendrait
 alors une autorisation portée par le client, et il faudrait le signer — ou le
 supprimer.
+
+### La seule sauvegarde qui existe est celle qu'on lance
+
+Le projet est sur le **plan gratuit** de Supabase — confirmé par l'utilisateur le
+2026-09-17. Deux faits en découlent, tous deux tirés de la documentation de
+Supabase et non d'une appréciation :
+
+- **les sauvegardes automatiques commencent au plan Pro.** Un projet gratuit
+  n'en a aucune, et Supabase recommande explicitement d'y exporter soi-même ;
+- **aucune sauvegarde de base n'inclut le Storage**, quel que soit le plan. La
+  base ne porte que les métadonnées des fichiers ; restaurer ne rend pas un
+  bulletin effacé.
+
+Donc : `scripts/sauvegarde.ts` n'est pas une précaution supplémentaire, **c'est
+le seul exemplaire**. Tant qu'il n'est pas lancé, il n'y a rien. Une sauvegarde
+d'il y a trois semaines vaut trois semaines de saisie perdues, et la copie doit
+quitter la machine — le disque qui porte le dépôt et celui qui porte la
+sauvegarde ne doivent pas être le même.
+
+Ce qu'il prend : toutes les tables exposées par l'API, tous les fichiers de tous
+les buckets, la liste des comptes Auth. Ce qu'il ne prend pas est écrit **dans
+le manifeste**, jamais sous-entendu : le schéma vit dans `supabase/migrations/`
+donc dans Git, et les mots de passe ne sont pas exportables — une restauration
+impose une réinitialisation par compte.
+
+**La liste des tables n'est pas écrite en dur.** Elle est lue dans la
+description OpenAPI que PostgREST publie à la racine de l'API. Une liste figée
+aurait manqué la première table ajoutée après, *sans rien dire*, et une
+sauvegarde incomplète qui se termine en vert est pire que pas de sauvegarde :
+on cesse d'y penser. C'est la leçon de la sonde d'isolation restée muette deux
+semaines, appliquée avant de la repayer.
+
+**Le script retrouve seul la racine du dépôt** depuis son propre emplacement, et
+ne dépend jamais du dossier courant. Ce n'est pas du confort : `dotenv` **ne
+lève pas** quand le fichier est absent, et le script serait parti avec des
+variables vides pour échouer plus loin sur un message parlant d'autre chose.
+Lu depuis le mauvais dossier, `supabase/migrations` aurait produit un manifeste
+annonçant « dernière migration : inconnue » sans que rien ne s'arrête — et une
+sauvegarde dont on ignore la version de schéma ne se restaure pas.
+
+**Le dossier de sortie est ignoré par Git.** Une sauvegarde porte les noms, les
+dates de naissance et les responsables légaux de centaines d'élèves, plus les
+bulletins et les reçus en clair. Un dépôt se clone et se partage ; une donnée
+versionnée ne se retire plus vraiment.
+
+**Ce qui n'est pas prouvé, et qui est une décision, pas un oubli** : la
+restauration. On a une sauvegarde relue — 46 tables, 175 fichiers, 21 comptes,
+sans anomalie — pas une restauration constatée. L'éprouver demande un projet
+Supabase jetable ; l'utilisateur a tranché le 2026-09-17 de la reporter au
+lancement. Ne pas la re-proposer à chaque session : la question est tranchée
+jusqu'à ce qu'il la rouvre.

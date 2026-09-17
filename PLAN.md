@@ -4334,8 +4334,20 @@ chez l'utilisateur et pas chez nous. Se tranche sur une preview.
 
 #### Ce qui reste, et qui n'est pas du code
 
-- **Protection des mots de passe compromis** : désactivée. Un interrupteur dans
-  la console Supabase, hors de portée d'une migration.
+- **Protection des mots de passe compromis** : désactivée, et **indisponible**.
+  Ce n'est pas un interrupteur oublié : la fonction commence au plan Pro, et le
+  projet est sur le plan gratuit — confirmé par l'utilisateur le 2026-09-17. À
+  cocher le jour du passage en Pro, pas avant. Ne pas l'inscrire comme une
+  action en attente : personne ne peut la faire aujourd'hui.
+- **La sauvegarde est désormais la nôtre, et elle est seule.** Le plan gratuit
+  n'a **aucune** sauvegarde automatique, et aucun plan ne sauvegarde le Storage.
+  `scripts/sauvegarde.ts` est donc le seul exemplaire : 46 tables,
+  35 286 lignes, 175 fichiers, 21 comptes, relus sans anomalie. Il se lance
+  depuis n'importe où — vérifié depuis `C:\`. Reste à en sortir une copie de
+  cette machine.
+- **La restauration n'est pas prouvée, et c'est une décision.** L'éprouver
+  demande un projet Supabase jetable ; l'utilisateur a tranché le 2026-09-17 de
+  la reporter au lancement. Question fermée jusqu'à ce qu'il la rouvre.
 - **`xlsx` reste en 0.18.5** : le vecteur d'écriture est retiré, mais `XLSX.read`
   lui-même porte encore un ReDoS connu. Le correctif n'existe que sur le CDN de
   SheetJS, et en dépendre violerait « le build ne doit dépendre d'aucun service
