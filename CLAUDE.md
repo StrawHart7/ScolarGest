@@ -3953,3 +3953,210 @@ l'école, pas au nôtre.
 affiché à la Secrétaire. `SECTIONS` ne la déclare que pour le Directeur et le
 Comptable. Si la Secrétaire subit bien la lecture seule, elle n'a aucun chemin
 visible vers l'explication. Question de périmètre, laissée à l'utilisateur.
+
+### Une garde ne peut pas interroger une table que le garde écrit
+
+Le 2026-09-11, `note` a reçu la bonne correction : un enseignant n'y écrit que
+dans sa classe et sa matière, vérifié par `est_affecte()`. Cette fonction lit
+`affectation_enseignant`, dont la politique ne regardait que l'établissement.
+
+**La garde interrogeait donc une table que l'attaquant pouvait écrire.** Une
+insertion, et `est_affecte()` rend `true` pour n'importe quel couple de l'école.
+
+Constaté le 2026-09-17 par le chemin réel — client anon plus session
+d'enseignant — dans `scripts/verifier-escalade-roles.ts` : **onze essais sur
+douze ont abouti**. Le premier explique tous les autres, et les autres disaient
+la même chose sous d'autres formes, parce que dix-sept tables de structure
+portaient encore une politique `for all` filtrée sur le seul tenant : porter un
+coefficient à 99 — donc réécrire toutes les moyennes d'une matière —, terminer
+l'année scolaire de l'école, renommer les classes, poser un filigrane sur les
+bulletins remis aux familles, réécrire la fiche d'un collègue.
+
+Trois règles en sortent :
+
+- **Toute table lue par une politique doit être au moins aussi protégée que la
+  politique qui la lit.** C'est vrai de `affectation_enseignant` et
+  `est_affecte`, ce le sera de la prochaine fonction d'aide qu'on écrira pour
+  une politique.
+- **Le correctif du 11 s'arrêtait au bord de la table.** Argent et notes
+  avaient été traités ; la structure scolaire — classes, matières, années,
+  programme, coefficients — était restée en tenant seul. Quand on nomme les
+  rôles sur une famille de tables, faire le tour de ce que cette famille lit.
+- **La lecture ne se resserre pas avec l'écriture.** Un enseignant doit
+  continuer de lire classes, matières, programme et emploi du temps : c'est son
+  métier. D'où quatre politiques par table — `_lecture`, `_insertion`,
+  `_modification`, `_suppression` — et non une `for all` avec des rôles, qui
+  fermerait la lecture du même geste.
+
+Les listes de rôles ne se choisissent pas : elles se **relèvent** dans
+`src/lib/permissions/__tests__/matrice.instantane.txt`, c'est-à-dire dans les
+`requireRole` des services qui écrivent réellement la table.
+
+### Resserrer sans contre-épreuve échange un trou contre une panne muette
+
+`verifier-escalade-roles.ts` a un jumeau, `verifier-usage-legitime.ts`, et ce
+n'est pas du zèle. **Pris seule, la première se satisferait d'une base où plus
+personne n'écrit rien** : tout y serait « TENU ».
+
+Or la RLS ne lève pas sur un UPDATE : elle filtre. Un écran cassé par un
+resserrement ne dit donc **rien du tout** — pas d'erreur, pas de message, un
+bouton sans effet. C'est exactement ce qui serait arrivé à
+`demarrerEssaiSiNecessaire`, ouverte à la Secrétaire et au Comptable parce que
+le premier compte à ouvrir une école neuve n'est pas toujours le Directeur :
+l'écriture sur `etablissement` leur étant retirée, l'école serait restée sans
+essai, en silence. Elle écrit désormais avec la clé de plateforme derrière sa
+garde, comme `expirerAbonnementsEchus`.
+
+Toute migration qui resserre une politique se livre donc avec les deux mesures :
+ce qui est fermé, et ce qui marche encore. Onze et onze, le 2026-09-17.
+
+### Ce que l'application ferme, le stockage peut l'ouvrir
+
+La finance est fermée à l'enseignant partout — aucune page, aucun service. Le
+bucket `documents`, lui, portait une seule politique de lecture comparant le
+préfixe d'établissement : **un compte ENSEIGNANT a téléchargé un reçu de
+paiement**, 31 Ko de PDF, par le chemin réel.
+
+Le chemin portait déjà la distinction sans qu'on s'en serve —
+`<école>/bulletins/…` et `<école>/recus/…`. Deux politiques désormais, chacune
+nommant ses rôles, et la première chemise toujours comparée à l'établissement
+dans les deux : resserrer par rôle en oubliant le tenant rouvrirait l'école d'à
+côté.
+
+**Une permission de stockage est une permission comme une autre.** Quand une
+famille de données change de rôles autorisés, regarder si elle a des fichiers.
+
+### Révoquer à `anon` ne retire pas l'octroi implicite à PUBLIC
+
+Postgres donne `EXECUTE` à **PUBLIC** sur toute fonction nouvellement créée.
+`anon` et `authenticated` en héritent sans figurer nulle part dans `proacl`, où
+l'octroi s'écrit `=X/postgres` — le grantee vide, c'est PUBLIC.
+
+Donc `revoke execute on function … from anon, authenticated` **ne retire rien**
+et ne lève aucune erreur. Elle a l'air d'avoir fonctionné.
+
+Découvert le 2026-09-17 parce que l'avertissement de Supabase est revenu sur
+`fn_borner_demande_demo` — la fonction écrite le matin même, avec sa
+révocation, précisément pour fermer une surface. Les autres révocations de la
+journée n'avaient marché que parce que ces fonctions-là portaient, elles, des
+octrois explicites.
+
+**Toute migration qui crée une fonction révoque à `public`**, puis réoctroie aux
+seuls rôles qui l'appellent. `select proacl from pg_proc` le vérifie, et
+`get_advisors` le rappelle.
+
+### Une sonde qui ne démarre plus ne signale rien, et rien ressemble à un succès
+
+`scripts/verifier-isolation.ts` — le seul contrôle qui réponde à « une école
+voit-elle une autre école » — **ne tournait plus depuis le 2026-09-03**. Il
+insérait un abonnement sans `montantTotal`, devenu obligatoire par la migration
+`0027`, et mourait au montage de ses deux écoles jetables.
+
+Deux semaines sans que personne s'en aperçoive, parce qu'une sonde qui n'est
+pas lancée ne produit pas de rouge : elle ne produit rien. C'est la même famille
+que le piège déjà consigné pour la RLS — un refus qui revient sans erreur et
+sans ligne se lit comme un succès.
+
+Conséquence pratique : **une migration qui pose une contrainte `not null`
+regarde aussi les scripts**, pas seulement `src/`. Ils écrivent dans les mêmes
+tables, ils ne sont pas couverts par `typecheck` sur leurs données, et ils sont
+précisément l'outillage qui devrait crier quand quelque chose casse.
+
+### L'audit appartient à son auteur
+
+La politique d'insertion d'`audit_log` ne vérifiait que l'établissement :
+n'importe quel compte de l'école pouvait déposer une ligne au nom du Directeur.
+Un journal dans lequel on écrit ce qu'on veut, sous le nom qu'on veut, n'est pas
+un journal — et c'est exactement la trace qu'on ouvrira le jour d'un litige sur
+un encaissement.
+
+`"userId" = auth.uid()` est désormais exigé, avec deux échappatoires nommées :
+le SUPER_ADMIN, et `auth_role() is null` pour la clé service-role, qui
+journalise pour le compte d'autrui à dessein — `journaliserConnexion` écrit la
+trace d'une connexion **échouée**, donc d'un utilisateur qui n'a pas de session.
+
+### Une dépendance abandonnée se contourne dans notre code
+
+Le paquet npm `xlsx` est figé en 0.18.5 et porte une pollution de prototype
+connue : SheetJS a quitté npm, et le correctif ne vit que sur son propre CDN.
+L'y chercher ferait dépendre chaque `npm ci` et chaque déploiement d'un service
+tiers — ce que ce dépôt s'interdit depuis l'incident Sentry du 2026-09-01.
+
+Le vecteur n'était pas la bibliothèque en général, mais **un appel précis** :
+`sheet_to_json` en mode objet, où c'est elle qui construit les lignes en prenant
+pour clés les en-têtes du fichier. Une colonne nommée `__proto__` atteint alors
+le prototype de tous les objets du processus, donc les requêtes des autres
+écoles servies par la même instance.
+
+`lireClasseur` lit désormais **en matrice** et fabrique les objets lui-même, en
+refusant trois noms de clé. Le vecteur disparaît quelle que soit la version
+installée.
+
+Règle générale : devant une vulnérabilité sans correctif disponible, chercher
+d'abord **par où on l'atteint chez nous**. Il est fréquent qu'on n'emprunte
+qu'un chemin sur dix, et qu'il soit remplaçable.
+
+**Gain inattendu, et c'est le genre qu'il faut noter** : le mode objet sautait
+les lignes entièrement vides, et le numéro annoncé valait `index + 2`. Une seule
+ligne blanche au milieu d'un fichier décalait tout le rapport d'import —
+« erreur ligne 34 » désignait la 35, et l'école corrigeait la mauvaise ligne.
+
+### Une redirection se valide, même quand personne ne s'en sert
+
+`/auth/callback` construisait sa destination par concaténation,
+`${urlApplication()}${next}`, et `urlApplication()` retire délibérément les
+barres finales. Donc `next=@evil.com` donnait
+`https://scolargest.com@evil.com` : `scolargest.com` n'est plus l'hôte mais un
+identifiant d'utilisateur, et le navigateur part chez `evil.com`. Le préfixe
+rassurant reste affiché dans le lien qu'on fait cliquer — et la victime vient
+précisément de s'authentifier, moment où elle accorde le plus de confiance à ce
+qui s'affiche.
+
+`src/lib/redirection.ts` exige un chemin absolu à une seule barre. Trois formes
+sont refusées, et **la première est celle qu'un contrôle naïf manque** :
+`@hôte`, sans aucune barre ; `//hôte`, protocole-relatif ; `/\hôte`, que les
+navigateurs normalisent en `//hôte`.
+
+**Aucun appelant du dépôt ne passe `next`** — ni le formulaire de connexion, ni
+les gabarits d'email Supabase. Le paramètre n'existait que pour un usage futur,
+et c'est bien le problème : une porte qu'on ouvre « au cas où » n'a personne
+pour la surveiller.
+
+### En-têtes de sécurité : ce qu'on pose, et ce qu'on ne pose pas encore
+
+`next.config.mjs` porte désormais cinq en-têtes, aucun n'existait avant le
+2026-09-17. Le choix est volontairement celui dont **l'effet est certain sans
+ouvrir l'application** : aucun ne restreint le chargement de scripts, de styles
+ou d'images, donc aucun ne peut casser une page.
+
+`frame-ancestors 'none'` plutôt que `X-Frame-Options` : même effet, mais c'est
+la directive que les navigateurs récents honorent, et elle couvre les cadres
+imbriqués. Sans elle, `/login` — le seul écran où l'on tape un mot de passe —
+peut être chargée dans un cadre invisible sur un site tiers.
+
+`Referrer-Policy` n'est pas décoratif ici : une invitation et une
+réinitialisation arrivent sur `/auth/callback` avec le `token_hash` **dans
+l'URL**. Sans politique, cette URL complète part en `Referer` vers toute origine
+tierce que la page contacte.
+
+**Ce qui manque encore, et pourquoi** : une CSP sur `script-src`. Elle demande
+de recenser les sources réelles — Next, Sentry, FedaPay — et de la constater sur
+une page rendue. Posée au jugé, elle casse l'application en silence chez
+l'utilisateur et pas chez nous. Elle se tranche sur une preview, pas au
+raisonnement.
+
+### Le cookie `sg_acces` n'est pas signé, et c'est un choix
+
+`httpOnly` n'arrête que JavaScript : son porteur contrôle son propre navigateur
+et peut y écrire `sg_acces=OK` à la main. La question n'est donc pas « peut-il
+le forger » — il le peut — mais **ce qu'il y gagne**.
+
+Rien qui compte : le cache n'est consulté que pour les **lectures**, et toute
+écriture relit la base sans exception. Une école suspendue qui forge ce cookie
+retarde l'affichage de sa page d'abonnement ; elle ne gagne pas une ligne de
+saisie. Signer ce verdict coûterait une clé à gérer pour protéger un aiguillage
+d'une minute.
+
+**Ce qu'il ne faut pas faire** : étendre ce cache aux écritures. Il deviendrait
+alors une autorisation portée par le client, et il faudrait le signer — ou le
+supprimer.

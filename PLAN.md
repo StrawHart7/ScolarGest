@@ -4254,3 +4254,100 @@ venaient. Elle y entre, juste après la classe.
 `EtapeCycles.tsx`, `SoumissionsQueue.tsx`, `ApprobationQueue.tsx`.
 
 ---
+
+### Le tour de sécurité de la version 1.0 — 2026-09-17
+
+**Statut** : ✅ livré sur `feat/soko-audit-securite`, agent SOKO. Cinq
+migrations appliquées. En attente de l'aval de l'utilisateur pour la production.
+
+**Objectif** — la version 1.0 étant atteinte, éprouver la plateforme
+elle-même : chercher les failles par le chemin réel, les fermer, et n'ajouter
+aucune fonctionnalité au passage.
+
+#### Ce qui a été trouvé, et par quoi
+
+Tout par le chemin réel — client anon plus session réelle, jamais la clé
+service-role, qui contournerait précisément ce qu'on vérifie.
+
+**L'escalade centrale.** Un enseignant s'insère une ligne dans
+`affectation_enseignant`, `est_affecte()` bascule à `true`, il écrit notes et
+évaluations dans n'importe quelle classe de l'école. La correction du
+2026-09-11 tenait par une table que l'attaquant pouvait écrire. Dix-sept tables
+de structure étaient dans le même cas : coefficients — donc toutes les moyennes
+d'une matière —, années scolaires, classes, matières, programme, filigrane des
+bulletins, fiches des collègues.
+
+**Onze essais sur douze ont abouti.** Après correction : onze sur onze refusés,
+et onze écritures légitimes du Directeur et de la Secrétaire toujours intactes.
+
+**La finance ouverte par le stockage.** Un compte ENSEIGNANT a téléchargé un
+reçu de paiement — 31 Ko de PDF — alors que la finance lui est fermée partout
+dans l'application. Le bucket ne comparait que le préfixe d'établissement.
+
+**Une redirection ouverte** sur `/auth/callback` : `next=@evil.com` produisait
+`https://scolargest.com@evil.com`, hôte réel `evil.com`.
+
+**Le journal d'audit signable du nom d'un autre.**
+
+**Le vecteur de pollution de prototype** du classeur Excel téléversé, par le
+mode objet de `sheet_to_json`.
+
+**L'octroi implicite à PUBLIC** sur six fonctions, dont une `security definer` :
+révoquer à `anon, authenticated` ne retire rien quand l'octroi vient de PUBLIC,
+et ne lève aucune erreur.
+
+**Et une sonde muette.** `verifier-isolation.ts` ne démarrait plus depuis le
+2026-09-03 — `montantTotal` devenu obligatoire par `0027`. Le seul contrôle du
+cloisonnement entre écoles était à l'arrêt depuis deux semaines. Réparé,
+relancé : 9 tentatives, 0 fuite.
+
+#### Livrables
+
+- [x] `20260917054600_resserrer_ecritures_structure` — quatre politiques par
+      table sur treize tables, rôles relevés dans l'instantané de la matrice ;
+      `etablissement` en écriture au seul Directeur ; `audit_log` épinglé sur
+      son auteur ; stockage séparé bulletins / reçus par rôle ; révocations ;
+      deux `search_path` de `controle` fixés.
+- [x] `20260917055051_borner_rejeu_demande_demo` — format d'adresse et
+      anti-rejeu par demandeur. **Pas de plafond global** : il suffirait de le
+      remplir pour empêcher toute école de demander une démo.
+- [x] `20260917060316_retirer_surface_inutilisee_utilisateur`.
+- [x] `20260917060923_retirer_octroi_public_implicite`.
+- [x] `scripts/verifier-escalade-roles.ts` — « peut-on se rendre autorisé ».
+- [x] `scripts/verifier-usage-legitime.ts` — le jumeau obligatoire.
+- [x] `src/lib/redirection.ts` + 8 tests.
+- [x] `src/lib/import/excel.ts` réécrit en lecture matricielle + 6 tests.
+- [x] Cinq en-têtes de sécurité, constatés sur une réponse réelle.
+- [x] `demarrerEssaiSiNecessaire` sur la clé de plateforme, derrière sa garde.
+- [x] Dix sections de doctrine dans `CLAUDE.md`.
+
+#### Deux décisions de méthode
+
+**Deux sondes, jamais une.** Celle qui vérifie qu'on ne peut pas se hisser se
+satisferait d'une base où plus personne n'écrit rien. La RLS ne lève pas sur un
+UPDATE — elle filtre —, donc un écran cassé par un resserrement ne dit rien du
+tout. Toute migration qui resserre se livre avec les deux mesures.
+
+**Pas de CSP sur `script-src`.** Elle demande de recenser les sources réelles et
+de la constater sur une page rendue. Posée au jugé, elle casse l'application
+chez l'utilisateur et pas chez nous. Se tranche sur une preview.
+
+#### Ce qui reste, et qui n'est pas du code
+
+- **Protection des mots de passe compromis** : désactivée. Un interrupteur dans
+  la console Supabase, hors de portée d'une migration.
+- **`xlsx` reste en 0.18.5** : le vecteur d'écriture est retiré, mais `XLSX.read`
+  lui-même porte encore un ReDoS connu. Le correctif n'existe que sur le CDN de
+  SheetJS, et en dépendre violerait « le build ne doit dépendre d'aucun service
+  tiers ». À trancher : accepter, ou vendoriser le paquet dans le dépôt.
+- **`bcrypt` tire un `tar` vulnérable** via `node-pre-gyp`, à l'installation
+  seulement, jamais à l'exécution. `bcrypt` 6 s'en débarrasse, mais c'est un
+  module natif : le bump se vérifie sur un build, pas au raisonnement.
+- **Le secret du cron se compare sans temps constant.** Sur HTTP, la gigue
+  réseau noie largement le signal ; noté, non corrigé.
+- **La Secrétaire écrit tarifs et paiements** en RLS comme dans la matrice,
+  alors que `Docs/08 § 17` la dit en lecture seule sur la finance. La base et le
+  code s'accordent ; c'est la documentation métier qui a divergé. Question de
+  périmètre, pas de sécurité.
+
+---
