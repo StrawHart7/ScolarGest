@@ -107,3 +107,51 @@ export async function createTarif(input: CreateTarifInput): Promise<TarifScolair
 export function totalTarifs(tarifs: Pick<TarifScolaire, 'montant'>[]): number {
   return tarifs.reduce((somme, t) => somme + Number(t.montant), 0);
 }
+
+/**
+ * Classes d'une année sur lesquelles aucun tarif n'est posé.
+ *
+ * Existe pour **avertir avant d'inscrire**. `fn_inscrire_eleve` boucle sur les
+ * tarifs de `(année, classe)` : s'il n'y en a aucun — l'état exact d'une année
+ * qu'on vient de créer — elle crée la facture à **0 F, sans aucune ligne**, et
+ * répond « OK ». Vérifié le 2026-09-17 en transaction annulée.
+ *
+ * Rien ne le disait. Sur une école de 294 élèves, un passage de cohorte lancé
+ * trop tôt produit 294 factures à zéro, et le suivi financier affiche « 0 F à
+ * recouvrer » — ce qui ressemble à une école dont tout le monde a payé. Ça se
+ * découvre au recouvrement, des mois plus tard.
+ *
+ * On avertit plutôt qu'on ne refuse : une école a le droit d'inscrire avant de
+ * fixer ses prix, et le lui interdire l'empêcherait de préparer sa rentrée.
+ */
+export async function classesSansTarif(anneeScolaireId: string): Promise<string[]> {
+  const ctx = await requireRole('DIRECTEUR', 'SECRETAIRE', 'COMPTABLE');
+  const supabase = createClient();
+
+  const [{ data: classes, error: erreurClasses }, { data: tarifs, error: erreurTarifs }] =
+    await Promise.all([
+      supabase
+        .from('classe')
+        .select('id')
+        .eq('etablissementId', ctx.etablissementId)
+        .eq('anneeScolaireId', anneeScolaireId),
+      supabase
+        .from('tarif_scolaire')
+        .select('"classeId"')
+        .eq('etablissementId', ctx.etablissementId)
+        .eq('anneeScolaireId', anneeScolaireId),
+    ]);
+  // Les deux lectures lèvent : un `null` silencieux ferait conclure « aucune
+  // classe sans tarif » et l'avertissement disparaîtrait au moment précis où il
+  // sert. C'est le piège déjà payé sur `bilanCloture`, qui annonçait
+  // « 0 F à recouvrer » sur une requête en échec.
+  if (erreurClasses) throw erreurClasses;
+  if (erreurTarifs) throw erreurTarifs;
+
+  const tarifees = new Set(
+    ((tarifs ?? []) as { classeId: string }[]).map((t) => t.classeId),
+  );
+  return ((classes ?? []) as { id: string }[])
+    .map((c) => c.id)
+    .filter((id) => !tarifees.has(id));
+}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -20,6 +21,7 @@ export function PassageCohorteForm({
   classeId,
   decisions,
   classesCibles,
+  classesSansTarif,
 }: {
   anneeSourceId: string;
   autresAnnees: AnneeScolaire[];
@@ -28,6 +30,8 @@ export function PassageCohorteForm({
   classeId: string;
   decisions: DecisionProposee[];
   classesCibles: Classe[];
+  /** Classes de l'année cible sur lesquelles aucun tarif n'est encore posé. */
+  classesSansTarif: string[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -35,6 +39,29 @@ export function PassageCohorteForm({
   const [rows, setRows] = useState<Record<string, { decision: Decision; classeCibleId?: string }>>(
     Object.fromEntries(decisions.map((d) => [d.eleveId, { decision: d.decisionProposee }])),
   );
+
+  const sansTarif = useMemo(() => new Set(classesSansTarif), [classesSansTarif]);
+
+  /**
+   * Combien d'élèves partiraient vers une classe sans tarif, et lesquelles.
+   *
+   * Compté sur les décisions **réellement saisies**, pas sur la liste des
+   * classes : avertir « trois classes n'ont pas de tarif » quand aucun élève
+   * n'y va serait un cri de plus qu'on apprend à ignorer. Et seuls ADMIS et
+   * REDOUBLANT créent une inscription — un départ ne produit aucune facture.
+   */
+  const { elevesSansTarif, classesViseesSansTarif } = useMemo(() => {
+    const visees = new Set<string>();
+    let eleves = 0;
+    for (const ligne of Object.values(rows)) {
+      if (ligne.decision === 'DEPART' || !ligne.classeCibleId) continue;
+      if (!sansTarif.has(ligne.classeCibleId)) continue;
+      eleves += 1;
+      const nom = classesCibles.find((c) => c.id === ligne.classeCibleId)?.nom;
+      if (nom) visees.add(nom);
+    }
+    return { elevesSansTarif: eleves, classesViseesSansTarif: [...visees].sort() };
+  }, [rows, sansTarif, classesCibles]);
 
   function updateRow(eleveId: string, patch: Partial<{ decision: Decision; classeCibleId?: string }>) {
     setRows((prev) => ({
@@ -241,7 +268,10 @@ export function PassageCohorteForm({
                         <SelectContent>
                           {classesCibles.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.nom}
+                              {/* Dit au moment du choix, pas seulement en
+                                  récapitulatif : c'est ici qu'on peut encore
+                                  viser une autre classe. */}
+                              {sansTarif.has(c.id) ? `${c.nom} — sans tarif` : c.nom}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -271,6 +301,30 @@ export function PassageCohorteForm({
           </ul>
         </div>
       )}
+
+        {/* Avant le bouton, jamais après : une facture émise ne se refait pas,
+            et le seul moment utile pour le dire est celui où l'on peut encore
+            reculer. On avertit sans bloquer — une école a le droit d'inscrire
+            avant d'avoir fixé ses prix. */}
+        {elevesSansTarif > 0 && (
+          <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-body-sm text-warning-on-container">
+            <strong>
+              {elevesSansTarif} élève(s) iraient vers une classe sans tarif
+              {classesViseesSansTarif.length > 0 ? ` (${classesViseesSansTarif.join(', ')})` : ''}.
+            </strong>{' '}
+            Leur facture serait créée à <strong>0 F, sans aucune ligne</strong>, et le suivi
+            financier afficherait « rien à recouvrer » pour eux. Un tarif ne se pose qu&apos;une
+            fois et ne réécrit pas les factures déjà émises : posez-les d&apos;abord.{' '}
+            {anneeCibleId && (
+              <Link
+                href={`/etablissement/finances/tarifs?anneeScolaireId=${anneeCibleId}`}
+                className="font-medium underline"
+              >
+                Régler les tarifs de cette année
+              </Link>
+            )}
+          </p>
+        )}
 
         {decisions.length > 0 && (
           <div className="flex justify-end">

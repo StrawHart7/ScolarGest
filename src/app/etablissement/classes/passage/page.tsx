@@ -3,6 +3,7 @@ import { getTenantContext } from '@/services/tenant';
 import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listInscriptionsACloturer, proposerDecisions } from '@/services/passage-annee';
 import { listClasses } from '@/services/classe';
+import { classesSansTarif } from '@/services/tarif';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LienRetour } from '@/components/layout/LienRetour';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,7 +29,12 @@ export default async function PassageCohortePage({
   const inscriptions =
     anneeSourceId && classeId ? await listInscriptionsACloturer(anneeSourceId, classeId) : [];
   const decisions = proposerDecisions(inscriptions);
-  const classesCibles = anneeCibleId ? await listClasses(anneeCibleId) : [];
+  // Les deux ensemble : la liste des classes cibles n'a de sens qu'accompagnée
+  // de celles qui n'ont pas encore de tarif — sans quoi l'écran propose une
+  // destination qui produira une facture à zéro sans le dire.
+  const [classesCibles, sansTarif] = anneeCibleId
+    ? await Promise.all([listClasses(anneeCibleId), classesSansTarif(anneeCibleId)])
+    : [[], []];
 
   return (
     <AppLayout
@@ -78,6 +84,7 @@ export default async function PassageCohortePage({
               classeId={classeId ?? ''}
               decisions={decisions}
               classesCibles={classesCibles}
+              classesSansTarif={sansTarif}
             />
           </Card>
         )}
