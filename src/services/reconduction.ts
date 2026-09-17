@@ -61,11 +61,26 @@ interface LigneClasse {
 }
 
 /**
- * L'année qui précède immédiatement la cible, par date de début.
+ * L'année précédente dont il y a quelque chose à reprendre.
  *
  * Par la date et non par le statut : au moment où l'on prépare la rentrée,
- * l'année précédente peut être encore `ACTIVE`, déjà `TERMINEE`, ou même avoir
- * été clôturée dans le désordre. La chronologie, elle, ne ment pas.
+ * l'année précédente peut être encore `ACTIVE`, déjà `TERMINEE`, ou avoir été
+ * clôturée dans le désordre. La chronologie, elle, ne ment pas.
+ *
+ * **Mais « la précédente » ne suffit pas : il faut la précédente qui a des
+ * classes.** Constaté le 2026-09-17 en préparant l'essai sur des données
+ * réelles — une école portait une année 2026-2027 entièrement vide, créée puis
+ * abandonnée, intercalée entre l'année vivante et celle qu'on préparait. La
+ * règle « strictement la précédente » l'aurait choisie et aurait annoncé « rien
+ * à reprendre » alors que l'année d'avant offrait cent treize affectations.
+ *
+ * Une année créée en avance puis délaissée n'a rien d'exceptionnel, et le
+ * symptôme aurait été le pire possible : un écran qui répond calmement qu'il
+ * n'y a rien à faire.
+ *
+ * On saute donc les années sans classe. Le nombre d'années d'une école se
+ * compte sur les doigts d'une main : les parcourir coûte deux requêtes, et
+ * demander à PostgREST un `exists` corrélé en coûterait autant en lisibilité.
  */
 async function anneeSource(
   supabase: ReturnType<typeof createClient>,
@@ -81,16 +96,30 @@ async function anneeSource(
   if (erreurCible) throw erreurCible;
   if (!cible) throw new Error('Année scolaire introuvable.');
 
-  const { data, error } = await supabase
-    .from('annee_scolaire')
-    .select('id, libelle')
-    .eq('etablissementId', etablissementId)
-    .lt('dateDebut', (cible as { dateDebut: string }).dateDebut)
-    .order('dateDebut', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: precedentes, error }, { data: classes, error: erreurClasses }] = await Promise.all([
+    supabase
+      .from('annee_scolaire')
+      .select('id, libelle')
+      .eq('etablissementId', etablissementId)
+      .lt('dateDebut', (cible as { dateDebut: string }).dateDebut)
+      .order('dateDebut', { ascending: false }),
+    supabase
+      .from('classe')
+      .select('"anneeScolaireId"')
+      .eq('etablissementId', etablissementId),
+  ]);
   if (error) throw error;
-  return (data as { id: string; libelle: string } | null) ?? null;
+  if (erreurClasses) throw erreurClasses;
+
+  const anneesPeuplees = new Set(
+    ((classes ?? []) as { anneeScolaireId: string }[]).map((c) => c.anneeScolaireId),
+  );
+
+  return (
+    ((precedentes ?? []) as { id: string; libelle: string }[]).find((a) =>
+      anneesPeuplees.has(a.id),
+    ) ?? null
+  );
 }
 
 async function classesDe(

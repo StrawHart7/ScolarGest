@@ -39,6 +39,17 @@ export function PropositionTarifs({
       propositions.map((p) => [`${p.classeCibleId}|${p.typeFraisId}`, String(p.montant)]),
     ),
   );
+  /**
+   * Lignes que le Directeur refuse.
+   *
+   * **Nécessaire, et découvert en essayant sur des données réelles** : la
+   * proposition part du niveau, or deux classes d'un même niveau n'ont pas
+   * toujours les mêmes frais. Chez une école, la 6ème B portait une cantine que
+   * la 6ème A n'avait pas — la reprise proposait donc à la 6ème A un frais
+   * qu'elle n'a jamais eu. Sans cette case, il n'existait aucun moyen de
+   * décliner, et un tarif ne se supprime plus une fois créé.
+   */
+  const [retires, setRetires] = useState<Set<string>>(() => new Set());
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -52,18 +63,31 @@ export function PropositionTarifs({
     return [...groupes.entries()].sort((a, b) => a[1].nom.localeCompare(b[1].nom, 'fr'));
   }, [propositions]);
 
+  const retenues = useMemo(
+    () => propositions.filter((p) => !retires.has(`${p.classeCibleId}|${p.typeFraisId}`)),
+    [propositions, retires],
+  );
+
   const total = useMemo(
-    () => Object.values(montants).reduce((s, v) => s + (Number(v) || 0), 0),
-    [montants],
+    () =>
+      retenues.reduce(
+        (s, p) => s + (Number(montants[`${p.classeCibleId}|${p.typeFraisId}`]) || 0),
+        0,
+      ),
+    [retenues, montants],
   );
 
   function valider() {
     setErreur(null);
-    const lignes = propositions.map((p) => ({
+    const lignes = retenues.map((p) => ({
       classeId: p.classeCibleId,
       typeFraisId: p.typeFraisId,
       montant: Number(montants[`${p.classeCibleId}|${p.typeFraisId}`] ?? p.montant),
     }));
+    if (lignes.length === 0) {
+      setErreur('Toutes les lignes sont retirées : il n’y a rien à créer.');
+      return;
+    }
     if (lignes.some((l) => !Number.isFinite(l.montant) || l.montant < 0)) {
       setErreur('Chaque montant doit être un nombre positif.');
       return;
@@ -87,10 +111,12 @@ export function PropositionTarifs({
               Reprendre les tarifs de {sourceLibelle}
             </h2>
             <p className="mt-1 text-body-sm text-text-secondary">
-              Cette année n&apos;a encore aucun tarif. Voici ceux de l&apos;an dernier, reportés par
-              niveau. Corrigez ce qui a changé, puis validez une fois.{' '}
-              <strong>Un tarif ne se modifie plus une fois créé</strong> — c&apos;est le moment de
-              les relire.
+              Cette année n&apos;a encore aucun tarif. Voici ceux de l&apos;an dernier,
+              <strong> reportés par niveau</strong> : si deux classes d&apos;un même niveau
+              n&apos;avaient pas exactement les mêmes frais, la ligne est proposée aux deux —
+              décochez ce qui ne s&apos;applique pas. Corrigez les montants qui ont changé, puis
+              validez une fois. <strong>Un tarif ne se modifie plus une fois créé</strong> :
+              c&apos;est le moment de les relire.
             </p>
           </div>
         </div>
@@ -122,11 +148,28 @@ export function PropositionTarifs({
               <div className="mt-2 flex flex-col gap-2">
                 {groupe.lignes.map((ligne) => {
                   const cle = `${ligne.classeCibleId}|${ligne.typeFraisId}`;
+                  const retire = retires.has(cle);
                   return (
                     <div key={cle} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id={`garder-${cle}`}
+                        checked={!retire}
+                        className="h-4 w-4 shrink-0 accent-primary-container"
+                        onChange={() =>
+                          setRetires((r) => {
+                            const suivant = new Set(r);
+                            if (retire) suivant.delete(cle);
+                            else suivant.add(cle);
+                            return suivant;
+                          })
+                        }
+                      />
                       <label
-                        htmlFor={`tarif-${cle}`}
-                        className="flex-1 text-body-sm text-text-primary"
+                        htmlFor={`garder-${cle}`}
+                        className={`flex-1 text-body-sm ${
+                          retire ? 'text-text-secondary line-through' : 'text-text-primary'
+                        }`}
                       >
                         {ligne.typeFraisNom}
                       </label>
@@ -135,7 +178,9 @@ export function PropositionTarifs({
                         type="number"
                         inputMode="numeric"
                         min={0}
+                        aria-label={`Montant — ${ligne.typeFraisNom}, ${ligne.classeCibleNom}`}
                         className="w-40"
+                        disabled={retire}
                         value={montants[cle] ?? ''}
                         onChange={(e) =>
                           setMontants((m) => ({ ...m, [cle]: e.target.value }))
@@ -151,11 +196,12 @@ export function PropositionTarifs({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border pt-4">
           <p className="text-body-sm text-text-secondary">
-            {propositions.length} tarif(s), {fcfa(total)} au total sur l&apos;ensemble des classes.
+            {retenues.length} tarif(s), {fcfa(total)} au total sur l&apos;ensemble des classes.
+            {retires.size > 0 && ` ${retires.size} ligne(s) retirée(s).`}
           </p>
           <Button type="button" variant="primary" disabled={enCours} onClick={valider}>
             <Check className="h-4 w-4" aria-hidden />
-            {enCours ? 'Création…' : `Créer ces ${propositions.length} tarifs`}
+            {enCours ? 'Création…' : `Créer ces ${retenues.length} tarifs`}
           </Button>
         </div>
       </CardContent>
