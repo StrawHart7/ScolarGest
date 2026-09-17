@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { traiterEcheances } from '@/services/relances-abonnement';
 
@@ -27,8 +28,22 @@ function autorise(request: NextRequest): boolean {
   // Pas de secret configuré : on refuse plutôt que d'ouvrir. Un déploiement
   // incomplet doit se voir, pas se comporter comme un déploiement ouvert.
   if (!attendu) return false;
-  const entete = request.headers.get('authorization') ?? '';
-  return entete === `Bearer ${attendu}`;
+
+  const recu = Buffer.from(request.headers.get('authorization') ?? '');
+  const voulu = Buffer.from(`Bearer ${attendu}`);
+
+  // `timingSafeEqual` exige des longueurs égales et lève sinon : comparer les
+  // longueurs d'abord est obligatoire, et cela révèle la longueur du secret —
+  // ce qui n'a aucune valeur pour un attaquant.
+  //
+  // La comparaison d'origine (`===`) s'arrêtait au premier octet différent.
+  // Sur un réseau, la gigue noie très largement ce signal, et personne n'a
+  // jamais extrait un secret ainsi à travers Internet : ce n'est donc pas un
+  // correctif de panne, c'est le refus de laisser une comparaison de secret
+  // dépendre de son contenu. Le jour où ce code sera relu, il ne posera pas
+  // la question.
+  if (recu.length !== voulu.length) return false;
+  return timingSafeEqual(recu, voulu);
 }
 
 export async function GET(request: NextRequest) {

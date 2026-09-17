@@ -68,17 +68,56 @@ const nextConfig = {
    * `token_hash` **dans l'URL**. Sans politique, cette URL complète part en
    * `Referer` vers toute origine tierce que la page contacte — le jeton avec.
    *
-   * Ce qui manque encore, et pourquoi : une CSP sur `script-src`. Elle demande
-   * de recenser les sources réelles (Next, Sentry, FedaPay) et de la constater
-   * sur une page rendue. Posée au jugé, elle casse l'application en silence
-   * chez l'utilisateur et pas chez nous. Elle se tranche sur une preview.
+   * `base-uri 'self'` et `object-src 'none'` s'y ajoutent sans risque mesurable :
+   * l'application ne pose aucune balise `<base>`, aucun `<object>` ni `<embed>`
+   * — vérifié. La première empêche une injection de `<base>` de détourner
+   * *toutes* les URL relatives de la page vers un hôte tiers, ce qui est le
+   * moyen le plus discret de siphonner une session.
+   *
+   * La CSP complète, elle, vit en **`Report-Only`**, et c'est tout l'intérêt :
+   * le navigateur applique la page normalement et signale dans sa console ce
+   * qu'il aurait bloqué. On récolte la liste réelle des sources sur une preview
+   * au lieu de la deviner, puis on bascule les directives une à une dans
+   * l'en-tête appliqué. Posée au jugé et directement appliquée, elle casserait
+   * l'application chez l'utilisateur et pas chez nous.
+   *
+   * `'unsafe-inline'` sur `script-src` n'est pas un renoncement : Next injecte
+   * son amorce en scripts inline (`self.__next_f.push(...)`). S'en passer exige
+   * des nonces posés par le middleware, donc un rendu dynamique sur chaque
+   * page — on échangerait une défense en profondeur contre la mise en cache de
+   * tout le site. React échappe déjà par défaut, et le dépôt ne contient aucun
+   * `dangerouslySetInnerHTML` : la surface XSS qu'elle couvrirait est vide.
    */
   async headers() {
+    const cspComplete = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      // Supabase : REST, Auth et Storage en HTTPS, temps réel en WebSocket.
+      // Sentry ne figure pas ici : `tunnelRoute` fait transiter ses envois par
+      // `/monitoring`, donc par notre propre origine.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      // Le paiement est une redirection de navigation, pas un cadre ni un POST
+      // sortant. `form-action` reste donc sur nous seuls ; si un formulaire
+      // partait un jour chez FedaPay, la console le dirait avant de casser.
+      "form-action 'self'",
+      "frame-src 'none'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "object-src 'none'",
+    ].join('; ');
+
     return [
       {
         source: '/:chemin*',
         headers: [
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+          },
+          { key: 'Content-Security-Policy-Report-Only', value: cspComplete },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
