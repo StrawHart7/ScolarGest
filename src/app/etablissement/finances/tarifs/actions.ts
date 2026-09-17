@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createTarif } from '@/services/tarif';
+import { validerTarifsReconduits } from '@/services/reconduction';
 import { createTypeFrais, listTypesFrais } from '@/services/type-frais';
 // Dans `lib/` et non ici : un fichier `'use server'` ne peut exporter que des
 // fonctions asynchrones, une constante y ferait échouer le build.
@@ -86,4 +87,28 @@ export async function creerTarifAction(
   // 'OK' plutôt que null : le formulaire en modal doit pouvoir distinguer
   // « rien ne s'est encore passé » de « succès » pour se fermer.
   return 'OK';
+}
+
+/**
+ * Crée d'un coup les tarifs repris de l'année précédente, après relecture.
+ *
+ * Rend un objet plutôt que de lever : l'appelant est un composant client, et la
+ * validation porte sur quatre-vingt-dix lignes — une erreur d'exécution brute y
+ * ferait perdre toute la saisie corrigée.
+ */
+export async function validerTarifsReconduitsAction(
+  anneeScolaireId: string,
+  lignes: { classeId: string; typeFraisId: string; montant: number }[],
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const nombre = await validerTarifsReconduits(anneeScolaireId, lignes);
+    revalidatePath('/etablissement/finances/tarifs');
+    revalidatePath(`/etablissement/annees-scolaires/${anneeScolaireId}`);
+    return { ok: true, message: `${nombre} tarif(s) créés.` };
+  } catch (e) {
+    return {
+      ok: false,
+      message: e instanceof Error ? e.message : 'La création des tarifs a échoué.',
+    };
+  }
 }

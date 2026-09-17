@@ -5,6 +5,7 @@ import { listAnneesScolaires } from '@/services/annee-scolaire';
 import { listClasses } from '@/services/classe';
 import { listTypesFrais } from '@/services/type-frais';
 import { listTarifs } from '@/services/tarif';
+import { tarifsAProposer } from '@/services/reconduction';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BarreSection } from '@/components/layout/BarreSection';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -18,6 +19,7 @@ import { lireParametresListe, preparerListe } from '@/lib/liste';
 import { getSidebarItems } from '@/lib/navigation';
 import { TarifsFiltres } from './TarifsFiltres';
 import { TarifForm } from './TarifForm';
+import { PropositionTarifs } from './PropositionTarifs';
 
 const fcfa = (montant: number) => `${Number(montant).toLocaleString('fr-FR')} FCFA`;
 
@@ -50,10 +52,15 @@ export default async function TarifsPage({
   const anneeScolaireId = lireUnique('anneeScolaireId') || anneeActive?.id || annees[0]?.id;
   const classeId = lireUnique('classeId');
 
-  // Vague 2 : dépend de l'année retenue ci-dessus, mais les deux vont ensemble.
-  const [classes, tarifs] = await Promise.all([
+  // Vague 2 : dépend de l'année retenue ci-dessus, mais les trois vont ensemble.
+  // `tarifsAProposer` rend une liste vide dès que l'année porte déjà un tarif :
+  // le coût est une requête de comptage, et l'écran n'a rien à décider.
+  const [classes, tarifs, reprise] = await Promise.all([
     anneeScolaireId ? listClasses(anneeScolaireId) : [],
     anneeScolaireId ? listTarifs(anneeScolaireId, classeId) : [],
+    anneeScolaireId
+      ? tarifsAProposer(anneeScolaireId)
+      : { source: null, propositions: [], conflits: [] },
   ]);
 
   const parametres = lireParametresListe(searchParams, { tri: 'classe' });
@@ -87,6 +94,19 @@ export default async function TarifsPage({
         </div>
 
         <SousTitreMobile>Combien coûte chaque frais, classe par classe. C’est d’ici que la facture d’un élève est calculée quand vous l’inscrivez.</SousTitreMobile>
+
+        {/* Avant la liste, et non après : une année sans tarif n'a rien à
+            montrer dessous, et c'est précisément le moment où l'école a besoin
+            qu'on lui tende les montants de l'an dernier plutôt qu'un tableau
+            vide. */}
+        {canWrite && reprise.source && reprise.propositions.length > 0 && anneeScolaireId && (
+          <PropositionTarifs
+            anneeScolaireId={anneeScolaireId}
+            sourceLibelle={reprise.source.libelle}
+            propositions={reprise.propositions}
+            conflits={reprise.conflits}
+          />
+        )}
 
         <BarreListe
           placeholderRecherche="Rechercher un tarif…"

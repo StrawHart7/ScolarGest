@@ -152,7 +152,19 @@ export async function diagnostiquer(): Promise<Diagnostic> {
     compter('programme_etablissement', etablissementId),
     compter('eleve', etablissementId),
     compter('enseignant', etablissementId),
-    compter('affectation_enseignant', etablissementId),
+    // **Bornée à l'année active**, comme ses six voisines. Elle ne l'était pas,
+    // et c'était la seule : `affectation_enseignant` porte pourtant
+    // `anneeScolaireId`. Mesuré le 2026-09-17 en simulant une bascule d'année —
+    // classes, tarifs, coefficients, créneaux, titularités et évaluations
+    // retombaient bien à zéro, les affectations restaient à 113, celles de
+    // l'an dernier.
+    //
+    // Le conseil « affectez vos enseignants » ne se déclenchait donc **jamais**
+    // à une nouvelle année. Et la conséquence dépasse le conseil manqué :
+    // `est_affecte()`, elle, est bornée à l'année, donc sans affectation les
+    // enseignants ne peuvent pas saisir de notes — et le seul écran qui aurait
+    // pu prévenir le Directeur se taisait.
+    anneeId ? compter('affectation_enseignant', etablissementId, { anneeScolaireId: anneeId }) : 0,
     anneeId
       ? compter('emploi_du_temps_creneau', etablissementId, { anneeScolaireId: anneeId })
       : 0,
