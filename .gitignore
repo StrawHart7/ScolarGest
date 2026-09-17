@@ -40,3 +40,12 @@ public/assets/documents/*.pdf
 
 # Sorties de scripts/apercu-bulletin.ts (aperçu local du gabarit)
 apercu-bulletin-*
+
+# Sorties de scripts/sauvegarde.ts.
+#
+# Une sauvegarde porte les noms, les dates de naissance et les responsables
+# légaux de centaines d'élèves, plus les bulletins et les reçus en clair. Elle
+# ne doit jamais entrer dans Git : un dépôt se clone, se pousse et se partage,
+# et une donnée versionnée ne se retire plus vraiment. Sa place est hors de
+# cette machine — disque chiffré ou stockage privé.
+sauvegardes/
