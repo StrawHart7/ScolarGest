@@ -4254,3 +4254,50 @@ venaient. Elle y entre, juste après la classe.
 `EtapeCycles.tsx`, `SoumissionsQueue.tsx`, `ApprobationQueue.tsx`.
 
 ---
+
+### Reconduction d'une année sur l'autre — 2026-09-17
+
+**Statut** : ✅ livré sur `feat/soko-reconduction-annee`, agent SOKO. Aucune
+migration. En attente de l'essai de l'utilisateur sur preview.
+
+**Objectif** — une rentrée doit être « je vérifie et j'ajuste », pas « je
+ressaisis tout ». Constaté en simulant une bascule d'année sur des données
+réelles : au lendemain du changement, classes, tarifs, coefficients, créneaux,
+titularités et évaluations sont tous à zéro. 93 tarifs, 113 affectations et 13
+titularités à refaire à la main pour une école de quatorze classes.
+
+#### Livrables
+
+- [x] `src/lib/reconduction.ts` — appariement des classes et propositions de
+      tarifs, sans dépendance. 14 tests, dont ceux qui vérifient qu'il **refuse**
+      de rapprocher quand c'est ambigu.
+- [x] `src/services/reconduction.ts` — aperçu chiffré, reconduction réelle des
+      affectations / titularités / emploi du temps, validation en lot des tarifs.
+- [x] Écran : reprise sur la fiche d'une année, proposition pré-remplie sur
+      l'écran des tarifs.
+- [x] `conseils.ts` — la sonde des affectations bornée à l'année active.
+
+#### La décision de conception
+
+**Ce qui ne se défait pas se propose ; ce qui se défait se reconduit.** Un tarif
+est immuable après création : le recopier d'office enfermerait l'école dans les
+prix de l'an dernier pour toute l'année, alors qu'une rentrée est le moment où
+ils bougent. Affectations, titularités et créneaux se suppriment librement — eux
+se reprennent pour de bon.
+
+#### Ce qui n'est pas vérifié
+
+Le chemin d'écriture complet n'a pas été exécuté : il demande une session réelle
+dans le navigateur. Une année 2027-2028 et ses quatorze classes ont été
+préparées sur l'école de test — 113 affectations, 13 titularités, 6 créneaux et
+92 tarifs à reprendre, plus cinq enseignants partis qui exercent la branche des
+écartés.
+
+#### Laissé ouvert
+
+Le premier défaut trouvé reste entier : passer la cohorte **avant** de valider
+les tarifs crée toujours des factures à 0 F, en silence. La reconduction en
+réduit beaucoup la probabilité — les montants sont désormais à un clic — mais ne
+ferme pas le cas. L'avertissement sur l'écran de passage reste à faire.
+
+---

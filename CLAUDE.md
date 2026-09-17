@@ -3953,3 +3953,72 @@ l'école, pas au nôtre.
 affiché à la Secrétaire. `SECTIONS` ne la déclare que pour le Directeur et le
 Comptable. Si la Secrétaire subit bien la lecture seule, elle n'a aucun chemin
 visible vers l'explication. Question de périmètre, laissée à l'utilisateur.
+
+### Reconduction d'une année sur l'autre : proposer ou reconduire, selon ce qui est réversible
+
+Dix tables portent `anneeScolaireId`. Mesuré le 2026-09-17 en simulant une
+bascule sur des données réelles, en transaction annulée : au lendemain du
+changement, `classes=0 tarifs=0 coefficients=0 créneaux=0 titularités=0
+évaluations=0`. Les coefficients se réappliquent depuis le barème national ; le
+reste se ressaisissait à la main — 93 tarifs, 113 affectations, 13 titularités
+pour quatorze classes.
+
+**La règle qui départage les deux traitements est la réversibilité.**
+
+- **Un tarif est immuable après création** (doc 08 § 6, `analysis.md` § 6 : « pas
+  de workflow, interdiction pure et simple de modification »). Ni `updateTarif`
+  ni `deleteTarif` n'existent. Le recopier d'office enfermerait l'école dans les
+  prix de l'an dernier pour toute l'année, alors qu'une rentrée est justement le
+  moment où ils bougent. Il se **propose** donc : le formulaire arrive rempli,
+  le Directeur corrige, valide une fois.
+- **Affectations, titularités et créneaux se créent et se suppriment
+  librement.** Ils se reconduisent pour de bon.
+
+Avant d'automatiser une reprise, regarder si le geste se défait. Ce qui ne se
+défait pas se propose.
+
+**Le rapprochement des classes ne devine jamais.** Deux passes — même niveau,
+même série, même nom ; puis seule candidate restante, ce qui couvre un
+renommage. Ce qui reste est déclaré orphelin et nommé à l'écran. Trois classes
+renommées face à trois sources produisent trois orphelines, pas trois paires au
+hasard : un mauvais rapprochement donnerait l'emploi du temps d'une classe à une
+autre, et l'erreur ne se verrait qu'à la première heure de cours.
+
+**Les tarifs, eux, se rapprochent par niveau et non par classe.** Mesuré : chaque
+niveau à plusieurs classes porte **un seul montant** par type de frais — la 6ème
+A et la 6ème B sont à 65 000 toutes les deux, sur les sept frais. Le tarif est
+stocké par classe (décision Q7) mais se décide par niveau, et passer par le
+niveau supprime entièrement la question de l'identité des classes. Un niveau qui
+portait deux montants différents ne produit **aucune** proposition, seulement un
+conflit nommé — un prix que personne n'a décidé est pire qu'un champ vide, parce
+que le champ vide se voit.
+
+### Une sonde de conseil doit porter la même borne que la donnée qu'elle mesure
+
+`conseils.ts` comptait `affectation_enseignant` **sans filtre d'année**, seule
+parmi ses six voisines, alors que la table porte `anneeScolaireId`. Au lendemain
+d'une bascule elle annonçait 113 — les affectations de l'an dernier — et le
+conseil « affectez vos enseignants » ne se déclenchait donc **jamais** sur une
+nouvelle année.
+
+La conséquence dépasse le conseil manqué : `est_affecte()`, elle, est bornée à
+l'année. Sans affectation, **les enseignants ne peuvent pas saisir de notes**, et
+le seul écran qui aurait pu prévenir le Directeur se taisait. Une corvée de
+rentrée qui est aussi une panne de rentrée.
+
+Règle : **quand une donnée porte `anneeScolaireId`, la sonde qui la mesure le
+porte aussi.** Les six voisines étaient justes ; c'est l'exception qui trahit,
+et elle ne se voit pas tant qu'on ne change pas d'année — les données de test
+vivent toutes sur l'année active.
+
+### Une transaction annulée mesure sans salir
+
+`do $$ ... raise exception 'BILAN %', ...` était déjà consigné pour les sondes de
+sécurité. Il vaut autant pour une question produit : « qu'est-ce que
+l'application dirait le lendemain d'un changement d'année ? » se répond en
+**faisant** la bascule — clôturer, créer, activer, compter — puis en levant pour
+tout annuler.
+
+C'est ce qui a transformé « la sonde des affectations me semble mal bornée » en
+« elle annonce 113 au lieu de 0 ». Le premier est une lecture de code, le second
+est un fait, et seul le second permet de chiffrer ce que ça coûte.
